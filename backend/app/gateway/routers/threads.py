@@ -19,15 +19,15 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request
 from langgraph.checkpoint.base import empty_checkpoint, uuid6
 from pydantic import BaseModel, Field, field_validator
-from vassilflow.config.paths import Paths, get_paths
-from vassilflow.runtime import serialize_channel_values_for_api
-from vassilflow.runtime.user_context import get_effective_user_id
-from vassilflow.utils.time import coerce_iso, now_iso
 
 from app.gateway.authz import require_permission
 from app.gateway.deps import get_checkpointer
 from app.gateway.internal_auth import get_trusted_internal_owner_user_id
 from app.gateway.utils import sanitize_log_param
+from vassilflow.config.paths import Paths, get_paths
+from vassilflow.runtime import serialize_channel_values_for_api
+from vassilflow.runtime.user_context import get_effective_user_id
+from vassilflow.utils.time import coerce_iso, now_iso
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/threads", tags=["threads"])
@@ -325,9 +325,8 @@ async def search_threads(body: ThreadSearchRequest, request: Request) -> list[Th
     Delegates to the configured ThreadMetaStore implementation
     (SQL-backed for sqlite/postgres, Store-backed for memory mode).
     """
-    from vassilflow.persistence.thread_meta import InvalidMetadataFilterError
-
     from app.gateway.deps import get_thread_store
+    from vassilflow.persistence.thread_meta import InvalidMetadataFilterError
 
     repo = get_thread_store(request)
     try:

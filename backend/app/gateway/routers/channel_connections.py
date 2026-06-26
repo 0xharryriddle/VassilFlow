@@ -10,9 +10,6 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
-from vassilflow.config.channel_connections_config import ChannelConnectionsConfig
-from vassilflow.persistence.channel_connections import ChannelConnectionRepository
-from vassilflow.persistence.engine import get_session_factory
 
 from app.brand import PRODUCT_NAME
 from app.channels.runtime_config_store import (
@@ -21,6 +18,9 @@ from app.channels.runtime_config_store import (
     merge_runtime_channel_configs,
 )
 from app.gateway.deps import require_admin_user
+from vassilflow.config.channel_connections_config import ChannelConnectionsConfig
+from vassilflow.persistence.channel_connections import ChannelConnectionRepository
+from vassilflow.persistence.engine import get_session_factory
 
 router = APIRouter(prefix="/api/channels", tags=["channel-connections"])
 logger = logging.getLogger(__name__)

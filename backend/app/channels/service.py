@@ -6,13 +6,12 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
-from vassilflow.config.env_aliases import env_value
-
 from app.channels.base import Channel
 from app.channels.manager import DEFAULT_GATEWAY_URL, DEFAULT_LANGGRAPH_URL, ChannelManager
 from app.channels.message_bus import MessageBus
 from app.channels.runtime_config_store import merge_runtime_channel_configs
 from app.channels.store import ChannelStore
+from vassilflow.config.env_aliases import env_value
 
 logger = logging.getLogger(__name__)
 

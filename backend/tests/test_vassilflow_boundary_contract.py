@@ -77,6 +77,11 @@ def test_vassilflow_boundary_entities_match_contract_fields():
 
 
 def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow():
+    from deerflow.agents import create_deerflow_agent
+    from deerflow.client import DeerFlowClient
+    from deerflow.models import create_chat_model
+    from deerflow.runtime import RunManager, make_store, serialize_channel_values_for_api
+    from deerflow.runtime import RunStatus as DeerFlowRunStatus
     from vassilflow import create_vassilflow_agent
     from vassilflow.agents import create_deerflow_agent as facade_create_deerflow_agent
     from vassilflow.agents import create_vassilflow_agent as facade_create_vassilflow_agent
@@ -88,12 +93,6 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
     from vassilflow.runtime import RuntimeRunStatus
     from vassilflow.runtime import make_store as facade_make_store
     from vassilflow.runtime import serialize_channel_values_for_api as facade_serialize_api
-
-    from deerflow.agents import create_deerflow_agent
-    from deerflow.client import DeerFlowClient
-    from deerflow.models import create_chat_model
-    from deerflow.runtime import RunManager, make_store, serialize_channel_values_for_api
-    from deerflow.runtime import RunStatus as DeerFlowRunStatus
 
     assert issubclass(VassilFlowClient, DeerFlowClient)
     assert VassilFlowClient.__name__ == "VassilFlowClient"
@@ -112,7 +111,6 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
 
 def test_vassilflow_config_facade_exports_current_config_api(monkeypatch):
     import vassilflow.config as facade_config
-
     from deerflow.config.app_config import AppConfig, get_app_config, reload_app_config
     from deerflow.config.paths import Paths, get_paths
     from deerflow.config.title_config import (
@@ -136,15 +134,14 @@ def test_vassilflow_config_facade_exports_current_config_api(monkeypatch):
 
 
 def test_vassilflow_config_deep_imports_alias_current_config_modules():
+    from deerflow.config.app_config import AppConfig, get_app_config
+    from deerflow.config.paths import Paths, get_paths
+    from deerflow.config.title_config import TitleConfig
     from vassilflow.config.app_config import AppConfig as FacadeAppConfig
     from vassilflow.config.app_config import get_app_config as facade_get_app_config
     from vassilflow.config.paths import Paths as FacadePaths
     from vassilflow.config.paths import get_paths as facade_get_paths
     from vassilflow.config.title_config import TitleConfig as FacadeTitleConfig
-
-    from deerflow.config.app_config import AppConfig, get_app_config
-    from deerflow.config.paths import Paths, get_paths
-    from deerflow.config.title_config import TitleConfig
 
     assert FacadeAppConfig is AppConfig
     assert facade_get_app_config is get_app_config
@@ -154,15 +151,14 @@ def test_vassilflow_config_deep_imports_alias_current_config_modules():
 
 
 def test_vassilflow_runtime_deep_imports_alias_current_runtime_modules():
+    from deerflow.runtime.runs.naming import resolve_root_run_name
+    from deerflow.runtime.user_context import get_effective_user_id
     from vassilflow.runtime.runs.naming import (
         resolve_root_run_name as facade_resolve_root_run_name,
     )
     from vassilflow.runtime.user_context import (
         get_effective_user_id as facade_get_effective_user_id,
     )
-
-    from deerflow.runtime.runs.naming import resolve_root_run_name
-    from deerflow.runtime.user_context import get_effective_user_id
 
     assert facade_resolve_root_run_name is resolve_root_run_name
     assert facade_get_effective_user_id is get_effective_user_id

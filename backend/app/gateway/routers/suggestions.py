@@ -5,11 +5,11 @@ import re
 from fastapi import APIRouter, Depends, Request
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import BaseModel, Field
-from vassilflow.config.app_config import AppConfig
-from vassilflow.models import create_chat_model
 
 from app.gateway.authz import require_permission
 from app.gateway.deps import get_config
+from vassilflow.config.app_config import AppConfig
+from vassilflow.models import create_chat_model
 
 logger = logging.getLogger(__name__)
 

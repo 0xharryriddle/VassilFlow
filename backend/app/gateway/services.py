@@ -19,6 +19,10 @@ from fastapi import HTTPException, Request
 from langchain_core.messages import BaseMessage
 from langchain_core.messages.utils import convert_to_messages
 from langgraph.types import Command
+
+from app.gateway.deps import get_checkpointer, get_run_context, get_run_manager, get_stream_bridge
+from app.gateway.internal_auth import INTERNAL_SYSTEM_ROLE, get_trusted_internal_owner_user_id
+from app.gateway.utils import sanitize_log_param
 from vassilflow.config.app_config import get_app_config
 from vassilflow.runtime import (
     END_SENTINEL,
@@ -34,10 +38,6 @@ from vassilflow.runtime import (
 )
 from vassilflow.runtime.runs.naming import resolve_root_run_name
 from vassilflow.runtime.user_context import reset_current_user, set_current_user
-
-from app.gateway.deps import get_checkpointer, get_run_context, get_run_manager, get_stream_bridge
-from app.gateway.internal_auth import INTERNAL_SYSTEM_ROLE, get_trusted_internal_owner_user_id
-from app.gateway.utils import sanitize_log_param
 
 logger = logging.getLogger(__name__)
 

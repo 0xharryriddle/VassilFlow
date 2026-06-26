@@ -13,9 +13,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from vassilflow.config.paths import get_paths
-
 from app.brand import PRODUCT_NAME
+from vassilflow.config.paths import get_paths
 
 _CREDENTIAL_FILENAME = "admin_initial_credentials.txt"
 

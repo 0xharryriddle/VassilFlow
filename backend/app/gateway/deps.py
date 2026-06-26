@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, TypeVar, cast
 
 from fastapi import FastAPI, HTTPException, Request
 from langgraph.types import Checkpointer
+
 from vassilflow.config.app_config import AppConfig, get_app_config
 from vassilflow.persistence.feedback import FeedbackRepository
 from vassilflow.runtime import RunContext, RunManager, StreamBridge
@@ -71,11 +72,10 @@ async def _drain_inflight_runs(run_manager: RunManager) -> None:
 
 
 if TYPE_CHECKING:
-    from vassilflow.persistence.thread_meta.base import ThreadMetaStore
-    from vassilflow.runtime import RunRecord
-
     from app.gateway.auth.local_provider import LocalAuthProvider
     from app.gateway.auth.repositories.sqlite import SQLiteUserRepository
+    from vassilflow.persistence.thread_meta.base import ThreadMetaStore
+    from vassilflow.runtime import RunRecord
 
 
 T = TypeVar("T")
@@ -312,9 +312,8 @@ def get_local_provider() -> LocalAuthProvider:
     """
     global _cached_local_provider, _cached_repo
     if _cached_repo is None:
-        from vassilflow.persistence.engine import get_session_factory
-
         from app.gateway.auth.repositories.sqlite import SQLiteUserRepository
+        from vassilflow.persistence.engine import get_session_factory
 
         sf = get_session_factory()
         if sf is None:

@@ -11,10 +11,10 @@ from __future__ import annotations
 import logging
 
 from fastapi import HTTPException, status
-from vassilflow.config.auth_config import OIDCProviderConfig
 
 from app.gateway.auth.local_provider import LocalAuthProvider
 from app.gateway.auth.oidc import OIDCIdentity
+from vassilflow.config.auth_config import OIDCProviderConfig
 
 logger = logging.getLogger(__name__)
 

@@ -17,11 +17,11 @@ import secrets
 import sys
 
 from sqlalchemy import select
-from vassilflow.persistence.user.model import UserRow
 
 from app.gateway.auth.credential_file import write_initial_credentials
 from app.gateway.auth.password import hash_password
 from app.gateway.auth.repositories.sqlite import SQLiteUserRepository
+from vassilflow.persistence.user.model import UserRow
 
 
 async def _run(email: str | None) -> int:

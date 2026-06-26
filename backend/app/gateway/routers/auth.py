@@ -13,7 +13,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from starlette.responses import RedirectResponse
-from vassilflow.config.auth_config import OIDCProviderConfig
 
 from app.gateway.auth import (
     UserResponse,
@@ -35,6 +34,7 @@ from app.gateway.auth.oidc_state import (
 from app.gateway.auth.user_provisioning import get_or_provision_oidc_user
 from app.gateway.csrf_middleware import CSRF_COOKIE_NAME, _request_origin, generate_csrf_token, is_secure_request
 from app.gateway.deps import get_current_user_from_request, get_local_provider
+from vassilflow.config.auth_config import OIDCProviderConfig
 
 logger = logging.getLogger(__name__)
 

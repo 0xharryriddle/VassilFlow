@@ -77,6 +77,7 @@ async def main():
     # of leaking onto the interactive terminal via Python's lastResort handler.
     from langchain_core.messages import HumanMessage
     from langgraph.runtime import Runtime
+
     from vassilflow.agents import make_lead_agent
     from vassilflow.config.paths import get_paths
     from vassilflow.mcp import initialize_mcp_tools

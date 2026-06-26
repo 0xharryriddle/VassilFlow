@@ -6,6 +6,9 @@ import stat
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel, Field
+
+from app.gateway.authz import require_permission
+from app.gateway.deps import get_config
 from vassilflow.config.app_config import AppConfig
 from vassilflow.config.paths import get_paths
 from vassilflow.runtime.user_context import get_effective_user_id
@@ -25,9 +28,6 @@ from vassilflow.uploads.manager import (
     upload_virtual_path,
 )
 from vassilflow.utils.file_conversion import CONVERTIBLE_EXTENSIONS, convert_file_to_markdown
-
-from app.gateway.authz import require_permission
-from app.gateway.deps import get_config
 
 logger = logging.getLogger(__name__)
 

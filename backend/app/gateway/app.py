@@ -5,8 +5,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from vassilflow.config import app_config as vassilflow_app_config
-from vassilflow.config.app_config import apply_logging_level
 
 from app.brand import GATEWAY_SERVICE_NAME, GATEWAY_TITLE
 from app.gateway.auth_disabled import warn_if_auth_disabled_enabled
@@ -32,6 +30,8 @@ from app.gateway.routers import (
     threads,
     uploads,
 )
+from vassilflow.config import app_config as vassilflow_app_config
+from vassilflow.config.app_config import apply_logging_level
 
 AppConfig = vassilflow_app_config.AppConfig
 get_app_config = vassilflow_app_config.get_app_config
@@ -73,10 +73,10 @@ async def _ensure_admin_user(app: FastAPI) -> None:
     never contain NULL-owner rows.
     """
     from sqlalchemy import select
-    from vassilflow.persistence.engine import get_session_factory
-    from vassilflow.persistence.user.model import UserRow
 
     from app.gateway.deps import get_local_provider
+    from vassilflow.persistence.engine import get_session_factory
+    from vassilflow.persistence.user.model import UserRow
 
     try:
         provider = get_local_provider()

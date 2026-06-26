@@ -89,9 +89,8 @@ def main() -> int:
     # the current implementation modules, so we patch both attribute slots. The
     # source-of-truth patch on ``factory.create_chat_model`` does not propagate
     # back into already-imported names.
-    import vassilflow.agents.lead_agent.agent as lead_agent_module
-
     import deerflow.client as client_module
+    import vassilflow.agents.lead_agent.agent as lead_agent_module
 
     fake = _ContentFilteredFakeModel()
     originals = {

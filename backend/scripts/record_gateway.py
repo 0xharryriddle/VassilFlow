@@ -42,10 +42,11 @@ def _set_hermetic_runtime_env(home: Path, cfg: Path, extensions_cfg: Path) -> No
 
 
 def _install_capture(out_path: Path) -> None:
-    import vassilflow.models.factory as factory_mod
     from langchain_core.callbacks import BaseCallbackHandler
     from langchain_core.messages import messages_to_dict
     from replay_provider import caller_identity, hash_messages, hash_replay_input
+
+    import vassilflow.models.factory as factory_mod
 
     class Capture(BaseCallbackHandler):
         def __init__(self) -> None:

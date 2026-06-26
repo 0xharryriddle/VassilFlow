@@ -15,13 +15,6 @@ from typing import Any
 
 import httpx
 from langgraph_sdk.errors import ConflictError
-from vassilflow.config.agents_config import load_agent_config
-from vassilflow.config.paths import make_safe_user_id
-from vassilflow.runtime.user_context import get_effective_user_id
-from vassilflow.skills.slash import parse_slash_skill_reference
-from vassilflow.skills.storage import get_or_new_skill_storage
-from vassilflow.skills.storage.skill_storage import SkillStorage
-from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY
 
 from app.channels.commands import KNOWN_CHANNEL_COMMANDS
 from app.channels.message_bus import (
@@ -35,6 +28,13 @@ from app.channels.message_bus import (
 from app.channels.store import ChannelStore
 from app.gateway.csrf_middleware import CSRF_COOKIE_NAME, CSRF_HEADER_NAME, generate_csrf_token
 from app.gateway.internal_auth import create_internal_auth_headers
+from vassilflow.config.agents_config import load_agent_config
+from vassilflow.config.paths import make_safe_user_id
+from vassilflow.runtime.user_context import get_effective_user_id
+from vassilflow.skills.slash import parse_slash_skill_reference
+from vassilflow.skills.storage import get_or_new_skill_storage
+from vassilflow.skills.storage.skill_storage import SkillStorage
+from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY
 
 logger = logging.getLogger(__name__)
 
