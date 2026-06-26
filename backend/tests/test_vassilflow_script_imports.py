@@ -52,6 +52,9 @@ def test_backend_python_scripts_use_vassilflow_public_imports():
     assert "from vassilflow.persistence.bootstrap import _escape_url_for_alembic" in autogen
     assert "from vassilflow.config.paths import Paths, get_paths" in migration
     assert "import vassilflow.models.factory as factory_mod" in recorder
+    assert '"VASSILFLOW_RECORD_OUT"' in recorder
+    assert '"DEER_FLOW_RECORD_OUT"' in recorder
+    assert '"DEERFLOW_RECORD_OUT"' in recorder
     assert "from vassilflow.client import VassilFlowClient" in safety_demo
     assert "client = VassilFlowClient()" in safety_demo
 

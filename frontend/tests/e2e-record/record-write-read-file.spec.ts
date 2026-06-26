@@ -60,7 +60,9 @@ test("record write/read-file run through the real frontend", async ({
   context,
 }) => {
   const out =
-    process.env.VASSILFLOW_RECORD_OUT ?? process.env.DEERFLOW_RECORD_OUT;
+    process.env.VASSILFLOW_RECORD_OUT ??
+    process.env.DEER_FLOW_RECORD_OUT ??
+    process.env.DEERFLOW_RECORD_OUT;
   expect(out, "VASSILFLOW_RECORD_OUT must be set").toBeTruthy();
   // The context the frontend derives for ultra mode (core/threads/hooks.ts). The
   // backend-direct golden test (Layer 1) POSTs this so its prompt — hence the
