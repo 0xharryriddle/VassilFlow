@@ -4,7 +4,7 @@ The script must work in a clean checkout without any pre-existing data
 directory -- this is the failure mode reported as P2: a bare ``alembic
 revision --autogenerate`` would crash with
 ``sqlite3.OperationalError: unable to open database file`` because
-``alembic.ini``'s default URL points at ``./data/deerflow.db`` which doesn't
+``alembic.ini``'s default URL points at ``./data/vassilflow.db`` which doesn't
 exist yet.
 
 The fix: the script builds its own temp DB by running the existing alembic
@@ -60,6 +60,17 @@ def test_autogen_builds_temp_db_at_head_without_data_dir(autogen_module, monkeyp
     # The temp DB file should now exist.
     db_path = url.replace("sqlite+aiosqlite:///", "")
     assert os.path.exists(db_path), f"temp DB file not created at {db_path}"
+
+
+def test_alembic_default_url_uses_vassilflow_sqlite_name() -> None:
+    alembic_ini = (
+        Path(__file__).resolve().parents[1]
+        / "packages/harness/deerflow/persistence/migrations/alembic.ini"
+    )
+    content = alembic_ini.read_text(encoding="utf-8")
+
+    assert "sqlite+aiosqlite:///./data/vassilflow.db" in content
+    assert "./data/deerflow.db" not in content
 
 
 def test_autogen_temp_db_is_at_head(autogen_module) -> None:
