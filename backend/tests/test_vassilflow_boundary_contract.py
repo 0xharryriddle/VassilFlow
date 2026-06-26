@@ -75,10 +75,14 @@ def test_vassilflow_boundary_entities_match_contract_fields():
 
 
 def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow():
+    from vassilflow import create_vassilflow_agent
+    from vassilflow.agents import create_deerflow_agent as facade_create_deerflow_agent
+    from vassilflow.agents import create_vassilflow_agent as facade_create_vassilflow_agent
     from vassilflow.client import VassilFlowClient
     from vassilflow.runtime import RunManager as VassilFlowRunManager
     from vassilflow.runtime import RuntimeRunStatus
 
+    from deerflow.agents import create_deerflow_agent
     from deerflow.client import DeerFlowClient
     from deerflow.runtime import RunManager
     from deerflow.runtime import RunStatus as DeerFlowRunStatus
@@ -86,3 +90,6 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
     assert VassilFlowClient is DeerFlowClient
     assert VassilFlowRunManager is RunManager
     assert RuntimeRunStatus is DeerFlowRunStatus
+    assert create_vassilflow_agent is create_deerflow_agent
+    assert facade_create_vassilflow_agent is create_deerflow_agent
+    assert facade_create_deerflow_agent is create_deerflow_agent
