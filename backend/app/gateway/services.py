@@ -32,12 +32,12 @@ from vassilflow.runtime import (
     UnsupportedStrategyError,
     run_agent,
 )
+from vassilflow.runtime.runs.naming import resolve_root_run_name
+from vassilflow.runtime.user_context import reset_current_user, set_current_user
 
 from app.gateway.deps import get_checkpointer, get_run_context, get_run_manager, get_stream_bridge
 from app.gateway.internal_auth import INTERNAL_SYSTEM_ROLE, get_trusted_internal_owner_user_id
 from app.gateway.utils import sanitize_log_param
-from deerflow.runtime.runs.naming import resolve_root_run_name
-from deerflow.runtime.user_context import reset_current_user, set_current_user
 
 logger = logging.getLogger(__name__)
 

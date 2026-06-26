@@ -146,3 +146,18 @@ def test_vassilflow_config_deep_imports_alias_current_config_modules():
     assert FacadePaths is Paths
     assert facade_get_paths is get_paths
     assert FacadeTitleConfig is TitleConfig
+
+
+def test_vassilflow_runtime_deep_imports_alias_current_runtime_modules():
+    from vassilflow.runtime.runs.naming import (
+        resolve_root_run_name as facade_resolve_root_run_name,
+    )
+    from vassilflow.runtime.user_context import (
+        get_effective_user_id as facade_get_effective_user_id,
+    )
+
+    from deerflow.runtime.runs.naming import resolve_root_run_name
+    from deerflow.runtime.user_context import get_effective_user_id
+
+    assert facade_resolve_root_run_name is resolve_root_run_name
+    assert facade_get_effective_user_id is get_effective_user_id

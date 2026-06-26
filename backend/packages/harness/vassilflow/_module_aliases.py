@@ -24,7 +24,7 @@ _PACKAGE_ALIAS_ROOTS = {
     "utils",
 }
 
-_REAL_FACADE_ROOTS_WITH_DEEP_ALIASES = {"agents", "config"}
+_REAL_FACADE_ROOTS_WITH_DEEP_ALIASES = {"agents", "config", "runtime"}
 
 
 def _target_module_name(fullname: str) -> str | None:
