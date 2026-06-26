@@ -183,3 +183,20 @@ def test_apple_container_docs_use_vassilflow_runtime_names():
     assert "DeerFlow now supports Apple Container" not in content
     assert "# Clean up all DeerFlow sandbox containers" not in content
     assert "python test_container_runtime.py" not in content
+
+
+def test_memory_docs_use_vassilflow_identity_and_runtime_home():
+    summarization = (REPO_ROOT / "backend" / "docs" / "summarization.md").read_text(
+        encoding="utf-8"
+    )
+    memory_review = (
+        REPO_ROOT / "backend" / "docs" / "MEMORY_SETTINGS_REVIEW.md"
+    ).read_text(encoding="utf-8")
+
+    assert "VassilFlow includes automatic conversation summarization" in summarization
+    assert "Start VassilFlow locally" in memory_review
+    assert "backend/.vassilflow/memory.json" in memory_review
+    assert "legacy `.deer-flow` is still used as a transition fallback" in memory_review
+    assert "DeerFlow includes automatic conversation summarization" not in summarization
+    assert "Start DeerFlow locally" not in memory_review
+    assert "backend/.deer-flow/memory.json" not in memory_review
