@@ -1,6 +1,7 @@
 "use client";
 
 import MagicBento, { type BentoCardProps } from "@/components/ui/magic-bento";
+import { APP_BRAND_NAME } from "@/core/brand";
 import { cn } from "@/lib/utils";
 
 import { Section } from "../section";
@@ -52,8 +53,8 @@ export function WhatsNewSection({ className }: { className?: string }) {
   return (
     <Section
       className={cn("", className)}
-      title="Whats New in DeerFlow 2.0"
-      subtitle="DeerFlow is now evolving from a Deep Research agent into a full-stack Super Agent"
+      title={`Whats New in ${APP_BRAND_NAME} 2.0`}
+      subtitle={`${APP_BRAND_NAME} is evolving from a Deep Research agent into a full-stack Super Agent`}
     >
       <div className="flex w-full items-center justify-center">
         <MagicBento data={features} />

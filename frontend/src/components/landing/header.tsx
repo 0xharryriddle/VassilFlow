@@ -3,6 +3,11 @@ import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { NumberTicker } from "@/components/ui/number-ticker";
+import {
+  APP_BRAND_NAME,
+  APP_REPOSITORY_API_URL,
+  APP_REPOSITORY_URL,
+} from "@/core/brand";
 import type { Locale } from "@/core/i18n/locale";
 import { getI18n } from "@/core/i18n/server";
 import { env } from "@/env";
@@ -27,11 +32,11 @@ export async function Header({ className, homeURL, locale }: HeaderProps) {
     >
       <div className="flex items-center gap-6">
         <a
-          href={homeURL ?? "https://github.com/bytedance/deer-flow"}
+          href={homeURL ?? APP_REPOSITORY_URL}
           target={isExternalHome ? "_blank" : "_self"}
           rel={isExternalHome ? "noopener noreferrer" : undefined}
         >
-          <h1 className="font-serif text-xl">DeerFlow</h1>
+          <h1 className="font-serif text-xl">{APP_BRAND_NAME}</h1>
         </a>
       </div>
       <nav className="mr-8 ml-auto flex items-center gap-8 text-sm font-medium">
@@ -63,7 +68,7 @@ export async function Header({ className, homeURL, locale }: HeaderProps) {
           className="group relative z-10"
         >
           <a
-            href="https://github.com/bytedance/deer-flow"
+            href={APP_REPOSITORY_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -83,20 +88,17 @@ async function StarCounter() {
   let stars = 10000; // Default value
 
   try {
-    const response = await fetch(
-      "https://api.github.com/repos/bytedance/deer-flow",
-      {
-        headers: env.GITHUB_OAUTH_TOKEN
-          ? {
-              Authorization: `Bearer ${env.GITHUB_OAUTH_TOKEN}`,
-              "Content-Type": "application/json",
-            }
-          : {},
-        next: {
-          revalidate: 3600,
-        },
+    const response = await fetch(APP_REPOSITORY_API_URL, {
+      headers: env.GITHUB_OAUTH_TOKEN
+        ? {
+            Authorization: `Bearer ${env.GITHUB_OAUTH_TOKEN}`,
+            "Content-Type": "application/json",
+          }
+        : {},
+      next: {
+        revalidate: 3600,
       },
-    );
+    });
 
     if (response.ok) {
       const data = await response.json();

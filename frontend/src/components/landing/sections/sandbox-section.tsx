@@ -5,6 +5,7 @@ import {
   Terminal,
   TypingAnimation,
 } from "@/components/ui/terminal";
+import { APP_BRAND_NAME } from "@/core/brand";
 
 import { Section } from "../section";
 
@@ -15,9 +16,9 @@ export function SandboxSection({ className }: { className?: string }) {
       title="Agent Runtime Environment"
       subtitle={
         <p>
-          We give DeerFlow a &quot;computer&quot;, which can execute commands,
-          manage files, and run long tasks — all in a secure Docker-based
-          sandbox
+          We give {APP_BRAND_NAME} a &quot;computer&quot;, which can execute
+          commands, manage files, and run long tasks — all in a secure
+          Docker-based sandbox
         </p>
       }
     >

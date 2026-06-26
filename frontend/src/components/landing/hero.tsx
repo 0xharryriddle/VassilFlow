@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
 import Galaxy from "@/components/ui/galaxy";
 import { WordRotate } from "@/components/ui/word-rotate";
+import { APP_BRAND_NAME } from "@/core/brand";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +56,7 @@ export function Hero({ className }: { className?: string }) {
               "Learn Anything",
             ]}
           />{" "}
-          <div>with DeerFlow</div>
+          <div>with {APP_BRAND_NAME}</div>
         </h1>
         {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY && (
           <a

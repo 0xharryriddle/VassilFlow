@@ -16,6 +16,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.brand import PRODUCT_NAME
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/assistants", tags=["assistants-compat"])
 
@@ -49,7 +51,7 @@ def _get_default_assistant() -> AssistantResponse:
         name="lead_agent",
         config={},
         metadata={"created_by": "system"},
-        description="DeerFlow lead agent",
+        description=f"{PRODUCT_NAME} lead agent",
         created_at=now,
         updated_at=now,
         version=1,

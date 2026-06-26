@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.brand import GATEWAY_SERVICE_NAME, GATEWAY_TITLE
 from app.gateway.auth_disabled import warn_if_auth_disabled_enabled
 from app.gateway.auth_middleware import AuthMiddleware
 from app.gateway.config import get_gateway_config
@@ -262,11 +263,11 @@ def create_app() -> FastAPI:
     openapi_url = "/openapi.json" if config.enable_docs else None
 
     app = FastAPI(
-        title="DeerFlow API Gateway",
+        title=GATEWAY_TITLE,
         description="""
-## DeerFlow API Gateway
+## VassilFlow API Gateway
 
-API Gateway for DeerFlow - A LangGraph-based AI agent backend with sandbox execution capabilities.
+API Gateway for VassilFlow - a LangGraph-based AI agent backend with sandbox execution capabilities.
 
 ### Features
 
@@ -314,7 +315,7 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
             },
             {
                 "name": "threads",
-                "description": "Manage DeerFlow thread-local filesystem data",
+                "description": "Manage VassilFlow thread-local filesystem data",
             },
             {
                 "name": "agents",
@@ -418,7 +419,7 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
         Returns:
             Service health status information.
         """
-        return {"status": "healthy", "service": "deer-flow-gateway"}
+        return {"status": "healthy", "service": GATEWAY_SERVICE_NAME}
 
     return app
 

@@ -5,7 +5,7 @@ import {
   ChevronsUpDown,
   GlobeIcon,
   InfoIcon,
-  MailIcon,
+  LifeBuoyIcon,
   Settings2Icon,
   SettingsIcon,
 } from "lucide-react";
@@ -25,6 +25,11 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  APP_CONTACT_URL,
+  APP_ISSUES_URL,
+  APP_REPOSITORY_URL,
+} from "@/core/brand";
 import { useI18n } from "@/core/i18n/hooks";
 
 import { GithubIcon } from "./github-icon";
@@ -99,7 +104,7 @@ export function WorkspaceNavMenu() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <a
-                    href="https://deerflow.tech/"
+                    href={APP_REPOSITORY_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -109,7 +114,7 @@ export function WorkspaceNavMenu() {
                     </DropdownMenuItem>
                   </a>
                   <a
-                    href="https://github.com/bytedance/deer-flow"
+                    href={APP_REPOSITORY_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -120,7 +125,7 @@ export function WorkspaceNavMenu() {
                   </a>
                   <DropdownMenuSeparator />
                   <a
-                    href="https://github.com/bytedance/deer-flow/issues"
+                    href={APP_ISSUES_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -129,9 +134,13 @@ export function WorkspaceNavMenu() {
                       {t.workspace.reportIssue}
                     </DropdownMenuItem>
                   </a>
-                  <a href="mailto:support@deerflow.tech">
+                  <a
+                    href={APP_CONTACT_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <DropdownMenuItem>
-                      <MailIcon />
+                      <LifeBuoyIcon />
                       {t.workspace.contactUs}
                     </DropdownMenuItem>
                   </a>

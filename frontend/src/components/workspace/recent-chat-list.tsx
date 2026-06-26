@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/sidebar";
 import { resetThreadChatAfterDelete } from "@/components/workspace/chats/use-thread-chat";
 import { getAPIClient } from "@/core/api";
+import { APP_PUBLIC_SHARE_URL } from "@/core/brand";
 import { writeTextToClipboard } from "@/core/clipboard";
 import { useI18n } from "@/core/i18n/hooks";
 import {
@@ -171,12 +172,13 @@ export function RecentChatList() {
   const handleShare = useCallback(
     async (thread: AgentThread) => {
       // Always use Vercel URL for sharing so others can access
-      const VERCEL_URL = "https://deer-flow-v2.vercel.app";
       const isLocalhost =
         window.location.hostname === "localhost" ||
         window.location.hostname === "127.0.0.1";
       // On localhost: use Vercel URL; On production: use current origin
-      const baseUrl = isLocalhost ? VERCEL_URL : window.location.origin;
+      const baseUrl = isLocalhost
+        ? APP_PUBLIC_SHARE_URL
+        : window.location.origin;
       const shareUrl = `${baseUrl}${pathOfThread(thread)}`;
       try {
         const didCopy = await writeTextToClipboard(shareUrl);

@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect, useRef } from "react";
 
 import { Tooltip } from "@/components/workspace/tooltip";
+import { APP_BRAND_NAME } from "@/core/brand";
 
 type AnimationPhase =
   | "idle"
@@ -461,7 +462,9 @@ export default function ProgressiveSkillsAnimation() {
           <div className="border-b border-zinc-800 p-4">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-green-500" />
-              <span className="text-sm text-zinc-400">DeerFlow Agent</span>
+              <span className="text-sm text-zinc-400">
+                {APP_BRAND_NAME} Agent
+              </span>
             </div>
           </div>
 
@@ -691,7 +694,7 @@ export default function ProgressiveSkillsAnimation() {
           {/* Chat Input (decorative) */}
           <div className="border-t border-zinc-800 p-4">
             <div className="rounded-xl bg-zinc-800 px-4 py-3 text-sm text-zinc-500">
-              Ask DeerFlow anything...
+              Ask {APP_BRAND_NAME} anything...
             </div>
           </div>
         </div>
