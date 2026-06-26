@@ -59,6 +59,7 @@ def test_backend_python_scripts_use_vassilflow_public_imports():
     assert "from deerflow.persistence.bootstrap import _escape_url_for_alembic" not in autogen
     assert "from deerflow.config.paths import Paths, get_paths" not in migration
     assert "import deerflow.models.factory as factory_mod" not in recorder
+    assert 'import_module("deerflow.client")' not in safety_demo
     assert "import deerflow.client" not in safety_demo
     assert "from deerflow.client import DeerFlowClient" not in safety_demo
     assert "client = DeerFlowClient()" not in safety_demo
