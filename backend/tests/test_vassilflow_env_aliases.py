@@ -24,11 +24,26 @@ def test_env_value_prefers_vassilflow_alias(monkeypatch):
     assert env_value("DEER_FLOW_HOME") == "vassil-home"
 
 
+def test_env_value_falls_back_to_legacy_name_for_vassilflow_name(monkeypatch):
+    monkeypatch.setenv("DEER_FLOW_HOME", "legacy-home")
+    monkeypatch.delenv("VASSILFLOW_HOME", raising=False)
+
+    assert env_value("VASSILFLOW_HOME") == "legacy-home"
+
+
 def test_env_value_supports_legacy_deerflow_prefix_alias(monkeypatch):
     monkeypatch.setenv("DEERFLOW_WRITE_FILE_MAX_BYTES", "1024")
     monkeypatch.setenv("VASSILFLOW_WRITE_FILE_MAX_BYTES", "2048")
 
     assert env_value("DEERFLOW_WRITE_FILE_MAX_BYTES") == "2048"
+
+
+def test_env_value_falls_back_to_compact_legacy_name_for_vassilflow_name(monkeypatch):
+    monkeypatch.setenv("DEERFLOW_WRITE_FILE_MAX_BYTES", "1024")
+    monkeypatch.delenv("DEER_FLOW_WRITE_FILE_MAX_BYTES", raising=False)
+    monkeypatch.delenv("VASSILFLOW_WRITE_FILE_MAX_BYTES", raising=False)
+
+    assert env_value("VASSILFLOW_WRITE_FILE_MAX_BYTES") == "1024"
 
 
 def test_vassilflow_env_alias_precedence_is_documented():
@@ -129,11 +144,32 @@ def test_vassilflow_auth_disabled_alias(monkeypatch):
     assert is_auth_disabled() is True
 
 
+def test_legacy_auth_disabled_still_enables_local_mode(monkeypatch):
+    monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
+    monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
+    monkeypatch.delenv("VASSILFLOW_ENV", raising=False)
+    monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+
+    assert is_auth_disabled() is True
+
+
 def test_vassilflow_env_blocks_auth_disabled_in_production(monkeypatch):
     monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
     monkeypatch.setenv("VASSILFLOW_ENV", "production")
     monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
     monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
+
+    assert is_explicit_production_environment() is True
+    assert is_auth_disabled() is False
+
+
+def test_legacy_env_blocks_auth_disabled_in_production(monkeypatch):
+    monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
+    monkeypatch.setenv("DEER_FLOW_ENV", "production")
+    monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
+    monkeypatch.delenv("VASSILFLOW_ENV", raising=False)
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
 
     assert is_explicit_production_environment() is True
     assert is_auth_disabled() is False

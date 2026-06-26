@@ -8,8 +8,8 @@ from types import SimpleNamespace
 from vassilflow.config.env_aliases import env_value
 from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
-AUTH_DISABLED_ENV_VAR = "DEER_FLOW_AUTH_DISABLED"
-AUTH_DISABLED_DISPLAY_ENV_VAR = "VASSILFLOW_AUTH_DISABLED"
+AUTH_DISABLED_ENV_VAR = "VASSILFLOW_AUTH_DISABLED"
+LEGACY_AUTH_DISABLED_ENV_VAR = "DEER_FLOW_AUTH_DISABLED"
 AUTH_DISABLED_USER_ID = DEFAULT_USER_ID
 AUTH_DISABLED_USER_EMAIL = "default@test.local"
 
@@ -17,7 +17,7 @@ AUTH_SOURCE_SESSION = "session"
 AUTH_SOURCE_INTERNAL = "internal"
 AUTH_SOURCE_AUTH_DISABLED = "auth_disabled"
 
-_PRODUCTION_ENV_VARS: tuple[str, ...] = ("VASSILFLOW_ENV", "DEER_FLOW_ENV", "ENVIRONMENT")
+_PRODUCTION_ENV_VARS: tuple[str, ...] = ("VASSILFLOW_ENV", "ENVIRONMENT")
 _PRODUCTION_ENV_VALUES: frozenset[str] = frozenset({"prod", "production"})
 
 logger = logging.getLogger(__name__)
@@ -41,8 +41,8 @@ def warn_if_auth_disabled_enabled() -> None:
 
     logger.warning(
         "%s=1 is active (legacy: %s=1): authentication is bypassed and anonymous requests run as synthetic admin user %r. Do not enable this in shared or production deployments.",
-        AUTH_DISABLED_DISPLAY_ENV_VAR,
         AUTH_DISABLED_ENV_VAR,
+        LEGACY_AUTH_DISABLED_ENV_VAR,
         AUTH_DISABLED_USER_ID,
     )
 

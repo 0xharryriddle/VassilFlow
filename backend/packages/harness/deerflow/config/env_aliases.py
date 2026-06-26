@@ -15,8 +15,16 @@ def vassilflow_alias_for(name: str) -> str | None:
     return None
 
 
+def legacy_names_for_vassilflow(name: str) -> tuple[str, ...]:
+    """Return legacy DeerFlow names for a VassilFlow environment variable."""
+    if not name.startswith("VASSILFLOW_"):
+        return ()
+    suffix = name.removeprefix("VASSILFLOW_")
+    return (f"DEER_FLOW_{suffix}", f"DEERFLOW_{suffix}")
+
+
 def env_value(name: str, default: str | None = None) -> str | None:
-    """Read an env var, preferring its ``VASSILFLOW_*`` alias when available."""
+    """Read an env var, preferring ``VASSILFLOW_*`` while honoring legacy names."""
     alias = vassilflow_alias_for(name)
     if alias is not None:
         value = os.environ.get(alias)
@@ -26,6 +34,11 @@ def env_value(name: str, default: str | None = None) -> str | None:
     value = os.environ.get(name)
     if value is not None:
         return value
+
+    for legacy_name in legacy_names_for_vassilflow(name):
+        value = os.environ.get(legacy_name)
+        if value is not None:
+            return value
     return default
 
 
