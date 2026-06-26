@@ -224,9 +224,8 @@ def test_real_http_create_agent_lands_in_authenticated_user_dir(
     4. Assert SOUL.md exists under users/<authenticated_uid>/agents/<name>/.
     5. Assert NOTHING exists under users/default/agents/<name>/.
     """
-    # ``deerflow.agents.lead_agent.agent`` imports ``create_chat_model`` with
-    # ``from deerflow.models import create_chat_model`` at module load time,
-    # rebinding the symbol into its own namespace. So the only patch that
+    # The implementation lead-agent module binds ``create_chat_model`` at module
+    # load time, rebinding the symbol into its own namespace. So the only patch that
     # intercepts the call is the bound name on ``lead_agent.agent`` — patching
     # ``deerflow.models.create_chat_model`` would be too late.
     agent_name = "real-http-agent"

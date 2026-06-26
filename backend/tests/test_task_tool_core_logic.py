@@ -215,7 +215,7 @@ def test_task_tool_emits_running_and_completed_events(monkeypatch):
     monkeypatch.setattr(task_tool_module, "get_background_task_result", lambda _: next(responses))
     monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
     monkeypatch.setattr(task_tool_module.asyncio, "sleep", _no_sleep)
-    # task_tool lazily imports from deerflow.tools at call time, so patch that module-level function.
+    # task_tool lazily reaches the implementation tools module at call time, so patch that module-level function.
     monkeypatch.setattr("deerflow.tools.get_available_tools", get_available_tools)
 
     output = _run_task_tool(

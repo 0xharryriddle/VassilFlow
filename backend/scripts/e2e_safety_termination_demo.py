@@ -85,9 +85,9 @@ class _ContentFilteredFakeModel(BaseChatModel):
 
 def main() -> int:
     # Inject the fake model BEFORE constructing the client. Both the
-    # client module and the lead-agent module bind ``create_chat_model``
-    # at import time via ``from deerflow.models import create_chat_model`` in
-    # the current implementation modules, so we patch both attribute slots. The
+    # client module and the lead-agent module bind ``create_chat_model`` into
+    # their own namespaces at import time in the current implementation modules,
+    # so we patch both attribute slots. The
     # source-of-truth patch on ``factory.create_chat_model`` does not propagate
     # back into already-imported names.
     import vassilflow.agents.lead_agent.agent as lead_agent_module
