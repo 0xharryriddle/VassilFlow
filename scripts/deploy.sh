@@ -124,35 +124,35 @@ sync_vassilflow_envs
 
 # ── VASSILFLOW_HOME / DEER_FLOW_HOME ─────────────────────────────────────────
 
-if [ -z "$DEER_FLOW_HOME" ]; then
-    export DEER_FLOW_HOME
-    DEER_FLOW_HOME="$(default_runtime_home)"
+if [ -z "${VASSILFLOW_HOME:-}" ]; then
+    export VASSILFLOW_HOME
+    VASSILFLOW_HOME="$(default_runtime_home)"
 fi
 sync_vassilflow_env DEER_FLOW_HOME
 echo -e "${BLUE}VASSILFLOW_HOME=$VASSILFLOW_HOME${NC}"
-mkdir -p "$DEER_FLOW_HOME"
+mkdir -p "$VASSILFLOW_HOME"
 
-# ── DEER_FLOW_REPO_ROOT (for skills host path in DooD) ───────────────────────
+# ── VASSILFLOW_REPO_ROOT (for skills host path in DooD) ──────────────────────
 
-if [ -z "$DEER_FLOW_REPO_ROOT" ]; then
-    export DEER_FLOW_REPO_ROOT="$REPO_ROOT"
+if [ -z "${VASSILFLOW_REPO_ROOT:-}" ]; then
+    export VASSILFLOW_REPO_ROOT="$REPO_ROOT"
 fi
 sync_vassilflow_env DEER_FLOW_REPO_ROOT
 
 # ── config.yaml ───────────────────────────────────────────────────────────────
 
-if [ -z "$DEER_FLOW_CONFIG_PATH" ]; then
-    export DEER_FLOW_CONFIG_PATH="$REPO_ROOT/config.yaml"
+if [ -z "${VASSILFLOW_CONFIG_PATH:-}" ]; then
+    export VASSILFLOW_CONFIG_PATH="$REPO_ROOT/config.yaml"
 fi
 sync_vassilflow_env DEER_FLOW_CONFIG_PATH
 
-if  [ "$CMD" != "down" ] && [ ! -f "$DEER_FLOW_CONFIG_PATH" ]; then
+if  [ "$CMD" != "down" ] && [ ! -f "$VASSILFLOW_CONFIG_PATH" ]; then
     # Try to seed from repo (config.example.yaml is the canonical template)
     if [ -f "$REPO_ROOT/config.example.yaml" ]; then
-        cp "$REPO_ROOT/config.example.yaml" "$DEER_FLOW_CONFIG_PATH"
-        echo -e "${GREEN}✓ Seeded config.example.yaml → $DEER_FLOW_CONFIG_PATH${NC}"
+        cp "$REPO_ROOT/config.example.yaml" "$VASSILFLOW_CONFIG_PATH"
+        echo -e "${GREEN}✓ Seeded config.example.yaml → $VASSILFLOW_CONFIG_PATH${NC}"
         echo -e "${YELLOW}⚠ config.yaml was seeded from the example template.${NC}"
-        echo "  Run 'make setup' to generate a minimal config, or edit $DEER_FLOW_CONFIG_PATH manually before use."
+        echo "  Run 'make setup' to generate a minimal config, or edit $VASSILFLOW_CONFIG_PATH manually before use."
     else
         echo -e "${RED}✗ No config.yaml found.${NC}"
         echo "  Run 'make setup' from the repo root (recommended),"
@@ -160,27 +160,27 @@ if  [ "$CMD" != "down" ] && [ ! -f "$DEER_FLOW_CONFIG_PATH" ]; then
         exit 1
     fi
 else
-    echo -e "${GREEN}✓ config.yaml: $DEER_FLOW_CONFIG_PATH${NC}"
+    echo -e "${GREEN}✓ config.yaml: $VASSILFLOW_CONFIG_PATH${NC}"
 fi
 
 # ── extensions_config.json ───────────────────────────────────────────────────
 
-if [ -z "$DEER_FLOW_EXTENSIONS_CONFIG_PATH" ]; then
-    export DEER_FLOW_EXTENSIONS_CONFIG_PATH="$REPO_ROOT/extensions_config.json"
+if [ -z "${VASSILFLOW_EXTENSIONS_CONFIG_PATH:-}" ]; then
+    export VASSILFLOW_EXTENSIONS_CONFIG_PATH="$REPO_ROOT/extensions_config.json"
 fi
 sync_vassilflow_env DEER_FLOW_EXTENSIONS_CONFIG_PATH
 
-if [ ! -f "$DEER_FLOW_EXTENSIONS_CONFIG_PATH" ]; then
+if [ ! -f "$VASSILFLOW_EXTENSIONS_CONFIG_PATH" ]; then
     if [ -f "$REPO_ROOT/extensions_config.json" ]; then
-        cp "$REPO_ROOT/extensions_config.json" "$DEER_FLOW_EXTENSIONS_CONFIG_PATH"
-        echo -e "${GREEN}✓ Seeded extensions_config.json → $DEER_FLOW_EXTENSIONS_CONFIG_PATH${NC}"
+        cp "$REPO_ROOT/extensions_config.json" "$VASSILFLOW_EXTENSIONS_CONFIG_PATH"
+        echo -e "${GREEN}✓ Seeded extensions_config.json → $VASSILFLOW_EXTENSIONS_CONFIG_PATH${NC}"
     else
         # Create a minimal empty config so the gateway doesn't fail on startup
-        echo '{"mcpServers":{},"skills":{}}' > "$DEER_FLOW_EXTENSIONS_CONFIG_PATH"
-        echo -e "${YELLOW}⚠ extensions_config.json not found, created empty config at $DEER_FLOW_EXTENSIONS_CONFIG_PATH${NC}"
+        echo '{"mcpServers":{},"skills":{}}' > "$VASSILFLOW_EXTENSIONS_CONFIG_PATH"
+        echo -e "${YELLOW}⚠ extensions_config.json not found, created empty config at $VASSILFLOW_EXTENSIONS_CONFIG_PATH${NC}"
     fi
 else
-    echo -e "${GREEN}✓ extensions_config.json: $DEER_FLOW_EXTENSIONS_CONFIG_PATH${NC}"
+    echo -e "${GREEN}✓ extensions_config.json: $VASSILFLOW_EXTENSIONS_CONFIG_PATH${NC}"
 fi
 
 
@@ -188,7 +188,7 @@ fi
 # Required by Next.js in production. Generated once and persisted so auth
 # sessions survive container restarts.
 
-_secret_file="$DEER_FLOW_HOME/.better-auth-secret"
+_secret_file="$VASSILFLOW_HOME/.better-auth-secret"
 if [ -z "$BETTER_AUTH_SECRET" ]; then
     if [ -f "$_secret_file" ]; then
         export BETTER_AUTH_SECRET
@@ -216,28 +216,28 @@ if [ -z "$BETTER_AUTH_SECRET" ]; then
     fi
 fi
 
-# ── DEER_FLOW_INTERNAL_AUTH_TOKEN ────────────────────────────────────────────
+# ── VASSILFLOW_INTERNAL_AUTH_TOKEN ───────────────────────────────────────────
 # Shared by all Gateway workers so channel workers can call internal Gateway
 # APIs even when the request is handled by a different Uvicorn worker.
 
-_internal_auth_token_file="$DEER_FLOW_HOME/.internal-auth-token"
+_internal_auth_token_file="$VASSILFLOW_HOME/.internal-auth-token"
 sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
-if  [ "$CMD" != "down" ] && [ -z "$DEER_FLOW_INTERNAL_AUTH_TOKEN" ]; then
+if  [ "$CMD" != "down" ] && [ -z "${VASSILFLOW_INTERNAL_AUTH_TOKEN:-}" ]; then
     if [ -f "$_internal_auth_token_file" ]; then
-        export DEER_FLOW_INTERNAL_AUTH_TOKEN
-        DEER_FLOW_INTERNAL_AUTH_TOKEN="$(cat "$_internal_auth_token_file")"
+        export VASSILFLOW_INTERNAL_AUTH_TOKEN
+        VASSILFLOW_INTERNAL_AUTH_TOKEN="$(cat "$_internal_auth_token_file")"
         sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
         echo -e "${GREEN}✓ VASSILFLOW_INTERNAL_AUTH_TOKEN loaded from $_internal_auth_token_file${NC}"
     else
-        export DEER_FLOW_INTERNAL_AUTH_TOKEN
+        export VASSILFLOW_INTERNAL_AUTH_TOKEN
         if command -v python3 > /dev/null 2>&1 && \
-            DEER_FLOW_INTERNAL_AUTH_TOKEN="$(python3 -c 'import sys; sys.version_info >= (3, 6) or sys.exit(1); import secrets; print(secrets.token_urlsafe(32))' 2>/dev/null)"; then
+            VASSILFLOW_INTERNAL_AUTH_TOKEN="$(python3 -c 'import sys; sys.version_info >= (3, 6) or sys.exit(1); import secrets; print(secrets.token_urlsafe(32))' 2>/dev/null)"; then
             true
         elif command -v python > /dev/null 2>&1 && \
-            DEER_FLOW_INTERNAL_AUTH_TOKEN="$(python -c 'import sys; sys.version_info >= (3, 6) or sys.exit(1); import secrets; print(secrets.token_urlsafe(32))' 2>/dev/null)"; then
+            VASSILFLOW_INTERNAL_AUTH_TOKEN="$(python -c 'import sys; sys.version_info >= (3, 6) or sys.exit(1); import secrets; print(secrets.token_urlsafe(32))' 2>/dev/null)"; then
             true
         elif command -v openssl > /dev/null 2>&1 && \
-            DEER_FLOW_INTERNAL_AUTH_TOKEN="$(openssl rand -hex 32)"; then
+            VASSILFLOW_INTERNAL_AUTH_TOKEN="$(openssl rand -hex 32)"; then
             true
         else
             echo -e "${RED}✗ Cannot generate VASSILFLOW_INTERNAL_AUTH_TOKEN: python3, python, and openssl are all unavailable.${NC}" >&2
@@ -245,7 +245,7 @@ if  [ "$CMD" != "down" ] && [ -z "$DEER_FLOW_INTERNAL_AUTH_TOKEN" ]; then
             exit 1
         fi
         sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
-        echo "$DEER_FLOW_INTERNAL_AUTH_TOKEN" > "$_internal_auth_token_file"
+        echo "$VASSILFLOW_INTERNAL_AUTH_TOKEN" > "$_internal_auth_token_file"
         chmod 600 "$_internal_auth_token_file"
         echo -e "${GREEN}✓ VASSILFLOW_INTERNAL_AUTH_TOKEN generated → $_internal_auth_token_file${NC}"
     fi
@@ -257,7 +257,7 @@ detect_sandbox_mode() {
     local sandbox_use=""
     local provisioner_url=""
 
-    [ -f "$DEER_FLOW_CONFIG_PATH" ] || { echo "local"; return; }
+    [ -f "$VASSILFLOW_CONFIG_PATH" ] || { echo "local"; return; }
 
     sandbox_use=$(awk '
         /^[[:space:]]*sandbox:[[:space:]]*$/ { in_sandbox=1; next }
@@ -265,7 +265,7 @@ detect_sandbox_mode() {
         in_sandbox && /^[[:space:]]*use:[[:space:]]*/ {
             line=$0; sub(/^[[:space:]]*use:[[:space:]]*/, "", line); print line; exit
         }
-    ' "$DEER_FLOW_CONFIG_PATH")
+    ' "$VASSILFLOW_CONFIG_PATH")
 
     provisioner_url=$(awk '
         /^[[:space:]]*sandbox:[[:space:]]*$/ { in_sandbox=1; next }
@@ -273,7 +273,7 @@ detect_sandbox_mode() {
         in_sandbox && /^[[:space:]]*provisioner_url:[[:space:]]*/ {
             line=$0; sub(/^[[:space:]]*provisioner_url:[[:space:]]*/, "", line); print line; exit
         }
-    ' "$DEER_FLOW_CONFIG_PATH")
+    ' "$VASSILFLOW_CONFIG_PATH")
 
     if [[ "$sandbox_use" == *"vassilflow.community.aio_sandbox:AioSandboxProvider"* || "$sandbox_use" == *"deerflow.community.aio_sandbox:AioSandboxProvider"* ]]; then
         if [ -n "$provisioner_url" ]; then
@@ -292,12 +292,12 @@ if [ "$CMD" = "down" ]; then
     # Set minimal env var defaults so docker compose can parse the file without
     # warning about unset variables that appear in volume specs.
     sync_vassilflow_envs
-    export DEER_FLOW_HOME="${DEER_FLOW_HOME:-$(default_runtime_home)}"
-    export DEER_FLOW_CONFIG_PATH="${DEER_FLOW_CONFIG_PATH:-$DEER_FLOW_HOME/config.yaml}"
-    export DEER_FLOW_EXTENSIONS_CONFIG_PATH="${DEER_FLOW_EXTENSIONS_CONFIG_PATH:-$DEER_FLOW_HOME/extensions_config.json}"
-    export DEER_FLOW_REPO_ROOT="${DEER_FLOW_REPO_ROOT:-$REPO_ROOT}"
+    export VASSILFLOW_HOME="${VASSILFLOW_HOME:-$(default_runtime_home)}"
+    export VASSILFLOW_CONFIG_PATH="${VASSILFLOW_CONFIG_PATH:-$VASSILFLOW_HOME/config.yaml}"
+    export VASSILFLOW_EXTENSIONS_CONFIG_PATH="${VASSILFLOW_EXTENSIONS_CONFIG_PATH:-$VASSILFLOW_HOME/extensions_config.json}"
+    export VASSILFLOW_REPO_ROOT="${VASSILFLOW_REPO_ROOT:-$REPO_ROOT}"
     export BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET:-placeholder}"
-    export DEER_FLOW_INTERNAL_AUTH_TOKEN="${DEER_FLOW_INTERNAL_AUTH_TOKEN:-placeholder}"
+    export VASSILFLOW_INTERNAL_AUTH_TOKEN="${VASSILFLOW_INTERNAL_AUTH_TOKEN:-placeholder}"
     sync_vassilflow_envs
     "${COMPOSE_CMD[@]}" down --remove-orphans
     if [ "$COMPOSE_PROJECT_NAME" != "$LEGACY_COMPOSE_PROJECT_NAME" ]; then
@@ -348,25 +348,25 @@ if [ "$sandbox_mode" = "provisioner" ]; then
     services="$services provisioner"
 fi
 
-# ── DEER_FLOW_DOCKER_SOCKET (aio / pure-DooD mode only) ──────────────────────
+# ── VASSILFLOW_DOCKER_SOCKET (aio / pure-DooD mode only) ─────────────────────
 # Only aio mode (AioSandboxProvider without provisioner_url) needs the host
 # Docker socket. It is mounted via the opt-in docker-compose.dood.yaml overlay,
 # appended here, so the default (local) and provisioner modes never expose the
 # host daemon. Mounting the socket = root-equivalent host control; see SECURITY.md.
 
 sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
-if [ -z "$DEER_FLOW_DOCKER_SOCKET" ]; then
-    export DEER_FLOW_DOCKER_SOCKET="/var/run/docker.sock"
+if [ -z "${VASSILFLOW_DOCKER_SOCKET:-}" ]; then
+    export VASSILFLOW_DOCKER_SOCKET="/var/run/docker.sock"
 fi
 sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
 
 if [ "$sandbox_mode" = "aio" ]; then
-    if [ ! -S "$DEER_FLOW_DOCKER_SOCKET" ]; then
-        echo -e "${RED}⚠ Docker socket not found at $DEER_FLOW_DOCKER_SOCKET${NC}"
+    if [ ! -S "$VASSILFLOW_DOCKER_SOCKET" ]; then
+        echo -e "${RED}⚠ Docker socket not found at $VASSILFLOW_DOCKER_SOCKET${NC}"
         echo "  AioSandboxProvider (DooD) will not work."
         exit 1
     fi
-    echo -e "${GREEN}✓ Docker socket: $DEER_FLOW_DOCKER_SOCKET${NC}"
+    echo -e "${GREEN}✓ Docker socket: $VASSILFLOW_DOCKER_SOCKET${NC}"
     echo -e "${YELLOW}  Mounting host Docker socket into gateway (DooD = host root-equivalent). See SECURITY.md.${NC}"
     COMPOSE_CMD+=(-f "$DOCKER_DIR/docker-compose.dood.yaml")
 fi

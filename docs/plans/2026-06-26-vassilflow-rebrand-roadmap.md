@@ -42,9 +42,10 @@ Add VassilFlow aliases before renaming anything relied on by users or deployment
   record/replay helper env aliases, bundled skill endpoint env aliases,
   internal gateway header aliases, and precedence documentation are
   implemented. New internal calls emit `X-VassilFlow-*` headers while
-  `X-DeerFlow-*` remains accepted as a migration fallback. Local `make dev`
-  and Docker dev entrypoints now use `VASSILFLOW_HOME` as the canonical runtime
-  directory variable while still exporting `DEER_FLOW_HOME` for legacy code.
+  `X-DeerFlow-*` remains accepted as a migration fallback. Local `make dev`,
+  Docker dev entrypoints, and the production deploy script now use
+  `VASSILFLOW_HOME` as the canonical runtime directory variable while still
+  exporting `DEER_FLOW_HOME` for legacy code.
 - Support `VASSILFLOW_*` env vars alongside `DEER_FLOW_*`.
 - Add VassilFlow-named config aliases where the old names are user-facing.
 - Add tests proving old and new names resolve to the same runtime behavior.

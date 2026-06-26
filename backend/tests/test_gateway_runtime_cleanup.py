@@ -78,6 +78,14 @@ def test_shell_launchers_bridge_vassilflow_env_aliases():
     assert "sync_vassilflow_env DEER_FLOW_EXTENSIONS_CONFIG_PATH" in deploy_sh
     assert "sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN" in deploy_sh
     assert "sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET" in deploy_sh
+    assert 'if [ -z "${VASSILFLOW_HOME:-}" ]; then' in deploy_sh
+    assert 'mkdir -p "$VASSILFLOW_HOME"' in deploy_sh
+    assert 'if [ -z "${VASSILFLOW_CONFIG_PATH:-}" ]; then' in deploy_sh
+    assert '[ -f "$VASSILFLOW_CONFIG_PATH" ] || { echo "local"; return; }' in deploy_sh
+    assert 'export VASSILFLOW_HOME="${VASSILFLOW_HOME:-$(default_runtime_home)}"' in deploy_sh
+    assert 'export VASSILFLOW_CONFIG_PATH="${VASSILFLOW_CONFIG_PATH:-$VASSILFLOW_HOME/config.yaml}"' in deploy_sh
+    assert 'export VASSILFLOW_INTERNAL_AUTH_TOKEN="${VASSILFLOW_INTERNAL_AUTH_TOKEN:-placeholder}"' in deploy_sh
+    assert 'if [ -z "${VASSILFLOW_DOCKER_SOCKET:-}" ]; then' in deploy_sh
 
     docker_sh = scripts["scripts/docker.sh"]
     assert "sync_vassilflow_env DEER_FLOW_ROOT" in docker_sh
