@@ -298,9 +298,10 @@ The middleware intelligently preserves message context:
 
 ### Code Structure
 
-- **Configuration**: `packages/harness/deerflow/config/summarization_config.py`
-- **Integration**: `packages/harness/deerflow/agents/lead_agent/agent.py`
+- **Configuration import**: `vassilflow.config.summarization_config`
+- **Integration import**: `vassilflow.agents.lead_agent.agent`
 - **Middleware**: `VassilFlowSummarizationMiddleware` wraps `langchain.agents.middleware.SummarizationMiddleware`
+- **Current implementation**: `packages/harness/deerflow/` during the migration
 
 ### Middleware Order
 

@@ -234,11 +234,21 @@ def test_memory_docs_use_vassilflow_identity_and_runtime_home():
     assert "VassilFlow includes automatic conversation summarization" in summarization
     assert "VassilFlowSummarizationMiddleware" in summarization
     assert "VassilFlowSummarizationMiddleware.before_model" in summarization
+    assert "vassilflow.config.summarization_config" in summarization
+    assert "vassilflow.agents.lead_agent.agent" in summarization
     assert "Start VassilFlow locally" in memory_review
     assert "backend/.vassilflow/memory.json" in memory_review
     assert "legacy `.deer-flow` is still used as a transition fallback" in memory_review
     assert "DeerFlow includes automatic conversation summarization" not in summarization
     assert "DeerFlowSummarizationMiddleware.before_model" not in summarization
+    assert (
+        "**Configuration**: `packages/harness/deerflow/config/summarization_config.py`"
+        not in summarization
+    )
+    assert (
+        "**Integration**: `packages/harness/deerflow/agents/lead_agent/agent.py`"
+        not in summarization
+    )
     assert "Start DeerFlow locally" not in memory_review
     assert "backend/.deer-flow/memory.json" not in memory_review
 
