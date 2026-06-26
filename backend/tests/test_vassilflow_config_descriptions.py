@@ -1,8 +1,10 @@
 """Static guards for VassilFlow-owned public config descriptions."""
 
+import vassilflow.persistence as persistence_module
 from vassilflow.config.app_config import AppConfig, get_app_config
 from vassilflow.config.auth_config import AuthAppConfig, OIDCProviderConfig
 from vassilflow.config.extensions_config import ExtensionsConfig
+from vassilflow.persistence.base import Base
 
 
 def test_auth_config_descriptions_use_vassilflow_name() -> None:
@@ -28,3 +30,9 @@ def test_runtime_config_docstrings_use_vassilflow_primary_name() -> None:
     assert "legacy DeerFlow aliases" in extensions_resolver_doc
     assert "Get the VassilFlow config instance" in (get_app_config.__doc__ or "")
     assert "Get the DeerFlow config instance" not in (get_app_config.__doc__ or "")
+
+
+def test_persistence_docstrings_use_vassilflow_facade() -> None:
+    assert "VassilFlow ORM models" in (Base.__doc__ or "")
+    assert "from vassilflow.persistence import" in (persistence_module.__doc__ or "")
+    assert "from deerflow.persistence import" not in (persistence_module.__doc__ or "")
