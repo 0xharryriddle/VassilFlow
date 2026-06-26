@@ -2,8 +2,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from deerflow.agents.lead_agent.prompt import get_skills_prompt_section
-from deerflow.config.agents_config import AgentConfig
 from deerflow.skills.types import Skill
+from vassilflow.config.agents_config import AgentConfig
 
 
 class NamedTool:

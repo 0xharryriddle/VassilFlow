@@ -17,8 +17,8 @@ import pytest
 import yaml
 from langchain.tools import ToolRuntime
 
-from deerflow.config.agents_config import AgentConfig
 from deerflow.tools.builtins.update_agent_tool import update_agent
+from vassilflow.config.agents_config import AgentConfig
 
 DEFAULT_USER = "test-user-autouse"  # matches the autouse fixture in tests/conftest.py
 
@@ -83,7 +83,7 @@ def patched_paths(tmp_path: Path):
     paths_mock = _make_paths_mock(tmp_path)
     with patch("deerflow.tools.builtins.update_agent_tool.get_paths", return_value=paths_mock):
         # load_agent_config also calls get_paths(); patch the same target it uses.
-        with patch("deerflow.config.agents_config.get_paths", return_value=paths_mock):
+        with patch("vassilflow.config.agents_config.get_paths", return_value=paths_mock):
             yield paths_mock
 
 
