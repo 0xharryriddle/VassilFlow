@@ -75,8 +75,9 @@ Rename files, package names, Docker names, and module paths only after alias tes
 
 Rewrite inherited README/docs after runtime aliases and facade modules are stable.
 
-Status: frontend English/Chinese product docs now use VassilFlow for standalone
-product references; route slugs, `DeerFlowClient`, and deep `deerflow.*` import
-examples remain deferred until facade/import aliases are expanded.
+Status: README and frontend English/Chinese product docs now use VassilFlow for
+standalone product references; route slugs, `DeerFlowClient`, and deep
+`deerflow.*` import examples remain deferred until facade/import aliases are
+expanded.
 
 Historical upstream references should remain where they explain provenance, fixes, or compatibility decisions. Product docs should use VassilFlow.
