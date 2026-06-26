@@ -1,6 +1,7 @@
 """Tests for the MCP persistent-session pool."""
 
 import asyncio
+import os
 import stat
 import threading
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -265,8 +266,8 @@ async def test_session_pool_tool_pins_cwd_and_temp_env(tmp_path):
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.config.paths import Paths
     from deerflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
+    from vassilflow.config.paths import Paths
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -308,7 +309,8 @@ async def test_session_pool_tool_pins_cwd_and_temp_env(tmp_path):
     assert session_connection["env"]["TMP"] == str(tmp_dir)
     assert session_connection["env"]["TEMP"] == str(tmp_dir)
     assert tmp_dir.is_dir()
-    assert stat.S_IMODE(tmp_dir.stat().st_mode) == 0o700
+    if os.name != "nt":
+        assert stat.S_IMODE(tmp_dir.stat().st_mode) == 0o700
 
 
 @pytest.mark.asyncio
@@ -317,8 +319,8 @@ async def test_session_pool_tool_does_not_override_explicit_tmpdir(tmp_path):
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.config.paths import Paths
     from deerflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
+    from vassilflow.config.paths import Paths
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -353,7 +355,7 @@ async def test_session_pool_tool_does_not_override_explicit_tmpdir(tmp_path):
     session_connection = create_session.call_args.args[0]
     # Operator-provided TMPDIR is preserved; TMP/TEMP still get our default.
     assert session_connection["env"]["TMPDIR"] == "/operator/tmp"
-    assert session_connection["env"]["TMP"].endswith(_MCP_TMP_SUBDIR)
+    assert session_connection["env"]["TMP"].replace("\\", "/").endswith(_MCP_TMP_SUBDIR)
 
 
 @pytest.mark.asyncio
@@ -362,8 +364,8 @@ async def test_session_pool_tool_does_not_override_explicit_cwd(tmp_path):
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.config.paths import Paths
     from deerflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
+    from vassilflow.config.paths import Paths
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -410,8 +412,8 @@ async def test_session_pool_tool_skips_fs_work_for_non_stdio_transport(tmp_path)
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.config.paths import Paths
     from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.config.paths import Paths
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -458,8 +460,8 @@ async def test_session_pool_tool_skips_after_walk_when_no_text_content(tmp_path)
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.config.paths import Paths
     from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.config.paths import Paths
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -506,8 +508,8 @@ async def test_session_pool_tool_runs_after_walk_when_text_content_present(tmp_p
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.config.paths import Paths
     from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.config.paths import Paths
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
