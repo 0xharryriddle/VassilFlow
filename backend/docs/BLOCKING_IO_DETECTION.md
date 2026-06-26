@@ -41,9 +41,9 @@ pattern that is invisible to the current detector.
 ## Runtime detector
 
 The runtime detector is the CI regression guard. It uses Blockbuster to fail a
-focused test when code under `app.*`, the current `deerflow.*`
-implementation modules, or the `vassilflow.*` facade performs blocking IO on
-the asyncio event-loop thread.
+focused test when code under `app.*`, the `vassilflow.*` facade, or legacy
+`deerflow.*` implementation modules performs blocking IO on the asyncio
+event-loop thread.
 
 Run it from `backend/`:
 

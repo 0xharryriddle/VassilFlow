@@ -138,6 +138,21 @@ WORDING_TARGETS = [
         "current DeerFlow implementation",
         "current implementation modules",
     ),
+    (
+        "backend/docs/BLOCKING_IO_DETECTION.md",
+        "the current `deerflow.*`",
+        "the `vassilflow.*` facade",
+    ),
+    (
+        "backend/tests/support/detectors/blocking_io_runtime.py",
+        "app, deerflow implementation, and\nvassilflow facade",
+        "app, VassilFlow facade, and legacy\nimplementation modules",
+    ),
+    (
+        "backend/tests/support/detectors/blocking_io_runtime.py",
+        "app.*, deerflow.*, and vassilflow.* callers",
+        "app.*, vassilflow.*, and legacy implementation callers",
+    ),
 ]
 
 
