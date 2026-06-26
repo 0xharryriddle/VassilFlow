@@ -25,8 +25,18 @@ def test_backend_claude_uses_vassilflow_project_identity():
     assert "VassilFlow's application tables" in content
     assert "empty (no VassilFlow tables)" in content
     assert "VassilFlowClient` provides direct in-process access" in content
+    assert "from vassilflow.agents import make_lead_agent" in content
+    assert "from vassilflow.models import create_chat_model" in content
+    assert "from vassilflow.config import get_app_config" in content
+    assert "vassilflow.models.vllm_provider:VllmChatModel" in content
+    assert "VassilFlowClient.stream" in content
+    assert "why Gateway and VassilFlowClient are parallel paths" in content
     assert "DeerFlow is a LangGraph-based AI super agent system" not in content
     assert "DeerFlow's application tables" not in content
+    assert "from deerflow.agents import make_lead_agent" not in content
+    assert "from deerflow.models import create_chat_model" not in content
+    assert "from deerflow.config import get_app_config" not in content
+    assert "deerflow.models.vllm_provider:VllmChatModel" not in content
 
 
 def test_backend_docs_index_and_mcp_use_vassilflow_identity():
