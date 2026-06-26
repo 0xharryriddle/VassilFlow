@@ -13,7 +13,7 @@ export const AUTH_DISABLED_USER: User = {
 const PRODUCTION_ENV_VALUES = new Set(["prod", "production"]);
 
 function isExplicitProductionEnvironment() {
-  return ["DEER_FLOW_ENV", "ENVIRONMENT"].some((name) =>
+  return ["VASSILFLOW_ENV", "DEER_FLOW_ENV", "ENVIRONMENT"].some((name) =>
     PRODUCTION_ENV_VALUES.has((envValue(name) ?? "").trim().toLowerCase()),
   );
 }

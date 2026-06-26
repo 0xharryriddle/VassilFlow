@@ -55,6 +55,7 @@ describe("checkAgentName", () => {
     mockedFetch.mockRejectedValueOnce(new TypeError("Failed to fetch"));
     await expect(checkAgentName("dealagent")).rejects.toMatchObject({
       name: "AgentNameCheckError",
+      message: "Could not reach the VassilFlow backend.",
       reason: "backend_unreachable",
     });
   });
@@ -67,6 +68,7 @@ describe("checkAgentName", () => {
       );
       await expect(checkAgentName("dealagent")).rejects.toMatchObject({
         name: "AgentNameCheckError",
+        message: "Could not reach the VassilFlow backend.",
         reason: "backend_unreachable",
       });
     },
