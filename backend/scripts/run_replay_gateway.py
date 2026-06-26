@@ -24,6 +24,19 @@ sys.path.insert(0, str(_BACKEND))
 sys.path.insert(0, str(_BACKEND / "tests"))  # replay_provider + build_config_yaml live here
 
 
+def _set_hermetic_runtime_env(home: Path, cfg: Path, extensions_cfg: Path) -> None:
+    for legacy_name in (
+        "DEER_FLOW_HOME",
+        "DEER_FLOW_CONFIG_PATH",
+        "DEER_FLOW_EXTENSIONS_CONFIG_PATH",
+    ):
+        os.environ.pop(legacy_name, None)
+
+    os.environ["VASSILFLOW_HOME"] = str(home)
+    os.environ["VASSILFLOW_CONFIG_PATH"] = str(cfg)
+    os.environ["VASSILFLOW_EXTENSIONS_CONFIG_PATH"] = str(extensions_cfg)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=8011)
@@ -37,12 +50,11 @@ def main() -> int:
     cfg = home / "config.yaml"
     cfg.write_text(build_config_yaml(model_block=REPLAY_MODEL_BLOCK, home=home), encoding="utf-8")
 
-    # Override (not setdefault): the replay gateway must be hermetic, so an outer
-    # DEER_FLOW_HOME can't leak in and shift prompt-affecting paths/skills.
-    os.environ["DEER_FLOW_HOME"] = str(home)
-    os.environ["DEER_FLOW_CONFIG_PATH"] = str(cfg)
-    os.environ["DEER_FLOW_EXTENSIONS_CONFIG_PATH"] = str(prepare_hermetic_extras(home))
-    os.environ["DEERFLOW_REPLAY_FIXTURE"] = args.fixture
+    # Override (not setdefault): the replay gateway must be hermetic, so outer
+    # runtime env vars can't leak in and shift prompt-affecting paths/skills.
+    _set_hermetic_runtime_env(home, cfg, prepare_hermetic_extras(home))
+    os.environ.pop("DEERFLOW_REPLAY_FIXTURE", None)
+    os.environ["VASSILFLOW_REPLAY_FIXTURE"] = args.fixture
     os.environ.setdefault("AUTH_JWT_SECRET", "ci-replay-secret")
     os.environ["GATEWAY_CORS_ORIGINS"] = args.cors
     # Child / dynamic imports (resolve_class) search PYTHONPATH too.
@@ -55,7 +67,10 @@ def main() -> int:
     # e2e (#3352). Imported from tests/ and mounted here only — never in the
     # production app. Pass the app object (not the import string) so the extra
     # router is registered before uvicorn serves it.
-    if os.environ.get("DEERFLOW_ENABLE_TEST_SEED") == "1":
+    if (
+        os.environ.get("VASSILFLOW_ENABLE_TEST_SEED") == "1"
+        or os.environ.get("DEERFLOW_ENABLE_TEST_SEED") == "1"
+    ):
         from seed_runs_router import router as seed_router
 
         from app.gateway.app import app as gateway_app

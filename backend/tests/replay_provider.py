@@ -53,7 +53,7 @@ Point a config model's ``use`` at this class and set the fixture via env::
         use: replay_provider:ReplayChatModel
         model: gpt-5.5            # placeholder; ignored
 
-    DEERFLOW_REPLAY_FIXTURE=/path/to/write_read_file.ultra.json
+    VASSILFLOW_REPLAY_FIXTURE=/path/to/write_read_file.ultra.json
 
 A cache miss raises loudly with a diagnostic — that is the signal that the
 replayed run diverged from the recording (graph changed, a new volatile field
@@ -82,7 +82,8 @@ from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResu
 from langchain_core.runnables import Runnable
 from pydantic import PrivateAttr
 
-_FIXTURE_ENV = "DEERFLOW_REPLAY_FIXTURE"
+_FIXTURE_ENV = "VASSILFLOW_REPLAY_FIXTURE"
+_LEGACY_FIXTURE_ENV = "DEERFLOW_REPLAY_FIXTURE"
 _DEFAULT_CALLER = "lead_agent"
 _CALLER_TAG_PREFIXES = ("middleware:", "subagent:")
 _CALLER_NAME_ALIASES = {
@@ -295,18 +296,25 @@ class ReplayChatModel(BaseChatModel):
     def __init__(self, **kwargs: Any) -> None:
         # Ignore provider noise the factory forwards from config (model, api_key,
         # base_url, ...). Fixture path comes from the ``fixture`` kwarg or env.
-        fixture_path = kwargs.pop("fixture", None) or os.environ.get(_FIXTURE_ENV)
+        fixture_path = (
+            kwargs.pop("fixture", None)
+            or os.environ.get(_FIXTURE_ENV)
+            or os.environ.get(_LEGACY_FIXTURE_ENV)
+        )
         callbacks = kwargs.pop("callbacks", None)
         super().__init__(callbacks=callbacks)
         if not fixture_path:
-            raise ValueError(f"ReplayChatModel needs a fixture path via the ``fixture`` kwarg or ${_FIXTURE_ENV}")
+            raise ValueError(
+                "ReplayChatModel needs a fixture path via the ``fixture`` kwarg "
+                f"or ${_FIXTURE_ENV} (legacy ${_LEGACY_FIXTURE_ENV} is still accepted)"
+            )
         self._fixture_path = fixture_path
         self._table = _load_fixture(fixture_path)
         self.callbacks = [*(self.callbacks or []), _ReplayCallerCapture(self._run_callers)]
 
     @property
     def _llm_type(self) -> str:
-        return "deerflow-replay"
+        return "vassilflow-replay"
 
     def _caller_from_run_manager(self, run_manager: CallbackManagerForLLMRun | None) -> str:
         if run_manager is None:

@@ -8,7 +8,7 @@ resulting fixture replays cleanly against the browser.
 
 Used by ``frontend/playwright.record.config.ts``. Env:
   OPENAI_API_KEY / OPENAI_API_BASE  - the real upstream (never committed)
-  DEERFLOW_RECORD_OUT               - JSONL path to append captured turns to
+  VASSILFLOW_RECORD_OUT             - JSONL path to append captured turns to
   RECORD_PORT (default 8012), RECORD_MODEL (default gpt-5.5)
 """
 
@@ -23,6 +23,22 @@ from pathlib import Path
 _BACKEND = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_BACKEND))
 sys.path.insert(0, str(_BACKEND / "tests"))
+
+_RECORD_OUT_ENV = "VASSILFLOW_RECORD_OUT"
+_LEGACY_RECORD_OUT_ENV = "DEERFLOW_RECORD_OUT"
+
+
+def _set_hermetic_runtime_env(home: Path, cfg: Path, extensions_cfg: Path) -> None:
+    for legacy_name in (
+        "DEER_FLOW_HOME",
+        "DEER_FLOW_CONFIG_PATH",
+        "DEER_FLOW_EXTENSIONS_CONFIG_PATH",
+    ):
+        os.environ.pop(legacy_name, None)
+
+    os.environ["VASSILFLOW_HOME"] = str(home)
+    os.environ["VASSILFLOW_CONFIG_PATH"] = str(cfg)
+    os.environ["VASSILFLOW_EXTENSIONS_CONFIG_PATH"] = str(extensions_cfg)
 
 
 def _install_capture(out_path: Path) -> None:
@@ -90,9 +106,13 @@ def main() -> int:
         print("ERROR: set OPENAI_API_KEY and OPENAI_API_BASE (an OpenAI-compatible /v1 endpoint)", file=sys.stderr)
         return 2
 
-    record_out = os.environ.get("DEERFLOW_RECORD_OUT")
+    record_out = os.environ.get(_RECORD_OUT_ENV) or os.environ.get(_LEGACY_RECORD_OUT_ENV)
     if not record_out:
-        print("ERROR: set DEERFLOW_RECORD_OUT to the JSONL path to append captured turns to", file=sys.stderr)
+        print(
+            f"ERROR: set {_RECORD_OUT_ENV} to the JSONL path to append captured turns to "
+            f"(legacy {_LEGACY_RECORD_OUT_ENV} is still accepted)",
+            file=sys.stderr,
+        )
         return 2
 
     port = int(os.environ.get("RECORD_PORT", "8012"))
@@ -106,11 +126,9 @@ def main() -> int:
     home = Path(tempfile.mkdtemp(prefix="record-gw-"))
     cfg = home / "config.yaml"
     cfg.write_text(build_config_yaml(model_block=real_model_block(model), home=home), encoding="utf-8")
-    # Override (not setdefault): the recorder must be hermetic, so an outer
-    # DEER_FLOW_HOME can't leak in and shift prompt-affecting paths/skills.
-    os.environ["DEER_FLOW_HOME"] = str(home)
-    os.environ["DEER_FLOW_CONFIG_PATH"] = str(cfg)
-    os.environ["DEER_FLOW_EXTENSIONS_CONFIG_PATH"] = str(prepare_hermetic_extras(home))
+    # Override (not setdefault): the recorder must be hermetic, so outer runtime
+    # env vars can't leak in and shift prompt-affecting paths/skills.
+    _set_hermetic_runtime_env(home, cfg, prepare_hermetic_extras(home))
     os.environ.setdefault("AUTH_JWT_SECRET", "record-secret")
     os.environ["PYTHONPATH"] = os.pathsep.join(p for p in (str(_BACKEND), str(_BACKEND / "tests"), os.environ.get("PYTHONPATH", "")) if p)
 

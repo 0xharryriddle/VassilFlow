@@ -4,10 +4,13 @@ import { defineConfig, devices } from "@playwright/test";
  * RECORD-through-browser config (Plan A): drive the REAL frontend against a
  * REAL-model gateway and capture every model call so the fixture's inputs match
  * exactly what the frontend produces. Manual, needs OPENAI_API_KEY/OPENAI_API_BASE
- * + DEERFLOW_RECORD_OUT in the environment — never run in CI.
+ * + VASSILFLOW_RECORD_OUT in the environment — never run in CI.
  *
  * Not committed as a test run; `tests/e2e-record/` holds the driver spec.
  */
+const recordOut =
+  process.env.VASSILFLOW_RECORD_OUT ?? process.env.DEERFLOW_RECORD_OUT;
+
 export default defineConfig({
   testDir: "./tests/e2e-record",
   fullyParallel: false,
@@ -31,9 +34,7 @@ export default defineConfig({
         // Forwarded from the invoking shell; never hardcoded. Passed through only
         // when actually set, so record_gateway.py raises a clear "missing env"
         // error instead of receiving "" (which would write to Path("")).
-        ...(process.env.DEERFLOW_RECORD_OUT
-          ? { DEERFLOW_RECORD_OUT: process.env.DEERFLOW_RECORD_OUT }
-          : {}),
+        ...(recordOut ? { VASSILFLOW_RECORD_OUT: recordOut } : {}),
         ...(process.env.OPENAI_API_KEY
           ? { OPENAI_API_KEY: process.env.OPENAI_API_KEY }
           : {}),
@@ -49,9 +50,9 @@ export default defineConfig({
       timeout: 240_000,
       env: {
         SKIP_ENV_VALIDATION: "1",
-        DEER_FLOW_AUTH_DISABLED: "1",
+        VASSILFLOW_AUTH_DISABLED: "1",
         BETTER_AUTH_SECRET: "local-dev-secret",
-        DEER_FLOW_INTERNAL_GATEWAY_BASE_URL: "http://127.0.0.1:8012",
+        VASSILFLOW_INTERNAL_GATEWAY_BASE_URL: "http://127.0.0.1:8012",
       },
     },
   ],

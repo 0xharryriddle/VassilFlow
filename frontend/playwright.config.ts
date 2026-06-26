@@ -28,7 +28,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       SKIP_ENV_VALIDATION: "1",
-      DEER_FLOW_AUTH_DISABLED: "1",
+      VASSILFLOW_AUTH_DISABLED: "1",
     },
   },
 });

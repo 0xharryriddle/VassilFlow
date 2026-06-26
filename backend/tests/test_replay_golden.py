@@ -53,7 +53,8 @@ def test_replay_write_read_file_ultra_matches_golden(tmp_path: Path, monkeypatch
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("DEER_FLOW_HOME", str(home))
-    monkeypatch.setenv("DEERFLOW_REPLAY_FIXTURE", str(fixture_path))
+    monkeypatch.setenv("VASSILFLOW_REPLAY_FIXTURE", str(fixture_path))
+    monkeypatch.delenv("DEERFLOW_REPLAY_FIXTURE", raising=False)
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(build_config_yaml(model_block=REPLAY_MODEL_BLOCK, home=home), encoding="utf-8")
@@ -85,8 +86,8 @@ def test_replay_write_read_file_ultra_matches_golden(tmp_path: Path, monkeypatch
     assert not misses, f"replay miss ({len(misses)}): the fixture is stale vs the current system prompt or agent graph. Re-record it (see backend/docs/REPLAY_E2E.md). Missed hashes: {misses}"
 
     # Regenerate the committed golden after re-recording the fixture:
-    #   DEERFLOW_WRITE_GOLDEN=1 uv run pytest tests/test_replay_golden.py
-    if os.environ.get("DEERFLOW_WRITE_GOLDEN"):
+    #   VASSILFLOW_WRITE_GOLDEN=1 uv run pytest tests/test_replay_golden.py
+    if os.environ.get("VASSILFLOW_WRITE_GOLDEN") or os.environ.get("DEERFLOW_WRITE_GOLDEN"):
         events_path.write_text(json.dumps({"scenario": scenario, "mode": mode, "events": events}, ensure_ascii=False, indent=2), encoding="utf-8")
         return
 

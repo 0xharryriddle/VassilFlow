@@ -5,8 +5,8 @@ import { expect, test } from "@playwright/test";
 /**
  * RECORD driver (Plan A): drive the real frontend through the write/read-file
  * scenario against the real-model gateway. The gateway captures every model
- * call to DEERFLOW_RECORD_OUT; this just needs to drive the flow and wait until
- * the captures stop arriving (main turns + in-graph title + follow-up
+ * call to VASSILFLOW_RECORD_OUT; this just needs to drive the flow and wait
+ * until the captures stop arriving (main turns + in-graph title + follow-up
  * suggestions all fired). It asserts nothing about content — it produces the
  * fixture, it doesn't verify it.
  */
@@ -59,8 +59,9 @@ test("record write/read-file run through the real frontend", async ({
   page,
   context,
 }) => {
-  const out = process.env.DEERFLOW_RECORD_OUT;
-  expect(out, "DEERFLOW_RECORD_OUT must be set").toBeTruthy();
+  const out =
+    process.env.VASSILFLOW_RECORD_OUT ?? process.env.DEERFLOW_RECORD_OUT;
+  expect(out, "VASSILFLOW_RECORD_OUT must be set").toBeTruthy();
   // The context the frontend derives for ultra mode (core/threads/hooks.ts). The
   // backend-direct golden test (Layer 1) POSTs this so its prompt — hence the
   // recorded input hashes — matches the browser run. thinking/reasoning don't
