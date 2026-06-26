@@ -629,10 +629,12 @@ Then make sure VassilFlow is running (default at `http://localhost:2026`) and us
 **Environment variables** (optional, for custom endpoints):
 
 ```bash
-DEERFLOW_URL=http://localhost:2026            # Unified proxy base URL
-DEERFLOW_GATEWAY_URL=http://localhost:2026    # Gateway API
-DEERFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
+VASSILFLOW_URL=http://localhost:2026            # Unified proxy base URL
+VASSILFLOW_GATEWAY_URL=http://localhost:2026    # Gateway API
+VASSILFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
 ```
+
+Legacy `DEERFLOW_*` names remain accepted by the bundled scripts.
 
 See [`skills/public/claude-to-deerflow/SKILL.md`](skills/public/claude-to-deerflow/SKILL.md) for the full API reference.
 
