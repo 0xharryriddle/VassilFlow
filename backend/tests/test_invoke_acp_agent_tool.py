@@ -289,6 +289,15 @@ async def test_invoke_acp_agent_uses_fixed_acp_workspace(monkeypatch, tmp_path):
 
     assert result == "ACP result"
     assert captured["spawn"] == {"cmd": "codex-acp", "args": ["--json"], "cwd": expected_cwd}
+    assert captured["initialize"] == {
+        "protocol_version": "2026-03-24",
+        "client_capabilities": {"supports": []},
+        "client_info": {
+            "name": "vassilflow",
+            "title": "VassilFlow",
+            "version": "0.1.0",
+        },
+    }
     assert captured["new_session"] == {
         "cwd": expected_cwd,
         "mcp_servers": [
