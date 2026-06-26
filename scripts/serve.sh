@@ -37,6 +37,31 @@ if [ -f "$REPO_ROOT/.env" ]; then
     set +a
 fi
 
+vassilflow_alias_for() {
+    case "$1" in
+        DEER_FLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEER_FLOW_}" ;;
+        DEERFLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEERFLOW_}" ;;
+        *) return 1 ;;
+    esac
+}
+
+sync_vassilflow_env() {
+    local legacy="$1"
+    local alias
+    alias="$(vassilflow_alias_for "$legacy" 2>/dev/null || true)"
+    [ -n "$alias" ] || return 0
+
+    if [ -n "${!alias+x}" ]; then
+        export "$legacy=${!alias}"
+    elif [ -n "${!legacy+x}" ]; then
+        export "$alias=${!legacy}"
+    fi
+}
+
+sync_vassilflow_env DEER_FLOW_PROJECT_ROOT
+sync_vassilflow_env DEER_FLOW_HOME
+sync_vassilflow_env DEER_FLOW_CONFIG_PATH
+
 _pick_python() {
     local candidate
     for candidate in python3 python py; do
@@ -308,11 +333,13 @@ fi
 if [ -z "$DEER_FLOW_PROJECT_ROOT" ]; then
     export DEER_FLOW_PROJECT_ROOT="$REPO_ROOT"
 fi
+sync_vassilflow_env DEER_FLOW_PROJECT_ROOT
 
 BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"
 if [ -z "$DEER_FLOW_HOME" ]; then
     export DEER_FLOW_HOME="$BACKEND_RUNTIME_HOME"
 fi
+sync_vassilflow_env DEER_FLOW_HOME
 
 # `backend/sandbox` is excluded from uvicorn's reload watcher below. uvicorn only
 # excludes an absolute path directly when it already exists as a directory;
@@ -323,6 +350,7 @@ mkdir -p "$DEER_FLOW_HOME" "$BACKEND_RUNTIME_HOME" "$REPO_ROOT/backend/sandbox"
 DEER_FLOW_HOME="$(cd "$DEER_FLOW_HOME" && pwd -P)"
 BACKEND_RUNTIME_HOME="$(cd "$BACKEND_RUNTIME_HOME" && pwd -P)"
 export DEER_FLOW_HOME
+export VASSILFLOW_HOME
 
 # Extra flags for uvicorn
 if $DEV_MODE && ! $DAEMON_MODE; then

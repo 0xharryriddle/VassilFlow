@@ -15,6 +15,35 @@ DOCKER_DIR="$PROJECT_ROOT/docker"
 # Docker Compose command with project name
 COMPOSE_CMD="docker compose -p deer-flow-dev -f docker-compose-dev.yaml"
 
+vassilflow_alias_for() {
+    case "$1" in
+        DEER_FLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEER_FLOW_}" ;;
+        DEERFLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEERFLOW_}" ;;
+        *) return 1 ;;
+    esac
+}
+
+sync_vassilflow_env() {
+    local legacy="$1"
+    local alias
+    alias="$(vassilflow_alias_for "$legacy" 2>/dev/null || true)"
+    [ -n "$alias" ] || return 0
+
+    if [ -n "${!alias+x}" ]; then
+        export "$legacy=${!alias}"
+    elif [ -n "${!legacy+x}" ]; then
+        export "$alias=${!legacy}"
+    fi
+}
+
+sync_vassilflow_envs() {
+    sync_vassilflow_env DEER_FLOW_ROOT
+    sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
+    sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
+    sync_vassilflow_env DEER_FLOW_CHANNELS_LANGGRAPH_URL
+    sync_vassilflow_env DEER_FLOW_CHANNELS_GATEWAY_URL
+}
+
 load_proxy_env_from_dotenv() {
     local env_file="$PROJECT_ROOT/.env"
     local var
@@ -201,7 +230,10 @@ start() {
     # the default (local) and provisioner modes never expose the host daemon.
     # Mounting the socket = root-equivalent host control; see SECURITY.md.
     if [ "$sandbox_mode" = "aio" ]; then
+        sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
         local docker_socket="${DEER_FLOW_DOCKER_SOCKET:-/var/run/docker.sock}"
+        export DEER_FLOW_DOCKER_SOCKET="$docker_socket"
+        sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
         if [ ! -S "$docker_socket" ]; then
             echo -e "${YELLOW}⚠ Docker socket not found at $docker_socket — AioSandboxProvider (DooD) will not work.${NC}"
             exit 1
@@ -219,12 +251,16 @@ start() {
     fi
     echo ""
     
-    # Set DEER_FLOW_ROOT for provisioner if not already set
+    sync_vassilflow_envs
+
+    # Set repo root for provisioner if not already set
     if [ -z "$DEER_FLOW_ROOT" ]; then
         export DEER_FLOW_ROOT="$PROJECT_ROOT"
-        echo -e "${BLUE}Setting DEER_FLOW_ROOT=$DEER_FLOW_ROOT${NC}"
+        sync_vassilflow_env DEER_FLOW_ROOT
+        echo -e "${BLUE}Setting VASSILFLOW_ROOT=$VASSILFLOW_ROOT${NC}"
         echo ""
     fi
+    sync_vassilflow_envs
     
     # Ensure config.yaml exists before starting.
     if [ ! -f "$PROJECT_ROOT/config.yaml" ]; then
@@ -317,9 +353,11 @@ logs() {
 stop() {
     # DEER_FLOW_ROOT is referenced in docker-compose-dev.yaml; set it before
     # running compose down to suppress "variable is not set" warnings.
+    sync_vassilflow_env DEER_FLOW_ROOT
     if [ -z "$DEER_FLOW_ROOT" ]; then
         export DEER_FLOW_ROOT="$PROJECT_ROOT"
     fi
+    sync_vassilflow_env DEER_FLOW_ROOT
     echo "Stopping Docker development services..."
     cd "$DOCKER_DIR" && $COMPOSE_CMD down
     echo "Cleaning up sandbox containers..."

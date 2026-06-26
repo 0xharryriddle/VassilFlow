@@ -53,23 +53,62 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+vassilflow_alias_for() {
+    case "$1" in
+        DEER_FLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEER_FLOW_}" ;;
+        DEERFLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEERFLOW_}" ;;
+        *) return 1 ;;
+    esac
+}
+
+sync_vassilflow_env() {
+    local legacy="$1"
+    local alias
+    alias="$(vassilflow_alias_for "$legacy" 2>/dev/null || true)"
+    [ -n "$alias" ] || return 0
+
+    if [ -n "${!alias+x}" ]; then
+        export "$legacy=${!alias}"
+    elif [ -n "${!legacy+x}" ]; then
+        export "$alias=${!legacy}"
+    fi
+}
+
+sync_vassilflow_envs() {
+    sync_vassilflow_env DEER_FLOW_HOME
+    sync_vassilflow_env DEER_FLOW_REPO_ROOT
+    sync_vassilflow_env DEER_FLOW_CONFIG_PATH
+    sync_vassilflow_env DEER_FLOW_EXTENSIONS_CONFIG_PATH
+    sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
+    sync_vassilflow_env DEER_FLOW_CHANNELS_LANGGRAPH_URL
+    sync_vassilflow_env DEER_FLOW_CHANNELS_GATEWAY_URL
+    sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
+}
+
+sync_vassilflow_envs
+
 # ── DEER_FLOW_HOME ────────────────────────────────────────────────────────────
 
 if [ -z "$DEER_FLOW_HOME" ]; then
     export DEER_FLOW_HOME="$REPO_ROOT/backend/.deer-flow"
 fi
-echo -e "${BLUE}DEER_FLOW_HOME=$DEER_FLOW_HOME${NC}"
+sync_vassilflow_env DEER_FLOW_HOME
+echo -e "${BLUE}VASSILFLOW_HOME=$VASSILFLOW_HOME${NC}"
 mkdir -p "$DEER_FLOW_HOME"
 
 # ── DEER_FLOW_REPO_ROOT (for skills host path in DooD) ───────────────────────
 
-export DEER_FLOW_REPO_ROOT="$REPO_ROOT"
+if [ -z "$DEER_FLOW_REPO_ROOT" ]; then
+    export DEER_FLOW_REPO_ROOT="$REPO_ROOT"
+fi
+sync_vassilflow_env DEER_FLOW_REPO_ROOT
 
 # ── config.yaml ───────────────────────────────────────────────────────────────
 
 if [ -z "$DEER_FLOW_CONFIG_PATH" ]; then
     export DEER_FLOW_CONFIG_PATH="$REPO_ROOT/config.yaml"
 fi
+sync_vassilflow_env DEER_FLOW_CONFIG_PATH
 
 if  [ "$CMD" != "down" ] && [ ! -f "$DEER_FLOW_CONFIG_PATH" ]; then
     # Try to seed from repo (config.example.yaml is the canonical template)
@@ -93,6 +132,7 @@ fi
 if [ -z "$DEER_FLOW_EXTENSIONS_CONFIG_PATH" ]; then
     export DEER_FLOW_EXTENSIONS_CONFIG_PATH="$REPO_ROOT/extensions_config.json"
 fi
+sync_vassilflow_env DEER_FLOW_EXTENSIONS_CONFIG_PATH
 
 if [ ! -f "$DEER_FLOW_EXTENSIONS_CONFIG_PATH" ]; then
     if [ -f "$REPO_ROOT/extensions_config.json" ]; then
@@ -145,11 +185,13 @@ fi
 # APIs even when the request is handled by a different Uvicorn worker.
 
 _internal_auth_token_file="$DEER_FLOW_HOME/.internal-auth-token"
+sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
 if  [ "$CMD" != "down" ] && [ -z "$DEER_FLOW_INTERNAL_AUTH_TOKEN" ]; then
     if [ -f "$_internal_auth_token_file" ]; then
         export DEER_FLOW_INTERNAL_AUTH_TOKEN
         DEER_FLOW_INTERNAL_AUTH_TOKEN="$(cat "$_internal_auth_token_file")"
-        echo -e "${GREEN}✓ DEER_FLOW_INTERNAL_AUTH_TOKEN loaded from $_internal_auth_token_file${NC}"
+        sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
+        echo -e "${GREEN}✓ VASSILFLOW_INTERNAL_AUTH_TOKEN loaded from $_internal_auth_token_file${NC}"
     else
         export DEER_FLOW_INTERNAL_AUTH_TOKEN
         if command -v python3 > /dev/null 2>&1 && \
@@ -162,13 +204,14 @@ if  [ "$CMD" != "down" ] && [ -z "$DEER_FLOW_INTERNAL_AUTH_TOKEN" ]; then
             DEER_FLOW_INTERNAL_AUTH_TOKEN="$(openssl rand -hex 32)"; then
             true
         else
-            echo -e "${RED}✗ Cannot generate DEER_FLOW_INTERNAL_AUTH_TOKEN: python3, python, and openssl are all unavailable.${NC}" >&2
-            echo -e "${RED}  Set DEER_FLOW_INTERNAL_AUTH_TOKEN manually before running make up.${NC}" >&2
+            echo -e "${RED}✗ Cannot generate VASSILFLOW_INTERNAL_AUTH_TOKEN: python3, python, and openssl are all unavailable.${NC}" >&2
+            echo -e "${RED}  Set VASSILFLOW_INTERNAL_AUTH_TOKEN manually before running make up.${NC}" >&2
             exit 1
         fi
+        sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
         echo "$DEER_FLOW_INTERNAL_AUTH_TOKEN" > "$_internal_auth_token_file"
         chmod 600 "$_internal_auth_token_file"
-        echo -e "${GREEN}✓ DEER_FLOW_INTERNAL_AUTH_TOKEN generated → $_internal_auth_token_file${NC}"
+        echo -e "${GREEN}✓ VASSILFLOW_INTERNAL_AUTH_TOKEN generated → $_internal_auth_token_file${NC}"
     fi
 fi
 
@@ -212,12 +255,14 @@ detect_sandbox_mode() {
 if [ "$CMD" = "down" ]; then
     # Set minimal env var defaults so docker compose can parse the file without
     # warning about unset variables that appear in volume specs.
+    sync_vassilflow_envs
     export DEER_FLOW_HOME="${DEER_FLOW_HOME:-$REPO_ROOT/backend/.deer-flow}"
     export DEER_FLOW_CONFIG_PATH="${DEER_FLOW_CONFIG_PATH:-$DEER_FLOW_HOME/config.yaml}"
     export DEER_FLOW_EXTENSIONS_CONFIG_PATH="${DEER_FLOW_EXTENSIONS_CONFIG_PATH:-$DEER_FLOW_HOME/extensions_config.json}"
     export DEER_FLOW_REPO_ROOT="${DEER_FLOW_REPO_ROOT:-$REPO_ROOT}"
     export BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET:-placeholder}"
     export DEER_FLOW_INTERNAL_AUTH_TOKEN="${DEER_FLOW_INTERNAL_AUTH_TOKEN:-placeholder}"
+    sync_vassilflow_envs
     "${COMPOSE_CMD[@]}" down
     exit 0
 fi
@@ -270,9 +315,11 @@ fi
 # appended here, so the default (local) and provisioner modes never expose the
 # host daemon. Mounting the socket = root-equivalent host control; see SECURITY.md.
 
+sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
 if [ -z "$DEER_FLOW_DOCKER_SOCKET" ]; then
     export DEER_FLOW_DOCKER_SOCKET="/var/run/docker.sock"
 fi
+sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
 
 if [ "$sandbox_mode" = "aio" ]; then
     if [ ! -S "$DEER_FLOW_DOCKER_SOCKET" ]; then

@@ -11,6 +11,29 @@ set -e
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXAMPLE="$REPO_ROOT/config.example.yaml"
 
+vassilflow_alias_for() {
+    case "$1" in
+        DEER_FLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEER_FLOW_}" ;;
+        DEERFLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEERFLOW_}" ;;
+        *) return 1 ;;
+    esac
+}
+
+sync_vassilflow_env() {
+    local legacy="$1"
+    local alias
+    alias="$(vassilflow_alias_for "$legacy" 2>/dev/null || true)"
+    [ -n "$alias" ] || return 0
+
+    if [ -n "${!alias+x}" ]; then
+        export "$legacy=${!alias}"
+    elif [ -n "${!legacy+x}" ]; then
+        export "$alias=${!legacy}"
+    fi
+}
+
+sync_vassilflow_env DEER_FLOW_CONFIG_PATH
+
 # Resolve config.yaml location: env var > backend/ > repo root
 if [ -n "$DEER_FLOW_CONFIG_PATH" ] && [ -f "$DEER_FLOW_CONFIG_PATH" ]; then
     CONFIG="$DEER_FLOW_CONFIG_PATH"

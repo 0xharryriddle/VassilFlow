@@ -69,8 +69,14 @@ fi
 # directory, not as a plain glob pattern — on Python 3.12, globbing an absolute
 # pattern raises NotImplementedError and crashes startup (#3459 / #3454). That
 # means `sandbox` must be created here too, not just `.deer-flow`.
+if [ -n "${VASSILFLOW_HOME:-}" ]; then
+    DEER_FLOW_HOME="$VASSILFLOW_HOME"
+elif [ -n "${DEER_FLOW_HOME:-}" ]; then
+    VASSILFLOW_HOME="$DEER_FLOW_HOME"
+fi
 : "${DEER_FLOW_HOME:=/app/backend/.deer-flow}"
-export DEER_FLOW_HOME
+: "${VASSILFLOW_HOME:=$DEER_FLOW_HOME}"
+export DEER_FLOW_HOME VASSILFLOW_HOME
 mkdir -p "$DEER_FLOW_HOME" /app/backend/.deer-flow /app/backend/sandbox
 
 # ── Sync dependencies (with self-heal) ──────────────────────────────────────

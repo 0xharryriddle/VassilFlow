@@ -8,15 +8,17 @@
 #   - provisioner: (optional) Sandbox provisioner for Kubernetes mode
 #
 # Key environment variables (set via environment/.env or scripts/deploy.sh):
-#   DEER_FLOW_PROJECT_ROOT           — project root for relative runtime paths
-#   DEER_FLOW_HOME                   — runtime data dir, default .deer-flow under $DEER_FLOW_PROJECT_ROOT (or cwd)
-#   DEER_FLOW_CONFIG_PATH            — path to config.yaml
-#   DEER_FLOW_EXTENSIONS_CONFIG_PATH — path to extensions_config.json
-#   DEER_FLOW_SKILLS_PATH            — skills dir, default $DEER_FLOW_PROJECT_ROOT/skills
-#   DEER_FLOW_DOCKER_SOCKET          — Docker socket path for aio/DooD mode, default /var/run/docker.sock (used only by the opt-in docker-compose.dood.yaml overlay)
-#   DEER_FLOW_REPO_ROOT              — repo root (used for skills host path in DooD)
+#   VASSILFLOW_PROJECT_ROOT          — project root for relative runtime paths
+#   VASSILFLOW_HOME                  — runtime data dir, default .deer-flow under $VASSILFLOW_PROJECT_ROOT (or cwd)
+#   VASSILFLOW_CONFIG_PATH           — path to config.yaml
+#   VASSILFLOW_EXTENSIONS_CONFIG_PATH — path to extensions_config.json
+#   VASSILFLOW_SKILLS_PATH           — skills dir, default $VASSILFLOW_PROJECT_ROOT/skills
+#   VASSILFLOW_DOCKER_SOCKET         — Docker socket path for aio/DooD mode, default /var/run/docker.sock (used only by the opt-in docker-compose.dood.yaml overlay)
+#   VASSILFLOW_REPO_ROOT             — repo root (used for skills host path in DooD)
 #   BETTER_AUTH_SECRET               — required for frontend auth/session security
-#   DEER_FLOW_INTERNAL_AUTH_TOKEN    — shared internal Gateway auth token for multi-worker IM channels
+#   VASSILFLOW_INTERNAL_AUTH_TOKEN   — shared internal Gateway auth token for multi-worker IM channels
+#
+# Legacy DEER_FLOW_* names are still accepted during the VassilFlow transition.
 #
 # LangSmith tracing is disabled by default (LANGSMITH_TRACING=false).
 # Set LANGSMITH_TRACING=true and LANGSMITH_API_KEY in .env to enable it.
@@ -55,6 +57,7 @@ services:
     environment:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - DEER_FLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
+      - VASSILFLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
     env_file:
       - ../frontend/.env
     networks:
@@ -80,10 +83,10 @@ services:
     # not yet implemented. Override GATEWAY_WORKERS only once that is in place.
     command: sh -c "cd backend && PYTHONPATH=. uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --workers ${GATEWAY_WORKERS:-1}"
     volumes:
-      - ${DEER_FLOW_CONFIG_PATH}:/app/backend/config.yaml:ro
-      - ${DEER_FLOW_EXTENSIONS_CONFIG_PATH}:/app/backend/extensions_config.json:ro
+      - ${VASSILFLOW_CONFIG_PATH:-${DEER_FLOW_CONFIG_PATH:-../config.yaml}}:/app/backend/config.yaml:ro
+      - ${VASSILFLOW_EXTENSIONS_CONFIG_PATH:-${DEER_FLOW_EXTENSIONS_CONFIG_PATH:-../extensions_config.json}}:/app/backend/extensions_config.json:ro
       - ../skills:/app/skills:ro
-      - ${DEER_FLOW_HOME}:/app/backend/.deer-flow
+      - ${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.deer-flow}}:/app/backend/.deer-flow
       # DooD: the host Docker socket is NOT mounted by default. It is added only
       # for aio (pure-DooD) sandbox mode via the opt-in docker-compose.dood.yaml
       # overlay (appended by scripts/deploy.sh). See backend/docs/CONFIGURATION.md
@@ -98,16 +101,26 @@ services:
     working_dir: /app
     environment:
       - CI=true
+      - VASSILFLOW_PROJECT_ROOT=/app
+      - VASSILFLOW_HOME=/app/backend/.deer-flow
+      - VASSILFLOW_CONFIG_PATH=/app/backend/config.yaml
+      - VASSILFLOW_EXTENSIONS_CONFIG_PATH=/app/backend/extensions_config.json
+      - VASSILFLOW_CHANNELS_LANGGRAPH_URL=${VASSILFLOW_CHANNELS_LANGGRAPH_URL:-${DEER_FLOW_CHANNELS_LANGGRAPH_URL:-http://gateway:8001/api}}
+      - VASSILFLOW_CHANNELS_GATEWAY_URL=${VASSILFLOW_CHANNELS_GATEWAY_URL:-${DEER_FLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}}
+      - VASSILFLOW_INTERNAL_AUTH_TOKEN=${VASSILFLOW_INTERNAL_AUTH_TOKEN:-${DEER_FLOW_INTERNAL_AUTH_TOKEN:-}}
+      - VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.deer-flow}}
+      - VASSILFLOW_HOST_SKILLS_PATH=${VASSILFLOW_REPO_ROOT:-${DEER_FLOW_REPO_ROOT:-..}}/skills
+      - VASSILFLOW_SANDBOX_HOST=host.docker.internal
       - DEER_FLOW_PROJECT_ROOT=/app
       - DEER_FLOW_HOME=/app/backend/.deer-flow
       - DEER_FLOW_CONFIG_PATH=/app/backend/config.yaml
       - DEER_FLOW_EXTENSIONS_CONFIG_PATH=/app/backend/extensions_config.json
-      - DEER_FLOW_CHANNELS_LANGGRAPH_URL=${DEER_FLOW_CHANNELS_LANGGRAPH_URL:-http://gateway:8001/api}
-      - DEER_FLOW_CHANNELS_GATEWAY_URL=${DEER_FLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}
-      - DEER_FLOW_INTERNAL_AUTH_TOKEN=${DEER_FLOW_INTERNAL_AUTH_TOKEN}
+      - DEER_FLOW_CHANNELS_LANGGRAPH_URL=${VASSILFLOW_CHANNELS_LANGGRAPH_URL:-${DEER_FLOW_CHANNELS_LANGGRAPH_URL:-http://gateway:8001/api}}
+      - DEER_FLOW_CHANNELS_GATEWAY_URL=${VASSILFLOW_CHANNELS_GATEWAY_URL:-${DEER_FLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}}
+      - DEER_FLOW_INTERNAL_AUTH_TOKEN=${VASSILFLOW_INTERNAL_AUTH_TOKEN:-${DEER_FLOW_INTERNAL_AUTH_TOKEN:-}}
       # DooD path/network translation
-      - DEER_FLOW_HOST_BASE_DIR=${DEER_FLOW_HOME}
-      - DEER_FLOW_HOST_SKILLS_PATH=${DEER_FLOW_REPO_ROOT}/skills
+      - DEER_FLOW_HOST_BASE_DIR=${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.deer-flow}}
+      - DEER_FLOW_HOST_SKILLS_PATH=${VASSILFLOW_REPO_ROOT:-${DEER_FLOW_REPO_ROOT:-..}}/skills
       - DEER_FLOW_SANDBOX_HOST=host.docker.internal
       # Proxy values (HTTP_PROXY/HTTPS_PROXY/ALL_PROXY) are inherited from ../.env via env_file.
       # Only NO_PROXY is declared here so internal service hostnames are always exempt from the proxy.
@@ -135,8 +148,8 @@ services:
     environment:
       - K8S_NAMESPACE=deer-flow
       - SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-      - SKILLS_HOST_PATH=${DEER_FLOW_REPO_ROOT}/skills
-      - THREADS_HOST_PATH=${DEER_FLOW_HOME}/threads
+      - SKILLS_HOST_PATH=${VASSILFLOW_REPO_ROOT:-${DEER_FLOW_REPO_ROOT:-..}}/skills
+      - THREADS_HOST_PATH=${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.deer-flow}}/threads
       - KUBECONFIG_PATH=/root/.kube/config
       - NODE_HOST=host.docker.internal
       - K8S_API_SERVER=https://host.docker.internal:26443

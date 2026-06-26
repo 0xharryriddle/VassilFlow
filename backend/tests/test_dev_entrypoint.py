@@ -9,6 +9,7 @@ same shape — see PR #2767 / Issue #2754.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -18,14 +19,31 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 ENTRYPOINT = REPO_ROOT / "docker" / "dev-entrypoint.sh"
 
 
+def _find_sh() -> str:
+    resolved = shutil.which("sh")
+    if resolved:
+        return resolved
+
+    for candidate in (
+        Path(r"C:\Program Files\Git\usr\bin\sh.exe"),
+        Path(r"C:\Program Files\Git\bin\sh.exe"),
+    ):
+        if candidate.is_file():
+            return str(candidate)
+
+    pytest.skip("POSIX sh is required for dev-entrypoint tests")
+
+
 def _run(uv_extras: str | None) -> subprocess.CompletedProcess[str]:
     """Invoke `dev-entrypoint.sh --print-extras` with UV_EXTRAS set."""
+    sh = _find_sh()
     env = os.environ.copy()
+    env["PATH"] = f"{Path(sh).parent}{os.pathsep}{env.get('PATH', '')}"
     env.pop("UV_EXTRAS", None)
     if uv_extras is not None:
         env["UV_EXTRAS"] = uv_extras
     return subprocess.run(
-        ["sh", str(ENTRYPOINT), "--print-extras"],
+        [sh, str(ENTRYPOINT), "--print-extras"],
         env=env,
         capture_output=True,
         text=True,
@@ -36,14 +54,17 @@ def _run(uv_extras: str | None) -> subprocess.CompletedProcess[str]:
 def test_entrypoint_script_exists_and_is_posix_sh():
     assert ENTRYPOINT.is_file()
     # Catch syntax errors before runtime — `sh -n` is a parse-only check.
-    proc = subprocess.run(["sh", "-n", str(ENTRYPOINT)], capture_output=True, text=True, check=False)
+    proc = subprocess.run([_find_sh(), "-n", str(ENTRYPOINT)], capture_output=True, text=True, check=False)
     assert proc.returncode == 0, proc.stderr
 
 
 def test_entrypoint_excludes_runtime_state_from_uvicorn_reload():
     content = ENTRYPOINT.read_text(encoding="utf-8")
 
+    assert 'if [ -n "${VASSILFLOW_HOME:-}" ]; then' in content
     assert ': "${DEER_FLOW_HOME:=/app/backend/.deer-flow}"' in content
+    assert ': "${VASSILFLOW_HOME:=$DEER_FLOW_HOME}"' in content
+    assert "export DEER_FLOW_HOME VASSILFLOW_HOME" in content
     # sandbox must be created too, not just .deer-flow (#3459 / #3454).
     assert 'mkdir -p "$DEER_FLOW_HOME" /app/backend/.deer-flow /app/backend/sandbox' in content
     assert "--reload-include='*.yaml .env'" not in content
