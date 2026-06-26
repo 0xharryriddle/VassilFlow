@@ -101,6 +101,11 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
     from vassilflow.runtime import make_store as facade_make_store
     from vassilflow.runtime import serialize_channel_values_for_api as facade_serialize_api
 
+    deerflow_store = import_module("deerflow.runtime.store")
+    vassilflow_store = import_module("vassilflow.runtime.store")
+    deerflow_store_provider = import_module("deerflow.runtime.store.provider")
+    vassilflow_store_provider = import_module("vassilflow.runtime.store.provider")
+
     assert issubclass(VassilFlowClient, DeerFlowClient)
     assert VassilFlowClient.__name__ == "VassilFlowClient"
     assert VassilFlowRunManager is RunManager
@@ -117,6 +122,9 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
     assert factory_facade_create_vassilflow_agent is facade_create_vassilflow_agent
     assert facade_create_chat_model is create_chat_model
     assert facade_model_factory.create_chat_model is create_chat_model
+    assert vassilflow_store.make_store is deerflow_store.make_store
+    assert vassilflow_store.get_store is deerflow_store.get_store
+    assert vassilflow_store_provider.get_store is deerflow_store_provider.get_store
 
 
 def test_vassilflow_config_facade_exports_current_config_api(monkeypatch):

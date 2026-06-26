@@ -1,14 +1,14 @@
 """Sync Store factory.
 
 Provides a **sync singleton** and a **sync context manager** for CLI tools
-and the embedded :class:`~deerflow.client.DeerFlowClient`.
+and the embedded :class:`~vassilflow.client.VassilFlowClient`.
 
 The backend mirrors the configured checkpointer so that both always use the
 same persistence technology.  Supported backends: memory, sqlite, postgres.
 
 Usage::
 
-    from deerflow.runtime.store.provider import get_store, store_context
+    from vassilflow.runtime.store.provider import get_store, store_context
 
     # Singleton — reused across calls, closed on process exit
     store = get_store()
@@ -53,7 +53,7 @@ def _sync_store_cm(config) -> Iterator[BaseStore]:
     """Context manager that creates and tears down a sync Store.
 
     The ``config`` argument is a
-    :class:`~deerflow.config.checkpointer_config.CheckpointerConfig` instance —
+    :class:`~vassilflow.config.checkpointer_config.CheckpointerConfig` instance —
     the same object used by the checkpointer factory.
     """
     if config.type == "memory":
