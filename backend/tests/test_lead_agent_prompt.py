@@ -4,10 +4,10 @@ from typing import cast
 
 import anyio
 
-from deerflow.agents.lead_agent import prompt as prompt_module
-from deerflow.config.app_config import AppConfig
-from deerflow.config.subagents_config import CustomSubagentConfig, SubagentsAppConfig
-from deerflow.skills.types import Skill, SkillCategory
+from vassilflow.agents.lead_agent import prompt as prompt_module
+from vassilflow.config.app_config import AppConfig
+from vassilflow.config.subagents_config import CustomSubagentConfig, SubagentsAppConfig
+from vassilflow.skills.types import Skill, SkillCategory
 
 
 def _set_skills_cache_state(*, skills=None, active=False, version=0):
@@ -109,6 +109,26 @@ def test_apply_prompt_template_includes_relative_path_guidance(monkeypatch):
     assert "`hello.txt`, `../uploads/data.csv`, and `../outputs/report.md`" in prompt
 
 
+def test_apply_prompt_template_uses_vassilflow_default_identity(monkeypatch):
+    config = SimpleNamespace(
+        sandbox=SimpleNamespace(mounts=[]),
+        skills=SimpleNamespace(container_path="/mnt/skills"),
+    )
+    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr(prompt_module, "_get_enabled_skills", lambda: [])
+    monkeypatch.setattr(prompt_module, "get_deferred_tools_prompt_section", lambda **kwargs: "")
+    monkeypatch.setattr(prompt_module, "_build_acp_section", lambda **kwargs: "")
+    monkeypatch.setattr(prompt_module, "_get_memory_context", lambda agent_name=None, **kwargs: "")
+    monkeypatch.setattr(prompt_module, "get_agent_soul", lambda agent_name=None: "")
+
+    prompt = prompt_module.apply_prompt_template()
+
+    assert "You are VassilFlow, an open-source super agent." in prompt
+    assert "visible and editable via the VassilFlow UI" in prompt
+    assert "https://github.com/linhlln1104/VassilFlow" in prompt
+    assert "DeerFlow 2.0" not in prompt
+
+
 def test_apply_prompt_template_threads_explicit_app_config_without_global_config(monkeypatch):
     mounts = [SimpleNamespace(container_path="/home/user/shared", read_only=False)]
     explicit_config = SimpleNamespace(
@@ -140,7 +160,7 @@ def test_apply_prompt_template_threads_explicit_app_config_without_global_config
 def test_apply_prompt_template_threads_explicit_app_config_to_subagents_without_global_config(monkeypatch):
     explicit_config = SimpleNamespace(
         sandbox=SimpleNamespace(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="vassilflow.sandbox.local:LocalSandboxProvider",
             allow_host_bash=False,
             mounts=[],
         ),
