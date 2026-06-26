@@ -1,4 +1,4 @@
-"""Authorization decorators and context for DeerFlow.
+"""Authorization decorators and context for VassilFlow.
 
 Inspired by LangGraph Auth system: https://github.com/langchain-ai/langgraph/blob/main/libs/sdk-py/langgraph_sdk/auth/__init__.py
 

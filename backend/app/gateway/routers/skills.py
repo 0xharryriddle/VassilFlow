@@ -4,17 +4,17 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from vassilflow.agents.lead_agent.prompt import refresh_skills_system_prompt_cache_async
+from vassilflow.config.app_config import AppConfig
+from vassilflow.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
+from vassilflow.skills import Skill
+from vassilflow.skills.installer import SkillAlreadyExistsError
+from vassilflow.skills.security_scanner import scan_skill_content
+from vassilflow.skills.storage import get_or_new_skill_storage
+from vassilflow.skills.types import SKILL_MD_FILE, SkillCategory
 
 from app.gateway.deps import get_config
 from app.gateway.path_utils import resolve_thread_virtual_path
-from deerflow.agents.lead_agent.prompt import refresh_skills_system_prompt_cache_async
-from deerflow.config.app_config import AppConfig
-from deerflow.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
-from deerflow.skills import Skill
-from deerflow.skills.installer import SkillAlreadyExistsError
-from deerflow.skills.security_scanner import scan_skill_content
-from deerflow.skills.storage import get_or_new_skill_storage
-from deerflow.skills.types import SKILL_MD_FILE, SkillCategory
 
 logger = logging.getLogger(__name__)
 

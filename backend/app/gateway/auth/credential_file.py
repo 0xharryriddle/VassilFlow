@@ -13,8 +13,9 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from vassilflow.config.paths import get_paths
+
 from app.brand import PRODUCT_NAME
-from deerflow.config.paths import get_paths
 
 _CREDENTIAL_FILENAME = "admin_initial_credentials.txt"
 
@@ -36,7 +37,11 @@ def write_initial_credentials(email: str, password: str, *, label: str = "initia
     target.parent.mkdir(parents=True, exist_ok=True)
 
     content = (
-        f"# {PRODUCT_NAME} admin {label} credentials\n# This file is generated on first boot or password reset.\n# Change the password after login via Settings -> Account,\n# then delete this file.\n#\nemail: {email}\npassword: {password}\n"
+        f"# {PRODUCT_NAME} admin {label} credentials\n"
+        "# This file is generated on first boot or password reset.\n"
+        "# Change the password after login via Settings -> Account,\n"
+        "# then delete this file.\n#\n"
+        f"email: {email}\npassword: {password}\n"
     )
 
     # Atomic 0600 create-or-truncate. O_TRUNC (not O_EXCL) so the

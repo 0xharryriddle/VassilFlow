@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from starlette.responses import RedirectResponse
+from vassilflow.config.auth_config import OIDCProviderConfig
 
 from app.gateway.auth import (
     UserResponse,
@@ -34,7 +35,6 @@ from app.gateway.auth.oidc_state import (
 from app.gateway.auth.user_provisioning import get_or_provision_oidc_user
 from app.gateway.csrf_middleware import CSRF_COOKIE_NAME, _request_origin, generate_csrf_token, is_secure_request
 from app.gateway.deps import get_current_user_from_request, get_local_provider
-from deerflow.config.auth_config import OIDCProviderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -583,7 +583,7 @@ async def list_auth_providers():
     Returns only safe frontend metadata — no secrets, endpoints, or
     internal configuration.
     """
-    from deerflow.config.app_config import get_app_config
+    from vassilflow.config.app_config import get_app_config
 
     app_config = get_app_config()
     oidc_config = app_config.auth.oidc
@@ -615,7 +615,7 @@ async def oauth_login(
     and PKCE parameters. The ``next`` query parameter specifies where to
     redirect after successful login (default: /workspace).
     """
-    from deerflow.config.app_config import get_app_config
+    from vassilflow.config.app_config import get_app_config
 
     app_config = get_app_config()
     oidc_config = app_config.auth.oidc
@@ -693,10 +693,10 @@ async def oauth_callback(
 
     Handles the OIDC provider's redirect after user authorization.
     Validates the state cookie, exchanges the code for tokens, validates
-    the ID token, provisions/links the DeerFlow user, and sets the
+    the ID token, provisions/links the VassilFlow user, and sets the
     session cookie.
     """
-    from deerflow.config.app_config import get_app_config
+    from vassilflow.config.app_config import get_app_config
 
     app_config = get_app_config()
     oidc_config = app_config.auth.oidc
@@ -778,7 +778,7 @@ async def oauth_callback(
 
     user = result["user"]
 
-    # ── Issue DeerFlow session ───────────────────────────────────────
+    # ── Issue VassilFlow session ─────────────────────────────────────
     token = create_access_token(str(user.id), token_version=user.token_version)
 
     redirect_target = state_payload.next_path or "/workspace"

@@ -5,8 +5,8 @@ from __future__ import annotations
 import logging
 from types import SimpleNamespace
 
-from deerflow.config.env_aliases import env_value
-from deerflow.runtime.user_context import DEFAULT_USER_ID
+from vassilflow.config.env_aliases import env_value
+from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
 AUTH_DISABLED_ENV_VAR = "DEER_FLOW_AUTH_DISABLED"
 AUTH_DISABLED_DISPLAY_ENV_VAR = "VASSILFLOW_AUTH_DISABLED"

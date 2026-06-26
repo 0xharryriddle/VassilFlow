@@ -6,8 +6,8 @@ import secrets
 from types import SimpleNamespace
 from typing import Any
 
-from deerflow.config.env_aliases import first_env_value
-from deerflow.runtime.user_context import DEFAULT_USER_ID
+from vassilflow.config.env_aliases import first_env_value
+from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
 INTERNAL_AUTH_HEADER_NAME = "X-VassilFlow-Internal-Token"
 LEGACY_INTERNAL_AUTH_HEADER_NAME = "X-DeerFlow-Internal-Token"

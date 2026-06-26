@@ -6,10 +6,10 @@ from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
+from vassilflow.config.extensions_config import ExtensionsConfig, get_extensions_config, reload_extensions_config
+from vassilflow.mcp.cache import reset_mcp_tools_cache
 
 from app.gateway.deps import require_admin_user
-from deerflow.config.extensions_config import ExtensionsConfig, get_extensions_config, reload_extensions_config
-from deerflow.mcp.cache import reset_mcp_tools_cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["mcp"])

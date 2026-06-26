@@ -467,7 +467,7 @@ async def start_run(
         config = build_run_config(thread_id, body.config, body.metadata, assistant_id=body.assistant_id)
         await apply_checkpoint_to_run_config(config, body=body, thread_id=thread_id, request=request)
 
-        # Merge DeerFlow-specific context overrides into both ``configurable`` and ``context``.
+        # Merge VassilFlow-specific context overrides into both ``configurable`` and ``context``.
         # The ``context`` field is a custom extension for the langgraph-compat layer
         # that carries agent configuration (model_name, thinking_enabled, etc.).
         # Only agent-relevant keys are forwarded; unknown keys (e.g. thread_id) are ignored.

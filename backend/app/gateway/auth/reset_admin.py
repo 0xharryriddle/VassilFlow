@@ -17,16 +17,16 @@ import secrets
 import sys
 
 from sqlalchemy import select
+from vassilflow.persistence.user.model import UserRow
 
 from app.gateway.auth.credential_file import write_initial_credentials
 from app.gateway.auth.password import hash_password
 from app.gateway.auth.repositories.sqlite import SQLiteUserRepository
-from deerflow.persistence.user.model import UserRow
 
 
 async def _run(email: str | None) -> int:
-    from deerflow.config import get_app_config
-    from deerflow.persistence.engine import (
+    from vassilflow.config import get_app_config
+    from vassilflow.persistence.engine import (
         close_engine,
         get_session_factory,
         init_engine_from_config,

@@ -186,8 +186,8 @@ async def test_langgraph_runtime_drains_runs_before_closing_checkpointer(monkeyp
         events.append("runs_drained")
 
     monkeypatch.setattr("deerflow.runtime.checkpointer.async_provider.make_checkpointer", probe_checkpointer)
-    monkeypatch.setattr("deerflow.runtime.make_stream_bridge", fake_stream_bridge)
-    monkeypatch.setattr("deerflow.runtime.make_store", fake_store)
+    monkeypatch.setattr("vassilflow.runtime.make_stream_bridge", fake_stream_bridge)
+    monkeypatch.setattr("vassilflow.runtime.make_store", fake_store)
     monkeypatch.setattr("deerflow.persistence.engine.init_engine_from_config", fake_init_engine)
     monkeypatch.setattr("deerflow.persistence.engine.close_engine", fake_close_engine)
     monkeypatch.setattr("deerflow.persistence.engine.get_session_factory", lambda: None)

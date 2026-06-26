@@ -6,9 +6,9 @@ from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
 import pytest
+import vassilflow.runtime as runtime_module
 from fastapi import FastAPI
 
-import deerflow.runtime as runtime_module
 from app.gateway import deps as gateway_deps
 from deerflow.persistence import engine as engine_module
 from deerflow.persistence import thread_meta as thread_meta_module

@@ -3,7 +3,7 @@
 Rejects unauthenticated requests to non-public paths with 401. When a
 request passes the cookie check, resolves the JWT payload to a real
 ``User`` object and stamps it into both ``request.state.user`` and the
-``deerflow.runtime.user_context`` contextvar so that repository-layer
+``vassilflow.runtime.user_context`` contextvar so that repository-layer
 owner filtering works automatically via the sentinel pattern.
 
 Fine-grained permission checks remain in authz.py decorators.
@@ -15,6 +15,7 @@ from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp
+from vassilflow.runtime.user_context import reset_current_user, set_current_user
 
 from app.gateway.auth.errors import AuthErrorCode, AuthErrorResponse
 from app.gateway.auth_disabled import (
@@ -26,7 +27,6 @@ from app.gateway.auth_disabled import (
 )
 from app.gateway.authz import _ALL_PERMISSIONS, AuthContext
 from app.gateway.internal_auth import get_internal_user, internal_auth_token_from_headers, is_valid_internal_auth_token
-from deerflow.runtime.user_context import reset_current_user, set_current_user
 
 # Paths that never require authentication.
 _PUBLIC_PATH_PREFIXES: tuple[str, ...] = (
@@ -70,7 +70,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
        signed user does not exist / is stale
 
     On success, stamps ``request.state.user`` and the
-    ``deerflow.runtime.user_context`` contextvar so that repository-layer
+    ``vassilflow.runtime.user_context`` contextvar so that repository-layer
     owner filters work downstream without every route needing a
     ``@require_auth`` decorator. Routes that need per-resource
     authorization (e.g. "user A cannot read user B's thread by guessing

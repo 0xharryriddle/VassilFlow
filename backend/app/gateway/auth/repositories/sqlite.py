@@ -1,12 +1,12 @@
 """SQLAlchemy-backed UserRepository implementation.
 
 Uses the shared async session factory from
-``deerflow.persistence.engine`` — the ``users`` table lives in the
+``vassilflow.persistence.engine`` — the ``users`` table lives in the
 same database as ``threads_meta``, ``runs``, ``run_events``, and
 ``feedback``.
 
 Constructor takes the session factory directly (same pattern as the
-other four repositories in ``deerflow.persistence.*``). Callers
+other four repositories in ``vassilflow.persistence.*``). Callers
 construct this after ``init_engine_from_config()`` has run.
 """
 
@@ -18,10 +18,10 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from vassilflow.persistence.user.model import UserRow
 
 from app.gateway.auth.models import User
 from app.gateway.auth.repositories.base import UserNotFoundError, UserRepository
-from deerflow.persistence.user.model import UserRow
 
 
 class SQLiteUserRepository(UserRepository):

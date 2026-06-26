@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from vassilflow.config.app_config import AppConfig
 
 from app.gateway.deps import get_config
-from deerflow.config.app_config import AppConfig
 
 router = APIRouter(prefix="/api", tags=["models"])
 

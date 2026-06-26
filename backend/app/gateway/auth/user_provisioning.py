@@ -11,10 +11,10 @@ from __future__ import annotations
 import logging
 
 from fastapi import HTTPException, status
+from vassilflow.config.auth_config import OIDCProviderConfig
 
 from app.gateway.auth.local_provider import LocalAuthProvider
 from app.gateway.auth.oidc import OIDCIdentity
-from deerflow.config.auth_config import OIDCProviderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ async def get_or_provision_oidc_user(
     identity: OIDCIdentity,
     local_provider: LocalAuthProvider,
 ) -> dict:
-    """Resolve an OIDC identity to a DeerFlow user.
+    """Resolve an OIDC identity to a VassilFlow user.
 
     Flow:
     1. Look up existing user by (provider, subject)
