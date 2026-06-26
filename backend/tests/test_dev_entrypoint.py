@@ -63,16 +63,16 @@ def test_entrypoint_excludes_runtime_state_from_uvicorn_reload():
 
     assert 'if [ -n "${VASSILFLOW_HOME:-}" ]; then' in content
     assert "elif [ ! -e /app/backend/.vassilflow ] && [ -e /app/backend/.deer-flow ]; then" in content
-    assert ': "${DEER_FLOW_HOME:=/app/backend/.vassilflow}"' in content
-    assert ': "${VASSILFLOW_HOME:=$DEER_FLOW_HOME}"' in content
-    assert "export DEER_FLOW_HOME VASSILFLOW_HOME" in content
+    assert ': "${VASSILFLOW_HOME:=/app/backend/.vassilflow}"' in content
+    assert ': "${DEER_FLOW_HOME:=$VASSILFLOW_HOME}"' in content
+    assert "export VASSILFLOW_HOME DEER_FLOW_HOME" in content
     # sandbox must be created too, not just the runtime home (#3459 / #3454).
-    assert 'mkdir -p "$DEER_FLOW_HOME" /app/backend/sandbox' in content
+    assert 'mkdir -p "$VASSILFLOW_HOME" /app/backend/sandbox' in content
     assert "--reload-include='*.yaml .env'" not in content
     assert "--reload-include='*.yaml'" in content
     assert "--reload-include='.env'" in content
     assert "--reload-exclude=/app/backend/sandbox" in content
-    assert '--reload-exclude="$DEER_FLOW_HOME"' in content
+    assert '--reload-exclude="$VASSILFLOW_HOME"' in content
 
 
 def test_no_uv_extras_yields_empty_flags():

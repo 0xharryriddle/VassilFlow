@@ -74,13 +74,13 @@ if [ -n "${VASSILFLOW_HOME:-}" ]; then
 elif [ -n "${DEER_FLOW_HOME:-}" ]; then
     VASSILFLOW_HOME="$DEER_FLOW_HOME"
 elif [ ! -e /app/backend/.vassilflow ] && [ -e /app/backend/.deer-flow ]; then
-    DEER_FLOW_HOME=/app/backend/.deer-flow
-    VASSILFLOW_HOME="$DEER_FLOW_HOME"
+    VASSILFLOW_HOME=/app/backend/.deer-flow
+    DEER_FLOW_HOME="$VASSILFLOW_HOME"
 fi
-: "${DEER_FLOW_HOME:=/app/backend/.vassilflow}"
-: "${VASSILFLOW_HOME:=$DEER_FLOW_HOME}"
-export DEER_FLOW_HOME VASSILFLOW_HOME
-mkdir -p "$DEER_FLOW_HOME" /app/backend/sandbox
+: "${VASSILFLOW_HOME:=/app/backend/.vassilflow}"
+: "${DEER_FLOW_HOME:=$VASSILFLOW_HOME}"
+export VASSILFLOW_HOME DEER_FLOW_HOME
+mkdir -p "$VASSILFLOW_HOME" /app/backend/sandbox
 
 # ── Sync dependencies (with self-heal) ──────────────────────────────────────
 
@@ -104,4 +104,4 @@ PYTHONPATH=. exec uv run uvicorn app.gateway.app:app \
     --reload-include='*.yaml' \
     --reload-include='.env' \
     --reload-exclude=/app/backend/sandbox \
-    --reload-exclude="$DEER_FLOW_HOME"
+    --reload-exclude="$VASSILFLOW_HOME"
