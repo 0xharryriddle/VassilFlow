@@ -228,6 +228,9 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
     auto_title = (
         REPO_ROOT / "backend" / "docs" / "AUTO_TITLE_GENERATION.md"
     ).read_text(encoding="utf-8")
+    title_implementation = (
+        REPO_ROOT / "backend" / "docs" / "TITLE_GENERATION_IMPLEMENTATION.md"
+    ).read_text(encoding="utf-8")
 
     assert "TodoList middleware in VassilFlow" in plan_mode
     assert "from vassilflow.agents.lead_agent.agent import make_lead_agent" in plan_mode
@@ -238,12 +241,16 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
         "from vassilflow.agents.middlewares.title_middleware import TitleMiddleware"
         in auto_title
     )
+    assert 'SqliteSaver.from_conn_string("vassilflow.db")' in title_implementation
+    assert '"lead_agent": "vassilflow.agents:make_lead_agent"' in title_implementation
     assert "TodoList middleware in DeerFlow" not in plan_mode
     assert "from deerflow.agents.lead_agent.agent import make_lead_agent" not in plan_mode
     assert "/Users/hetao/workspace/deer-flow" not in plan_mode
     assert '"lead_agent": "deerflow.agents:lead_agent"' not in auto_title
     assert "from deerflow.config.title_config import TitleConfig" not in auto_title
     assert "from deerflow.agents.title_middleware import TitleMiddleware" not in auto_title
+    assert 'SqliteSaver.from_conn_string("deerflow.db")' not in title_implementation
+    assert '"lead_agent": "deerflow.agents:lead_agent"' not in title_implementation
 
 
 def test_streaming_docs_use_vassilflow_client_vocabulary():
