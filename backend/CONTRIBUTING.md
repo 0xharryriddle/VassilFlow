@@ -265,6 +265,11 @@ Include in your PR description:
 
 ## Architecture Guidelines
 
+The current harness implementation still lives under `packages/harness/deerflow/`
+during the VassilFlow migration. When adding public examples, config `use:`
+paths, or integration docs, prefer the `vassilflow.*` facade path and mention
+legacy `deerflow.*` only as a compatibility fallback.
+
 ### Adding New Tools
 
 1. Create tool in `packages/harness/deerflow/tools/builtins/` or `packages/harness/deerflow/community/`:
