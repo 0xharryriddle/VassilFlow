@@ -528,6 +528,83 @@ class TestSyncSingletonThreadSafety:
         assert factory.exit_count() == 1
 
 
+class TestStoreDatabaseFallback:
+    def test_sync_store_uses_unified_database_sqlite_when_checkpointer_absent(self):
+        from vassilflow.config.database_config import DatabaseConfig
+
+        db_config = DatabaseConfig(backend="sqlite", sqlite_dir="relative-data")
+        mock_config = MagicMock()
+        mock_config.checkpointer = None
+        mock_config.database = db_config
+
+        mock_store = MagicMock()
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_store)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+
+        mock_store_cls = MagicMock()
+        mock_store_cls.from_conn_string.return_value = mock_cm
+        mock_module = MagicMock()
+        mock_module.SqliteStore = mock_store_cls
+
+        expected_path = str(Path("relative-data").resolve() / "vassilflow.db")
+
+        with (
+            patch("vassilflow.runtime.store.provider.ensure_config_loaded"),
+            patch("vassilflow.runtime.store.provider.get_app_config", return_value=mock_config),
+            patch("vassilflow.runtime.store.provider.ensure_sqlite_parent_dir") as mock_ensure_parent,
+            patch.dict(sys.modules, {"langgraph.store.sqlite": mock_module}),
+        ):
+            store = get_store()
+
+        assert store is mock_store
+        mock_ensure_parent.assert_called_once_with(expected_path)
+        mock_store_cls.from_conn_string.assert_called_once_with(expected_path)
+        mock_store.setup.assert_called_once()
+
+    @pytest.mark.anyio
+    async def test_async_store_uses_unified_database_sqlite_when_checkpointer_absent(self):
+        from vassilflow.config.database_config import DatabaseConfig
+        from vassilflow.runtime.store.async_provider import (
+            _prepare_database_sqlite_store_path,
+            make_store,
+        )
+
+        db_config = DatabaseConfig(backend="sqlite", sqlite_dir="relative-data")
+        mock_config = MagicMock()
+        mock_config.checkpointer = None
+        mock_config.database = db_config
+
+        mock_store = AsyncMock()
+        mock_cm = AsyncMock()
+        mock_cm.__aenter__.return_value = mock_store
+        mock_cm.__aexit__.return_value = False
+
+        mock_store_cls = MagicMock()
+        mock_store_cls.from_conn_string.return_value = mock_cm
+        mock_module = MagicMock()
+        mock_module.AsyncSqliteStore = mock_store_cls
+
+        with (
+            patch("vassilflow.runtime.store.async_provider.get_app_config", return_value=mock_config),
+            patch.dict(sys.modules, {"langgraph.store.sqlite.aio": mock_module}),
+            patch(
+                "vassilflow.runtime.store.async_provider.asyncio.to_thread",
+                new_callable=AsyncMock,
+                return_value="/tmp/data/vassilflow.db",
+            ) as mock_to_thread,
+        ):
+            async with make_store() as store:
+                assert store is mock_store
+
+        mock_to_thread.assert_awaited_once()
+        called_fn, called_db_config = mock_to_thread.await_args.args
+        assert called_fn is _prepare_database_sqlite_store_path
+        assert called_db_config is db_config
+        mock_store_cls.from_conn_string.assert_called_once_with("/tmp/data/vassilflow.db")
+        mock_store.setup.assert_awaited_once()
+
+
 class TestAsyncCheckpointer:
     @pytest.mark.anyio
     async def test_sqlite_creates_parent_dir_via_to_thread(self):
