@@ -182,6 +182,8 @@ def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
     assert "VassilFlow 使用 Double Submit Cookie" in auth_design
     assert "{runtime_home}/admin_initial_credentials.txt" in auth_design
     assert "{runtime_home}/data/vassilflow.db" in auth_design
+    assert "vassilflow.runtime.user_context" in auth_design
+    assert "vassilflow.config.auth_config" in auth_design
     assert "VassilFlow 内置了认证模块" in auth_upgrade
     assert "rm -f backend/.vassilflow/data/vassilflow.db" in auth_upgrade
     assert "VassilFlowClient" in auth_upgrade
@@ -191,6 +193,9 @@ def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
     assert "`vassilflow.db` volume persistence" in auth_docker_gap
     assert "VASSILFLOW_HOME=$HOME/vassilflow-data" in auth_docker_gap
     assert "本文档描述 DeerFlow 当前内置认证模块的设计" not in auth_design
+    assert "deerflow.runtime.user_context" not in auth_design
+    assert "deerflow/runtime/user_context.py" not in auth_design
+    assert "packages/harness/deerflow/config/auth_config.py" not in auth_design
     assert "DeerFlow 内置了认证模块" not in auth_upgrade
     assert "docker logs deer-flow-gateway" not in auth_test_plan
     assert "sqlite3 backend/.deer-flow/data/deerflow.db" not in auth_test_plan

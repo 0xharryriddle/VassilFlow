@@ -65,7 +65,7 @@ graph TB
 
 - `request.state.user`
 - `request.state.auth`
-- `deerflow.runtime.user_context` 的 `ContextVar`
+- `vassilflow.runtime.user_context` 的 `ContextVar`
 
 `ContextVar` 是这里的核心边界。上层 Gateway 负责写入身份，下层 persistence / file path 只读取结构化的当前用户，不反向依赖 `app.gateway.auth` 具体类型。
 
@@ -321,16 +321,16 @@ PYTHONPATH=. python scripts/migrate_user_isolation.py --user-id <target-user-id>
 | `app/gateway/auth/oidc_state.py` | OIDC state 管理：signed cookie 存储 state/nonce/code_verifier |
 | `app/gateway/auth/user_provisioning.py` | OIDC 用户自动创建、email linking、domain 限制 |
 | `app/gateway/auth/models.py` | 用户数据模型（含 `oauth_provider` / `oauth_id`） |
-| `packages/harness/deerflow/config/auth_config.py` | OIDC 配置模型（OIDCProviderConfig / OIDCAuthConfig） |
+| `vassilflow.config.auth_config` | OIDC 配置模型（OIDCProviderConfig / OIDCAuthConfig） |
 | `app/gateway/auth/reset_admin.py` | 密码 reset CLI |
 | `app/gateway/auth/credential_file.py` | 0600 凭据文件写入 |
 | `app/gateway/authz.py` | 路由权限与 owner check |
-| `deerflow/runtime/user_context.py` | 当前用户 ContextVar 与 `AUTO` sentinel |
-| `deerflow/persistence/thread_meta/` | thread metadata owner filter |
-| `deerflow/config/paths.py` | per-user filesystem layout |
-| `deerflow/agents/middlewares/thread_data_middleware.py` | run 时解析用户线程目录 |
-| `deerflow/agents/memory/storage.py` | per-user memory storage |
-| `deerflow/config/agents_config.py` | per-user custom agents |
+| `vassilflow.runtime.user_context` | 当前用户 ContextVar 与 `AUTO` sentinel |
+| `vassilflow.persistence.thread_meta` | thread metadata owner filter |
+| `vassilflow.config.paths` | per-user filesystem layout |
+| `vassilflow.agents.middlewares.thread_data_middleware` | run 时解析用户线程目录 |
+| `vassilflow.agents.memory.storage` | per-user memory storage |
+| `vassilflow.config.agents_config` | per-user custom agents |
 | `app/channels/manager.py` | IM channel 内部认证调用 |
 | `scripts/migrate_user_isolation.py` | legacy 数据迁移到 per-user layout |
 | `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库，包含 users / threads_meta / runs / feedback 等表；已有 `{runtime_home}/data/deerflow.db` 会作为 legacy 文件继续使用 |
