@@ -194,9 +194,9 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
     """
 
     from app.gateway import deps as deps_module
-    from deerflow.config import app_config as app_config_module
-    from deerflow.config import extensions_config as extensions_config_module
-    from deerflow.config import paths as paths_module
+    from vassilflow.config import app_config as app_config_module
+    from vassilflow.config import extensions_config as extensions_config_module
+    from vassilflow.config import paths as paths_module
     from vassilflow.persistence import engine as engine_module
 
     for module, attr, value in (
@@ -225,7 +225,7 @@ def _preserve_process_config_singletons(monkeypatch: pytest.MonkeyPatch) -> None
     loading the isolated test config does not leak into later tests.
     """
 
-    from deerflow.config import (
+    from vassilflow.config import (
         acp_config,
         agents_api_config,
         checkpointer_config,
@@ -258,7 +258,7 @@ def isolated_app(isolated_vassilflow_home: Path, monkeypatch: pytest.MonkeyPatch
     _preserve_process_config_singletons(monkeypatch)
     _reset_process_singletons(monkeypatch)
 
-    from deerflow.config import app_config as app_config_module
+    from vassilflow.config import app_config as app_config_module
 
     cfg = app_config_module.get_app_config()
     cfg.database.sqlite_dir = str(isolated_vassilflow_home / "db")

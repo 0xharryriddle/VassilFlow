@@ -119,8 +119,8 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
     a handful of module-level caches that production normally never resets,
     so they pick up our test-only ``VASSILFLOW_HOME`` and sqlite path:
 
-    - ``deerflow.config.app_config`` caches the parsed ``config.yaml``.
-    - ``deerflow.config.paths`` caches the ``Paths`` singleton derived from
+    - ``vassilflow.config.app_config`` caches the parsed ``config.yaml``.
+    - ``vassilflow.config.paths`` caches the ``Paths`` singleton derived from
       ``VASSILFLOW_HOME`` at first access.
     - ``vassilflow.persistence.engine`` caches the SQLAlchemy engine and
       session factory after the first call to ``init_engine_from_config``.
@@ -131,8 +131,8 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
     to call ``get_app_config()``/``get_paths()`` will surface the real
     incompatibility loudly.
     """
-    from deerflow.config import app_config as app_config_module
-    from deerflow.config import paths as paths_module
+    from vassilflow.config import app_config as app_config_module
+    from vassilflow.config import paths as paths_module
     from vassilflow.persistence import engine as engine_module
 
     for module, attr in (
@@ -157,7 +157,7 @@ def isolated_app(isolated_vassilflow_home: Path, monkeypatch: pytest.MonkeyPatch
 
     # Re-resolve the config from the test-only VASSILFLOW_HOME and pin its
     # sqlite path into tmp_path so the lifespan-time engine init lands there.
-    from deerflow.config import app_config as app_config_module
+    from vassilflow.config import app_config as app_config_module
 
     cfg = app_config_module.get_app_config()
     cfg.database.sqlite_dir = str(isolated_vassilflow_home / "db")
