@@ -1,7 +1,7 @@
 """Stable VassilFlow boundary contracts.
 
 These dataclasses mirror ``contracts/vassilflow_boundary_contract.json``. They
-are intentionally implementation-neutral: the DeerFlow runtime can keep its
+are intentionally implementation-neutral: the implementation runtime can keep its
 current internal schemas while new integrations depend on the VassilFlow names.
 """
 

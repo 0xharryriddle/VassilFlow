@@ -1,6 +1,6 @@
 """Runtime facade for VassilFlow integrations.
 
-These names bridge to the current DeerFlow implementation. Boundary-level
+These names bridge to the current implementation modules. Boundary-level
 statuses and entities live in :mod:`vassilflow.boundary`.
 """
 

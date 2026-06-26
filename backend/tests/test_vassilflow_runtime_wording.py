@@ -118,6 +118,26 @@ WORDING_TARGETS = [
         "same DeerFlow thread",
         "same VassilFlow thread",
     ),
+    (
+        "backend/packages/harness/vassilflow/__init__.py",
+        "VassilFlow facade over the current DeerFlow runtime.",
+        "VassilFlow facade over the current implementation package.",
+    ),
+    (
+        "backend/packages/harness/vassilflow/runtime/__init__.py",
+        "current DeerFlow implementation",
+        "current implementation modules",
+    ),
+    (
+        "backend/packages/harness/vassilflow/boundary.py",
+        "the DeerFlow runtime can keep",
+        "the implementation runtime can keep",
+    ),
+    (
+        "backend/packages/harness/deerflow/reflection/resolvers.py",
+        "current DeerFlow implementation",
+        "current implementation modules",
+    ),
 ]
 
 

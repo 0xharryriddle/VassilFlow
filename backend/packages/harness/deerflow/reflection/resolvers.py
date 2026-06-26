@@ -32,7 +32,7 @@ _VASSILFLOW_REAL_FACADE_MODULES = {
 
 
 def _resolve_vassilflow_module_alias(module_path: str) -> str:
-    """Map VassilFlow facade class paths to the current DeerFlow implementation.
+    """Map VassilFlow facade class paths to the current implementation modules.
 
     The migration exposes ``vassilflow.*`` in config files before the internal
     package tree is renamed. Top-level facade modules such as

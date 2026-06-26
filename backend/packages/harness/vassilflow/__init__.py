@@ -1,4 +1,4 @@
-"""VassilFlow facade over the current DeerFlow runtime.
+"""VassilFlow facade over the current implementation package.
 
 The implementation still lives under ``deerflow`` during the migration. This
 package exposes the VassilFlow-owned public vocabulary without breaking existing
