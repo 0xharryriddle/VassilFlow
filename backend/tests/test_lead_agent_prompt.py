@@ -147,7 +147,7 @@ def test_apply_prompt_template_threads_explicit_app_config_without_global_config
         raise AssertionError("ambient get_memory_config() must not be used when app_config is explicit")
 
     monkeypatch.setattr("deerflow.config.get_app_config", fail_get_app_config)
-    monkeypatch.setattr("deerflow.config.memory_config.get_memory_config", fail_get_memory_config)
+    monkeypatch.setattr("vassilflow.config.memory_config.get_memory_config", fail_get_memory_config)
     monkeypatch.setattr(prompt_module, "get_or_new_skill_storage", lambda app_config=None: SimpleNamespace(load_skills=lambda enabled_only=True: []))
     monkeypatch.setattr(prompt_module, "get_agent_soul", lambda agent_name=None: "")
 
@@ -186,7 +186,7 @@ def test_apply_prompt_template_threads_explicit_app_config_to_subagents_without_
         raise AssertionError("ambient get_subagents_app_config() must not be used when app_config is explicit")
 
     monkeypatch.setattr("deerflow.config.get_app_config", fail_get_app_config)
-    monkeypatch.setattr("deerflow.config.subagents_config.get_subagents_app_config", fail_get_subagents_app_config)
+    monkeypatch.setattr("vassilflow.config.subagents_config.get_subagents_app_config", fail_get_subagents_app_config)
     monkeypatch.setattr(prompt_module, "get_or_new_skill_storage", lambda app_config=None: SimpleNamespace(load_skills=lambda enabled_only=True: []))
     monkeypatch.setattr(prompt_module, "get_agent_soul", lambda agent_name=None: "")
 
@@ -202,7 +202,7 @@ def test_build_acp_section_uses_explicit_app_config_without_global_config(monkey
     def fail_get_acp_agents():
         raise AssertionError("ambient get_acp_agents() must not be used when app_config is explicit")
 
-    monkeypatch.setattr("deerflow.config.acp_config.get_acp_agents", fail_get_acp_agents)
+    monkeypatch.setattr("vassilflow.config.acp_config.get_acp_agents", fail_get_acp_agents)
 
     section = prompt_module._build_acp_section(app_config=explicit_config)
 
@@ -237,7 +237,7 @@ def test_get_memory_context_uses_explicit_app_config_without_global_config(monke
         captured["use_tiktoken"] = use_tiktoken
         return "remember this"
 
-    monkeypatch.setattr("deerflow.config.memory_config.get_memory_config", fail_get_memory_config)
+    monkeypatch.setattr("vassilflow.config.memory_config.get_memory_config", fail_get_memory_config)
     monkeypatch.setattr("vassilflow.runtime.user_context.get_effective_user_id", lambda: "user-1")
     monkeypatch.setattr("deerflow.agents.memory.get_memory_data", fake_get_memory_data)
     monkeypatch.setattr("deerflow.agents.memory.format_memory_for_injection", fake_format_memory_for_injection)
