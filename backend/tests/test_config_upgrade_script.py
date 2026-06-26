@@ -35,7 +35,8 @@ def _bash_path(path: Path) -> str:
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for config-upgrade tests")
-def test_config_upgrade_migrates_legacy_runtime_defaults(tmp_path: Path):
+@pytest.mark.parametrize("config_env_var", ["VASSILFLOW_CONFIG_PATH", "DEER_FLOW_CONFIG_PATH"])
+def test_config_upgrade_migrates_legacy_runtime_defaults(tmp_path: Path, config_env_var: str):
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         "\n".join(
@@ -58,7 +59,7 @@ def test_config_upgrade_migrates_legacy_runtime_defaults(tmp_path: Path):
         encoding="utf-8",
     )
 
-    env = {**os.environ, "VASSILFLOW_CONFIG_PATH": _bash_path(config_path)}
+    env = {**os.environ, config_env_var: _bash_path(config_path)}
     result = subprocess.run(
         [BASH_EXECUTABLE, str(CONFIG_UPGRADE_SCRIPT)],
         cwd=REPO_ROOT,

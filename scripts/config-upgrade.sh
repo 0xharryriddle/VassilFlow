@@ -35,8 +35,8 @@ sync_vassilflow_env() {
 sync_vassilflow_env DEER_FLOW_CONFIG_PATH
 
 # Resolve config.yaml location: env var > backend/ > repo root
-if [ -n "$DEER_FLOW_CONFIG_PATH" ] && [ -f "$DEER_FLOW_CONFIG_PATH" ]; then
-    CONFIG="$DEER_FLOW_CONFIG_PATH"
+if [ -n "${VASSILFLOW_CONFIG_PATH:-}" ] && [ -f "$VASSILFLOW_CONFIG_PATH" ]; then
+    CONFIG="$VASSILFLOW_CONFIG_PATH"
 elif [ -f "$REPO_ROOT/backend/config.yaml" ]; then
     CONFIG="$REPO_ROOT/backend/config.yaml"
 elif [ -f "$REPO_ROOT/config.yaml" ]; then

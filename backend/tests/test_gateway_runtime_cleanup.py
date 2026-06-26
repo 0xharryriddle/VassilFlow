@@ -74,6 +74,7 @@ def test_shell_launchers_bridge_vassilflow_env_aliases():
         assert "sync_vassilflow_env()" in content, path
 
     deploy_sh = scripts["scripts/deploy.sh"]
+    config_upgrade_sh = scripts["scripts/config-upgrade.sh"]
     assert "sync_vassilflow_env DEER_FLOW_CONFIG_PATH" in deploy_sh
     assert "sync_vassilflow_env DEER_FLOW_EXTENSIONS_CONFIG_PATH" in deploy_sh
     assert "sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN" in deploy_sh
@@ -86,6 +87,8 @@ def test_shell_launchers_bridge_vassilflow_env_aliases():
     assert 'export VASSILFLOW_CONFIG_PATH="${VASSILFLOW_CONFIG_PATH:-$VASSILFLOW_HOME/config.yaml}"' in deploy_sh
     assert 'export VASSILFLOW_INTERNAL_AUTH_TOKEN="${VASSILFLOW_INTERNAL_AUTH_TOKEN:-placeholder}"' in deploy_sh
     assert 'if [ -z "${VASSILFLOW_DOCKER_SOCKET:-}" ]; then' in deploy_sh
+    assert "sync_vassilflow_env DEER_FLOW_CONFIG_PATH" in config_upgrade_sh
+    assert 'CONFIG="$VASSILFLOW_CONFIG_PATH"' in config_upgrade_sh
 
     docker_sh = scripts["scripts/docker.sh"]
     assert "sync_vassilflow_env DEER_FLOW_ROOT" in docker_sh
