@@ -154,3 +154,14 @@ def test_public_slr_skill_uses_vassilflow_runtime_branding():
     assert "vassilflow-slr-skill/0.1" in search_script
     assert "The DeerFlow runtime enforces" not in skill_body
     assert "deerflow-slr-skill/0.1" not in search_script
+
+
+def test_find_skills_installer_prefers_vassilflow_workspace_marker():
+    install_script = (
+        REPO_ROOT / "skills" / "public" / "find-skills" / "scripts" / "install-skill.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "vassilflow.code-workspace" in install_script
+    assert "$dir/vassilflow.code-workspace" in install_script
+    assert "$dir/deer-flow.code-workspace" in install_script
+    assert "vassilflow.code-workspace or deer-flow.code-workspace not found" in install_script
