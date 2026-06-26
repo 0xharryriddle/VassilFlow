@@ -17,10 +17,10 @@ from deerflow.config.checkpointer_config import (
     load_checkpointer_config_from_dict,
     set_checkpointer_config,
 )
-from deerflow.runtime.checkpointer import get_checkpointer, reset_checkpointer
-from deerflow.runtime.checkpointer.provider import POSTGRES_INSTALL
-from deerflow.runtime.store import get_store, reset_store
-from deerflow.runtime.store.provider import POSTGRES_STORE_INSTALL
+from vassilflow.runtime.checkpointer import get_checkpointer, reset_checkpointer
+from vassilflow.runtime.checkpointer.provider import POSTGRES_INSTALL
+from vassilflow.runtime.store import get_store, reset_store
+from vassilflow.runtime.store.provider import POSTGRES_STORE_INSTALL
 
 
 @pytest.fixture(autouse=True)
@@ -318,9 +318,9 @@ class TestGetCheckpointer:
 
         with (
             patch.dict(sys.modules, {"langgraph.checkpoint.sqlite": mock_module}),
-            patch("deerflow.runtime.checkpointer.provider.ensure_sqlite_parent_dir") as mock_ensure,
+            patch("vassilflow.runtime.checkpointer.provider.ensure_sqlite_parent_dir") as mock_ensure,
             patch(
-                "deerflow.runtime.checkpointer.provider.resolve_sqlite_conn_str",
+                "vassilflow.runtime.checkpointer.provider.resolve_sqlite_conn_str",
                 return_value="/tmp/resolved/relative/test.db",
             ),
         ):
@@ -354,11 +354,11 @@ class TestGetCheckpointer:
         with (
             patch.dict(sys.modules, {"langgraph.checkpoint.sqlite": mock_module}),
             patch(
-                "deerflow.runtime.checkpointer.provider.ensure_sqlite_parent_dir",
+                "vassilflow.runtime.checkpointer.provider.ensure_sqlite_parent_dir",
                 side_effect=record_ensure,
             ),
             patch(
-                "deerflow.runtime.checkpointer.provider.resolve_sqlite_conn_str",
+                "vassilflow.runtime.checkpointer.provider.resolve_sqlite_conn_str",
                 return_value="/tmp/resolved/relative/test.db",
             ),
         ):
@@ -403,7 +403,7 @@ class TestSyncSingletonThreadSafety:
         load_checkpointer_config_from_dict({"type": "memory"})
         factory = _BlockingSingletonFactory()
 
-        with patch("deerflow.runtime.checkpointer.provider._sync_checkpointer_cm", side_effect=factory.context_manager):
+        with patch("vassilflow.runtime.checkpointer.provider._sync_checkpointer_cm", side_effect=factory.context_manager):
             futures_started = ThreadPoolExecutor(max_workers=1)
             try:
                 result_future = futures_started.submit(_call_getter_concurrently, get_checkpointer)
@@ -421,7 +421,7 @@ class TestSyncSingletonThreadSafety:
         load_checkpointer_config_from_dict({"type": "memory"})
         factory = _BlockingSingletonFactory()
 
-        with patch("deerflow.runtime.store.provider._sync_store_cm", side_effect=factory.context_manager):
+        with patch("vassilflow.runtime.store.provider._sync_store_cm", side_effect=factory.context_manager):
             futures_started = ThreadPoolExecutor(max_workers=1)
             try:
                 result_future = futures_started.submit(_call_getter_concurrently, get_store)
@@ -443,8 +443,8 @@ class TestSyncSingletonThreadSafety:
             load_checkpointer_config_from_dict({"type": "memory"})
 
         with (
-            patch("deerflow.runtime.checkpointer.provider._checkpointer_lock", tracking_lock),
-            patch("deerflow.runtime.checkpointer.provider.ensure_config_loaded", side_effect=fake_ensure_config_loaded),
+            patch("vassilflow.runtime.checkpointer.provider._checkpointer_lock", tracking_lock),
+            patch("vassilflow.runtime.checkpointer.provider.ensure_config_loaded", side_effect=fake_ensure_config_loaded),
         ):
             checkpointer = get_checkpointer()
 
@@ -459,8 +459,8 @@ class TestSyncSingletonThreadSafety:
             load_checkpointer_config_from_dict({"type": "memory"})
 
         with (
-            patch("deerflow.runtime.store.provider._store_lock", tracking_lock),
-            patch("deerflow.runtime.store.provider.ensure_config_loaded", side_effect=fake_ensure_config_loaded),
+            patch("vassilflow.runtime.store.provider._store_lock", tracking_lock),
+            patch("vassilflow.runtime.store.provider.ensure_config_loaded", side_effect=fake_ensure_config_loaded),
         ):
             store = get_store()
 
@@ -472,7 +472,7 @@ class TestSyncSingletonThreadSafety:
         factory = _BlockingSingletonFactory()
 
         with (
-            patch("deerflow.runtime.checkpointer.provider._sync_checkpointer_cm", side_effect=factory.context_manager),
+            patch("vassilflow.runtime.checkpointer.provider._sync_checkpointer_cm", side_effect=factory.context_manager),
             ThreadPoolExecutor(max_workers=2) as executor,
         ):
             get_future = executor.submit(get_checkpointer)
@@ -502,7 +502,7 @@ class TestSyncSingletonThreadSafety:
         factory = _BlockingSingletonFactory()
 
         with (
-            patch("deerflow.runtime.store.provider._sync_store_cm", side_effect=factory.context_manager),
+            patch("vassilflow.runtime.store.provider._sync_store_cm", side_effect=factory.context_manager),
             ThreadPoolExecutor(max_workers=2) as executor,
         ):
             get_future = executor.submit(get_store)
@@ -532,7 +532,7 @@ class TestAsyncCheckpointer:
     @pytest.mark.anyio
     async def test_sqlite_creates_parent_dir_via_to_thread(self):
         """Async SQLite setup should move mkdir off the event loop."""
-        from deerflow.runtime.checkpointer.async_provider import _prepare_sqlite_checkpointer_path, make_checkpointer
+        from vassilflow.runtime.checkpointer.async_provider import _prepare_sqlite_checkpointer_path, make_checkpointer
 
         mock_config = MagicMock()
         mock_config.checkpointer = CheckpointerConfig(type="sqlite", connection_string="relative/test.db")
@@ -549,10 +549,10 @@ class TestAsyncCheckpointer:
         mock_module.AsyncSqliteSaver = mock_saver_cls
 
         with (
-            patch("deerflow.runtime.checkpointer.async_provider.get_app_config", return_value=mock_config),
+            patch("vassilflow.runtime.checkpointer.async_provider.get_app_config", return_value=mock_config),
             patch.dict(sys.modules, {"langgraph.checkpoint.sqlite.aio": mock_module}),
             patch(
-                "deerflow.runtime.checkpointer.async_provider.asyncio.to_thread",
+                "vassilflow.runtime.checkpointer.async_provider.asyncio.to_thread",
                 new_callable=AsyncMock,
                 return_value="/tmp/resolved/test.db",
             ) as mock_to_thread,
@@ -570,7 +570,7 @@ class TestAsyncCheckpointer:
     @pytest.mark.anyio
     async def test_postgres_uses_connection_pool(self):
         """Async postgres checkpointer should use AsyncConnectionPool, not a single connection."""
-        from deerflow.runtime.checkpointer.async_provider import make_checkpointer
+        from vassilflow.runtime.checkpointer.async_provider import make_checkpointer
 
         mock_config = MagicMock()
         mock_config.checkpointer = CheckpointerConfig(type="postgres", connection_string="postgresql://localhost/db")
@@ -594,7 +594,7 @@ class TestAsyncCheckpointer:
         mock_psycopg_rows.dict_row = mock_dict_row
 
         with (
-            patch("deerflow.runtime.checkpointer.async_provider.get_app_config", return_value=mock_config),
+            patch("vassilflow.runtime.checkpointer.async_provider.get_app_config", return_value=mock_config),
             patch.dict(sys.modules, {"langgraph.checkpoint.postgres.aio": mock_pg_module}),
             patch.dict(sys.modules, {"psycopg.rows": mock_psycopg_rows}),
             patch.dict(sys.modules, {"psycopg_pool": MagicMock(AsyncConnectionPool=mock_pool_cls)}),
@@ -618,7 +618,7 @@ class TestAsyncCheckpointer:
     async def test_database_postgres_uses_connection_pool(self):
         """Unified database postgres path should use AsyncConnectionPool with keepalive."""
         from deerflow.config.database_config import DatabaseConfig
-        from deerflow.runtime.checkpointer.async_provider import make_checkpointer
+        from vassilflow.runtime.checkpointer.async_provider import make_checkpointer
 
         db_config = DatabaseConfig(backend="postgres", postgres_url="postgresql://localhost/db")
         mock_config = MagicMock()
@@ -644,7 +644,7 @@ class TestAsyncCheckpointer:
         mock_psycopg_rows.dict_row = mock_dict_row
 
         with (
-            patch("deerflow.runtime.checkpointer.async_provider.get_app_config", return_value=mock_config),
+            patch("vassilflow.runtime.checkpointer.async_provider.get_app_config", return_value=mock_config),
             patch.dict(sys.modules, {"langgraph.checkpoint.postgres.aio": mock_pg_module}),
             patch.dict(sys.modules, {"psycopg.rows": mock_psycopg_rows}),
             patch.dict(sys.modules, {"psycopg_pool": MagicMock(AsyncConnectionPool=mock_pool_cls)}),
@@ -664,7 +664,7 @@ class TestAsyncCheckpointer:
     async def test_database_sqlite_creates_parent_dir_via_to_thread(self):
         """Unified database SQLite setup should also move path IO off the event loop."""
         from deerflow.config.database_config import DatabaseConfig
-        from deerflow.runtime.checkpointer.async_provider import _prepare_database_sqlite_checkpointer_path, make_checkpointer
+        from vassilflow.runtime.checkpointer.async_provider import _prepare_database_sqlite_checkpointer_path, make_checkpointer
 
         db_config = DatabaseConfig(backend="sqlite", sqlite_dir="relative-data")
         mock_config = MagicMock()
@@ -683,10 +683,10 @@ class TestAsyncCheckpointer:
         mock_module.AsyncSqliteSaver = mock_saver_cls
 
         with (
-            patch("deerflow.runtime.checkpointer.async_provider.get_app_config", return_value=mock_config),
+            patch("vassilflow.runtime.checkpointer.async_provider.get_app_config", return_value=mock_config),
             patch.dict(sys.modules, {"langgraph.checkpoint.sqlite.aio": mock_module}),
             patch(
-                "deerflow.runtime.checkpointer.async_provider.asyncio.to_thread",
+                "vassilflow.runtime.checkpointer.async_provider.asyncio.to_thread",
                 new_callable=AsyncMock,
                 return_value="/tmp/data/vassilflow.db",
             ) as mock_to_thread,
