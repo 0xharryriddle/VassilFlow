@@ -83,8 +83,15 @@ with open(config_path, encoding='utf-8') as f:
 with open(example_path, encoding='utf-8') as f:
     example = yaml.safe_load(f) or {}
 
-user_version = user.get('config_version', 0)
-example_version = example.get('config_version', 0)
+def parse_config_version(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+user_version = parse_config_version(user.get('config_version', 0))
+example_version = parse_config_version(example.get('config_version', 0))
 
 if user_version >= example_version:
     print(f'OK config.yaml is already up to date (version {user_version}).')
@@ -97,6 +104,7 @@ print()
 # Each migration targets a specific version upgrade.
 # 'replacements': list of (old_string, new_string) applied to the raw YAML text.
 #   This handles value changes that a dict merge cannot catch.
+# 'value_replacements': list of exact YAML string values to rewrite after parsing.
 
 MIGRATIONS = {
     1: {
@@ -121,6 +129,19 @@ MIGRATIONS = {
             ),
         ],
     },
+    17: {
+        'description': 'Prefer VassilFlow runtime state paths in config.yaml',
+        'value_replacements': [
+            ('.deer-flow/data', '.vassilflow/data'),
+            ('./.deer-flow/data', './.vassilflow/data'),
+            ('.deer-flow/wechat/state', '.vassilflow/wechat/state'),
+            ('./.deer-flow/wechat/state', './.vassilflow/wechat/state'),
+            ('.deer-flow/memory.json', '.vassilflow/memory.json'),
+            ('./.deer-flow/memory.json', './.vassilflow/memory.json'),
+            ('.deer-flow/checkpoints.db', '.vassilflow/checkpoints.db'),
+            ('./.deer-flow/checkpoints.db', './.vassilflow/checkpoints.db'),
+        ],
+    },
     # Future migrations go here:
     # 2: {
     #     'description': '...',
@@ -130,6 +151,7 @@ MIGRATIONS = {
 
 # Apply migrations in order for versions (user_version, example_version]
 migrated = []
+value_replacements = []
 for version in range(user_version + 1, example_version + 1):
     migration = MIGRATIONS.get(version)
     if not migration:
@@ -139,9 +161,28 @@ for version in range(user_version + 1, example_version + 1):
         if old in raw_text:
             raw_text = raw_text.replace(old, new)
             migrated.append(f'{old} -> {new}')
+    value_replacements.extend(migration.get('value_replacements', []))
 
 # Re-parse after text migrations
 user = yaml.safe_load(raw_text) or {}
+
+if value_replacements:
+    def replace_values(node, path=''):
+        if isinstance(node, dict):
+            for key, value in list(node.items()):
+                key_path = f'{path}.{key}' if path else str(key)
+                node[key] = replace_values(value, key_path)
+        elif isinstance(node, list):
+            for index, value in enumerate(list(node)):
+                node[index] = replace_values(value, f'{path}[{index}]')
+        elif isinstance(node, str):
+            for old, new in value_replacements:
+                if node == old:
+                    migrated.append(f'{path}: {old} -> {new}')
+                    return new
+        return node
+
+    user = replace_values(user)
 
 if migrated:
     print(f'Applied {len(migrated)} migration(s):')

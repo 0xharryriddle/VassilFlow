@@ -12,7 +12,7 @@ Run `make config-upgrade` to merge new fields into your config.
 ```
 
 - **Missing `config_version`** in your config is treated as version 0.
-- Run `make config-upgrade` to auto-merge missing fields (your existing values are preserved, a `.bak` backup is created).
+- Run `make config-upgrade` to auto-merge missing fields and rewrite known legacy defaults such as `.deer-flow/data` to `.vassilflow/data` (your existing values are preserved where no migration rule matches, and a `.bak` backup is created).
 - When changing the config schema, bump `config_version` in `config.example.yaml`.
 
 ## Configuration Sections
