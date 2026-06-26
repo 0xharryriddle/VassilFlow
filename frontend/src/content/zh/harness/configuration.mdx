@@ -19,7 +19,7 @@ VassilFlow 的配置系统围绕一个目标设计：每一个有意义的行为
 VassilFlow 使用以下优先级顺序解析 `config.yaml`：
 
 1. 显式传递给 `AppConfig.from_file(config_path)` 的路径。
-2. `DEER_FLOW_CONFIG_PATH` 环境变量。
+2. `VASSILFLOW_CONFIG_PATH` 环境变量，回退到 legacy `DEER_FLOW_CONFIG_PATH`。
 3. `backend/config.yaml`（相对于后端目录）。
 4. 仓库根目录中的 `config.yaml`。
 
@@ -28,7 +28,7 @@ VassilFlow 使用以下优先级顺序解析 `config.yaml`：
 要使用自定义位置：
 
 ```bash
-export DEER_FLOW_CONFIG_PATH=/path/to/my-config.yaml
+export VASSILFLOW_CONFIG_PATH=/path/to/my-config.yaml
 ```
 
 ## 环境变量插值

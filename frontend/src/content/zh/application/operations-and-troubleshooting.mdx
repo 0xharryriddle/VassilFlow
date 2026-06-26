@@ -83,13 +83,13 @@ grep -i "error\|apikey\|unauthorized" logs/gateway.log | tail -20
 
 ```bash
 # 检查线程用户数据目录是否存在且可写
-ls -la backend/.deer-flow/threads/
+ls -la backend/.vassilflow/threads/
 ```
 
 **解决**：
 
-1. 确保 `backend/.deer-flow/` 对运行 VassilFlow 的进程可写。
-2. 在 Docker 部署中，验证卷挂载路径正确（`DEER_FLOW_ROOT` 设置为绝对路径）。
+1. 确保 `backend/.vassilflow/` 对运行 VassilFlow 的进程可写。
+2. 在 Docker 部署中，验证卷挂载路径正确（`VASSILFLOW_ROOT` 设置为绝对路径）。
 3. 如果使用基于容器的沙箱，确认 Docker 已运行并且容器镜像已拉取。
 
 ---
@@ -144,9 +144,9 @@ grep -i "mcp\|timeout" logs/gateway.log | tail -20
 
 VassilFlow 将持久化数据存储在：
 
-- **线程数据**：`backend/.deer-flow/threads/` — 每个线程的上传文件、输出和工作区文件
-- **检查点**：取决于检查点器配置（SQLite：`backend/.deer-flow/checkpoints.db`，Redis：外部存储）
-- **记忆**：`backend/.deer-flow/memory.json`（以及 `agents/*/memory.json`）
+- **线程数据**：`backend/.vassilflow/threads/` — 每个线程的上传文件、输出和工作区文件
+- **检查点**：取决于检查点器配置（SQLite：`backend/.vassilflow/checkpoints.db`，Redis：外部存储）
+- **记忆**：`backend/.vassilflow/memory.json`（以及 `agents/*/memory.json`）
 - **自定义 Agent 配置**：`backend/agents/*/config.yaml`
 
 对于生产部署，定期备份这些目录。Docker 部署中，确保这些目录绑定挂载到持久卷，而不是容器内部。

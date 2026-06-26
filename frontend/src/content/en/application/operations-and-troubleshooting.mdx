@@ -131,15 +131,15 @@ If MCP tools appear in `extensions_config.json` but are not available in the age
 ### Memory not persisting across sessions
 
 - Verify `memory.enabled: true` in `config.yaml`.
-- Check that the storage path is writable: `ls -la backend/.deer-flow/`.
+- Check that the storage path is writable: `ls -la backend/.vassilflow/`.
 - Look for memory update errors in `logs/gateway.log` (search for "memory").
 
 ## Data backup
 
-Thread data and memory are stored under `backend/.deer-flow/`:
+Thread data and memory are stored under `backend/.vassilflow/`:
 
 ```
-backend/.deer-flow/
+backend/.vassilflow/
   memory.json           # global agent memory
   agents/               # per-agent memory
   threads/              # thread working directories
@@ -152,7 +152,7 @@ backend/.deer-flow/
 
 Back up this entire directory to preserve conversation history, artifacts, and learned memory.
 
-In Docker deployments, the bind-mounted host path (`$DEER_FLOW_ROOT/backend/.deer-flow/`) is the source of truth — back up the host path.
+In Docker deployments, the bind-mounted host path (`$VASSILFLOW_ROOT/backend/.vassilflow/`) is the source of truth — back up the host path.
 
 ## Restarting services
 

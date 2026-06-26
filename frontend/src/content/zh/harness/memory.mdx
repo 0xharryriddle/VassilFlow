@@ -41,7 +41,7 @@ memory:
   enabled: true
 
   # 全局记忆文件的存储路径。
-  # 默认：{base_dir}/memory.json（解析为 backend/.deer-flow/memory.json）
+  # 默认：{base_dir}/memory.json（解析为 backend/.vassilflow/memory.json）
   # 绝对路径按原样使用，相对路径相对于 base_dir 解析。
   storage_path: memory.json
 
@@ -82,9 +82,9 @@ VassilFlow 支持两级记忆：
 
 默认情况下，记忆文件存储在后端基础目录下：
 
-- 基础目录：`backend/.deer-flow/`
-- 全局记忆：`backend/.deer-flow/memory.json`
-- 按 Agent 记忆：`backend/.deer-flow/agents/{agent_name}/memory.json`
+- 基础目录：`backend/.vassilflow/`
+- 全局记忆：`backend/.vassilflow/memory.json`
+- 按 Agent 记忆：`backend/.vassilflow/agents/{agent_name}/memory.json`
 
 你可以用 `storage_path` 字段更改存储路径。相对路径相对于基础目录解析；使用绝对路径可以将记忆存储在自定义位置。
 

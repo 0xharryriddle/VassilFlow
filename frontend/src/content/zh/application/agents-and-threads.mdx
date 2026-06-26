@@ -85,7 +85,7 @@ VassilFlow 在每次 Agent 轮次后自动保存线程状态（如果配置了�
 ```yaml
 checkpointer:
   type: sqlite
-  connection_string: .deer-flow/checkpoints.db
+  connection_string: .vassilflow/checkpoints.db
 ```
 
 对于生产高负载环境使用 Redis：
@@ -98,10 +98,10 @@ checkpointer:
 
 ### 线程数据目录
 
-每个线程在 `.deer-flow/threads/{thread_id}/` 下有一个专用目录：
+每个线程在 `.vassilflow/threads/{thread_id}/` 下有一个专用目录：
 
 ```
-.deer-flow/threads/{thread_id}/
+.vassilflow/threads/{thread_id}/
   user-data/
     uploads/     ← 用户上传的文件
     outputs/     ← Agent 生成的产出物

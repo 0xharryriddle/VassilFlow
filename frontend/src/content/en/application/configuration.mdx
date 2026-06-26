@@ -189,7 +189,7 @@ By default, VassilFlow uses an SQLite checkpointer for thread state persistence:
 ```yaml
 checkpointer:
   type: sqlite
-  connection_string: checkpoints.db # stored in backend/.deer-flow/
+  connection_string: checkpoints.db # stored in backend/.vassilflow/
 ```
 
 For production deployments with multiple processes:
@@ -197,7 +197,7 @@ For production deployments with multiple processes:
 ```yaml
 checkpointer:
   type: postgres
-  connection_string: postgresql://user:password@localhost:5432/deerflow
+  connection_string: postgresql://user:password@localhost:5432/vassilflow
 ```
 
 Install PostgreSQL support: `cd backend && uv add langgraph-checkpoint-postgres psycopg[binary] psycopg-pool`
