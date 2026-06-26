@@ -152,7 +152,7 @@ def test_get_work_dir_uses_base_dir_when_no_thread_id(monkeypatch, tmp_path):
 def test_get_work_dir_uses_per_thread_path_when_thread_id_given(monkeypatch, tmp_path):
     """P1.1: _get_work_dir(thread_id) uses {base_dir}/threads/{thread_id}/acp-workspace/."""
     from deerflow.config import paths as paths_module
-    from deerflow.runtime import user_context as uc_module
+    from vassilflow.runtime import user_context as uc_module
 
     monkeypatch.setattr(paths_module, "get_paths", lambda: paths_module.Paths(base_dir=tmp_path))
     monkeypatch.setattr(uc_module, "get_effective_user_id", lambda: None)
@@ -312,7 +312,7 @@ async def test_invoke_acp_agent_uses_fixed_acp_workspace(monkeypatch, tmp_path):
 async def test_invoke_acp_agent_uses_per_thread_workspace_when_thread_id_in_config(monkeypatch, tmp_path):
     """P1.1: When thread_id is in the RunnableConfig, ACP agent uses per-thread workspace."""
     from deerflow.config import paths as paths_module
-    from deerflow.runtime import user_context as uc_module
+    from vassilflow.runtime import user_context as uc_module
 
     monkeypatch.setattr(paths_module, "get_paths", lambda: paths_module.Paths(base_dir=tmp_path))
     monkeypatch.setattr(uc_module, "get_effective_user_id", lambda: None)
@@ -701,7 +701,7 @@ def test_get_available_tools_includes_invoke_acp_agent_when_agents_configured(mo
 
 def test_get_available_tools_sync_invoke_acp_agent_preserves_thread_workspace(monkeypatch, tmp_path):
     from deerflow.config import paths as paths_module
-    from deerflow.runtime import user_context as uc_module
+    from vassilflow.runtime import user_context as uc_module
 
     monkeypatch.setattr(paths_module, "get_paths", lambda: paths_module.Paths(base_dir=tmp_path))
     monkeypatch.setattr(uc_module, "get_effective_user_id", lambda: None)
