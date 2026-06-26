@@ -4,12 +4,12 @@ import logging
 
 import pytest
 
-from deerflow.persistence.thread_meta import InvalidMetadataFilterError, ThreadMetaRepository
+from vassilflow.persistence.thread_meta import InvalidMetadataFilterError, ThreadMetaRepository
 
 
 @pytest.fixture
 async def repo(tmp_path):
-    from deerflow.persistence.engine import close_engine, get_session_factory, init_engine
+    from vassilflow.persistence.engine import close_engine, get_session_factory, init_engine
 
     url = f"sqlite+aiosqlite:///{tmp_path / 'test.db'}"
     await init_engine("sqlite", url=url, sqlite_dir=str(tmp_path))
@@ -400,7 +400,7 @@ class TestJsonMatchCompilation:
         from sqlalchemy import Column, MetaData, String, Table, create_engine
         from sqlalchemy.types import JSON
 
-        from deerflow.persistence.json_compat import json_match
+        from vassilflow.persistence.json_compat import json_match
 
         metadata = MetaData()
         t = Table("t", metadata, Column("data", JSON), Column("id", String))
@@ -441,7 +441,7 @@ class TestJsonMatchCompilation:
         from sqlalchemy.dialects import postgresql
         from sqlalchemy.types import JSON
 
-        from deerflow.persistence.json_compat import json_match
+        from vassilflow.persistence.json_compat import json_match
 
         metadata = MetaData()
         t = Table("t", metadata, Column("data", JSON), Column("id", String))
@@ -482,7 +482,7 @@ class TestJsonMatchCompilation:
         from sqlalchemy import Column, MetaData, String, Table
         from sqlalchemy.types import JSON
 
-        from deerflow.persistence.json_compat import json_match
+        from vassilflow.persistence.json_compat import json_match
 
         metadata = MetaData()
         t = Table("t", metadata, Column("data", JSON), Column("id", String))
@@ -500,7 +500,7 @@ class TestJsonMatchCompilation:
         from sqlalchemy import Column, MetaData, String, Table
         from sqlalchemy.types import JSON
 
-        from deerflow.persistence.json_compat import json_match
+        from vassilflow.persistence.json_compat import json_match
 
         metadata = MetaData()
         t = Table("t", metadata, Column("data", JSON), Column("id", String))
@@ -514,7 +514,7 @@ class TestJsonMatchCompilation:
         from sqlalchemy.dialects import mysql
         from sqlalchemy.types import JSON
 
-        from deerflow.persistence.json_compat import json_match
+        from vassilflow.persistence.json_compat import json_match
 
         metadata = MetaData()
         t = Table("t", metadata, Column("data", JSON), Column("id", String))
@@ -527,7 +527,7 @@ class TestJsonMatchCompilation:
         from sqlalchemy import Column, MetaData, String, Table
         from sqlalchemy.types import JSON
 
-        from deerflow.persistence.json_compat import json_match
+        from vassilflow.persistence.json_compat import json_match
 
         metadata = MetaData()
         t = Table("t", metadata, Column("data", JSON), Column("id", String))
@@ -547,7 +547,7 @@ class TestJsonMatchCompilation:
         from sqlalchemy.dialects import postgresql
         from sqlalchemy.types import JSON
 
-        from deerflow.persistence.json_compat import json_match
+        from vassilflow.persistence.json_compat import json_match
 
         metadata = MetaData()
         t = Table("t", metadata, Column("data", JSON), Column("id", String))
