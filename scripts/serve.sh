@@ -102,12 +102,12 @@ done
 # the same dev ports (8001/3000/2026), so a service started from ANY of them
 # must be reclaimable from here — otherwise `make stop`/`make dev` in this
 # worktree can neither kill nor take over a port held by a sibling worktree.
-# DEERFLOW_ROOTS is that set of roots; processes living outside all of them
+# VASSILFLOW_ROOTS is that set of roots; processes living outside all of them
 # (e.g. an unrelated project on port 3000) are still never touched.
 # Sorted most-specific-first (longest path first): a linked worktree lives
 # under the main checkout, so both roots are substrings of its files — checking
 # the deeper root first attributes a reclaimed port to the right worktree.
-DEERFLOW_ROOTS="$(
+VASSILFLOW_ROOTS="$(
     {
         printf '%s\n' "$REPO_ROOT"
         git -C "$REPO_ROOT" worktree list --porcelain 2>/dev/null |
@@ -118,16 +118,22 @@ DEERFLOW_ROOTS="$(
 # True if PID has an open file/cwd under any VassilFlow worktree root. The
 # trailing slash keeps a sibling dir like ".../VassilFlow-notes" from matching
 # the ".../VassilFlow" root.
-_is_deerflow_pid() {
+_is_vassilflow_pid() {
     local pid=$1 files root
 
-    # Daemon children inherit DEERFLOW_DAEMON_ROOT from run_service. Checking
+    # Daemon children inherit VASSILFLOW_DAEMON_ROOT from run_service. Checking
     # it (Linux only — macOS has no /proc) identifies processes like
     # next-server that lsof misses, so the name/port reaps in stop_all can
-    # claim them.
-    if [ -r "/proc/$pid/environ" ] &&
-        tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null | grep -Fxq "DEERFLOW_DAEMON_ROOT=$REPO_ROOT"; then
-        return 0
+    # claim them. DEERFLOW_DAEMON_ROOT is still accepted for older daemons.
+    if [ -r "/proc/$pid/environ" ]; then
+        if tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null |
+            grep -Fxq "VASSILFLOW_DAEMON_ROOT=$REPO_ROOT"; then
+            return 0
+        fi
+        if tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null |
+            grep -Fxq "DEERFLOW_DAEMON_ROOT=$REPO_ROOT"; then
+            return 0
+        fi
     fi
 
     files=$(lsof -b -w -p "$pid" 2>/dev/null) || return 1
@@ -136,7 +142,7 @@ _is_deerflow_pid() {
         case "$files" in
             *"$root"/*) return 0 ;;
         esac
-    done <<< "$DEERFLOW_ROOTS"
+    done <<< "$VASSILFLOW_ROOTS"
     return 1
 }
 
@@ -146,14 +152,14 @@ _report_reclaimed_ports() {
     local port pid files root owner
     for port in 8001 3000 2026; do
         for pid in $(lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null); do
-            _is_deerflow_pid "$pid" || continue
+            _is_vassilflow_pid "$pid" || continue
             files=$(lsof -b -w -p "$pid" 2>/dev/null)
             case "$files" in *"$REPO_ROOT"/*) continue ;; esac  # this worktree — normal
             owner=""
             while IFS= read -r root; do
                 [ -n "$root" ] || continue
                 case "$files" in *"$root"/*) owner="$root"; break ;; esac
-            done <<< "$DEERFLOW_ROOTS"
+            done <<< "$VASSILFLOW_ROOTS"
             echo "  ↻ Reclaiming port $port from another worktree: ${owner:-?}"
             break
         done
@@ -166,7 +172,7 @@ _kill_repo_processes() {
     local pids=""
 
     while IFS= read -r pid; do
-        if [ -n "$pid" ] && _is_deerflow_pid "$pid"; then
+        if [ -n "$pid" ] && _is_vassilflow_pid "$pid"; then
             case " $pids " in
                 *" $pid "*) ;;
                 *) pids="$pids $pid" ;;
@@ -185,7 +191,7 @@ _kill_repo_port() {
     local pids=""
 
     while IFS= read -r pid; do
-        if [ -n "$pid" ] && _is_deerflow_pid "$pid"; then
+        if [ -n "$pid" ] && _is_vassilflow_pid "$pid"; then
             case " $pids " in
                 *" $pid "*) ;;
                 *) pids="$pids $pid" ;;
@@ -240,9 +246,9 @@ _is_repo_nginx_pid() {
         case "$args" in
             *"$root"/docker/nginx/nginx.local.conf*|*"$root"/*) return 0 ;;
         esac
-    done <<< "$DEERFLOW_ROOTS"
+    done <<< "$VASSILFLOW_ROOTS"
 
-    _is_deerflow_pid "$pid"
+    _is_vassilflow_pid "$pid"
 }
 
 _kill_repo_nginx() {
@@ -472,9 +478,13 @@ run_service() {
     echo "Starting $name..."
     if $DAEMON_MODE; then
         # Tag the daemon so every descendant (pnpm → next → next-server)
-        # carries DEERFLOW_DAEMON_ROOT in its environment, letting
-        # _is_deerflow_pid recognize it at stop time.
-        nohup env DEERFLOW_DAEMON_ROOT="$REPO_ROOT" sh -c "$cmd" > /dev/null 2>&1 &
+        # carries VASSILFLOW_DAEMON_ROOT in its environment, letting
+        # _is_vassilflow_pid recognize it at stop time. The legacy env tag
+        # remains for older helper compatibility.
+        nohup env \
+            VASSILFLOW_DAEMON_ROOT="$REPO_ROOT" \
+            DEERFLOW_DAEMON_ROOT="$REPO_ROOT" \
+            sh -c "$cmd" > /dev/null 2>&1 &
     else
         sh -c "$cmd" &
     fi

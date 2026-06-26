@@ -54,6 +54,12 @@ def test_local_dev_gateway_reload_excludes_runtime_state_with_absolute_dirs():
     assert 'export VASSILFLOW_HOME="$LEGACY_BACKEND_RUNTIME_HOME"' in serve_sh
     assert 'export VASSILFLOW_HOME="$BACKEND_RUNTIME_HOME"' in serve_sh
     assert "export VASSILFLOW_HOME" in serve_sh
+    assert "VASSILFLOW_ROOTS=" in serve_sh
+    assert "DEERFLOW_ROOTS=" not in serve_sh
+    assert "_is_vassilflow_pid()" in serve_sh
+    assert "_is_deerflow_pid()" not in serve_sh
+    assert "VASSILFLOW_DAEMON_ROOT" in serve_sh
+    assert "DEERFLOW_DAEMON_ROOT" in serve_sh
     # Every absolute reload-exclude must be pre-created, including backend/sandbox
     # (#3459 / #3454) — see test_uvicorn_reload_exclude.py for the mechanism.
     assert 'mkdir -p "$VASSILFLOW_HOME" "$REPO_ROOT/backend/sandbox"' in serve_sh
