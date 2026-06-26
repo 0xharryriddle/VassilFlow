@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from deerflow.skills.security_scanner import _extract_json_object, scan_skill_content
+from vassilflow.skills.security_scanner import _extract_json_object, scan_skill_content
 
 
 def _make_env(monkeypatch, response_content):

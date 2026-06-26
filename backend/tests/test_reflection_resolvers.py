@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from deerflow.reflection import resolvers
-from deerflow.reflection.resolvers import resolve_variable
+from vassilflow.reflection import resolvers
+from vassilflow.reflection.resolvers import resolve_variable
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 

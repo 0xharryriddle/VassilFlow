@@ -8,9 +8,9 @@ from unittest.mock import MagicMock
 import pytest
 from langgraph.errors import GraphBubbleUp
 
-from deerflow.guardrails.builtin import AllowlistProvider
-from deerflow.guardrails.middleware import GuardrailMiddleware
-from deerflow.guardrails.provider import GuardrailDecision, GuardrailReason, GuardrailRequest
+from vassilflow.guardrails.builtin import AllowlistProvider
+from vassilflow.guardrails.middleware import GuardrailMiddleware
+from vassilflow.guardrails.provider import GuardrailDecision, GuardrailReason, GuardrailRequest
 
 # --- Helpers ---
 
@@ -200,7 +200,7 @@ class TestGuardrailMiddleware:
 
     def test_protocol_isinstance_check(self):
         """AllowlistProvider satisfies GuardrailProvider protocol at runtime."""
-        from deerflow.guardrails.provider import GuardrailProvider
+        from vassilflow.guardrails.provider import GuardrailProvider
 
         assert isinstance(AllowlistProvider(), GuardrailProvider)
 
