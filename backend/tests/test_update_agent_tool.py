@@ -335,7 +335,7 @@ def test_update_agent_soul_failure_does_not_replace_config(tmp_path, patched_pat
 
 def test_update_agent_only_writes_under_current_user(tmp_path, patched_paths):
     """An update from user 'alice' must never touch user 'bob's agent files."""
-    from deerflow.runtime.user_context import reset_current_user, set_current_user
+    from vassilflow.runtime.user_context import reset_current_user, set_current_user
 
     # Seed an agent for both users with the same name.
     alice_dir = _seed_agent(tmp_path, name="shared", description="alice-desc", soul="alice soul", user_id="alice")

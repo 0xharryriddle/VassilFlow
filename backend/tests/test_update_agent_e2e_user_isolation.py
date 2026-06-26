@@ -214,7 +214,7 @@ def test_update_agent_uses_contextvar_when_present(tmp_path: Path, monkeypatch):
     keep working regardless of how runtime.context is populated."""
     from types import SimpleNamespace as _SN
 
-    from deerflow.runtime.user_context import reset_current_user, set_current_user
+    from vassilflow.runtime.user_context import reset_current_user, set_current_user
 
     auth_uid = "11112222-3333-4444-5555-666677778888"
     user = _SN(id=auth_uid, email="ctxvar@local")

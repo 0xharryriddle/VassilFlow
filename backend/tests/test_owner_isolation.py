@@ -29,7 +29,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from deerflow.runtime.user_context import (
+from vassilflow.runtime.user_context import (
     reset_current_user,
     set_current_user,
 )
