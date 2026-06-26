@@ -40,3 +40,18 @@ def test_backend_docs_index_and_mcp_use_vassilflow_identity():
     assert "DeerFlow backend" not in docs_readme
     assert "New to DeerFlow?" not in docs_readme
     assert "DeerFlow supports configurable MCP servers" not in mcp_docs
+
+
+def test_configuration_docs_use_vassilflow_identity_and_env_names():
+    content = (REPO_ROOT / "backend" / "docs" / "CONFIGURATION.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "configure VassilFlow for your environment" in content
+    assert "VassilFlow supports multiple sandbox execution modes" in content
+    assert "Set `VASSILFLOW_SANDBOX_BIND_HOST` explicitly" in content
+    assert "Set `VASSILFLOW_PROJECT_ROOT` if the runtime starts elsewhere" in content
+    assert "legacy `DEER_FLOW_SANDBOX_BIND_HOST` is still accepted" in content
+    assert "configure DeerFlow for your environment" not in content
+    assert "DeerFlow supports multiple sandbox execution modes" not in content
+    assert "Set `DEER_FLOW_SANDBOX_BIND_HOST` explicitly" not in content
