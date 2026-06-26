@@ -1,6 +1,6 @@
 ---
 title: Memory
-description: Memory is a runtime feature of the DeerFlow Harness. It is not a simple conversation log — it is a structured store of facts and context summaries that persist across separate sessions and inform the agent's behavior in future conversations.
+description: Memory is a runtime feature of the VassilFlow Harness. It is not a simple conversation log — it is a structured store of facts and context summaries that persist across separate sessions and inform the agent's behavior in future conversations.
 ---
 
 import { Callout } from "nextra/components";
@@ -8,12 +8,12 @@ import { Callout } from "nextra/components";
 # Memory
 
 <Callout type="info" emoji="💾">
-  Memory lets DeerFlow carry useful information across sessions. The agent
+  Memory lets VassilFlow carry useful information across sessions. The agent
   remembers user preferences, project context, and recurring facts so it can
   give better responses without starting from zero every time.
 </Callout>
 
-Memory is a runtime feature of the DeerFlow Harness. It is not a simple conversation log — it is a structured store of facts and context summaries that persist across separate sessions and inform the agent's behavior in future conversations.
+Memory is a runtime feature of the VassilFlow Harness. It is not a simple conversation log — it is a structured store of facts and context summaries that persist across separate sessions and inform the agent's behavior in future conversations.
 
 ## What memory stores
 
@@ -71,7 +71,7 @@ memory:
 
 ## Global vs per-agent memory
 
-DeerFlow supports two levels of memory:
+VassilFlow supports two levels of memory:
 
 - **Global memory**: stored at `{base_dir}/memory.json`. Used when no specific agent is active or when the agent has no per-agent memory file.
 - **Per-agent memory**: stored at `{base_dir}/agents/{agent_name}/memory.json`. Used when a custom agent is active, keeping that agent's learned knowledge separate.

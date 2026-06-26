@@ -1,17 +1,17 @@
 ---
 title: Deployment Guide
-description: "This guide covers all supported deployment methods for DeerFlow App: local development, Docker Compose, and production with Kubernetes-managed sandboxes."
+description: "This guide covers all supported deployment methods for VassilFlow App: local development, Docker Compose, and production with Kubernetes-managed sandboxes."
 ---
 
 import { Callout, Steps, Tabs } from "nextra/components";
 
 # Deployment Guide
 
-This guide covers all supported deployment methods for DeerFlow App: local development, Docker Compose, and production with Kubernetes-managed sandboxes.
+This guide covers all supported deployment methods for VassilFlow App: local development, Docker Compose, and production with Kubernetes-managed sandboxes.
 
 ## Local development deployment
 
-The local workflow is the fastest way to run DeerFlow. All services run as native processes on your machine.
+The local workflow is the fastest way to run VassilFlow. All services run as native processes on your machine.
 
 <Tabs items={["Start", "Stop", "Logs"]}>
   <Tabs.Tab>
@@ -163,7 +163,7 @@ nginx routes all traffic to the frontend or Gateway. `/api/langgraph/*` is rewri
 
 ### Authentication
 
-DeerFlow App uses [Better Auth](https://www.better-auth.com/) for session management. In production:
+VassilFlow App uses [Better Auth](https://www.better-auth.com/) for session management. In production:
 
 1. Set `BETTER_AUTH_SECRET` to a strong random string (minimum 32 characters).
 2. Set `BETTER_AUTH_URL` to your public-facing URL (e.g., `https://your-domain.com`).

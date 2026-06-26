@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: "DeerFlow's configuration system is designed around one goal: every meaningful behavior should be expressible in a config file, not hardcoded in the application. This makes deployments reproducible, auditable, and easy to customize per environment."
+description: "VassilFlow's configuration system is designed around one goal: every meaningful behavior should be expressible in a config file, not hardcoded in the application. This makes deployments reproducible, auditable, and easy to customize per environment."
 ---
 
 import { Callout } from "nextra/components";
@@ -8,12 +8,12 @@ import { Callout } from "nextra/components";
 # Configuration
 
 <Callout type="info" emoji="⚙️">
-  All DeerFlow Harness behaviors are driven by <code>config.yaml</code>. One
+  All VassilFlow Harness behaviors are driven by <code>config.yaml</code>. One
   file controls which models are available, how the sandbox runs, what tools are
   loaded, and how each subsystem behaves.
 </Callout>
 
-DeerFlow's configuration system is designed around one goal: every meaningful behavior should be expressible in a config file, not hardcoded in the application. This makes deployments reproducible, auditable, and easy to customize per environment.
+VassilFlow's configuration system is designed around one goal: every meaningful behavior should be expressible in a config file, not hardcoded in the application. This makes deployments reproducible, auditable, and easy to customize per environment.
 
 ## Config file location
 
@@ -32,7 +32,7 @@ To use a custom location:
 export VASSILFLOW_CONFIG_PATH=/path/to/my-config.yaml
 ```
 
-During the transition from DeerFlow to VassilFlow, prefer `VASSILFLOW_*`
+During the transition from VassilFlow to VassilFlow, prefer `VASSILFLOW_*`
 environment variable names. Legacy `DEER_FLOW_*` names still work as fallbacks,
 and `VASSILFLOW_*` wins when both are set.
 
@@ -73,7 +73,7 @@ tools:
     api_key: $TAVILY_API_KEY
 ```
 
-This pattern is how DeerFlow achieves pluggability without hardcoding class references.
+This pattern is how VassilFlow achieves pluggability without hardcoding class references.
 
 ## Extra fields are passed through
 
