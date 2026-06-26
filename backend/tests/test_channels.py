@@ -594,8 +594,8 @@ def _make_mock_langgraph_client(thread_id="test-thread-123", run_result=None):
 
 
 async def _make_channel_connection_repo(tmp_path: Path):
-    from deerflow.persistence.channel_connections import ChannelConnectionRepository, ChannelCredentialCipher
-    from deerflow.persistence.engine import get_session_factory, init_engine
+    from vassilflow.persistence.channel_connections import ChannelConnectionRepository, ChannelCredentialCipher
+    from vassilflow.persistence.engine import get_session_factory, init_engine
 
     await init_engine("sqlite", url=f"sqlite+aiosqlite:///{tmp_path / 'channel-connections.db'}", sqlite_dir=str(tmp_path))
     return ChannelConnectionRepository(
@@ -3359,7 +3359,7 @@ class TestChannelManagerConnectionRouting:
     def test_connection_scoped_conversations_do_not_share_threads(self, tmp_path, monkeypatch):
         from app.channels.manager import ChannelManager
         from app.gateway.internal_auth import INTERNAL_OWNER_USER_ID_HEADER_NAME
-        from deerflow.persistence.engine import close_engine
+        from vassilflow.persistence.engine import close_engine
 
         monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
 
