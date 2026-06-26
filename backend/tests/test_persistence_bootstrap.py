@@ -29,9 +29,9 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import create_async_engine
 
 # Pre-import models so Base.metadata is populated before bootstrap reads it.
-import deerflow.persistence.models  # noqa: F401
-from deerflow.persistence.base import Base
-from deerflow.persistence.bootstrap import (
+import vassilflow.persistence.models  # noqa: F401
+from vassilflow.persistence.base import Base
+from vassilflow.persistence.bootstrap import (
     _BASELINE_TABLE_NAMES,
     _decide_state,
     _get_alembic_config,
@@ -40,7 +40,7 @@ from deerflow.persistence.bootstrap import (
     _upgrade,
     bootstrap_schema,
 )
-from deerflow.persistence.migrations._helpers import _normalize_default
+from vassilflow.persistence.migrations._helpers import _normalize_default
 
 # Mark only async tests via the decorator below; module-level pytestmark would
 # spuriously warn for the sync ``TestDecideState`` cases.
@@ -335,7 +335,7 @@ async def test_legacy_with_wrong_type_workaround_warns_on_type_drift(
 
 
 def test_type_equivalent_matches_known_dialect_synonyms() -> None:
-    from deerflow.persistence.migrations._helpers import _type_equivalent
+    from vassilflow.persistence.migrations._helpers import _type_equivalent
 
     # JSON ↔ JSONB (Postgres dialect difference, operationally interchangeable
     # for our schema). Both directions, and via raw strings.
@@ -345,7 +345,7 @@ def test_type_equivalent_matches_known_dialect_synonyms() -> None:
 
 
 def test_type_equivalent_catches_wholesale_type_mismatch() -> None:
-    from deerflow.persistence.migrations._helpers import _type_equivalent
+    from vassilflow.persistence.migrations._helpers import _type_equivalent
 
     # The reviewer scenario: TEXT NOT NULL DEFAULT '{}' workaround.
     assert _type_equivalent("TEXT", "JSON") is False
@@ -357,7 +357,7 @@ def test_type_equivalent_catches_wholesale_type_mismatch() -> None:
 def test_type_equivalent_ignores_type_parameters() -> None:
     """Length / precision differences are out of scope for this helper --
     the goal is wholesale-type drift, not dialect-rendered size defaults."""
-    from deerflow.persistence.migrations._helpers import _type_equivalent
+    from vassilflow.persistence.migrations._helpers import _type_equivalent
 
     assert _type_equivalent("VARCHAR(255)", "VARCHAR(500)") is True
     assert _type_equivalent("NUMERIC(10,2)", "NUMERIC(20,4)") is True
@@ -365,7 +365,7 @@ def test_type_equivalent_ignores_type_parameters() -> None:
 
 def test_type_equivalent_returns_true_on_missing_info() -> None:
     """Missing reflected info must not false-positive into a noisy warning."""
-    from deerflow.persistence.migrations._helpers import _type_equivalent
+    from vassilflow.persistence.migrations._helpers import _type_equivalent
 
     assert _type_equivalent(None, sa.JSON()) is True
     assert _type_equivalent(sa.JSON(), None) is True
