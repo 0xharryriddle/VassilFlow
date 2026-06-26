@@ -78,6 +78,46 @@ WORDING_TARGETS = [
         "So ``DeerFlowClient.stream()`` is",
         "So ``VassilFlowClient.stream()`` is",
     ),
+    (
+        "backend/packages/harness/deerflow/agents/middlewares/input_sanitization_middleware.py",
+        "I use DeerFlow's <think> tag?",
+        "I use VassilFlow's <think> tag?",
+    ),
+    (
+        "backend/packages/harness/deerflow/tools/sync.py",
+        "DeerFlow's current config-sensitive tools",
+        "VassilFlow's current config-sensitive tools",
+    ),
+    (
+        "backend/tests/test_tool_args_schema_no_pydantic_warning.py",
+        "DeerFlow tools annotate their runtime parameter",
+        "VassilFlow tools annotate their runtime parameter",
+    ),
+    (
+        "backend/tests/test_tool_args_schema_no_pydantic_warning.py",
+        "actual context DeerFlow installs is a dict",
+        "actual context VassilFlow installs is a dict",
+    ),
+    (
+        "backend/tests/test_persistence_migrations_env.py",
+        "DeerFlow's own tables",
+        "VassilFlow's own tables",
+    ),
+    (
+        "backend/tests/test_persistence_migrations_env.py",
+        "test_filter_includes_deerflow_tables",
+        "test_filter_includes_vassilflow_tables",
+    ),
+    (
+        "backend/tests/test_channels.py",
+        "new DeerFlow thread",
+        "new VassilFlow thread",
+    ),
+    (
+        "backend/tests/test_channels.py",
+        "same DeerFlow thread",
+        "same VassilFlow thread",
+    ),
 ]
 
 

@@ -1,7 +1,7 @@
 """Tests for the ``include_object`` filter used by ``migrations/env.py``.
 
 LangGraph checkpointer tables (``checkpoints`` and friends) live alongside
-DeerFlow's own tables in the same database. Alembic must NEVER emit DDL for
+VassilFlow's own tables in the same database. Alembic must NEVER emit DDL for
 them or a future ``alembic revision --autogenerate`` would propose
 ``drop_table('checkpoints')`` whenever LangGraph's tables are reflected from
 a live DB.
@@ -35,7 +35,7 @@ def test_filter_excludes_langgraph_checkpoint_tables() -> None:
         assert include_object(_table(owned), owned, "table", True, None) is False
 
 
-def test_filter_includes_deerflow_tables() -> None:
+def test_filter_includes_vassilflow_tables() -> None:
     for owned in ("runs", "threads_meta", "feedback", "users", "channel_connections"):
         assert include_object(_table(owned), owned, "table", True, None) is True
 
