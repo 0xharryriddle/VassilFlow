@@ -58,6 +58,26 @@ WORDING_TARGETS = [
         "embedded ``DeerFlowClient``",
         "embedded ``VassilFlowClient``",
     ),
+    (
+        "backend/packages/harness/deerflow/client.py",
+        "Embedded Python client for DeerFlow agent system.",
+        "VassilFlow embedded Python client implementation.",
+    ),
+    (
+        "backend/packages/harness/deerflow/client.py",
+        "Provides direct programmatic access to DeerFlow's agent capabilities",
+        "Provides direct programmatic access to VassilFlow's agent capabilities",
+    ),
+    (
+        "backend/packages/harness/deerflow/client.py",
+        "from deerflow.client import DeerFlowClient",
+        "from vassilflow.client import VassilFlowClient",
+    ),
+    (
+        "backend/packages/harness/deerflow/client.py",
+        "So ``DeerFlowClient.stream()`` is",
+        "So ``VassilFlowClient.stream()`` is",
+    ),
 ]
 
 

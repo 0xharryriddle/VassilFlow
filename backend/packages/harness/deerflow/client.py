@@ -1,12 +1,15 @@
-"""DeerFlowClient — Embedded Python client for DeerFlow agent system.
+"""VassilFlow embedded Python client implementation.
 
-Provides direct programmatic access to DeerFlow's agent capabilities
-without requiring LangGraph Server or Gateway API processes.
+Provides direct programmatic access to VassilFlow's agent capabilities without
+requiring LangGraph Server or Gateway API processes.
+
+The implementation class is still named ``DeerFlowClient`` for compatibility.
+New integrations should import the VassilFlow facade.
 
 Usage:
-    from deerflow.client import DeerFlowClient
+    from vassilflow.client import VassilFlowClient
 
-    client = DeerFlowClient()
+    client = VassilFlowClient()
     response = client.chat("Analyze this paper for me", thread_id="my-thread")
     print(response)
 
@@ -82,9 +85,9 @@ class StreamEvent:
 
 
 class DeerFlowClient:
-    """Embedded Python client for DeerFlow agent system.
+    """Compatibility implementation behind ``VassilFlowClient``.
 
-    Provides direct programmatic access to DeerFlow's agent capabilities
+    Provides direct programmatic access to VassilFlow's agent capabilities
     without requiring LangGraph Server or Gateway API processes.
 
     Note:
@@ -99,9 +102,9 @@ class DeerFlowClient:
 
     Example::
 
-        from deerflow.client import DeerFlowClient
+        from vassilflow.client import VassilFlowClient
 
-        client = DeerFlowClient()
+        client = VassilFlowClient()
 
         # Simple one-shot
         print(client.chat("hello"))
@@ -568,7 +571,7 @@ class DeerFlowClient:
           heartbeats, multi-subscriber fan-out).  A single in-process
           caller with a direct iterator needs none of that.
 
-        So ``DeerFlowClient.stream()`` is a parallel, sync, in-process
+        So ``VassilFlowClient.stream()`` is a parallel, sync, in-process
         consumer of the same ``create_agent()`` factory — not a wrapper
         around Gateway.  The two paths **should** stay in sync on which
         LangGraph stream modes they subscribe to; that invariant is
