@@ -1,5 +1,6 @@
 import json
 from dataclasses import fields, is_dataclass
+from inspect import signature
 from pathlib import Path
 
 from vassilflow import boundary
@@ -91,6 +92,7 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
     assert VassilFlowClient.__name__ == "VassilFlowClient"
     assert VassilFlowRunManager is RunManager
     assert RuntimeRunStatus is DeerFlowRunStatus
-    assert create_vassilflow_agent is create_deerflow_agent
-    assert facade_create_vassilflow_agent is create_deerflow_agent
+    assert create_vassilflow_agent.__name__ == "create_vassilflow_agent"
+    assert facade_create_vassilflow_agent.__name__ == "create_vassilflow_agent"
+    assert signature(facade_create_vassilflow_agent) == signature(create_deerflow_agent)
     assert facade_create_deerflow_agent is create_deerflow_agent
