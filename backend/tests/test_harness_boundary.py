@@ -1,7 +1,8 @@
 """Boundary check: harness layer must not import from app layer.
 
-The deerflow-harness package (packages/harness/deerflow/) is a standalone,
-publishable agent framework. It must never depend on the app layer (app/).
+The harness packages (packages/harness/deerflow/ and the VassilFlow facade) are
+standalone, publishable agent framework code. They must never depend on the app
+layer (app/).
 
 This test scans all Python files in the harness package and fails if any
 ``from app.`` or ``import app.`` statement is found.
@@ -10,7 +11,10 @@ This test scans all Python files in the harness package and fails if any
 import ast
 from pathlib import Path
 
-HARNESS_ROOT = Path(__file__).parent.parent / "packages" / "harness" / "deerflow"
+HARNESS_PACKAGE_ROOTS = (
+    Path(__file__).parent.parent / "packages" / "harness" / "deerflow",
+    Path(__file__).parent.parent / "packages" / "harness" / "vassilflow",
+)
 
 BANNED_PREFIXES = ("app.",)
 
@@ -34,13 +38,14 @@ def _collect_imports(filepath: Path) -> list[tuple[int, str]]:
     return results
 
 
-def test_harness_does_not_import_app():
+def test_harness_packages_do_not_import_app():
     violations: list[str] = []
 
-    for py_file in sorted(HARNESS_ROOT.rglob("*.py")):
-        for lineno, module in _collect_imports(py_file):
-            if any(module == prefix.rstrip(".") or module.startswith(prefix) for prefix in BANNED_PREFIXES):
-                rel = py_file.relative_to(HARNESS_ROOT.parent.parent.parent)
-                violations.append(f"  {rel}:{lineno}  imports {module}")
+    for harness_root in HARNESS_PACKAGE_ROOTS:
+        for py_file in sorted(harness_root.rglob("*.py")):
+            for lineno, module in _collect_imports(py_file):
+                if any(module == prefix.rstrip(".") or module.startswith(prefix) for prefix in BANNED_PREFIXES):
+                    rel = py_file.relative_to(harness_root.parent.parent.parent)
+                    violations.append(f"  {rel}:{lineno}  imports {module}")
 
     assert not violations, "Harness layer must not import from app layer:\n" + "\n".join(violations)
