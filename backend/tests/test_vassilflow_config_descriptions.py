@@ -1,5 +1,6 @@
 """Static guards for VassilFlow-owned public config descriptions."""
 
+import vassilflow.config.safety_finish_reason_config as safety_config_module
 import vassilflow.persistence as persistence_module
 from vassilflow.config.app_config import AppConfig, get_app_config
 from vassilflow.config.auth_config import AuthAppConfig, OIDCProviderConfig
@@ -44,3 +45,10 @@ def test_memory_storage_default_uses_vassilflow_facade() -> None:
         MemoryConfig.model_fields["storage_class"].default
         == "vassilflow.agents.memory.storage.FileMemoryStorage"
     )
+
+
+def test_safety_config_docstring_uses_vassilflow_reflection_facade() -> None:
+    doc = safety_config_module.__doc__ or ""
+
+    assert "vassilflow.reflection.resolve_variable" in doc
+    assert "deerflow.reflection.resolve_variable" not in doc
