@@ -14,11 +14,25 @@ function vassilflowAliasFor(envKey) {
   return undefined;
 }
 
+function legacyNamesForVassilflow(envKey) {
+  if (!envKey.startsWith("VASSILFLOW_")) {
+    return [];
+  }
+  const suffix = envKey.slice("VASSILFLOW_".length);
+  return [`DEER_FLOW_${suffix}`, `DEERFLOW_${suffix}`];
+}
+
 function getInternalServiceURL(envKey, fallbackURL) {
   const alias = vassilflowAliasFor(envKey);
-  const configured = (
-    (alias ? process.env[alias] : undefined) ?? process.env[envKey]
-  )?.trim();
+  let configured =
+    (alias ? process.env[alias] : undefined) ?? process.env[envKey];
+  if (configured === undefined) {
+    for (const legacyName of legacyNamesForVassilflow(envKey)) {
+      configured = process.env[legacyName];
+      if (configured !== undefined) break;
+    }
+  }
+  configured = configured?.trim();
   return configured && configured.length > 0
     ? configured.replace(/\/+$/, "")
     : fallbackURL;
@@ -41,7 +55,7 @@ const config = {
   async rewrites() {
     const rewrites = [];
     const gatewayURL = getInternalServiceURL(
-      "DEER_FLOW_INTERNAL_GATEWAY_BASE_URL",
+      "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL",
       "http://127.0.0.1:8001",
     );
 

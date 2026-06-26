@@ -8,7 +8,25 @@ export function vassilflowAliasFor(name: string): string | undefined {
   return undefined;
 }
 
+function legacyNamesForVassilflow(name: string): string[] {
+  if (!name.startsWith("VASSILFLOW_")) {
+    return [];
+  }
+  const suffix = name.slice("VASSILFLOW_".length);
+  return [`DEER_FLOW_${suffix}`, `DEERFLOW_${suffix}`];
+}
+
 export function envValue(name: string): string | undefined {
   const alias = vassilflowAliasFor(name);
-  return (alias ? process.env[alias] : undefined) ?? process.env[name];
+  if (alias) {
+    return process.env[alias] ?? process.env[name];
+  }
+
+  for (const legacyName of legacyNamesForVassilflow(name)) {
+    const value = process.env[legacyName];
+    if (value !== undefined) {
+      return process.env[name] ?? value;
+    }
+  }
+  return process.env[name];
 }
