@@ -65,7 +65,9 @@ The `task_status_tool` is no longer exposed to the LLM. It's kept in the codebas
 
 ### Polling Logic
 
-Located in `packages/harness/deerflow/tools/builtins/task_tool.py`:
+Public import: `vassilflow.tools.builtins.task_tool`
+
+Current implementation file during migration: `packages/harness/deerflow/tools/builtins/task_tool.py`
 
 ```python
 # Start background execution
@@ -93,7 +95,7 @@ while True:
 
 In addition to polling timeout, subagent execution now has a built-in timeout mechanism:
 
-**Configuration** (`packages/harness/deerflow/subagents/config.py`):
+**Configuration import**: `vassilflow.subagents.config`
 ```python
 @dataclass
 class SubagentConfig:

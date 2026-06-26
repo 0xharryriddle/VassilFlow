@@ -319,6 +319,23 @@ def test_streaming_docs_use_vassilflow_client_vocabulary():
     assert "## DeerFlowClient 路径：sync + in-process" not in content
 
 
+def test_task_tool_docs_use_vassilflow_public_imports():
+    content = (REPO_ROOT / "backend" / "docs" / "task_tool_improvements.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Public import: `vassilflow.tools.builtins.task_tool`" in content
+    assert "**Configuration import**: `vassilflow.subagents.config`" in content
+    assert (
+        "Located in `packages/harness/deerflow/tools/builtins/task_tool.py`"
+        not in content
+    )
+    assert (
+        "**Configuration** (`packages/harness/deerflow/subagents/config.py`)"
+        not in content
+    )
+
+
 def test_contributing_docs_use_vassilflow_public_examples():
     content = (REPO_ROOT / "backend" / "CONTRIBUTING.md").read_text(
         encoding="utf-8"
