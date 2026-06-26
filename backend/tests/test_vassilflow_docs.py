@@ -70,3 +70,17 @@ def test_architecture_docs_use_vassilflow_runtime_identity():
     assert "overview of the DeerFlow backend architecture" not in content
     assert "Local DeerFlow thread data cleanup" not in content
     assert "`backend/.deer-flow/threads/{thread_id}/user-data/workspace`" not in content
+
+
+def test_im_channel_docs_use_vassilflow_identity():
+    content = (REPO_ROOT / "backend" / "docs" / "IM_CHANNEL_CONNECTIONS.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "VassilFlow supports user-owned IM channel bindings" in content
+    assert "connect the channel from VassilFlow Settings" in content
+    assert "Send /connect <code> to the VassilFlow Slack bot." in content
+    assert "VassilFlow run user id" in content
+    assert "DeerFlow supports user-owned IM channel bindings" not in content
+    assert "connect the channel from DeerFlow Settings" not in content
+    assert "Send /connect <code> to the DeerFlow Slack bot." not in content
