@@ -30,7 +30,7 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     from deerflow.config import app_config as app_config_module
     from deerflow.config import paths as paths_module
-    from deerflow.persistence import engine as engine_module
+    from vassilflow.persistence import engine as engine_module
 
     for module, attr in (
         (app_config_module, "_app_config"),

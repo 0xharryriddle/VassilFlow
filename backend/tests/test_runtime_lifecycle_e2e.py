@@ -197,7 +197,7 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
     from deerflow.config import app_config as app_config_module
     from deerflow.config import extensions_config as extensions_config_module
     from deerflow.config import paths as paths_module
-    from deerflow.persistence import engine as engine_module
+    from vassilflow.persistence import engine as engine_module
 
     for module, attr, value in (
         (app_config_module, "_app_config", None),
@@ -588,7 +588,7 @@ def test_cancel_interrupt_stops_running_background_run(isolated_app):
 async def test_sse_consumer_disconnect_cancels_inflight_run():
     """A disconnected SSE request should cancel an in-flight run when configured."""
     from app.gateway.services import sse_consumer
-    from deerflow.runtime import DisconnectMode, MemoryStreamBridge, RunManager, RunStatus
+    from vassilflow.runtime import DisconnectMode, MemoryStreamBridge, RunManager, RunStatus
 
     bridge = MemoryStreamBridge()
     run_manager = RunManager()
