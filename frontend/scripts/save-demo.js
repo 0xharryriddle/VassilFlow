@@ -38,14 +38,22 @@ export async function main() {
     path.resolve(rootPath, "thread.json"),
     JSON.stringify(data, null, 2),
   );
-  const backendRootPath = path.resolve(
-    process.cwd(),
-    "../backend/.deer-flow/threads",
-    threadId,
-  );
+  const backendRootPath = resolveBackendThreadRoot(threadId);
   copyFolder("user-data/outputs", rootPath, backendRootPath);
   copyFolder("user-data/uploads", rootPath, backendRootPath);
   console.info(`Saved demo "${title}" to ${rootPath}`);
+}
+
+function resolveBackendThreadRoot(threadId) {
+  const currentPath = path.resolve(
+    process.cwd(),
+    "../backend/.vassilflow/threads",
+    threadId,
+  );
+  if (fs.existsSync(currentPath)) {
+    return currentPath;
+  }
+  return path.resolve(process.cwd(), "../backend/.deer-flow/threads", threadId);
 }
 
 function copyFolder(relPath, rootPath, backendRootPath) {
