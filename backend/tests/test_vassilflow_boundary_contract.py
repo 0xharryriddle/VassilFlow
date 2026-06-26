@@ -87,7 +87,8 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
     from deerflow.runtime import RunManager
     from deerflow.runtime import RunStatus as DeerFlowRunStatus
 
-    assert VassilFlowClient is DeerFlowClient
+    assert issubclass(VassilFlowClient, DeerFlowClient)
+    assert VassilFlowClient.__name__ == "VassilFlowClient"
     assert VassilFlowRunManager is RunManager
     assert RuntimeRunStatus is DeerFlowRunStatus
     assert create_vassilflow_agent is create_deerflow_agent
