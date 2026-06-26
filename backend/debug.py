@@ -65,23 +65,22 @@ async def main():
     # leak onto the interactive terminal via Python's lastResort handler.
     _setup_logging()
 
-    from deerflow.config import get_app_config
-    from deerflow.config.app_config import apply_logging_level
+    from vassilflow.config import get_app_config
+    from vassilflow.config.app_config import apply_logging_level
 
     app_config = get_app_config()
     apply_logging_level(app_config.log_level)
 
-    # Delay the rest of the deerflow imports until *after* logging is installed
-    # so that any import-time side effects (e.g. deerflow.agents starts a
+    # Delay the rest of the VassilFlow imports until *after* logging is installed
+    # so that any import-time side effects (e.g. vassilflow.agents starts a
     # background skill-loader thread on import) emit logs to debug.log instead
     # of leaking onto the interactive terminal via Python's lastResort handler.
     from langchain_core.messages import HumanMessage
     from langgraph.runtime import Runtime
-
-    from deerflow.agents import make_lead_agent
-    from deerflow.config.paths import get_paths
-    from deerflow.mcp import initialize_mcp_tools
-    from deerflow.runtime.user_context import get_effective_user_id
+    from vassilflow.agents import make_lead_agent
+    from vassilflow.config.paths import get_paths
+    from vassilflow.mcp import initialize_mcp_tools
+    from vassilflow.runtime.user_context import get_effective_user_id
 
     # Initialize MCP tools at startup
     try:
