@@ -346,7 +346,7 @@ def test_get_memory_sanitizes_unsafe_owner_header() -> None:
     applies, so the memory bucket matches the owner's file/upload bucket and the
     raw id never reaches ``_validate_user_id`` unsanitized.
     """
-    from deerflow.config.paths import make_safe_user_id
+    from vassilflow.config.paths import make_safe_user_id
 
     raw_owner = "feishu|ou_AbC/123"
     seen: dict[str, str] = {}

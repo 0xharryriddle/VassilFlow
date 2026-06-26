@@ -157,7 +157,7 @@ def test_feishu_receive_file_replaces_placeholders_in_order():
 
 def test_feishu_receive_file_syncs_sandbox_with_explicit_user_id(tmp_path, monkeypatch):
     async def go():
-        from deerflow.config.paths import Paths
+        from vassilflow.config.paths import Paths
 
         bus = MessageBus()
         channel = FeishuChannel(bus, {"app_id": "test", "app_secret": "test"})

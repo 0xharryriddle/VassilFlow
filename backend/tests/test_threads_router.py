@@ -10,7 +10,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.store.memory import InMemoryStore
 
 from app.gateway.routers import threads
-from deerflow.config.paths import Paths
+from vassilflow.config.paths import Paths
 from vassilflow.persistence.thread_meta import InvalidMetadataFilterError
 from vassilflow.persistence.thread_meta.memory import THREADS_NS, MemoryThreadMetaStore
 
