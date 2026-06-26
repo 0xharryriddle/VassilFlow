@@ -551,22 +551,23 @@ uv run python -m pytest tests/test_guardrail_middleware.py -v
 - GraphBubbleUp: LangGraph control signals propagate through (not caught)
 - Config: defaults, from_dict, singleton load/reset
 
-## Files
+## Public Imports
 
 ```
-packages/harness/deerflow/guardrails/
-    __init__.py              # Public exports
-    provider.py              # GuardrailProvider protocol, GuardrailRequest, GuardrailDecision
-    middleware.py             # GuardrailMiddleware (AgentMiddleware subclass)
-    builtin.py               # AllowlistProvider (zero deps)
+vassilflow.guardrails
+    provider                # GuardrailProvider protocol, GuardrailRequest, GuardrailDecision
+    middleware              # GuardrailMiddleware (AgentMiddleware subclass)
+    builtin                 # AllowlistProvider (zero deps)
 
-packages/harness/deerflow/config/
-    guardrails_config.py     # GuardrailsConfig Pydantic model + singleton
+vassilflow.config.guardrails_config
+    GuardrailsConfig        # Pydantic model + singleton
 
-packages/harness/deerflow/agents/middlewares/
-    tool_error_handling_middleware.py  # Registers GuardrailMiddleware in chain
+vassilflow.agents.middlewares.tool_error_handling_middleware
+    build_subagent_runtime_middlewares  # Registers GuardrailMiddleware in chain
 
 config.example.yaml          # Three provider options documented
 tests/test_guardrail_middleware.py  # 25 tests
 docs/GUARDRAILS.md           # This file
 ```
+
+The current implementation files remain under `packages/harness/deerflow/` during the migration; new integrations should use the `vassilflow.*` imports above.

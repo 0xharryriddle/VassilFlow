@@ -12,9 +12,13 @@ def test_guardrails_docs_use_vassilflow_framework_identity():
     assert "~/.aport/vassilflow/config.yaml" in content
     assert 'framework="vassilflow"' in content
     assert "VassilFlow Tool Names" in content
+    assert "vassilflow.guardrails" in content
+    assert "vassilflow.config.guardrails_config" in content
+    assert "vassilflow.agents.middlewares.tool_error_handling_middleware" in content
     assert "Start DeerFlow" not in content
     assert "~/.aport/deerflow" not in content
     assert 'framework="deerflow"' not in content
+    assert "packages/harness/deerflow/guardrails/" not in content
 
 
 def test_backend_claude_uses_vassilflow_project_identity():
