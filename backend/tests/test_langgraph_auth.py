@@ -245,6 +245,7 @@ def test_langgraph_json_has_auth_path():
     config = json.loads((Path(__file__).parent.parent / "langgraph.json").read_text())
     assert "auth" in config
     assert "langgraph_auth" in config["auth"]["path"]
+    assert config["graphs"]["lead_agent"] == "vassilflow.agents:make_lead_agent"
 
 
 def test_auth_handler_has_both_layers():

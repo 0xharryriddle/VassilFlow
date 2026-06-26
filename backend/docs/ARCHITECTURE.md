@@ -70,7 +70,7 @@ It is not the default service entrypoint; scripts and Docker deployments run the
 {
   "agent": {
     "type": "agent",
-    "path": "deerflow.agents:make_lead_agent"
+    "path": "vassilflow.agents:make_lead_agent"
   }
 }
 ```
