@@ -1,4 +1,4 @@
-"""Tests for ``deerflow.persistence.bootstrap.bootstrap_schema``.
+"""Tests for ``vassilflow.persistence.bootstrap.bootstrap_schema``.
 
 Covers the three-branch decision table:
 
