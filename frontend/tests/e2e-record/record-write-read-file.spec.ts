@@ -93,7 +93,7 @@ test("record write/read-file run through the real frontend", async ({
 
   await page.addInitScript(() => {
     window.localStorage.setItem(
-      "deerflow.local-settings",
+      "vassilflow.local-settings",
       JSON.stringify({ context: { mode: "ultra" } }),
     );
   });

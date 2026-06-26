@@ -1,5 +1,7 @@
 import {
   DEFAULT_LOCAL_SETTINGS,
+  LEGACY_LOCAL_SETTINGS_KEY,
+  LEGACY_THREAD_MODEL_KEY_PREFIX,
   LOCAL_SETTINGS_KEY,
   THREAD_MODEL_KEY_PREFIX,
   getLocalSettings,
@@ -75,17 +77,25 @@ function handleStorage(event: StorageEvent) {
     return;
   }
 
-  if (event.key === LOCAL_SETTINGS_KEY) {
+  if (
+    event.key === LOCAL_SETTINGS_KEY ||
+    event.key === LEGACY_LOCAL_SETTINGS_KEY
+  ) {
     baseSettings = getLocalSettings();
     emitChange();
     return;
   }
 
-  if (!event.key.startsWith(THREAD_MODEL_KEY_PREFIX)) {
+  const threadId = event.key.startsWith(THREAD_MODEL_KEY_PREFIX)
+    ? event.key.slice(THREAD_MODEL_KEY_PREFIX.length)
+    : event.key.startsWith(LEGACY_THREAD_MODEL_KEY_PREFIX)
+      ? event.key.slice(LEGACY_THREAD_MODEL_KEY_PREFIX.length)
+      : undefined;
+
+  if (threadId === undefined) {
     return;
   }
 
-  const threadId = event.key.slice(THREAD_MODEL_KEY_PREFIX.length);
   threadModelNames.set(threadId, getThreadModelName(threadId));
   emitChange();
 }

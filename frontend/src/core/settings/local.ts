@@ -16,8 +16,10 @@ export const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
   },
 };
 
-export const LOCAL_SETTINGS_KEY = "deerflow.local-settings";
-export const THREAD_MODEL_KEY_PREFIX = "deerflow.thread-model.";
+export const LOCAL_SETTINGS_KEY = "vassilflow.local-settings";
+export const LEGACY_LOCAL_SETTINGS_KEY = "deerflow.local-settings";
+export const THREAD_MODEL_KEY_PREFIX = "vassilflow.thread-model.";
+export const LEGACY_THREAD_MODEL_KEY_PREFIX = "deerflow.thread-model.";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";
@@ -68,11 +70,28 @@ function getThreadModelStorageKey(threadId: string): string {
   return `${THREAD_MODEL_KEY_PREFIX}${threadId}`;
 }
 
+function getLegacyThreadModelStorageKey(threadId: string): string {
+  return `${LEGACY_THREAD_MODEL_KEY_PREFIX}${threadId}`;
+}
+
 export function getThreadModelName(threadId: string): string | undefined {
   if (!isBrowser()) {
     return undefined;
   }
-  return localStorage.getItem(getThreadModelStorageKey(threadId)) ?? undefined;
+  const key = getThreadModelStorageKey(threadId);
+  const value = localStorage.getItem(key);
+  if (value !== null) {
+    return value;
+  }
+
+  const legacyValue = localStorage.getItem(
+    getLegacyThreadModelStorageKey(threadId),
+  );
+  if (legacyValue !== null) {
+    localStorage.setItem(key, legacyValue);
+    return legacyValue;
+  }
+  return undefined;
 }
 
 export function saveThreadModelName(
@@ -83,11 +102,14 @@ export function saveThreadModelName(
     return;
   }
   const key = getThreadModelStorageKey(threadId);
+  const legacyKey = getLegacyThreadModelStorageKey(threadId);
   if (!modelName) {
     localStorage.removeItem(key);
+    localStorage.removeItem(legacyKey);
     return;
   }
   localStorage.setItem(key, modelName);
+  localStorage.removeItem(legacyKey);
 }
 
 export function applyThreadModelOverride(
@@ -111,9 +133,15 @@ export function getLocalSettings(): LocalSettings {
     return DEFAULT_LOCAL_SETTINGS;
   }
   const json = localStorage.getItem(LOCAL_SETTINGS_KEY);
+  const legacyJson =
+    json === null ? localStorage.getItem(LEGACY_LOCAL_SETTINGS_KEY) : null;
   try {
-    if (json) {
-      const settings = JSON.parse(json) as Partial<LocalSettings>;
+    const rawSettings = json ?? legacyJson;
+    if (rawSettings) {
+      const settings = JSON.parse(rawSettings) as Partial<LocalSettings>;
+      if (json === null && legacyJson !== null) {
+        localStorage.setItem(LOCAL_SETTINGS_KEY, legacyJson);
+      }
       return mergeLocalSettings(settings);
     }
   } catch {}
@@ -125,4 +153,5 @@ export function saveLocalSettings(settings: LocalSettings) {
     return;
   }
   localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.removeItem(LEGACY_LOCAL_SETTINGS_KEY);
 }

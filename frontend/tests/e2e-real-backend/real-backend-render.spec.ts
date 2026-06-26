@@ -73,7 +73,7 @@ test.describe("real backend render (replay, no API key)", () => {
     // matches the recorded fixture; otherwise the replay input hash would miss.
     await page.addInitScript(() => {
       window.localStorage.setItem(
-        "deerflow.local-settings",
+        "vassilflow.local-settings",
         JSON.stringify({ context: { mode: "ultra" } }),
       );
     });
