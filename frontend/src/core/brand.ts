@@ -7,6 +7,7 @@ export const APP_REPOSITORY_OWNER = "linhlln1104";
 export const APP_REPOSITORY_NAME = "VassilFlow";
 export const APP_REPOSITORY_URL = `https://github.com/${APP_REPOSITORY_OWNER}/${APP_REPOSITORY_NAME}`;
 export const APP_REPOSITORY_API_URL = `https://api.github.com/repos/${APP_REPOSITORY_OWNER}/${APP_REPOSITORY_NAME}`;
+export const APP_DOCS_REPOSITORY_BASE = `${APP_REPOSITORY_URL}/tree/main/frontend/src/content`;
 export const APP_ISSUES_URL = `${APP_REPOSITORY_URL}/issues`;
 export const APP_CONTACT_URL = APP_ISSUES_URL;
 

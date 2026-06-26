@@ -4,6 +4,7 @@ import { Layout } from "nextra-theme-docs";
 
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
+import { APP_DOCS_REPOSITORY_BASE } from "@/core/brand";
 import { getLocaleByLang } from "@/core/i18n/locale";
 import "nextra-theme-docs/style.css";
 
@@ -40,7 +41,7 @@ export default async function DocLayout({ children, params }) {
         />
       }
       pageMap={pageMap}
-      docsRepositoryBase="https://github.com/bytedance/deerflow/tree/main/frontend/src/content"
+      docsRepositoryBase={APP_DOCS_REPOSITORY_BASE}
       footer={<Footer className="mt-0" />}
       i18n={i18n}
       // ... Your additional layout options

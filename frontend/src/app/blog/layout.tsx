@@ -3,6 +3,7 @@ import { Layout } from "nextra-theme-docs";
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { getBlogIndexData } from "@/core/blog";
+import { APP_DOCS_REPOSITORY_BASE } from "@/core/brand";
 import "nextra-theme-docs/style.css";
 
 export default async function BlogLayout({ children }) {
@@ -13,7 +14,7 @@ export default async function BlogLayout({ children }) {
       navbar={<Header className="relative max-w-full px-10" homeURL="/" />}
       pageMap={pageMap}
       sidebar={{ defaultOpen: true }}
-      docsRepositoryBase="https://github.com/bytedance/deerflow/tree/main/frontend/src/content"
+      docsRepositoryBase={APP_DOCS_REPOSITORY_BASE}
       footer={<Footer />}
     >
       {children}
