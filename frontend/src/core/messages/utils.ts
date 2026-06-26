@@ -55,6 +55,30 @@ export function getMessageGroups(messages: Message[]): MessageGroup[] {
     return null;
   }
 
+  function findToolCallGroup(toolCallId: string | undefined) {
+    if (!toolCallId) {
+      return null;
+    }
+    for (let index = groups.length - 1; index >= 0; index -= 1) {
+      const group = groups[index];
+      if (
+        group?.type !== "assistant:processing" &&
+        group?.type !== "assistant:subagent"
+      ) {
+        continue;
+      }
+      const hasMatchingToolCall = group.messages.some(
+        (candidate) =>
+          candidate.type === "ai" &&
+          candidate.tool_calls?.some((toolCall) => toolCall.id === toolCallId),
+      );
+      if (hasMatchingToolCall) {
+        return group;
+      }
+    }
+    return null;
+  }
+
   for (const message of messages) {
     if (isHiddenFromUIMessage(message)) {
       continue;
@@ -76,14 +100,9 @@ export function getMessageGroups(messages: Message[]): MessageGroup[] {
           messages: [message],
         });
       } else {
-        const open = lastOpenGroup();
+        const open = lastOpenGroup() ?? findToolCallGroup(message.tool_call_id);
         if (open) {
           open.messages.push(message);
-        } else {
-          console.error(
-            "Unexpected tool message outside a processing group",
-            message,
-          );
         }
       }
       continue;

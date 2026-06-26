@@ -1,5 +1,5 @@
 import type { Message } from "@langchain/langgraph-sdk";
-import { describe, expect, test } from "@rstest/core";
+import { afterEach, describe, expect, rs, test } from "@rstest/core";
 
 import {
   extractContentFromMessage,
@@ -22,6 +22,10 @@ function aiMessage(content: string): Message {
     content,
   } as Message;
 }
+
+afterEach(() => {
+  rs.restoreAllMocks();
+});
 
 test("aggregates token usage messages once per assistant turn", () => {
   const messages = [
@@ -79,6 +83,72 @@ test("aggregates token usage messages once per assistant turn", () => {
       (groupMessages) => groupMessages?.map((message) => message.id) ?? null,
     ),
   ).toEqual([null, null, ["ai-1", "ai-2"], null, ["ai-3"]]);
+});
+
+test("attaches late tool results to their matching processing group", () => {
+  const messages = [
+    {
+      id: "human-1",
+      type: "human",
+      content: "Search",
+    },
+    {
+      id: "ai-1",
+      type: "ai",
+      content: "",
+      tool_calls: [{ id: "tool-1", name: "web_search", args: {} }],
+    },
+    {
+      id: "ai-2",
+      type: "ai",
+      content: "Final answer",
+    },
+    {
+      id: "tool-1-result",
+      type: "tool",
+      name: "web_search",
+      tool_call_id: "tool-1",
+      content: "[]",
+    },
+  ] as Message[];
+
+  const groups = getMessageGroups(messages);
+
+  expect(groups.map((group) => group.type)).toEqual([
+    "human",
+    "assistant:processing",
+    "assistant",
+  ]);
+  expect(groups[1]?.messages.map((message) => message.id)).toEqual([
+    "ai-1",
+    "tool-1-result",
+  ]);
+});
+
+test("ignores orphan tool results without logging a console error", () => {
+  const errorSpy = rs.spyOn(console, "error").mockImplementation(() => ({}));
+  const messages = [
+    {
+      id: "tool-orphan",
+      type: "tool",
+      name: "web_search",
+      tool_call_id: "missing-tool-call",
+      content: "[]",
+    },
+    {
+      id: "ai-1",
+      type: "ai",
+      content: "Final answer",
+    },
+  ] as Message[];
+
+  const groups = getMessageGroups(messages);
+
+  expect(errorSpy).not.toHaveBeenCalled();
+  expect(groups.map((group) => group.type)).toEqual(["assistant"]);
+  expect(
+    groups.flatMap((group) => group.messages).map((message) => message.id),
+  ).toEqual(["ai-1"]);
 });
 
 describe("inline <think> tag splitting", () => {
