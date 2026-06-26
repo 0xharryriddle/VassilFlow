@@ -2,11 +2,11 @@ from pathlib import Path
 
 from app.channels.service import _resolve_service_url
 from app.gateway.auth_disabled import is_auth_disabled, is_explicit_production_environment
-from deerflow.config.app_config import AppConfig
-from deerflow.config.env_aliases import env_value, vassilflow_alias_for
-from deerflow.config.extensions_config import ExtensionsConfig
-from deerflow.config.runtime_paths import project_root, runtime_home
-from deerflow.config.skills_config import SkillsConfig
+from vassilflow.config.app_config import AppConfig
+from vassilflow.config.env_aliases import env_value, vassilflow_alias_for
+from vassilflow.config.extensions_config import ExtensionsConfig
+from vassilflow.config.runtime_paths import project_root, runtime_home
+from vassilflow.config.skills_config import SkillsConfig
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
