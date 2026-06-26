@@ -58,11 +58,11 @@ _DEFAULT_WRITE_FILE_ERROR_MAX_CHARS = 2000
 # because the tool-call JSON payload (which the model must emit as one
 # continuous stream) grows past the safe window. 80 KB ≈ 20K tokens, a
 # comfortable headroom under the factory-default 240s stream_chunk_timeout.
-# Deployments can override via env var VASSILFLOW_WRITE_FILE_MAX_BYTES
-# (legacy: DEERFLOW_WRITE_FILE_MAX_BYTES); set to 0 (or negative) to disable
-# the guard entirely.
+# Deployments can override via env var VASSILFLOW_WRITE_FILE_MAX_BYTES (legacy:
+# DEER_FLOW_WRITE_FILE_MAX_BYTES / DEERFLOW_WRITE_FILE_MAX_BYTES); set to 0
+# (or negative) to disable the guard entirely.
 _WRITE_FILE_CONTENT_MAX_BYTES = 80 * 1024
-_WRITE_FILE_MAX_BYTES_ENV = "DEERFLOW_WRITE_FILE_MAX_BYTES"
+_WRITE_FILE_MAX_BYTES_ENV = "VASSILFLOW_WRITE_FILE_MAX_BYTES"
 _LOCAL_BASH_CWD_COMMANDS = {"cd", "pushd"}
 _LOCAL_BASH_COMMAND_WRAPPERS = {"command", "builtin"}
 _LOCAL_BASH_COMMAND_PREFIX_KEYWORDS = {"!", "{", "case", "do", "elif", "else", "for", "if", "select", "then", "time", "until", "while"}
@@ -1741,10 +1741,11 @@ read_file_tool.coroutine = _read_file_tool_async
 def _effective_write_file_max_bytes() -> int:
     """Return the active size cap for non-append write_file calls.
 
-    Reads ``VASSILFLOW_WRITE_FILE_MAX_BYTES``/``DEERFLOW_WRITE_FILE_MAX_BYTES``
-    at call time (not import time) so tests and runtime tweaks take effect
-    without restart. Falls back to the default on missing/malformed values. A
-    non-positive value disables the guard.
+    Reads ``VASSILFLOW_WRITE_FILE_MAX_BYTES`` at call time (not import time)
+    so tests and runtime tweaks take effect without restart. Legacy
+    ``DEER_FLOW_WRITE_FILE_MAX_BYTES`` and ``DEERFLOW_WRITE_FILE_MAX_BYTES``
+    names remain accepted. Falls back to the default on missing/malformed
+    values. A non-positive value disables the guard.
     """
     raw = env_value(_WRITE_FILE_MAX_BYTES_ENV)
     if raw is None:
@@ -1783,9 +1784,9 @@ def write_file_tool(
          NOT apply to append=True calls.
 
     Operators can override the cap via env var
-    `VASSILFLOW_WRITE_FILE_MAX_BYTES` (legacy:
-    `DEERFLOW_WRITE_FILE_MAX_BYTES`; 0 disables the guard entirely). Raising it
-    risks streaming timeouts.
+    `VASSILFLOW_WRITE_FILE_MAX_BYTES` (legacy: `DEER_FLOW_WRITE_FILE_MAX_BYTES`
+    or `DEERFLOW_WRITE_FILE_MAX_BYTES`; 0 disables the guard entirely).
+    Raising it risks streaming timeouts.
 
     Args:
         description: Explain why you are writing to this file in short words. ALWAYS PROVIDE THIS PARAMETER FIRST.

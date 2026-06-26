@@ -83,11 +83,24 @@ def test_above_cap_with_append_true_bypasses_guard():
 
 
 def test_env_override_raises_cap(monkeypatch: pytest.MonkeyPatch):
-    """Setting DEERFLOW_WRITE_FILE_MAX_BYTES lets deployments accept larger
+    """Setting VASSILFLOW_WRITE_FILE_MAX_BYTES lets deployments accept larger
     payloads when the underlying LLM/network can demonstrably handle them.
     """
-    monkeypatch.setenv("DEERFLOW_WRITE_FILE_MAX_BYTES", str(300 * 1024))
+    monkeypatch.setenv("VASSILFLOW_WRITE_FILE_MAX_BYTES", str(300 * 1024))
     payload = "a" * (150 * 1024)  # 150 KB — would normally trip the 80 KB cap
+    result = _call_write_file(content=payload)
+    assert result == "OK"
+
+
+@pytest.mark.parametrize(
+    "env_name",
+    ["DEER_FLOW_WRITE_FILE_MAX_BYTES", "DEERFLOW_WRITE_FILE_MAX_BYTES"],
+)
+def test_legacy_env_override_still_supported(
+    monkeypatch: pytest.MonkeyPatch, env_name: str
+):
+    monkeypatch.setenv(env_name, str(300 * 1024))
+    payload = "a" * (150 * 1024)
     result = _call_write_file(content=payload)
     assert result == "OK"
 
@@ -97,7 +110,7 @@ def test_env_override_zero_disables_guard(monkeypatch: pytest.MonkeyPatch):
     who want to opt out of the guard entirely (e.g. when running models with
     very large stream_chunk_timeout values).
     """
-    monkeypatch.setenv("DEERFLOW_WRITE_FILE_MAX_BYTES", "0")
+    monkeypatch.setenv("VASSILFLOW_WRITE_FILE_MAX_BYTES", "0")
     payload = "a" * (500 * 1024)  # 500 KB
     result = _call_write_file(content=payload)
     assert result == "OK"
@@ -108,7 +121,7 @@ def test_env_override_malformed_falls_back_to_default(monkeypatch: pytest.Monkey
     back silently to the safe 80 KB default. Crashing on every write because
     of a misconfigured env var would be far worse than ignoring it.
     """
-    monkeypatch.setenv("DEERFLOW_WRITE_FILE_MAX_BYTES", "lots")
+    monkeypatch.setenv("VASSILFLOW_WRITE_FILE_MAX_BYTES", "lots")
     # 100 KB should still be rejected because the malformed value falls back
     # to the 80 KB default.
     payload = "a" * (100 * 1024)
