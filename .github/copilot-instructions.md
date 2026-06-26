@@ -1,10 +1,10 @@
-# Copilot Onboarding Instructions for DeerFlow
+# Copilot Onboarding Instructions for VassilFlow
 
 Use this file as the default operating guide for this repository. Follow it first, and only search the codebase when this file is incomplete or incorrect.
 
 ## 1) Repository Summary
 
-DeerFlow is a full-stack "super agent harness".
+VassilFlow is a full-stack "super agent harness" being migrated from the upstream DeerFlow runtime.
 
 - Backend: Python 3.12, LangGraph + FastAPI gateway, sandbox/tool system, memory, MCP integration.
 - Frontend: Next.js 16 + React 19 + TypeScript + pnpm.
@@ -143,12 +143,13 @@ Root-level orchestration and config:
 
 Backend core:
 
-- `backend/packages/harness/deerflow/agents/` - lead agent, middleware chain, memory
+- `backend/packages/harness/vassilflow/` - VassilFlow public facade package
+- `backend/packages/harness/deerflow/agents/` - current lead agent implementation, middleware chain, memory
 - `backend/app/gateway/` - FastAPI gateway API
-- `backend/packages/harness/deerflow/sandbox/` - sandbox provider + tool wrappers
-- `backend/packages/harness/deerflow/subagents/` - subagent registry/execution
-- `backend/packages/harness/deerflow/mcp/` - MCP integration
-- `backend/langgraph.json` - graph entrypoint (`deerflow.agents:make_lead_agent`)
+- `backend/packages/harness/deerflow/sandbox/` - current sandbox provider + tool wrappers implementation
+- `backend/packages/harness/deerflow/subagents/` - current subagent registry/execution implementation
+- `backend/packages/harness/deerflow/mcp/` - current MCP integration implementation
+- `backend/langgraph.json` - graph entrypoint (`vassilflow.agents:make_lead_agent`)
 - `backend/pyproject.toml` - Python deps and `requires-python`
 - `backend/ruff.toml` - lint/format policy
 - `backend/tests/` - backend unit and integration-like tests
