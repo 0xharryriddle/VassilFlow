@@ -152,6 +152,9 @@ def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
     auth_test_plan = (
         REPO_ROOT / "backend" / "docs" / "AUTH_TEST_PLAN.md"
     ).read_text(encoding="utf-8")
+    auth_docker_gap = (
+        REPO_ROOT / "backend" / "docs" / "AUTH_TEST_DOCKER_GAP.md"
+    ).read_text(encoding="utf-8")
 
     assert "本文档描述 VassilFlow 当前内置认证模块的设计" in auth_design
     assert "认证模块的核心目标是把 VassilFlow" in auth_design
@@ -164,10 +167,14 @@ def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
     assert "sqlite3 backend/.vassilflow/data/vassilflow.db" in auth_test_plan
     assert "docker logs vassilflow-gateway" in auth_test_plan
     assert "VASSILFLOW_HOME" in auth_test_plan
+    assert "`vassilflow.db` volume persistence" in auth_docker_gap
+    assert "VASSILFLOW_HOME=$HOME/vassilflow-data" in auth_docker_gap
     assert "本文档描述 DeerFlow 当前内置认证模块的设计" not in auth_design
     assert "DeerFlow 内置了认证模块" not in auth_upgrade
     assert "docker logs deer-flow-gateway" not in auth_test_plan
     assert "sqlite3 backend/.deer-flow/data/deerflow.db" not in auth_test_plan
+    assert "`deerflow.db` volume persistence" not in auth_docker_gap
+    assert "DEER_FLOW_HOME=$HOME/deer-flow-data" not in auth_docker_gap
 
 
 def test_apple_container_docs_use_vassilflow_runtime_names():
