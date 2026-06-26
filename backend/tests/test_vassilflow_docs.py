@@ -200,3 +200,28 @@ def test_memory_docs_use_vassilflow_identity_and_runtime_home():
     assert "DeerFlow includes automatic conversation summarization" not in summarization
     assert "Start DeerFlow locally" not in memory_review
     assert "backend/.deer-flow/memory.json" not in memory_review
+
+
+def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
+    plan_mode = (REPO_ROOT / "backend" / "docs" / "plan_mode_usage.md").read_text(
+        encoding="utf-8"
+    )
+    auto_title = (
+        REPO_ROOT / "backend" / "docs" / "AUTO_TITLE_GENERATION.md"
+    ).read_text(encoding="utf-8")
+
+    assert "TodoList middleware in VassilFlow" in plan_mode
+    assert "from vassilflow.agents.lead_agent.agent import make_lead_agent" in plan_mode
+    assert "custom VassilFlow-style prompts" in plan_mode
+    assert "vassilflow.agents:make_lead_agent" in auto_title
+    assert "from vassilflow.config import TitleConfig, set_title_config" in auto_title
+    assert (
+        "from vassilflow.agents.middlewares.title_middleware import TitleMiddleware"
+        in auto_title
+    )
+    assert "TodoList middleware in DeerFlow" not in plan_mode
+    assert "from deerflow.agents.lead_agent.agent import make_lead_agent" not in plan_mode
+    assert "/Users/hetao/workspace/deer-flow" not in plan_mode
+    assert '"lead_agent": "deerflow.agents:lead_agent"' not in auto_title
+    assert "from deerflow.config.title_config import TitleConfig" not in auto_title
+    assert "from deerflow.agents.title_middleware import TitleMiddleware" not in auto_title

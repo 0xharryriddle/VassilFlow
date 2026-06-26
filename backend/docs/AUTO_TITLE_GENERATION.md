@@ -52,7 +52,7 @@ checkpointer = PostgresSaver.from_conn_string(
 ```json
 {
   "graphs": {
-    "lead_agent": "deerflow.agents:lead_agent"
+    "lead_agent": "vassilflow.agents:make_lead_agent"
   },
   "checkpointer": "checkpointer:checkpointer"
 }
@@ -73,7 +73,7 @@ title:
 或在代码中配置：
 
 ```python
-from deerflow.config.title_config import TitleConfig, set_title_config
+from vassilflow.config import TitleConfig, set_title_config
 
 set_title_config(TitleConfig(
     enabled=True,
@@ -187,7 +187,7 @@ sequenceDiagram
 ```python
 # 测试 title 生成
 import pytest
-from deerflow.agents.title_middleware import TitleMiddleware
+from vassilflow.agents.middlewares.title_middleware import TitleMiddleware
 
 def test_title_generation():
     # TODO: 添加单元测试
