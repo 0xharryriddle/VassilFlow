@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy import select
 
-from deerflow.persistence.channel_connections import (
+from vassilflow.persistence.channel_connections import (
     ChannelConnectionRepository,
     ChannelConnectionRow,
     ChannelCredentialCipher,
@@ -19,7 +19,7 @@ from deerflow.persistence.channel_connections import (
 
 @pytest.fixture
 async def repo(tmp_path):
-    from deerflow.persistence.engine import close_engine, get_session_factory, init_engine
+    from vassilflow.persistence.engine import close_engine, get_session_factory, init_engine
 
     url = f"sqlite+aiosqlite:///{tmp_path / 'channels.db'}"
     await init_engine("sqlite", url=url, sqlite_dir=str(tmp_path))
