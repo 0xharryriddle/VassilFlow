@@ -130,7 +130,7 @@ test("mergeMessages lets a visible live message replace overlapping hidden histo
   ]);
 });
 
-test("getSummarizationMiddlewareMessages matches DeerFlow summarization update keys", () => {
+test("getSummarizationMiddlewareMessages matches VassilFlow summarization update keys", () => {
   const removeAll = {
     id: "__remove_all__",
     type: "remove",
@@ -145,11 +145,28 @@ test("getSummarizationMiddlewareMessages matches DeerFlow summarization update k
 
   expect(
     getSummarizationMiddlewareMessages({
-      "DeerFlowSummarizationMiddleware.before_model": {
+      "VassilFlowSummarizationMiddleware.before_model": {
         messages: [removeAll, summary],
       },
     }),
   ).toEqual([removeAll, summary]);
+});
+
+test("getSummarizationMiddlewareMessages accepts legacy DeerFlow summarization update keys", () => {
+  const summary = {
+    id: "summary-1",
+    type: "human",
+    name: "summary",
+    content: "summary",
+  } as Message;
+
+  expect(
+    getSummarizationMiddlewareMessages({
+      "DeerFlowSummarizationMiddleware.before_model": {
+        messages: [summary],
+      },
+    }),
+  ).toEqual([summary]);
 });
 
 test("getSummarizationMiddlewareMessages matches base LangChain summarization update keys", () => {

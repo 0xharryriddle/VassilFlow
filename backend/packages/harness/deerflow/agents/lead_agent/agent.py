@@ -33,7 +33,7 @@ from deerflow.agents.middlewares.loop_detection_middleware import LoopDetectionM
 from deerflow.agents.middlewares.memory_middleware import MemoryMiddleware
 from deerflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
 from deerflow.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
-from deerflow.agents.middlewares.summarization_middleware import BeforeSummarizationHook, DeerFlowSummarizationMiddleware
+from deerflow.agents.middlewares.summarization_middleware import BeforeSummarizationHook, VassilFlowSummarizationMiddleware
 from deerflow.agents.middlewares.title_middleware import TitleMiddleware
 from deerflow.agents.middlewares.todo_middleware import TodoMiddleware
 from deerflow.agents.middlewares.token_usage_middleware import TokenUsageMiddleware
@@ -76,7 +76,7 @@ def _resolve_model_name(requested_model_name: str | None = None, *, app_config: 
     return default_model_name
 
 
-def _create_summarization_middleware(*, app_config: AppConfig | None = None) -> DeerFlowSummarizationMiddleware | None:
+def _create_summarization_middleware(*, app_config: AppConfig | None = None) -> VassilFlowSummarizationMiddleware | None:
     """Create and configure the summarization middleware from config."""
     resolved_app_config = app_config or get_app_config()
     config = resolved_app_config.summarization
@@ -127,11 +127,11 @@ def _create_summarization_middleware(*, app_config: AppConfig | None = None) -> 
         hooks.append(memory_flush_hook)
 
     # The logic below relies on two assumptions holding true: this factory is
-    # the sole entry point for DeerFlowSummarizationMiddleware, and the runtime
+    # the sole entry point for VassilFlowSummarizationMiddleware, and the runtime
     # config is not expected to change after startup.
     skills_container_path = resolved_app_config.skills.container_path or "/mnt/skills"
 
-    return DeerFlowSummarizationMiddleware(
+    return VassilFlowSummarizationMiddleware(
         **kwargs,
         skills_container_path=skills_container_path,
         skill_file_read_tool_names=config.skill_file_read_tool_names,
@@ -154,7 +154,7 @@ def _create_todo_list_middleware(is_plan_mode: bool) -> TodoMiddleware | None:
     if not is_plan_mode:
         return None
 
-    # Custom prompts matching DeerFlow's style
+    # Custom prompts matching VassilFlow's style
     system_prompt = """
 <todo_list_system>
 You have access to the `write_todos` tool to help you manage and track complex multi-step objectives.

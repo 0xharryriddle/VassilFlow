@@ -83,6 +83,7 @@ function isNonEmptyString(value: string | undefined): value is string {
 
 const SUMMARIZATION_MIDDLEWARE_UPDATE_KEYS = new Set([
   "SummarizationMiddleware.before_model",
+  "VassilFlowSummarizationMiddleware.before_model",
   "DeerFlowSummarizationMiddleware.before_model",
 ]);
 

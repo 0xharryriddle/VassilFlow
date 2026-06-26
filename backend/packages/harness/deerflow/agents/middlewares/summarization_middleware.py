@@ -1,4 +1,4 @@
-"""Summarization middleware extensions for DeerFlow."""
+"""Summarization middleware extensions for VassilFlow."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ class _SkillBundle:
     skill_key: str
 
 
-class DeerFlowSummarizationMiddleware(SummarizationMiddleware):
+class VassilFlowSummarizationMiddleware(SummarizationMiddleware):
     """Summarization middleware with pre-compression hook dispatch and skill rescue."""
 
     def __init__(
@@ -477,3 +477,8 @@ class DeerFlowSummarizationMiddleware(SummarizationMiddleware):
             except Exception:
                 hook_name = getattr(hook, "__name__", None) or type(hook).__name__
                 logger.exception("before_summarization hook %s failed", hook_name)
+
+
+# Backward-compatible export for configs/tests/imports created before the
+# VassilFlow facade became the primary public namespace.
+DeerFlowSummarizationMiddleware = VassilFlowSummarizationMiddleware
