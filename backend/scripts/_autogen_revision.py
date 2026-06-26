@@ -2,7 +2,7 @@
 
 Used by ``make migrate-rev MSG="..."``. Avoids two pitfalls:
 
-1. ``alembic.ini``'s default ``sqlalchemy.url`` (``sqlite:///./data/deerflow.db``)
+1. ``alembic.ini``'s default ``sqlalchemy.url`` (``sqlite:///./data/vassilflow.db``)
    points at a path that doesn't exist in a clean checkout, so a bare
    ``alembic revision --autogenerate`` fails with ``unable to open database file``.
 2. A persistent DB might be at an unknown revision (or at no revision at all),
