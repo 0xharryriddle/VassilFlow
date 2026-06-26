@@ -237,6 +237,12 @@ class TestGetMemoryStorage:
 
     def test_returns_file_memory_storage_by_default(self):
         """Should return FileMemoryStorage by default."""
+        with patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_class="vassilflow.agents.memory.storage.FileMemoryStorage")):
+            storage = get_memory_storage()
+            assert isinstance(storage, FileMemoryStorage)
+
+    def test_accepts_legacy_deerflow_storage_class(self):
+        """Should keep loading legacy DeerFlow class paths during migration."""
         with patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_class="deerflow.agents.memory.storage.FileMemoryStorage")):
             storage = get_memory_storage()
             assert isinstance(storage, FileMemoryStorage)
@@ -249,7 +255,7 @@ class TestGetMemoryStorage:
 
     def test_returns_singleton_instance(self):
         """Should return the same instance on subsequent calls."""
-        with patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_class="deerflow.agents.memory.storage.FileMemoryStorage")):
+        with patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_class="vassilflow.agents.memory.storage.FileMemoryStorage")):
             storage1 = get_memory_storage()
             storage2 = get_memory_storage()
             assert storage1 is storage2
@@ -264,7 +270,7 @@ class TestGetMemoryStorage:
             # that the singleton initialization remains thread-safe.
             results.append(get_memory_storage())
 
-        with patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_class="deerflow.agents.memory.storage.FileMemoryStorage")):
+        with patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_class="vassilflow.agents.memory.storage.FileMemoryStorage")):
             threads = [threading.Thread(target=get_storage) for _ in range(10)]
             for t in threads:
                 t.start()

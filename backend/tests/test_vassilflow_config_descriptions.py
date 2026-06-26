@@ -4,6 +4,7 @@ import vassilflow.persistence as persistence_module
 from vassilflow.config.app_config import AppConfig, get_app_config
 from vassilflow.config.auth_config import AuthAppConfig, OIDCProviderConfig
 from vassilflow.config.extensions_config import ExtensionsConfig
+from vassilflow.config.memory_config import MemoryConfig
 from vassilflow.persistence.base import Base
 
 
@@ -36,3 +37,10 @@ def test_persistence_docstrings_use_vassilflow_facade() -> None:
     assert "VassilFlow ORM models" in (Base.__doc__ or "")
     assert "from vassilflow.persistence import" in (persistence_module.__doc__ or "")
     assert "from deerflow.persistence import" not in (persistence_module.__doc__ or "")
+
+
+def test_memory_storage_default_uses_vassilflow_facade() -> None:
+    assert (
+        MemoryConfig.model_fields["storage_class"].default
+        == "vassilflow.agents.memory.storage.FileMemoryStorage"
+    )
