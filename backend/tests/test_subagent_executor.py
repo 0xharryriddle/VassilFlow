@@ -24,7 +24,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from deerflow.skills.types import Skill
+from vassilflow.skills.types import Skill
 
 # Module names that need to be mocked to break circular imports
 _MOCKED_MODULE_NAMES = [
@@ -252,7 +252,7 @@ class TestAgentConstruction:
     ):
         """Explicit app_config must flow into both model and middleware factories."""
         import deerflow.config as config_module
-        from deerflow.subagents import executor as executor_module
+        from vassilflow.subagents import executor as executor_module
 
         SubagentExecutor = classes["SubagentExecutor"]
 
@@ -492,8 +492,8 @@ class TestAgentConstruction:
         <available-deferred-tools> section into the SystemMessage."""
         from langchain_core.tools import tool as as_tool
 
-        from deerflow.subagents import executor as executor_module
-        from deerflow.tools.mcp_metadata import tag_mcp_tool
+        from vassilflow.subagents import executor as executor_module
+        from vassilflow.tools.mcp_metadata import tag_mcp_tool
 
         SubagentExecutor = classes["SubagentExecutor"]
 
@@ -533,8 +533,8 @@ class TestAgentConstruction:
         with an MCP-tagged tool present."""
         from langchain_core.tools import tool as as_tool
 
-        from deerflow.subagents import executor as executor_module
-        from deerflow.tools.mcp_metadata import tag_mcp_tool
+        from vassilflow.subagents import executor as executor_module
+        from vassilflow.tools.mcp_metadata import tag_mcp_tool
 
         SubagentExecutor = classes["SubagentExecutor"]
 
@@ -577,8 +577,8 @@ class TestAgentConstruction:
         """
         from langchain_core.tools import tool as as_tool
 
-        from deerflow.subagents import executor as executor_module
-        from deerflow.tools.mcp_metadata import tag_mcp_tool
+        from vassilflow.subagents import executor as executor_module
+        from vassilflow.tools.mcp_metadata import tag_mcp_tool
 
         SubagentConfig = classes["SubagentConfig"]
         SubagentExecutor = classes["SubagentExecutor"]
@@ -637,8 +637,8 @@ class TestAgentConstruction:
     ):
         """A deferred setup passed to _create_agent flows into the subagent
         middleware factory (so DeferredToolFilterMiddleware can attach)."""
-        from deerflow.subagents import executor as executor_module
-        from deerflow.tools.builtins.tool_search import DeferredToolSetup
+        from vassilflow.subagents import executor as executor_module
+        from vassilflow.tools.builtins.tool_search import DeferredToolSetup
 
         SubagentExecutor = classes["SubagentExecutor"]
         app_config = SimpleNamespace(models=[SimpleNamespace(name="default-model")])
