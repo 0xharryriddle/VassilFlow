@@ -552,9 +552,9 @@ If you are using a self-hosted Langfuse instance, set `LANGFUSE_BASE_URL` to you
 - `session_id` = LangGraph `thread_id` — groups every trace of the same conversation
 - `user_id` = effective user from `get_effective_user_id()` (falls back to `default` in no-auth mode)
 - `trace_name` = assistant id (defaults to `lead-agent`)
-- `tags` = `[env:<DEER_FLOW_ENV>, model:<model_name>]` (omitted when not set)
+- `tags` = `[env:<VASSILFLOW_ENV>, model:<model_name>]` (omitted when not set)
 
-These are injected into `RunnableConfig.metadata` at the graph invocation root for both the gateway path (`runtime/runs/worker.py::run_agent`) and the embedded path (`client.py::DeerFlowClient.stream`), so any LangChain-compatible callback can read them. Set `DEER_FLOW_ENV` (or `ENVIRONMENT`) to tag traces by deployment environment.
+These are injected into `RunnableConfig.metadata` at the graph invocation root for both the gateway path (`runtime/runs/worker.py::run_agent`) and the embedded path (`client.py::VassilFlowClient.stream`), so any LangChain-compatible callback can read them. Set `VASSILFLOW_ENV` (or legacy `DEER_FLOW_ENV`, then `ENVIRONMENT`) to tag traces by deployment environment.
 
 #### Using Both Providers
 
@@ -689,12 +689,12 @@ VassilFlow is model-agnostic — it works with any LLM that implements the OpenA
 
 ## Embedded Python Client
 
-VassilFlow can be used as an embedded Python library without running the full HTTP services. The `DeerFlowClient` provides direct in-process access to all agent and Gateway capabilities, returning the same response schemas as the HTTP Gateway API. The HTTP Gateway also exposes `DELETE /api/threads/{thread_id}` to remove VassilFlow-managed local thread data after the LangGraph thread itself has been deleted:
+VassilFlow can be used as an embedded Python library without running the full HTTP services. The `VassilFlowClient` provides direct in-process access to all agent and Gateway capabilities, returning the same response schemas as the HTTP Gateway API. The HTTP Gateway also exposes `DELETE /api/threads/{thread_id}` to remove VassilFlow-managed local thread data after the LangGraph thread itself has been deleted:
 
 ```python
-from deerflow.client import DeerFlowClient
+from vassilflow.client import VassilFlowClient
 
-client = DeerFlowClient()
+client = VassilFlowClient()
 
 # Chat
 response = client.chat("Analyze this paper for me", thread_id="my-thread")
@@ -711,7 +711,9 @@ client.update_skill("web-search", enabled=True)
 client.upload_files("thread-1", ["./report.pdf"])  # {"success": True, "files": [...]}
 ```
 
-All dict-returning methods are validated against Gateway Pydantic response models in CI (`TestGatewayConformance`), ensuring the embedded client stays in sync with the HTTP API schemas. See `backend/packages/harness/deerflow/client.py` for full API documentation.
+For direct LangGraph construction, use `from vassilflow.agents import create_vassilflow_agent`. Legacy imports such as `from deerflow.client import DeerFlowClient` and `create_deerflow_agent` remain supported during the migration.
+
+All dict-returning methods are validated against Gateway Pydantic response models in CI (`TestGatewayConformance`), ensuring the embedded client stays in sync with the HTTP API schemas. See `backend/packages/harness/vassilflow/client.py` for the facade entrypoint and `backend/packages/harness/deerflow/client.py` for the current implementation details.
 
 ## Documentation
 
