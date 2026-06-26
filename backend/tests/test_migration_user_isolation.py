@@ -1,6 +1,7 @@
 """Tests for per-user data migration."""
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -125,6 +126,37 @@ class TestMigrateMemory:
         from scripts.migrate_user_isolation import migrate_memory
 
         migrate_memory(paths, user_id="default")  # should not raise
+
+
+class TestBuildOwnerMapFromDb:
+    @staticmethod
+    def _write_threads_meta(db_path: Path, rows: list[tuple[str, str]]) -> None:
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("CREATE TABLE threads_meta (thread_id TEXT PRIMARY KEY, user_id TEXT)")
+            conn.executemany("INSERT INTO threads_meta (thread_id, user_id) VALUES (?, ?)", rows)
+
+    def test_reads_current_vassilflow_database(self, base_dir: Path, paths: Paths):
+        from scripts.migrate_user_isolation import _build_owner_map_from_db
+
+        self._write_threads_meta(base_dir / "data" / "vassilflow.db", [("t1", "alice")])
+
+        assert _build_owner_map_from_db(paths) == {"t1": "alice"}
+
+    def test_reads_legacy_deerflow_database_when_current_absent(self, base_dir: Path, paths: Paths):
+        from scripts.migrate_user_isolation import _build_owner_map_from_db
+
+        self._write_threads_meta(base_dir / "data" / "deerflow.db", [("t2", "bob")])
+
+        assert _build_owner_map_from_db(paths) == {"t2": "bob"}
+
+    def test_prefers_current_database_when_both_exist(self, base_dir: Path, paths: Paths):
+        from scripts.migrate_user_isolation import _build_owner_map_from_db
+
+        self._write_threads_meta(base_dir / "data" / "vassilflow.db", [("current", "alice")])
+        self._write_threads_meta(base_dir / "data" / "deerflow.db", [("legacy", "bob")])
+
+        assert _build_owner_map_from_db(paths) == {"current": "alice"}
 
 
 class TestMigrateAgents:

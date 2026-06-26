@@ -14,6 +14,14 @@ from deerflow.config.paths import Paths, get_paths
 
 logger = logging.getLogger(__name__)
 
+OWNER_DB_RELATIVE_PATHS = (
+    "data/vassilflow.db",
+    "data/deerflow.db",
+    "vassilflow.db",
+    "deerflow.db",
+    "deer-flow.db",
+)
+
 
 def migrate_thread_dirs(
     paths: Paths,
@@ -169,9 +177,13 @@ def _build_owner_map_from_db(paths: Paths) -> dict[str, str]:
     """
     import sqlite3
 
-    db_path = paths.base_dir / "deer-flow.db"
-    if not db_path.exists():
-        logger.info("No database found at %s — using empty owner map.", db_path)
+    candidates = [paths.base_dir / relative_path for relative_path in OWNER_DB_RELATIVE_PATHS]
+    db_path = next((candidate for candidate in candidates if candidate.exists()), None)
+    if db_path is None:
+        logger.info(
+            "No database found at any known runtime path (%s); using empty owner map.",
+            ", ".join(str(candidate) for candidate in candidates),
+        )
         return {}
 
     conn = sqlite3.connect(str(db_path))
@@ -186,7 +198,7 @@ def _build_owner_map_from_db(paths: Paths) -> dict[str, str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Migrate DeerFlow data to per-user layout")
+    parser = argparse.ArgumentParser(description="Migrate VassilFlow legacy data to per-user layout")
     parser.add_argument("--dry-run", action="store_true", help="Log actions without making changes")
     parser.add_argument(
         "--user-id",
