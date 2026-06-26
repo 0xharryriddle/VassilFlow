@@ -17,7 +17,7 @@ from app.gateway.routers.memory import MemoryConfigResponse, MemoryStatusRespons
 from app.gateway.routers.models import ModelResponse, ModelsListResponse
 from app.gateway.routers.skills import SkillInstallResponse, SkillResponse, SkillsListResponse
 from app.gateway.routers.uploads import UploadResponse
-from deerflow.client import DeerFlowClient
+from vassilflow.client import VassilFlowClient as DeerFlowClient
 from vassilflow.config.paths import Paths
 from vassilflow.uploads.manager import PathTraversalError
 
@@ -45,8 +45,8 @@ def mock_app_config():
 @pytest.fixture
 def client(mock_app_config, tmp_path):
     """Create a DeerFlowClient with mocked config loading."""
-    import deerflow.skills.storage as _storage_mod
-    from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+    import vassilflow.skills.storage as _storage_mod
+    from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
     _storage_mod._default_skill_storage = LocalSkillStorage(host_path=str(tmp_path))
     with patch("deerflow.client.get_app_config", return_value=mock_app_config):
@@ -56,7 +56,7 @@ def client(mock_app_config, tmp_path):
 @pytest.fixture
 def allow_skill_security_scan():
     async def _scan(*args, **kwargs):
-        from deerflow.skills.security_scanner import ScanResult
+        from vassilflow.skills.security_scanner import ScanResult
 
         return ScanResult(decision="allow", reason="ok")
 
@@ -1305,7 +1305,7 @@ class TestSkillsManagement:
             skills_root = tmp_path / "skills"
             (skills_root / "custom").mkdir(parents=True)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 result = client.install_skill(archive_path)
@@ -2149,7 +2149,7 @@ class TestScenarioSkillInstallAndUse:
             (skills_root / "custom").mkdir(parents=True)
 
             # Step 1: Install
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 result = client.install_skill(archive)
@@ -2389,7 +2389,7 @@ class TestGatewayConformance:
         with zipfile.ZipFile(archive, "w") as zf:
             zf.write(skill_dir / "SKILL.md", "my-skill/SKILL.md")
 
-        from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+        from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
         with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(tmp_path))):
             result = client.install_skill(archive)
@@ -2543,14 +2543,14 @@ class TestInstallSkillSecurity:
             (skills_root / "custom").mkdir(parents=True)
 
             # Patch max_total_size to a small value to trigger the bomb check.
-            from deerflow.skills import installer as _installer
+            from vassilflow.skills import installer as _installer
 
             orig = _installer.safe_extract_skill_archive
 
             def patched_extract(zf, dest, max_total_size=100):
                 return orig(zf, dest, max_total_size=100)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with (
                 patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
@@ -2569,7 +2569,7 @@ class TestInstallSkillSecurity:
             skills_root = Path(tmp) / "skills"
             (skills_root / "custom").mkdir(parents=True)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 with pytest.raises(ValueError, match="unsafe"):
@@ -2585,7 +2585,7 @@ class TestInstallSkillSecurity:
             skills_root = Path(tmp) / "skills"
             (skills_root / "custom").mkdir(parents=True)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 with pytest.raises(ValueError, match="unsafe"):
@@ -2609,7 +2609,7 @@ class TestInstallSkillSecurity:
             skills_root = tmp_path / "skills"
             (skills_root / "custom").mkdir(parents=True)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 result = client.install_skill(archive)
@@ -2635,7 +2635,7 @@ class TestInstallSkillSecurity:
             skills_root = tmp_path / "skills"
             (skills_root / "custom").mkdir(parents=True)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with (
                 patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
@@ -2660,7 +2660,7 @@ class TestInstallSkillSecurity:
             skills_root = tmp_path / "skills"
             (skills_root / "custom" / "dupe-skill").mkdir(parents=True)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with (
                 patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
@@ -2679,7 +2679,7 @@ class TestInstallSkillSecurity:
             skills_root = Path(tmp) / "skills"
             (skills_root / "custom").mkdir(parents=True)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 with pytest.raises(ValueError, match="empty"):
@@ -2700,7 +2700,7 @@ class TestInstallSkillSecurity:
             skills_root = tmp_path / "skills"
             (skills_root / "custom").mkdir(parents=True)
 
-            from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+            from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with (
                 patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
