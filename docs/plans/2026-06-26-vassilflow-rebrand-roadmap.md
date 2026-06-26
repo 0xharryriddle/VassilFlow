@@ -39,6 +39,7 @@ Deferred:
 Add VassilFlow aliases before renaming anything relied on by users or deployments.
 
 - Status: backend/runtime/frontend env aliases, Docker/script env bridges,
+  record/replay helper env aliases, bundled skill endpoint env aliases,
   internal gateway header aliases, and precedence documentation are
   implemented. New internal calls emit `X-VassilFlow-*` headers while
   `X-DeerFlow-*` remains accepted as a migration fallback.
@@ -69,7 +70,8 @@ Rename files, package names, Docker names, and module paths only after alias tes
   prefixes now default to `vassilflow-*`; scripts still clean up legacy
   `deer-flow-*` stacks and sandbox containers during the transition. Runtime
   state now defaults to `.vassilflow` for fresh workspaces while preserving
-  existing `.deer-flow` directories as an automatic fallback.
+  existing `.deer-flow` directories as an automatic fallback. Channel platform
+  identifiers emitted to WeChat/Discord now use `vassilflow` prefixes.
 - Rename one ownership boundary at a time.
 - Leave deprecation shims for at least one migration window.
 - Update docs and examples in the same commit as each supported alias.
