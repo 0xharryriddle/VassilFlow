@@ -29,7 +29,11 @@ def __dir__() -> list[str]:
     return sorted({*globals(), *dir(_implementation_factory)})
 
 
-__all__ = [
-    "create_deerflow_agent",
-    "create_vassilflow_agent",
-]
+__all__ = sorted(
+    {
+        name
+        for name in dir(_implementation_factory)
+        if not name.startswith("_")
+    }
+    | {"create_vassilflow_agent"}
+)
