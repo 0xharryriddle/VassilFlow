@@ -2823,7 +2823,7 @@ class TestResolveRunParamsUserId:
         from app.gateway.internal_auth import INTERNAL_OWNER_USER_ID_HEADER_NAME
 
         manager = self._manager()
-        monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
+        monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
         msg = InboundMessage(channel_name="slack", chat_id="C123", user_id="U-platform", text="hi")
 
         _, _, run_context = manager._resolve_run_params(msg, "thread-1")
@@ -2841,7 +2841,7 @@ class TestResolveRunParamsUserId:
         from app.gateway.auth_disabled import AUTH_DISABLED_USER_ID
 
         manager = self._manager()
-        monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
+        monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
         msg = InboundMessage(
             channel_name="slack",
             chat_id="C123",
@@ -3222,7 +3222,7 @@ class TestChannelManagerBoundIdentityPolicy:
         from app.channels.manager import ChannelManager
         from app.gateway.auth_disabled import AUTH_DISABLED_USER_ID
 
-        monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
+        monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
 
         async def go():
             bus = MessageBus()
