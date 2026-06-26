@@ -4476,7 +4476,7 @@ class TestChannelService:
             channel_connections=ChannelConnectionsConfig.model_validate(
                 {
                     "enabled": True,
-                    "telegram": {"enabled": True, "bot_username": "deerflow_bot"},
+                    "telegram": {"enabled": True, "bot_username": "vassilflow_bot"},
                     "slack": {"enabled": True},
                     "discord": {"enabled": True},
                 }
@@ -4518,7 +4518,7 @@ class TestChannelService:
             channel_connections=ChannelConnectionsConfig.model_validate(
                 {
                     "enabled": True,
-                    "telegram": {"enabled": True, "bot_username": "deerflow_bot"},
+                    "telegram": {"enabled": True, "bot_username": "vassilflow_bot"},
                     "slack": {"enabled": True},
                     "discord": {"enabled": True},
                 }
@@ -4835,7 +4835,7 @@ class TestChannelService:
         def mock_get_app_config():
             return SimpleNamespace(
                 model_extra={"channels": {}},
-                channel_connections=ChannelConnectionsConfig.model_validate({"enabled": True, "telegram": {"enabled": True, "bot_username": "deerflow_bot"}}),
+                channel_connections=ChannelConnectionsConfig.model_validate({"enabled": True, "telegram": {"enabled": True, "bot_username": "vassilflow_bot"}}),
             )
 
         monkeypatch.setattr("deerflow.config.app_config.get_app_config", mock_get_app_config)
@@ -5157,7 +5157,7 @@ class TestSlackAllowedUsers:
         event = {
             "type": "app_mention",
             "user": "U123456",
-            "text": "<@UBOT|deerflow> /help",
+            "text": "<@UBOT|vassilflow> /help",
             "channel": "C123",
             "ts": "1710000000.000100",
         }
@@ -5632,9 +5632,9 @@ class TestTelegramPrivateChatThread:
             update = _make_telegram_update(
                 "group",
                 message_id=13,
-                text="/data-analysis@DeerFlowBot analyze uploads/foo.csv",
+                text="/data-analysis@VassilFlowBot analyze uploads/foo.csv",
             )
-            context = SimpleNamespace(bot=SimpleNamespace(username="DeerFlowBot"))
+            context = SimpleNamespace(bot=SimpleNamespace(username="VassilFlowBot"))
             await ch._on_text(update, context)
 
             msg = await asyncio.wait_for(bus.get_inbound(), timeout=2)
@@ -5767,8 +5767,8 @@ class TestTelegramPrivateChatThread:
             ch = TelegramChannel(bus=bus, config={"bot_token": "test-token"})
             ch._main_loop = asyncio.get_event_loop()
 
-            update = _make_telegram_update("group", message_id=33, text="/status@DeerFlowBot")
-            context = SimpleNamespace(bot=SimpleNamespace(username="DeerFlowBot"))
+            update = _make_telegram_update("group", message_id=33, text="/status@VassilFlowBot")
+            context = SimpleNamespace(bot=SimpleNamespace(username="VassilFlowBot"))
             await ch._cmd_generic(update, context)
 
             msg = await asyncio.wait_for(bus.get_inbound(), timeout=2)

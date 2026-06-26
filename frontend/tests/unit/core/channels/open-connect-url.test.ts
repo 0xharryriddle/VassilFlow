@@ -55,24 +55,24 @@ describe("channel connect window helpers", () => {
     const { assign, open } = stubWindow(null);
 
     openConnectUrl(
-      "https://t.me/deerflow_bot?start=state",
+      "https://t.me/vassilflow_bot?start=state",
       popup as unknown as Window,
     );
 
     expect(open).not.toHaveBeenCalled();
     expect(assign).not.toHaveBeenCalled();
     expect(popup.location.replace).toHaveBeenCalledWith(
-      "https://t.me/deerflow_bot?start=state",
+      "https://t.me/vassilflow_bot?start=state",
     );
   });
 
   test("falls back to current-window navigation when no popup is available", () => {
     const { assign } = stubWindow(null);
 
-    openConnectUrl("https://t.me/deerflow_bot?start=state");
+    openConnectUrl("https://t.me/vassilflow_bot?start=state");
 
     expect(assign).toHaveBeenCalledWith(
-      "https://t.me/deerflow_bot?start=state",
+      "https://t.me/vassilflow_bot?start=state",
     );
   });
 

@@ -47,7 +47,7 @@ describe("channels api", () => {
             connection_status: "not_connected",
             credential_values: {
               bot_token: "********",
-              bot_username: "deerflow_bot",
+              bot_username: "vassilflow_bot",
             },
           },
         ],
@@ -62,7 +62,7 @@ describe("channels api", () => {
           display_name: "Telegram",
           credential_values: {
             bot_token: "********",
-            bot_username: "deerflow_bot",
+            bot_username: "vassilflow_bot",
           },
         },
       ],
@@ -99,7 +99,7 @@ describe("channels api", () => {
       jsonResponse(200, {
         provider: "telegram",
         mode: "deep_link",
-        url: "https://t.me/deerflow_bot?start=state",
+        url: "https://t.me/vassilflow_bot?start=state",
         code: "state",
         instruction: "Send /start state to the VassilFlow Telegram bot.",
         expires_in: 600,
@@ -108,7 +108,7 @@ describe("channels api", () => {
 
     await expect(connectChannelProvider("telegram")).resolves.toMatchObject({
       provider: "telegram",
-      url: "https://t.me/deerflow_bot?start=state",
+      url: "https://t.me/vassilflow_bot?start=state",
       instruction: "Send /start state to the VassilFlow Telegram bot.",
     });
     expect(mockedFetch).toHaveBeenCalledWith(
