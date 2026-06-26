@@ -4,13 +4,14 @@ VassilFlow includes automatic conversation summarization to handle long conversa
 
 ## Overview
 
-The summarization feature uses LangChain's `SummarizationMiddleware` to monitor conversation history and trigger summarization based on configurable thresholds. When activated, it:
+The summarization feature uses `VassilFlowSummarizationMiddleware`, a VassilFlow wrapper around LangChain's `SummarizationMiddleware`, to monitor conversation history and trigger summarization based on configurable thresholds. When activated, it:
 
 1. Monitors message token counts in real-time
 2. Triggers summarization when thresholds are met
 3. Keeps recent messages intact while summarizing older exchanges
 4. Maintains AI/Tool message pairs together for context continuity
 5. Injects the summary back into the conversation
+6. Emits the LangGraph update key `VassilFlowSummarizationMiddleware.before_model` for UI stream reconciliation
 
 ## Configuration
 
@@ -299,7 +300,7 @@ The middleware intelligently preserves message context:
 
 - **Configuration**: `packages/harness/deerflow/config/summarization_config.py`
 - **Integration**: `packages/harness/deerflow/agents/lead_agent/agent.py`
-- **Middleware**: Uses `langchain.agents.middleware.SummarizationMiddleware`
+- **Middleware**: `VassilFlowSummarizationMiddleware` wraps `langchain.agents.middleware.SummarizationMiddleware`
 
 ### Middleware Order
 
@@ -307,7 +308,7 @@ Summarization runs after ThreadData and Sandbox initialization but before Title 
 
 1. ThreadDataMiddleware
 2. SandboxMiddleware
-3. **SummarizationMiddleware** ← Runs here
+3. **VassilFlowSummarizationMiddleware** ← Runs here
 4. TitleMiddleware
 5. ClarificationMiddleware
 
