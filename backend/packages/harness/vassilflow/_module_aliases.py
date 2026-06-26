@@ -24,7 +24,7 @@ _PACKAGE_ALIAS_ROOTS = {
     "utils",
 }
 
-_REAL_FACADE_ROOTS_WITH_DEEP_ALIASES = {"agents"}
+_REAL_FACADE_ROOTS_WITH_DEEP_ALIASES = {"agents", "config"}
 
 
 def _target_module_name(fullname: str) -> str | None:
@@ -84,4 +84,3 @@ def install_vassilflow_module_aliases() -> None:
     if any(isinstance(finder, _VassilFlowAliasImporter) for finder in sys.meta_path):
         return
     sys.meta_path.insert(0, _VassilFlowAliasImporter())
-

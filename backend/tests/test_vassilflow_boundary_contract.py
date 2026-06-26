@@ -126,3 +126,21 @@ def test_vassilflow_config_facade_exports_current_config_api(monkeypatch):
     monkeypatch.setattr(facade_config, "reload_app_config", lambda config_path=None: ("loaded", config_path))
 
     assert facade_config.load_config("/tmp/config.yaml") == ("loaded", "/tmp/config.yaml")
+
+
+def test_vassilflow_config_deep_imports_alias_current_config_modules():
+    from vassilflow.config.app_config import AppConfig as FacadeAppConfig
+    from vassilflow.config.app_config import get_app_config as facade_get_app_config
+    from vassilflow.config.paths import Paths as FacadePaths
+    from vassilflow.config.paths import get_paths as facade_get_paths
+    from vassilflow.config.title_config import TitleConfig as FacadeTitleConfig
+
+    from deerflow.config.app_config import AppConfig, get_app_config
+    from deerflow.config.paths import Paths, get_paths
+    from deerflow.config.title_config import TitleConfig
+
+    assert FacadeAppConfig is AppConfig
+    assert facade_get_app_config is get_app_config
+    assert FacadePaths is Paths
+    assert facade_get_paths is get_paths
+    assert FacadeTitleConfig is TitleConfig
