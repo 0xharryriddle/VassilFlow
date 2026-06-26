@@ -22,7 +22,7 @@ help:
 	@echo "  make doctor          - Check configuration and system requirements"
 	@echo "  make config          - Generate local config files (aborts if config already exists)"
 	@echo "  make config-upgrade  - Merge new fields from config.example.yaml into config.yaml"
-	@echo "  make runtime-migrate - Copy legacy backend/.deer-flow data to backend/.vassilflow"
+	@echo "  make runtime-migrate - Copy legacy runtime data to the VassilFlow runtime home"
 	@echo "  make check           - Check if all required tools are installed"
 	@echo "  make detect-thread-boundaries - Inventory async/thread boundary points"
 	@echo "  make detect-blocking-io        - Inventory blocking IO that may block the backend event loop"

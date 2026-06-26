@@ -152,6 +152,16 @@ def test_root_makefile_clean_does_not_reference_langgraph_server_cache():
     assert ".langgraph_api" not in makefile
 
 
+def test_root_makefile_describes_env_aware_runtime_migration():
+    makefile = _read("Makefile")
+
+    assert (
+        "make runtime-migrate - Copy legacy runtime data to the VassilFlow runtime home"
+        in makefile
+    )
+    assert "Copy legacy backend/.deer-flow data to backend/.vassilflow" not in makefile
+
+
 def test_nginx_routes_official_langgraph_prefix_to_gateway_api():
     for path in ("docker/nginx/nginx.local.conf", "docker/nginx/nginx.conf"):
         content = _read(path)
