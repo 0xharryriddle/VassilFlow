@@ -5,10 +5,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from deerflow.agents.factory import create_deerflow_agent
-from deerflow.agents.features import Next, Prev, RuntimeFeatures
-from deerflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
-from deerflow.agents.thread_state import ThreadState
+from vassilflow.agents.factory import create_deerflow_agent
+from vassilflow.agents.features import Next, Prev, RuntimeFeatures
+from vassilflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
+from vassilflow.agents.thread_state import ThreadState
 
 
 def _make_mock_model():
@@ -379,7 +379,7 @@ def test_prev_decorator():
 def test_extra_next_inserts_after_anchor(mock_create_agent):
     from langchain.agents.middleware import AgentMiddleware
 
-    from deerflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
+    from vassilflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 
     mock_create_agent.return_value = MagicMock()
 
@@ -409,7 +409,7 @@ def test_extra_next_inserts_after_anchor(mock_create_agent):
 def test_extra_prev_inserts_before_anchor(mock_create_agent):
     from langchain.agents.middleware import AgentMiddleware
 
-    from deerflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
+    from vassilflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
 
     mock_create_agent.return_value = MagicMock()
 
@@ -464,7 +464,7 @@ def test_extra_unanchored_before_clarification(mock_create_agent):
 def test_extra_conflict_same_next_target():
     from langchain.agents.middleware import AgentMiddleware
 
-    from deerflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
+    from vassilflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 
     @Next(DanglingToolCallMiddleware)
     class MW1(AgentMiddleware):
@@ -488,7 +488,7 @@ def test_extra_conflict_same_next_target():
 def test_extra_conflict_same_prev_target():
     from langchain.agents.middleware import AgentMiddleware
 
-    from deerflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
+    from vassilflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
 
     @Prev(ClarificationMiddleware)
     class MW1(AgentMiddleware):
@@ -512,8 +512,8 @@ def test_extra_conflict_same_prev_target():
 def test_extra_both_next_and_prev_error():
     from langchain.agents.middleware import AgentMiddleware
 
-    from deerflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
-    from deerflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
+    from vassilflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
+    from vassilflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 
     class MW(AgentMiddleware):
         pass
@@ -536,7 +536,7 @@ def test_extra_both_next_and_prev_error():
 def test_extra_cross_external_anchoring(mock_create_agent):
     from langchain.agents.middleware import AgentMiddleware
 
-    from deerflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
+    from vassilflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 
     mock_create_agent.return_value = MagicMock()
 
@@ -818,7 +818,7 @@ def test_next_clarification_preserves_tail_invariant(mock_create_agent):
     """Even with @Next(ClarificationMiddleware), Clarification stays last."""
     from langchain.agents.middleware import AgentMiddleware
 
-    from deerflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
+    from vassilflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
 
     mock_create_agent.return_value = MagicMock()
 
@@ -845,7 +845,7 @@ def test_next_clarification_preserves_tail_invariant(mock_create_agent):
 def test_extra_opposite_direction_same_anchor_conflict():
     from langchain.agents.middleware import AgentMiddleware
 
-    from deerflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
+    from vassilflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 
     @Next(DanglingToolCallMiddleware)
     class AfterDangling(AgentMiddleware):
