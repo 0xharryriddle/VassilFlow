@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from deerflow.config.app_config import AppConfig
+from vassilflow.config.app_config import AppConfig
 
 
 def _make_config_files(tmpdir: Path, user_config: dict, example_config: dict) -> Path:
@@ -18,7 +18,7 @@ def _make_config_files(tmpdir: Path, user_config: dict, example_config: dict) ->
 
     # Minimal valid config needs sandbox
     defaults = {
-        "sandbox": {"use": "deerflow.sandbox.local:LocalSandboxProvider"},
+        "sandbox": {"use": "vassilflow.sandbox.local:LocalSandboxProvider"},
     }
     for cfg in (user_config, example_config):
         for k, v in defaults.items():
@@ -42,7 +42,7 @@ def test_missing_version_treated_as_zero(caplog):
         )
         with caplog.at_level(logging.WARNING, logger="deerflow.config.app_config"):
             AppConfig._check_config_version(
-                {"sandbox": {"use": "deerflow.sandbox.local:LocalSandboxProvider"}},
+                {"sandbox": {"use": "vassilflow.sandbox.local:LocalSandboxProvider"}},
                 config_path,
             )
         assert "outdated" in caplog.text

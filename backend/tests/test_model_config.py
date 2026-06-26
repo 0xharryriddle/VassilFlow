@@ -1,4 +1,4 @@
-from deerflow.config.model_config import ModelConfig
+from vassilflow.config.model_config import ModelConfig
 
 
 def _make_model(**overrides) -> ModelConfig:
