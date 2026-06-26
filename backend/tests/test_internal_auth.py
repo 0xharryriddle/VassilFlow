@@ -16,6 +16,8 @@ def test_internal_auth_uses_shared_env_token(monkeypatch):
 
         assert reloaded.INTERNAL_AUTH_HEADER_NAME == "X-VassilFlow-Internal-Token"
         assert reloaded.LEGACY_INTERNAL_AUTH_HEADER_NAME == "X-DeerFlow-Internal-Token"
+        assert reloaded.INTERNAL_AUTH_ENV_VAR == "VASSILFLOW_INTERNAL_AUTH_TOKEN"
+        assert reloaded.LEGACY_INTERNAL_AUTH_ENV_VAR == "DEER_FLOW_INTERNAL_AUTH_TOKEN"
         assert reloaded.INTERNAL_AUTH_HEADER_NAME in headers
         assert reloaded.LEGACY_INTERNAL_AUTH_HEADER_NAME not in headers
         assert headers[reloaded.INTERNAL_AUTH_HEADER_NAME] == "shared-token"

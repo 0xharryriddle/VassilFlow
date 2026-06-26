@@ -6,19 +6,20 @@ import secrets
 from types import SimpleNamespace
 from typing import Any
 
-from deerflow.config.env_aliases import env_value
+from deerflow.config.env_aliases import first_env_value
 from deerflow.runtime.user_context import DEFAULT_USER_ID
 
 INTERNAL_AUTH_HEADER_NAME = "X-VassilFlow-Internal-Token"
 LEGACY_INTERNAL_AUTH_HEADER_NAME = "X-DeerFlow-Internal-Token"
 INTERNAL_OWNER_USER_ID_HEADER_NAME = "X-VassilFlow-Owner-User-Id"
 LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME = "X-DeerFlow-Owner-User-Id"
-INTERNAL_AUTH_ENV_VAR = "DEER_FLOW_INTERNAL_AUTH_TOKEN"
+INTERNAL_AUTH_ENV_VAR = "VASSILFLOW_INTERNAL_AUTH_TOKEN"
+LEGACY_INTERNAL_AUTH_ENV_VAR = "DEER_FLOW_INTERNAL_AUTH_TOKEN"
 INTERNAL_SYSTEM_ROLE = "internal"
 
 
 def _load_internal_auth_token() -> str:
-    token = env_value(INTERNAL_AUTH_ENV_VAR)
+    token = first_env_value((INTERNAL_AUTH_ENV_VAR, LEGACY_INTERNAL_AUTH_ENV_VAR))
     if token:
         return token
     return secrets.token_urlsafe(32)
