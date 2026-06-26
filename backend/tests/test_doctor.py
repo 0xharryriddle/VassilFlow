@@ -6,6 +6,7 @@ Run from repo root:
 
 from __future__ import annotations
 
+import io
 import sys
 
 import doctor
@@ -473,6 +474,22 @@ class TestCheckSandbox:
 
 
 class TestMainExitCode:
+    def test_output_encoding_falls_back_for_cp1252_console(self, monkeypatch):
+        """Unicode report glyphs should not crash on non-UTF-8 Windows consoles."""
+        stdout_buffer = io.BytesIO()
+        stderr_buffer = io.BytesIO()
+        stdout = io.TextIOWrapper(stdout_buffer, encoding="cp1252", errors="strict")
+        stderr = io.TextIOWrapper(stderr_buffer, encoding="cp1252", errors="strict")
+
+        monkeypatch.setattr(doctor.sys, "stdout", stdout)
+        monkeypatch.setattr(doctor.sys, "stderr", stderr)
+
+        doctor._configure_output_encoding()
+        print("═ ✓ ✗ —", file=stdout)
+        stdout.flush()
+
+        assert b"?" in stdout_buffer.getvalue()
+
     def test_returns_int(self, tmp_path, monkeypatch, capsys):
         """main() should return 0 or 1 without raising."""
         repo_root = tmp_path / "repo"

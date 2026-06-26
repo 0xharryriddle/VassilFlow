@@ -21,6 +21,10 @@ venv/
 # User config file
 config.yaml
 
+# Runtime state
+/.vassilflow/
+/.deer-flow/
+
 # Langgraph
 .langgraph_api
 

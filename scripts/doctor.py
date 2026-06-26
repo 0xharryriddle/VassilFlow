@@ -56,6 +56,18 @@ def bold(t: str) -> str:
     return _c(t, "1")
 
 
+def _configure_output_encoding() -> None:
+    """Avoid crashing on Windows consoles that cannot encode Unicode report glyphs."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(errors="replace")
+        except Exception:
+            pass
+
+
 def _icon(status: Status) -> str:
     icons = {"ok": green("✓"), "warn": yellow("!"), "fail": red("✗"), "skip": "—"}
     return icons[status]
@@ -672,6 +684,8 @@ def check_env_file(project_root: Path) -> CheckResult:
 
 
 def main() -> int:
+    _configure_output_encoding()
+
     project_root = Path(__file__).resolve().parents[1]
     config_path = project_root / "config.yaml"
 
