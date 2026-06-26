@@ -106,3 +106,16 @@ def test_setup_docs_use_vassilflow_config_facade_examples():
     assert "from vassilflow.config import AppConfig" in content
     assert "from deerflow.config import get_app_config" not in content
     assert "from deerflow.config.app_config import AppConfig" not in content
+
+
+def test_sso_docs_use_vassilflow_realm_and_product_identity():
+    content = (REPO_ROOT / "backend" / "docs" / "SSO.md").read_text(encoding="utf-8")
+
+    assert "VassilFlow supports single sign-on" in content
+    assert "issuer: http://localhost:8080/realms/vassilflow" in content
+    assert "client_id: vassilflow" in content
+    assert "Configure VassilFlow" in content
+    assert "redirected back to the VassilFlow workspace" in content
+    assert "DeerFlow supports single sign-on" not in content
+    assert "issuer: http://localhost:8080/realms/deerflow" not in content
+    assert "client_id: deerflow" not in content
