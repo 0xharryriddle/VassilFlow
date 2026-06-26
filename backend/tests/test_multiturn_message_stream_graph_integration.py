@@ -35,7 +35,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
 from langgraph.checkpoint.memory import InMemorySaver
 
-from deerflow.agents.middlewares.dynamic_context_middleware import (
+from vassilflow.agents.middlewares.dynamic_context_middleware import (
     DynamicContextMiddleware,
     is_dynamic_context_reminder,
 )

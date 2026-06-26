@@ -11,7 +11,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 
-from deerflow.agents.thread_state import ThreadState
+from vassilflow.agents.thread_state import ThreadState
 from vassilflow.sandbox.middleware import SandboxMiddleware, SandboxMiddlewareState
 from vassilflow.sandbox.sandbox import Sandbox
 from vassilflow.sandbox.sandbox_provider import SandboxProvider, reset_sandbox_provider, set_sandbox_provider

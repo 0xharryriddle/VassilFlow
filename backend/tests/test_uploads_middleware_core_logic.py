@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from deerflow.agents.middlewares.uploads_middleware import UploadsMiddleware
+from vassilflow.agents.middlewares.uploads_middleware import UploadsMiddleware
 from vassilflow.config.paths import Paths
 from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY
 
