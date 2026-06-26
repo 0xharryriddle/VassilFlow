@@ -90,6 +90,19 @@ def test_shell_launchers_bridge_vassilflow_env_aliases():
     docker_sh = scripts["scripts/docker.sh"]
     assert "sync_vassilflow_env DEER_FLOW_ROOT" in docker_sh
     assert "sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET" in docker_sh
+    assert (
+        'local docker_socket="${VASSILFLOW_DOCKER_SOCKET:-/var/run/docker.sock}"'
+        in docker_sh
+    )
+    assert 'export VASSILFLOW_DOCKER_SOCKET="$docker_socket"' in docker_sh
+    assert 'if [ -z "${VASSILFLOW_RUNTIME_HOME:-}" ]; then' in docker_sh
+    assert 'VASSILFLOW_RUNTIME_HOME="$(default_runtime_home)"' in docker_sh
+    assert 'if [ -z "${VASSILFLOW_CONTAINER_HOME:-}" ]; then' in docker_sh
+    assert (
+        'VASSILFLOW_CONTAINER_HOME="$(container_runtime_home_for "$VASSILFLOW_RUNTIME_HOME")"'
+        in docker_sh
+    )
+    assert 'if [ -z "${VASSILFLOW_ROOT:-}" ]; then' in docker_sh
 
 
 def test_compose_files_expose_vassilflow_runtime_aliases():

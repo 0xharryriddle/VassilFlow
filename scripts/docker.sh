@@ -365,8 +365,8 @@ start() {
     # Mounting the socket = root-equivalent host control; see SECURITY.md.
     if [ "$sandbox_mode" = "aio" ]; then
         sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
-        local docker_socket="${DEER_FLOW_DOCKER_SOCKET:-/var/run/docker.sock}"
-        export DEER_FLOW_DOCKER_SOCKET="$docker_socket"
+        local docker_socket="${VASSILFLOW_DOCKER_SOCKET:-/var/run/docker.sock}"
+        export VASSILFLOW_DOCKER_SOCKET="$docker_socket"
         sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
         if [ ! -S "$docker_socket" ]; then
             echo -e "${YELLOW}⚠ Docker socket not found at $docker_socket — AioSandboxProvider (DooD) will not work.${NC}"
@@ -387,21 +387,21 @@ start() {
     
     sync_vassilflow_envs
 
-    if [ -z "$DEER_FLOW_RUNTIME_HOME" ]; then
-        export DEER_FLOW_RUNTIME_HOME
-        DEER_FLOW_RUNTIME_HOME="$(default_runtime_home)"
+    if [ -z "${VASSILFLOW_RUNTIME_HOME:-}" ]; then
+        export VASSILFLOW_RUNTIME_HOME
+        VASSILFLOW_RUNTIME_HOME="$(default_runtime_home)"
     fi
     sync_vassilflow_env DEER_FLOW_RUNTIME_HOME
 
-    if [ -z "$DEER_FLOW_CONTAINER_HOME" ]; then
-        export DEER_FLOW_CONTAINER_HOME
-        DEER_FLOW_CONTAINER_HOME="$(container_runtime_home_for "$DEER_FLOW_RUNTIME_HOME")"
+    if [ -z "${VASSILFLOW_CONTAINER_HOME:-}" ]; then
+        export VASSILFLOW_CONTAINER_HOME
+        VASSILFLOW_CONTAINER_HOME="$(container_runtime_home_for "$VASSILFLOW_RUNTIME_HOME")"
     fi
     sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
 
     # Set repo root for provisioner if not already set
-    if [ -z "$DEER_FLOW_ROOT" ]; then
-        export DEER_FLOW_ROOT="$PROJECT_ROOT"
+    if [ -z "${VASSILFLOW_ROOT:-}" ]; then
+        export VASSILFLOW_ROOT="$PROJECT_ROOT"
         sync_vassilflow_env DEER_FLOW_ROOT
         echo -e "${BLUE}Setting VASSILFLOW_ROOT=$VASSILFLOW_ROOT${NC}"
         echo ""
@@ -498,21 +498,21 @@ logs() {
 
 # Stop Docker development environment
 stop() {
-    # DEER_FLOW_ROOT is referenced in docker-compose-dev.yaml; set it before
+    # VASSILFLOW_ROOT is referenced in docker-compose-dev.yaml; set it before
     # running compose down to suppress "variable is not set" warnings.
-    sync_vassilflow_env DEER_FLOW_ROOT
-    if [ -z "$DEER_FLOW_ROOT" ]; then
-        export DEER_FLOW_ROOT="$PROJECT_ROOT"
+    sync_vassilflow_envs
+    if [ -z "${VASSILFLOW_ROOT:-}" ]; then
+        export VASSILFLOW_ROOT="$PROJECT_ROOT"
     fi
     sync_vassilflow_env DEER_FLOW_ROOT
-    if [ -z "$DEER_FLOW_RUNTIME_HOME" ]; then
-        export DEER_FLOW_RUNTIME_HOME
-        DEER_FLOW_RUNTIME_HOME="$(default_runtime_home)"
+    if [ -z "${VASSILFLOW_RUNTIME_HOME:-}" ]; then
+        export VASSILFLOW_RUNTIME_HOME
+        VASSILFLOW_RUNTIME_HOME="$(default_runtime_home)"
     fi
     sync_vassilflow_env DEER_FLOW_RUNTIME_HOME
-    if [ -z "$DEER_FLOW_CONTAINER_HOME" ]; then
-        export DEER_FLOW_CONTAINER_HOME
-        DEER_FLOW_CONTAINER_HOME="$(container_runtime_home_for "$DEER_FLOW_RUNTIME_HOME")"
+    if [ -z "${VASSILFLOW_CONTAINER_HOME:-}" ]; then
+        export VASSILFLOW_CONTAINER_HOME
+        VASSILFLOW_CONTAINER_HOME="$(container_runtime_home_for "$VASSILFLOW_RUNTIME_HOME")"
     fi
     sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
     echo "Stopping Docker development services..."
