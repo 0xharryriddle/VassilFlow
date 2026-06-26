@@ -1,10 +1,10 @@
 # Apple Container Support
 
-DeerFlow now supports Apple Container as the preferred container runtime on macOS, with automatic fallback to Docker.
+VassilFlow supports Apple Container as the preferred container runtime on macOS, with automatic fallback to Docker.
 
 ## Overview
 
-Starting with this version, DeerFlow automatically detects and uses Apple Container on macOS when available, falling back to Docker when:
+VassilFlow automatically detects and uses Apple Container on macOS when available, falling back to Docker when:
 - Apple Container is not installed
 - Running on non-macOS platforms
 
@@ -80,7 +80,7 @@ docker stop <id>     # Auto-removes due to --rm
 
 ### Implementation Details
 
-The implementation is in `backend/packages/harness/deerflow/community/aio_sandbox/aio_sandbox_provider.py`:
+The VassilFlow facade import is `vassilflow.community.aio_sandbox:AioSandboxProvider`; the current implementation lives in `backend/packages/harness/deerflow/community/aio_sandbox/aio_sandbox_provider.py` during the migration:
 
 - `_detect_container_runtime()`: Detects available runtime at startup
 - `_start_container()`: Uses detected runtime, skips Docker-specific options for Apple Container
@@ -155,7 +155,10 @@ The project includes a unified cleanup script that handles both runtimes:
 
 **Usage:**
 ```bash
-# Clean up all DeerFlow sandbox containers
+# Clean up all VassilFlow sandbox containers
+./scripts/cleanup-containers.sh vassilflow-sandbox
+
+# Legacy transition prefix, if old containers are still running
 ./scripts/cleanup-containers.sh deer-flow-sandbox
 
 # Custom prefix
@@ -175,15 +178,18 @@ make clean  # Full cleanup including logs
 Test the container runtime detection:
 
 ```bash
+# User-facing runtime check: detects the runtime and pre-pulls the image.
+make setup-sandbox
+
+# Maintainer regression tests.
 cd backend
-python test_container_runtime.py
+uv run python -m pytest tests/test_aio_sandbox_provider.py tests/test_docker_sandbox_mode_detection.py -q
 ```
 
-This will:
+These checks will:
 1. Detect the available runtime
-2. Optionally start a test container
-3. Verify connectivity
-4. Clean up
+2. Pull or validate the configured sandbox image
+3. Verify provider and Docker-mode detection logic
 
 ## Troubleshooting
 
@@ -219,7 +225,8 @@ This will:
 
 2. Run cleanup script manually:
    ```bash
-   ./scripts/cleanup-containers.sh deer-flow-sandbox
+   ./scripts/cleanup-containers.sh vassilflow-sandbox
+   ./scripts/cleanup-containers.sh deer-flow-sandbox  # legacy transition prefix
    ```
 
 ### Performance issues

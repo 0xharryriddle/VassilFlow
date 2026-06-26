@@ -168,3 +168,18 @@ def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
     assert "DeerFlow 内置了认证模块" not in auth_upgrade
     assert "docker logs deer-flow-gateway" not in auth_test_plan
     assert "sqlite3 backend/.deer-flow/data/deerflow.db" not in auth_test_plan
+
+
+def test_apple_container_docs_use_vassilflow_runtime_names():
+    content = (REPO_ROOT / "backend" / "docs" / "APPLE_CONTAINER.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "VassilFlow supports Apple Container" in content
+    assert "VassilFlow automatically detects and uses Apple Container" in content
+    assert "vassilflow.community.aio_sandbox:AioSandboxProvider" in content
+    assert "./scripts/cleanup-containers.sh vassilflow-sandbox" in content
+    assert "uv run python -m pytest tests/test_aio_sandbox_provider.py" in content
+    assert "DeerFlow now supports Apple Container" not in content
+    assert "# Clean up all DeerFlow sandbox containers" not in content
+    assert "python test_container_runtime.py" not in content
