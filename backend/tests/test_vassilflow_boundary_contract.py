@@ -1,5 +1,6 @@
 import json
 from dataclasses import fields, is_dataclass
+from importlib import import_module
 from inspect import signature
 from pathlib import Path
 
@@ -165,3 +166,20 @@ def test_vassilflow_runtime_deep_imports_alias_current_runtime_modules():
 
     assert facade_resolve_root_run_name is resolve_root_run_name
     assert facade_get_effective_user_id is get_effective_user_id
+
+
+def test_vassilflow_public_package_aliases_resolve_current_implementation_modules():
+    module_names = [
+        "vassilflow.agents.features",
+        "vassilflow.sandbox.middleware",
+        "vassilflow.sandbox.local",
+        "vassilflow.sandbox.tools",
+        "vassilflow.community.tavily.tools",
+        "vassilflow.skills.installer",
+        "vassilflow.uploads.manager",
+    ]
+
+    for facade_name in module_names:
+        facade_module = import_module(facade_name)
+        implementation_name = facade_name.replace("vassilflow.", "deerflow.", 1)
+        assert facade_module is import_module(implementation_name)
