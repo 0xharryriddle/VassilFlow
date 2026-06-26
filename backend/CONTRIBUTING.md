@@ -1,6 +1,6 @@
-# Contributing to DeerFlow Backend
+# Contributing to VassilFlow Backend
 
-Thank you for your interest in contributing to DeerFlow! This document provides guidelines and instructions for contributing to the backend codebase.
+Thank you for your interest in contributing to VassilFlow! This document provides guidelines and instructions for contributing to the backend codebase.
 
 ## Table of Contents
 
@@ -27,8 +27,8 @@ Thank you for your interest in contributing to DeerFlow! This document provides 
 1. Fork the repository on GitHub
 2. Clone your fork locally:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/deer-flow.git
-   cd deer-flow
+   git clone https://github.com/YOUR_USERNAME/VassilFlow.git
+   cd VassilFlow
    ```
 
 ## Development Setup
@@ -225,7 +225,7 @@ Example test:
 
 ```python
 import pytest
-from deerflow.models.factory import create_chat_model
+from vassilflow.models.factory import create_chat_model
 
 def test_create_chat_model_with_valid_name():
     """Test that a valid model name creates a model instance."""
@@ -292,7 +292,7 @@ def my_tool(param: str) -> str:
 tools:
   - name: my_tool
     group: my_group
-    use: deerflow.tools.builtins.my_tool:my_tool
+    use: vassilflow.tools.builtins.my_tool:my_tool
 ```
 
 ### Adding New Middleware
@@ -421,4 +421,4 @@ If you have questions about contributing:
 2. Look for similar issues or PRs on GitHub
 3. Open a discussion or issue on GitHub
 
-Thank you for contributing to DeerFlow!
+Thank you for contributing to VassilFlow!

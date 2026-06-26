@@ -242,3 +242,20 @@ def test_streaming_docs_use_vassilflow_client_vocabulary():
     assert "# DeerFlow 流式输出设计" not in content
     assert "DeerFlow 有**两条并行**的流式路径" not in content
     assert "## DeerFlowClient 路径：sync + in-process" not in content
+
+
+def test_contributing_docs_use_vassilflow_public_examples():
+    content = (REPO_ROOT / "backend" / "CONTRIBUTING.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "# Contributing to VassilFlow Backend" in content
+    assert "contributing to VassilFlow" in content
+    assert "git clone https://github.com/YOUR_USERNAME/VassilFlow.git" in content
+    assert "from vassilflow.models.factory import create_chat_model" in content
+    assert "use: vassilflow.tools.builtins.my_tool:my_tool" in content
+    assert "Thank you for contributing to VassilFlow!" in content
+    assert "# Contributing to DeerFlow Backend" not in content
+    assert "git clone https://github.com/YOUR_USERNAME/deer-flow.git" not in content
+    assert "from deerflow.models.factory import create_chat_model" not in content
+    assert "use: deerflow.tools.builtins.my_tool:my_tool" not in content
