@@ -4,45 +4,12 @@ These names bridge to the current DeerFlow implementation. Boundary-level
 statuses and entities live in :mod:`vassilflow.boundary`.
 """
 
-from deerflow.runtime import (
-    END_SENTINEL,
-    HEARTBEAT_SENTINEL,
-    ConflictError,
-    DisconnectMode,
-    MemoryStreamBridge,
-    RunContext,
-    RunManager,
-    RunRecord,
-    StreamBridge,
-    StreamEvent,
-    UnsupportedStrategyError,
-    checkpointer_context,
-    get_checkpointer,
-    get_store,
-    make_checkpointer,
-    make_store,
-    make_stream_bridge,
-    reset_checkpointer,
-    reset_store,
-    run_agent,
-    serialize,
-    serialize_channel_values,
-    serialize_channel_values_for_api,
-    serialize_lc_object,
-    serialize_messages_tuple,
-    store_context,
-    strip_data_url_image_blocks,
-)
-from deerflow.runtime import (
-    RunStatus as DeerFlowRunStatus,
-)
+from importlib import import_module
 
-RuntimeRunStatus = DeerFlowRunStatus
-RunStatus = DeerFlowRunStatus
+_runtime_impl = import_module("deerflow.runtime")
 
-__all__ = [
+_IMPLEMENTATION_EXPORTS = [
     "ConflictError",
-    "DeerFlowRunStatus",
     "DisconnectMode",
     "END_SENTINEL",
     "HEARTBEAT_SENTINEL",
@@ -51,7 +18,6 @@ __all__ = [
     "RunManager",
     "RunRecord",
     "RunStatus",
-    "RuntimeRunStatus",
     "StreamBridge",
     "StreamEvent",
     "UnsupportedStrategyError",
@@ -72,3 +38,18 @@ __all__ = [
     "store_context",
     "strip_data_url_image_blocks",
 ]
+
+globals().update({name: getattr(_runtime_impl, name) for name in _IMPLEMENTATION_EXPORTS})
+
+DeerFlowRunStatus = _runtime_impl.RunStatus
+RuntimeRunStatus = _runtime_impl.RunStatus
+RunStatus = _runtime_impl.RunStatus
+
+__all__ = sorted(
+    [
+        *_IMPLEMENTATION_EXPORTS,
+        "DeerFlowRunStatus",
+        "RunStatus",
+        "RuntimeRunStatus",
+    ]
+)
