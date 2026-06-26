@@ -44,6 +44,7 @@ globals().update({name: getattr(_runtime_impl, name) for name in _IMPLEMENTATION
 DeerFlowRunStatus = _runtime_impl.RunStatus
 RuntimeRunStatus = _runtime_impl.RunStatus
 RunStatus = _runtime_impl.RunStatus
+VassilFlowRunStatus = _runtime_impl.RunStatus
 
 __all__ = sorted(
     [
@@ -51,5 +52,6 @@ __all__ = sorted(
         "DeerFlowRunStatus",
         "RunStatus",
         "RuntimeRunStatus",
+        "VassilFlowRunStatus",
     ]
 )
