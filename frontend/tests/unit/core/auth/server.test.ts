@@ -91,23 +91,7 @@ describe("getServerSideUser", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  test("bypasses gateway auth in auth-disabled mode", async () => {
-    setEnv("DEER_FLOW_AUTH_DISABLED", "1");
-    const fetchSpy = rs.fn(() => {
-      throw new Error("fetch should not be called in auth-disabled mode");
-    });
-    rs.stubGlobal("fetch", fetchSpy);
-
-    const { getServerSideUser } = await loadFreshServerAuth();
-
-    await expect(getServerSideUser()).resolves.toEqual({
-      tag: "authenticated",
-      user: AUTH_DISABLED_USER,
-    });
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
-
-  test("bypasses gateway auth using VassilFlow auth-disabled alias", async () => {
+  test("bypasses gateway auth in VassilFlow auth-disabled mode", async () => {
     setEnv("VASSILFLOW_AUTH_DISABLED", "1");
     const fetchSpy = rs.fn(() => {
       throw new Error("fetch should not be called in auth-disabled mode");
@@ -123,9 +107,25 @@ describe("getServerSideUser", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  test("does not enable auth-disabled mode in explicit production environments", async () => {
+  test("bypasses gateway auth using legacy DeerFlow auth-disabled env", async () => {
     setEnv("DEER_FLOW_AUTH_DISABLED", "1");
-    setEnv("DEER_FLOW_ENV", "production");
+    const fetchSpy = rs.fn(() => {
+      throw new Error("fetch should not be called in auth-disabled mode");
+    });
+    rs.stubGlobal("fetch", fetchSpy);
+
+    const { getServerSideUser } = await loadFreshServerAuth();
+
+    await expect(getServerSideUser()).resolves.toEqual({
+      tag: "authenticated",
+      user: AUTH_DISABLED_USER,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  test("does not enable auth-disabled mode in explicit VassilFlow production environments", async () => {
+    setEnv("VASSILFLOW_AUTH_DISABLED", "1");
+    setEnv("VASSILFLOW_ENV", "production");
 
     const { isAuthDisabledMode } =
       await import("@/core/auth/auth-disabled-user");
@@ -133,9 +133,9 @@ describe("getServerSideUser", () => {
     expect(isAuthDisabledMode()).toBe(false);
   });
 
-  test("does not enable VassilFlow auth-disabled alias in explicit VassilFlow production environments", async () => {
-    setEnv("VASSILFLOW_AUTH_DISABLED", "1");
-    setEnv("VASSILFLOW_ENV", "production");
+  test("does not enable legacy auth-disabled env in explicit legacy production environments", async () => {
+    setEnv("DEER_FLOW_AUTH_DISABLED", "1");
+    setEnv("DEER_FLOW_ENV", "production");
 
     const { isAuthDisabledMode } =
       await import("@/core/auth/auth-disabled-user");
