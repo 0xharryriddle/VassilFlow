@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from deerflow.sandbox.local.local_sandbox import LocalSandbox, PathMapping
+from vassilflow.sandbox.local.local_sandbox import LocalSandbox, PathMapping
 
 
 def _make_sandbox(tmp_path: Path) -> LocalSandbox:
@@ -46,9 +46,9 @@ def test_empty_mappings_yield_no_pattern(tmp_path):
 
 def test_command_paths_resolved_to_local(tmp_path):
     sb = _make_sandbox(tmp_path)
-    ws_local = str((tmp_path / "workspace").resolve())
+    expected_path = str((tmp_path / "workspace" / "foo.txt").resolve())
     out = sb._resolve_paths_in_command("cat /mnt/user-data/workspace/foo.txt")
-    assert out == f"cat {ws_local}/foo.txt"
+    assert out == f"cat {expected_path}"
     # Calling again uses the cached pattern and produces the same result.
     assert sb._resolve_paths_in_command("cat /mnt/user-data/workspace/foo.txt") == out
 
@@ -84,9 +84,9 @@ def test_resolved_paths_and_sorted_views_are_cached(tmp_path):
 
 def test_forward_resolution_behavior_unchanged(tmp_path):
     sb = _make_sandbox(tmp_path)
-    ws_local = str((tmp_path / "workspace").resolve())
+    expected_path = str((tmp_path / "workspace" / "sub" / "foo.txt").resolve())
     # Container path resolves to the mapped local path.
-    assert sb._resolve_path("/mnt/user-data/workspace/sub/foo.txt") == f"{ws_local}/sub/foo.txt"
+    assert sb._resolve_path("/mnt/user-data/workspace/sub/foo.txt") == expected_path
     # An unmapped path is returned unchanged.
     assert sb._resolve_path("/etc/hosts") == "/etc/hosts"
 

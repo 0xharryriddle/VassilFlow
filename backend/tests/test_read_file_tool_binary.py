@@ -11,8 +11,8 @@ pin the actionable error contract and guard the normal text path.
 from pathlib import Path
 from types import SimpleNamespace
 
-from deerflow.sandbox.local.local_sandbox import LocalSandbox
-from deerflow.sandbox.tools import read_file_tool
+from vassilflow.sandbox.local.local_sandbox import LocalSandbox
+from vassilflow.sandbox.tools import read_file_tool
 
 
 def _local_runtime(tmp_path: Path) -> SimpleNamespace:

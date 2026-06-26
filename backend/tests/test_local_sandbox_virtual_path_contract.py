@@ -23,8 +23,8 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.sandbox.local.local_sandbox_provider import LocalSandboxProvider
 from vassilflow.config.sandbox_config import SandboxConfig
+from vassilflow.sandbox.local.local_sandbox_provider import LocalSandboxProvider
 
 
 def _build_config(skills_dir: Path) -> SimpleNamespace:
@@ -252,7 +252,7 @@ def test_reset_clears_both_generic_and_per_thread_caches(provider):
 
 
 def test_is_local_sandbox_accepts_generic_and_per_thread_id_formats():
-    from deerflow.sandbox.tools import is_local_sandbox
+    from vassilflow.sandbox.tools import is_local_sandbox
 
     generic = SimpleNamespace(state={"sandbox": {"sandbox_id": "local"}}, context={})
     per_thread = SimpleNamespace(state={"sandbox": {"sandbox_id": "local:default:alpha"}}, context={})
@@ -281,7 +281,7 @@ def test_concurrent_acquire_same_thread_yields_single_instance(provider):
     import threading
     import time
 
-    from deerflow.sandbox.local import local_sandbox as local_sandbox_module
+    from vassilflow.sandbox.local import local_sandbox as local_sandbox_module
 
     # Force a wide race window by slowing the LocalSandbox constructor down.
     original_init = local_sandbox_module.LocalSandbox.__init__

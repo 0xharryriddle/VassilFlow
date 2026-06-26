@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.sandbox.local.local_sandbox import LocalSandbox, PathMapping
-from deerflow.sandbox.local.local_sandbox_provider import LocalSandboxProvider
+from vassilflow.sandbox.local.local_sandbox import LocalSandbox, PathMapping
+from vassilflow.sandbox.local.local_sandbox_provider import LocalSandboxProvider
 
 
 def _symlink_to(target, link, *, target_is_directory=False):
@@ -802,13 +802,13 @@ class TestLocalSandboxProviderResetClearsSingleton:
         )
 
     def test_reset_sandbox_provider_clears_local_singleton(self, tmp_path):
-        from deerflow.sandbox import local as local_module
-        from deerflow.sandbox.local import local_sandbox_provider as lsp_module
-        from deerflow.sandbox.sandbox_provider import (
+        from vassilflow.config.sandbox_config import VolumeMountConfig
+        from vassilflow.sandbox import local as local_module
+        from vassilflow.sandbox.local import local_sandbox_provider as lsp_module
+        from vassilflow.sandbox.sandbox_provider import (
             get_sandbox_provider,
             reset_sandbox_provider,
         )
-        from vassilflow.config.sandbox_config import VolumeMountConfig
 
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
@@ -861,13 +861,13 @@ class TestLocalSandboxProviderResetClearsSingleton:
         assert hasattr(local_module.local_sandbox_provider, "_singleton")
 
     def test_shutdown_sandbox_provider_clears_local_singleton(self, tmp_path):
-        from deerflow.sandbox.local import local_sandbox_provider as lsp_module
-        from deerflow.sandbox.sandbox_provider import (
+        from vassilflow.config.sandbox_config import VolumeMountConfig
+        from vassilflow.sandbox.local import local_sandbox_provider as lsp_module
+        from vassilflow.sandbox.sandbox_provider import (
             get_sandbox_provider,
             reset_sandbox_provider,
             shutdown_sandbox_provider,
         )
-        from vassilflow.config.sandbox_config import VolumeMountConfig
 
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
@@ -897,8 +897,8 @@ class TestLocalSandboxProviderResetClearsSingleton:
             reset_sandbox_provider()
 
     def test_provider_reset_method_is_idempotent(self, tmp_path):
-        from deerflow.sandbox.local import local_sandbox_provider as lsp_module
-        from deerflow.sandbox.local.local_sandbox_provider import LocalSandboxProvider
+        from vassilflow.sandbox.local import local_sandbox_provider as lsp_module
+        from vassilflow.sandbox.local.local_sandbox_provider import LocalSandboxProvider
 
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()

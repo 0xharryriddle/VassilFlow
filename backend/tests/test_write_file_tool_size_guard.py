@@ -12,8 +12,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from deerflow.sandbox import tools as tools_module
-from deerflow.sandbox.tools import write_file_tool
+from vassilflow.sandbox import tools as tools_module
+from vassilflow.sandbox.tools import write_file_tool
 
 
 def _call_write_file(*, content: str, append: bool = False) -> str:
