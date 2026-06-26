@@ -145,7 +145,7 @@ make_lead_agent(config)
         │
         ├─> ThreadDataMiddleware
         ├─> SandboxMiddleware
-        ├─> SummarizationMiddleware (if enabled via global config)
+        ├─> VassilFlowSummarizationMiddleware (if enabled via global config)
         ├─> TodoListMiddleware (if is_plan_mode=True) ← NEW
         ├─> TitleMiddleware
         └─> ClarificationMiddleware

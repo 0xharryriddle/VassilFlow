@@ -34,6 +34,7 @@ def test_backend_claude_uses_vassilflow_project_identity():
     assert "vassilflow/          # Public facade imports" in content
     assert "VASSILFLOW_CHANNELS_LANGGRAPH_URL" in content
     assert "VASSILFLOW_CHANNELS_GATEWAY_URL" in content
+    assert "VassilFlowSummarizationMiddleware" in content
     assert "DeerFlow is a LangGraph-based AI super agent system" not in content
     assert "DeerFlow's application tables" not in content
     assert "from deerflow.agents import make_lead_agent" not in content
@@ -41,6 +42,7 @@ def test_backend_claude_uses_vassilflow_project_identity():
     assert "from deerflow.config import get_app_config" not in content
     assert "deerflow.models.vllm_provider:VllmChatModel" not in content
     assert "or set `DEER_FLOW_CHANNELS_LANGGRAPH_URL`" not in content
+    assert "**SummarizationMiddleware** - Context reduction" not in content
 
 
 def test_backend_docs_index_and_mcp_use_vassilflow_identity():
@@ -80,6 +82,7 @@ def test_architecture_docs_use_vassilflow_runtime_identity():
     assert "Local VassilFlow thread data cleanup" in content
     assert "VassilFlow-managed filesystem data" in content
     assert '"path": "vassilflow.agents:make_lead_agent"' in content
+    assert "VassilFlowSummarizationMiddleware" in content
     assert "`{runtime_home}/threads/{thread_id}/user-data/workspace`" in content
     assert "`skills/` under the project root by default" in content
     assert "overview of the DeerFlow backend architecture" not in content
@@ -244,6 +247,7 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
     assert "TodoList middleware in VassilFlow" in plan_mode
     assert "from vassilflow.agents.lead_agent.agent import make_lead_agent" in plan_mode
     assert "custom VassilFlow-style prompts" in plan_mode
+    assert "VassilFlowSummarizationMiddleware" in plan_mode
     assert "vassilflow.agents:make_lead_agent" in auto_title
     assert "from vassilflow.config import TitleConfig, set_title_config" in auto_title
     assert (
@@ -254,6 +258,7 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
     assert '"lead_agent": "vassilflow.agents:make_lead_agent"' in title_implementation
     assert "TodoList middleware in DeerFlow" not in plan_mode
     assert "from deerflow.agents.lead_agent.agent import make_lead_agent" not in plan_mode
+    assert "        ├─> SummarizationMiddleware (if enabled via global config)" not in plan_mode
     assert "/Users/hetao/workspace/deer-flow" not in plan_mode
     assert '"lead_agent": "deerflow.agents:lead_agent"' not in auto_title
     assert "from deerflow.config.title_config import TitleConfig" not in auto_title

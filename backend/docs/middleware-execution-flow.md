@@ -12,7 +12,7 @@
 | 3 | DanglingToolCallMiddleware | | | | | ✓ | | ✓ | ✗ | 始终开启 |
 | 4 | GuardrailMiddleware | | | | | | ✓ | ✓ | ✓ | *Phase 2 纳入* |
 | 5 | ToolErrorHandlingMiddleware | | | | | | ✓ | ✓ | ✓ | 始终开启 |
-| 6 | SummarizationMiddleware | | ✓ | | | | | ✓ | ✗ | `summarization` |
+| 6 | VassilFlowSummarizationMiddleware | | ✓ | | | | | ✓ | ✗ | `summarization` |
 | 7 | TodoMiddleware | | ✓ | ✓ | | ✓ | | ✓ | ✗ | `plan_mode` 参数 |
 | 8 | TitleMiddleware | | | ✓ | | | | ✓ | ✗ | `auto_title` |
 | 9 | MemoryMiddleware | | | | ✓ | | | ✓ | ✗ | `memory` |

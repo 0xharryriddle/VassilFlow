@@ -107,7 +107,7 @@ The web conversation delete flow first deletes Gateway-managed thread state thro
 │  │ 1. ThreadDataMiddleware  - Initialize workspace/uploads/outputs  │   │
 │  │ 2. UploadsMiddleware     - Process uploaded files               │   │
 │  │ 3. SandboxMiddleware     - Acquire sandbox environment          │   │
-│  │ 4. SummarizationMiddleware - Context reduction (if enabled)     │   │
+│  │ 4. VassilFlowSummarizationMiddleware - Context reduction        │   │
 │  │ 5. TitleMiddleware       - Auto-generate titles                 │   │
 │  │ 6. TodoListMiddleware    - Task tracking (if plan_mode)         │   │
 │  │ 7. ViewImageMiddleware   - Vision model support                 │   │
@@ -362,7 +362,7 @@ SKILL.md Format:
       - ThreadDataMiddleware: Set up paths
       - UploadsMiddleware: Inject file list
       - SandboxMiddleware: Acquire sandbox
-      - SummarizationMiddleware: Check token limits
+      - VassilFlowSummarizationMiddleware: Check token limits
       - TitleMiddleware: Generate title if needed
       - TodoListMiddleware: Load todos (if plan mode)
       - ViewImageMiddleware: Process images

@@ -214,7 +214,7 @@ Lead-agent middlewares are assembled in strict append order across `packages/har
 7. **SandboxAuditMiddleware** - Audits sandboxed shell/file operations for security logging before tool execution continues
 8. **ToolErrorHandlingMiddleware** - Converts tool exceptions into error `ToolMessage`s so the run can continue instead of aborting
 9. **SkillActivationMiddleware** - Detects strict `/skill-name task` syntax on the latest real user message, resolves only enabled and runtime-allowed skills, reads `SKILL.md` from trusted skill storage, injects the skill body as hidden current-turn model context, and records a `middleware:skill_activation` audit event with skill name, category, path, and content hash
-10. **SummarizationMiddleware** - Context reduction when approaching token limits (optional, if enabled)
+10. **VassilFlowSummarizationMiddleware** - Context reduction when approaching token limits (optional, if enabled)
 11. **TodoListMiddleware** - Task tracking with `write_todos` tool (optional, if plan_mode)
 12. **TokenUsageMiddleware** - Records token usage metrics when token tracking is enabled (optional); subagent usage is cached by `tool_call_id` only while token usage is enabled and merged back into the dispatching AIMessage by message position rather than message id
 13. **TitleMiddleware** - Auto-generates thread title after first complete exchange and normalizes structured message content before prompting the title model
