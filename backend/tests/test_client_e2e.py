@@ -22,8 +22,8 @@ from pathlib import Path
 import pytest
 from dotenv import load_dotenv
 
-from deerflow.config.app_config import AppConfig
 from vassilflow.client import StreamEvent, VassilFlowClient
+from vassilflow.config.app_config import AppConfig
 
 # Load .env from project root (for OPENAI_API_KEY etc.)
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
@@ -109,45 +109,45 @@ def e2e_env(tmp_path, monkeypatch):
         str(Path(__file__).resolve().parents[2]),
     )
     monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
-    monkeypatch.setattr("deerflow.config.paths._paths", None)
-    monkeypatch.setattr("deerflow.sandbox.sandbox_provider._default_sandbox_provider", None)
+    monkeypatch.setattr("vassilflow.config.paths._paths", None)
+    monkeypatch.setattr("vassilflow.sandbox.sandbox_provider._default_sandbox_provider", None)
 
     # 2. Inject a clean AppConfig. We must reset _app_config to None BEFORE
     # calling _make_e2e_config() because AppConfig() constructor misbehaves when
     # a disk config is already cached: it returns the cached model list instead
     # of the provided one. Clearing first ensures the test config is correct.
-    monkeypatch.setattr("deerflow.config.app_config._app_config", None)
-    monkeypatch.setattr("deerflow.config.app_config._app_config_is_custom", False)
+    monkeypatch.setattr("vassilflow.config.app_config._app_config", None)
+    monkeypatch.setattr("vassilflow.config.app_config._app_config_is_custom", False)
     config = _make_e2e_config()
-    monkeypatch.setattr("deerflow.config.app_config._app_config", config)
-    monkeypatch.setattr("deerflow.config.app_config._app_config_is_custom", True)
+    monkeypatch.setattr("vassilflow.config.app_config._app_config", config)
+    monkeypatch.setattr("vassilflow.config.app_config._app_config_is_custom", True)
     monkeypatch.setattr("deerflow.client.get_app_config", lambda: config)
 
     # 3. Disable title generation (extra LLM call, non-deterministic)
-    from deerflow.config.title_config import TitleConfig
+    from vassilflow.config.title_config import TitleConfig
 
-    monkeypatch.setattr("deerflow.config.title_config._title_config", TitleConfig(enabled=False))
+    monkeypatch.setattr("vassilflow.config.title_config._title_config", TitleConfig(enabled=False))
 
     # 4. Disable memory queueing (avoids background threads & file writes)
-    from deerflow.config.memory_config import MemoryConfig
+    from vassilflow.config.memory_config import MemoryConfig
 
     monkeypatch.setattr(
-        "deerflow.agents.middlewares.memory_middleware.get_memory_config",
+        "vassilflow.agents.middlewares.memory_middleware.get_memory_config",
         lambda: MemoryConfig(enabled=False),
     )
 
     # 5. Ensure summarization is off (default, but be explicit)
-    from deerflow.config.summarization_config import SummarizationConfig
+    from vassilflow.config.summarization_config import SummarizationConfig
 
-    monkeypatch.setattr("deerflow.config.summarization_config._summarization_config", SummarizationConfig(enabled=False))
+    monkeypatch.setattr("vassilflow.config.summarization_config._summarization_config", SummarizationConfig(enabled=False))
 
     # 6. Exclude TitleMiddleware from the chain.
     #    It triggers an extra LLM call to generate a thread title, which adds
     #    non-determinism and cost to E2E tests (title generation is already
     #    disabled via TitleConfig above, but the middleware still participates
     #    in the chain and can interfere with event ordering).
-    from deerflow.agents.lead_agent.agent import build_middlewares as _original_build_middlewares
-    from deerflow.agents.middlewares.title_middleware import TitleMiddleware
+    from vassilflow.agents.lead_agent.agent import build_middlewares as _original_build_middlewares
+    from vassilflow.agents.middlewares.title_middleware import TitleMiddleware
 
     def _sync_safe_build_middlewares(*args, **kwargs):
         mws = _original_build_middlewares(*args, **kwargs)
@@ -284,8 +284,8 @@ class TestFileUploadIntegration:
         assert result["files"][0]["filename"] == "readme.txt"
 
         # Physically exists
-        from deerflow.config.paths import get_paths
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.config.paths import get_paths
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         assert (get_paths().sandbox_uploads_dir(tid, user_id=get_effective_user_id()) / "readme.txt").exists()
 
@@ -422,7 +422,7 @@ class TestMiddlewareChain:
 
         # ThreadDataMiddleware should have set paths in the state.
         # We verify the paths singleton can resolve the thread dir.
-        from deerflow.config.paths import get_paths
+        from vassilflow.config.paths import get_paths
 
         thread_dir = get_paths().thread_dir(tid)
         assert str(thread_dir).endswith(tid)
@@ -495,8 +495,8 @@ class TestArtifactAccess:
 
     def test_get_artifact_happy_path(self, e2e_env):
         """Write a file to outputs, then read it back via get_artifact()."""
-        from deerflow.config.paths import get_paths
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.config.paths import get_paths
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         c = VassilFlowClient(checkpointer=None, thinking_enabled=False)
         tid = str(uuid.uuid4())
@@ -512,8 +512,8 @@ class TestArtifactAccess:
 
     def test_get_artifact_nested_path(self, e2e_env):
         """Artifacts in subdirectories are accessible."""
-        from deerflow.config.paths import get_paths
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.config.paths import get_paths
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         c = VassilFlowClient(checkpointer=None, thinking_enabled=False)
         tid = str(uuid.uuid4())
@@ -551,11 +551,11 @@ class TestSkillInstallation:
     @pytest.fixture(autouse=True)
     def _allow_skill_security_scan(self, monkeypatch):
         async def _scan(*args, **kwargs):
-            from deerflow.skills.security_scanner import ScanResult
+            from vassilflow.skills.security_scanner import ScanResult
 
             return ScanResult(decision="allow", reason="ok")
 
-        monkeypatch.setattr("deerflow.skills.installer.scan_skill_content", _scan)
+        monkeypatch.setattr("vassilflow.skills.installer.scan_skill_content", _scan)
 
     @pytest.fixture(autouse=True)
     def _isolate_skills_dir(self, tmp_path, monkeypatch):
@@ -563,10 +563,10 @@ class TestSkillInstallation:
         skills_root = tmp_path / "skills"
         (skills_root / "public").mkdir(parents=True)
         (skills_root / "custom").mkdir(parents=True)
-        from deerflow.skills.storage.local_skill_storage import LocalSkillStorage
+        from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
         monkeypatch.setattr(
-            "deerflow.skills.storage._default_skill_storage",
+            "vassilflow.skills.storage._default_skill_storage",
             LocalSkillStorage(host_path=str(skills_root)),
         )
         self._skills_root = skills_root
@@ -700,10 +700,11 @@ class TestConfigManagement:
         # Set up a writable extensions_config.json
         config_file = tmp_path / "extensions_config.json"
         config_file.write_text(json.dumps({"mcpServers": {}, "skills": {}}))
-        monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
+        monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
+        monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
         # Force reload so the singleton picks up our test file
-        from deerflow.config.extensions_config import reload_extensions_config
+        from vassilflow.config.extensions_config import reload_extensions_config
 
         reload_extensions_config()
 
@@ -727,9 +728,10 @@ class TestConfigManagement:
         """update_skill() writes extensions_config.json and invalidates the agent."""
         config_file = tmp_path / "extensions_config.json"
         config_file.write_text(json.dumps({"mcpServers": {}, "skills": {}}))
-        monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
+        monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
+        monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
-        from deerflow.config.extensions_config import reload_extensions_config
+        from vassilflow.config.extensions_config import reload_extensions_config
 
         reload_extensions_config()
 
@@ -755,9 +757,10 @@ class TestConfigManagement:
         """update_skill() raises ValueError for nonexistent skill."""
         config_file = tmp_path / "extensions_config.json"
         config_file.write_text(json.dumps({"mcpServers": {}, "skills": {}}))
-        monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
+        monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
+        monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
-        from deerflow.config.extensions_config import reload_extensions_config
+        from vassilflow.config.extensions_config import reload_extensions_config
 
         reload_extensions_config()
 
