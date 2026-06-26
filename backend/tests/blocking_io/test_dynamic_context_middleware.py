@@ -22,7 +22,7 @@ from langchain.agents import create_agent
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 
-from deerflow.agents.middlewares.dynamic_context_middleware import DynamicContextMiddleware
+from vassilflow.agents.middlewares.dynamic_context_middleware import DynamicContextMiddleware
 
 pytestmark = pytest.mark.asyncio
 

@@ -80,8 +80,8 @@ def _real_subagent_executor() -> Iterator[type]:
 
 
 async def test_load_skills_via_to_thread_does_not_block_event_loop(tmp_path: Path) -> None:
-    from deerflow.config.skills_config import SkillsConfig
-    from deerflow.subagents.config import SubagentConfig
+    from vassilflow.config.skills_config import SkillsConfig
+    from vassilflow.subagents.config import SubagentConfig
 
     _seed_skill(tmp_path)
 

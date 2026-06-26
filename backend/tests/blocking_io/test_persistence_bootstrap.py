@@ -33,8 +33,8 @@ from pathlib import Path
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine
 
-import deerflow.persistence.models  # noqa: F401
-from deerflow.persistence import bootstrap as bootstrap_mod
+import vassilflow.persistence.models  # noqa: F401
+from vassilflow.persistence import bootstrap as bootstrap_mod
 
 pytestmark = pytest.mark.asyncio
 
