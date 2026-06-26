@@ -97,3 +97,12 @@ def test_api_docs_use_vassilflow_identity_and_runtime_paths():
     assert "reference for the DeerFlow backend APIs" not in content
     assert '".deer-flow/threads/abc123/user-data/uploads/document.pdf"' not in content
     assert "DeerFlow enforces authentication" not in content
+
+
+def test_setup_docs_use_vassilflow_config_facade_examples():
+    content = (REPO_ROOT / "backend" / "docs" / "SETUP.md").read_text(encoding="utf-8")
+
+    assert "from vassilflow.config import get_app_config" in content
+    assert "from vassilflow.config import AppConfig" in content
+    assert "from deerflow.config import get_app_config" not in content
+    assert "from deerflow.config.app_config import AppConfig" not in content

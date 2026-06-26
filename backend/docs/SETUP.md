@@ -33,7 +33,7 @@ VassilFlow uses a YAML configuration file that should be placed in the **project
 4. **Verify configuration**:
    ```bash
    cd backend
-   python -c "from deerflow.config import get_app_config; print('✓ Config loaded:', get_app_config().models[0].name)"
+   python -c "from vassilflow.config import get_app_config; print('✓ Config loaded:', get_app_config().models[0].name)"
    ```
 
 ## Important Notes
@@ -79,7 +79,7 @@ If you skip this step, the image will be automatically pulled on first agent exe
 ```bash
 # Check where the backend is looking
 cd VassilFlow/backend
-python -c "from deerflow.config.app_config import AppConfig; print(AppConfig.resolve_config_path())"
+python -c "from vassilflow.config import AppConfig; print(AppConfig.resolve_config_path())"
 ```
 
 If it can't find the config:
