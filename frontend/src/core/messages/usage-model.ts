@@ -67,8 +67,8 @@ interface TokenUsageAttribution {
 
 // Precise write_todos labels come from the backend attribution payload.
 // The frontend fallback intentionally stays generic so we do not duplicate
-// backend/packages/harness/deerflow/agents/middlewares/token_usage_middleware.py
-//::_build_todo_actions and risk the two diffing algorithms drifting apart.
+// vassilflow.agents.middlewares.token_usage_middleware::_build_todo_actions
+// and risk the two diffing algorithms drifting apart.
 
 export function getTokenUsageViewPreset(
   preferences: TokenUsagePreferences,

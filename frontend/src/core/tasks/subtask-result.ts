@@ -15,7 +15,7 @@ export interface SubtaskResultUpdate {
  * ``ToolMessage.additional_kwargs`` for every ``task`` tool result.
  *
  * The values mirror the Python contract in
- * ``backend/packages/harness/deerflow/subagents/status_contract.py``
+ * ``vassilflow.subagents.status_contract``
  * (``SUBAGENT_STATUS_KEY`` / ``SUBAGENT_ERROR_KEY``). The cross-language
  * fixture at ``contracts/subagent_status_contract.json`` pins both sides
  * to the same values.
@@ -44,9 +44,9 @@ const STRUCTURED_STATUS_TO_SUBTASK: Record<string, SubtaskStatus> = {
  *
  * These values are not user-facing copy — they are part of the
  * backend↔frontend contract defined in
- * `backend/packages/harness/deerflow/tools/builtins/task_tool.py` (returned
+ * `vassilflow.tools.builtins.task_tool` (returned
  * from the tool body) and in
- * `backend/packages/harness/deerflow/agents/middlewares/tool_error_handling_middleware.py`
+ * `vassilflow.agents.middlewares.tool_error_handling_middleware`
  * (wrapper for tool exceptions). Any change here must be paired with the
  * matching backend change. Exported so a future structured-status migration
  * can reference the same values from one place.
