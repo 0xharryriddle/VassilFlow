@@ -29,6 +29,11 @@ from app.channels.message_bus import InboundMessage, InboundMessageType, Message
 
 logger = logging.getLogger(__name__)
 
+_WECHAT_CLIENT_ID_PREFIX = "vassilflow"
+_WECHAT_IMAGE_CLIENT_ID_PREFIX = "vassilflow_img"
+_WECHAT_FILE_CLIENT_ID_PREFIX = "vassilflow_file"
+_WECHAT_CONNECT_CLIENT_ID_PREFIX = "vassilflow-connect"
+
 
 class MessageItemType(IntEnum):
     NONE = 0
@@ -311,7 +316,7 @@ class WechatChannel(Channel):
             chat_id=msg.chat_id,
             context_token=context_token,
             text=text,
-            client_id_prefix="deerflow",
+            client_id_prefix=_WECHAT_CLIENT_ID_PREFIX,
             max_retries=_max_retries,
         )
 
@@ -423,7 +428,7 @@ class WechatChannel(Channel):
                 "msg": {
                     "from_user_id": "",
                     "to_user_id": msg.chat_id,
-                    "client_id": f"deerflow_img_{int(time.time() * 1000)}",
+                    "client_id": f"{_WECHAT_IMAGE_CLIENT_ID_PREFIX}_{int(time.time() * 1000)}",
                     "message_type": 2,
                     "message_state": 2,
                     "context_token": context_token,
@@ -513,7 +518,7 @@ class WechatChannel(Channel):
                 "msg": {
                     "from_user_id": "",
                     "to_user_id": msg.chat_id,
-                    "client_id": f"deerflow_file_{int(time.time() * 1000)}",
+                    "client_id": f"{_WECHAT_FILE_CLIENT_ID_PREFIX}_{int(time.time() * 1000)}",
                     "message_type": 2,
                     "message_state": 2,
                     "context_token": context_token,
@@ -683,7 +688,7 @@ class WechatChannel(Channel):
             chat_id=chat_id,
             context_token=context_token,
             text=text,
-            client_id_prefix="deerflow-connect",
+            client_id_prefix=_WECHAT_CONNECT_CLIENT_ID_PREFIX,
             max_retries=1,
         )
 

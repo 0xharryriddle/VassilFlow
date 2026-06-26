@@ -449,6 +449,7 @@ def test_send_uses_cached_context_token(monkeypatch):
         assert post_calls[0]["url"].endswith("/ilink/bot/sendmessage")
         assert post_calls[0]["json"]["msg"]["to_user_id"] == "wx-user-1"
         assert post_calls[0]["json"]["msg"]["context_token"] == "ctx-send"
+        assert post_calls[0]["json"]["msg"]["client_id"].startswith("vassilflow_")
         assert post_calls[0]["headers"]["Authorization"] == "Bearer bot-token"
         assert post_calls[0]["headers"]["AuthorizationType"] == "ilink_bot_token"
         assert "X-WECHAT-UIN" in post_calls[0]["headers"]
@@ -597,6 +598,7 @@ def test_send_file_uploads_and_sends_image(monkeypatch, tmp_path: Path):
         assert len(put_calls) == 0
         assert post_calls[1]["url"] == "https://cdn.example/upload-original"
         assert post_calls[2]["url"].endswith("/ilink/bot/sendmessage")
+        assert post_calls[2]["json"]["msg"]["client_id"].startswith("vassilflow_img_")
         image_item = post_calls[2]["json"]["msg"]["item_list"][0]["image_item"]
         assert image_item["media"]["encrypt_query_param"] == "enc-query-original"
         assert image_item["media"]["encrypt_type"] == 1
@@ -790,6 +792,7 @@ def test_send_file_uploads_and_sends_regular_file(monkeypatch, tmp_path: Path):
         assert len(put_calls) == 0
         assert post_calls[1]["url"] == "https://cdn.example/upload-file"
         assert post_calls[2]["url"].endswith("/ilink/bot/sendmessage")
+        assert post_calls[2]["json"]["msg"]["client_id"].startswith("vassilflow_file_")
         file_item = post_calls[2]["json"]["msg"]["item_list"][0]["file_item"]
         assert file_item["media"]["encrypt_query_param"] == "enc-query-file"
         assert file_item["file_name"] == "report.pdf"

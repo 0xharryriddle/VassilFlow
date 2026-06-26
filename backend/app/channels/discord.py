@@ -17,6 +17,7 @@ from app.channels.message_bus import InboundMessage, InboundMessageType, Message
 logger = logging.getLogger(__name__)
 
 _DISCORD_MAX_MESSAGE_LEN = 2000
+_DISCORD_THREAD_NAME_PREFIX = "vassilflow"
 
 
 class DiscordChannel(Channel):
@@ -537,7 +538,7 @@ class DiscordChannel(Channel):
                 )
                 return None
 
-            thread_name = f"deerflow-{message.author.display_name}-{message.id}"[:100]
+            thread_name = f"{_DISCORD_THREAD_NAME_PREFIX}-{message.author.display_name}-{message.id}"[:100]
             return await message.create_thread(name=thread_name)
         except self._discord_module.errors.HTTPException as exc:
             if exc.code == 50024:

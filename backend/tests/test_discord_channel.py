@@ -31,6 +31,35 @@ def test_discord_channel_init() -> None:
     assert channel.name == "discord"
 
 
+@pytest.mark.asyncio
+async def test_discord_thread_name_uses_vassilflow_prefix() -> None:
+    bus = MessageBus()
+    channel = DiscordChannel(bus=bus, config={"bot_token": "token"})
+
+    text_type = SimpleNamespace(value=0, name="text")
+    channel._discord_module = SimpleNamespace(
+        ChannelType=SimpleNamespace(text=text_type, news=SimpleNamespace(value=10, name="news")),
+        errors=SimpleNamespace(HTTPException=Exception),
+    )
+    created: dict[str, str] = {}
+
+    async def create_thread(*, name: str):
+        created["name"] = name
+        return SimpleNamespace(id=999)
+
+    message = SimpleNamespace(
+        id=111,
+        author=SimpleNamespace(display_name="alice"),
+        channel=SimpleNamespace(type=text_type),
+        create_thread=create_thread,
+    )
+
+    thread = await channel._create_thread(message)
+
+    assert thread.id == 999
+    assert created["name"] == "vassilflow-alice-111"
+
+
 def _make_discord_message(text: str):
     return SimpleNamespace(
         id=111,
