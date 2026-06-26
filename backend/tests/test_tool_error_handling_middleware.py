@@ -10,10 +10,10 @@ from deerflow.agents.middlewares.tool_error_handling_middleware import (
     build_subagent_runtime_middlewares,
 )
 from deerflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
-from deerflow.config.app_config import AppConfig, CircuitBreakerConfig
-from deerflow.config.guardrails_config import GuardrailsConfig
-from deerflow.config.model_config import ModelConfig
-from deerflow.config.sandbox_config import SandboxConfig
+from vassilflow.config.app_config import AppConfig, CircuitBreakerConfig
+from vassilflow.config.guardrails_config import GuardrailsConfig
+from vassilflow.config.model_config import ModelConfig
+from vassilflow.config.sandbox_config import SandboxConfig
 
 
 def _request(name: str = "web_search", tool_call_id: str | None = "tc-1"):

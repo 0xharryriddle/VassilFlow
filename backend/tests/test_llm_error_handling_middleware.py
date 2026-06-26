@@ -11,8 +11,8 @@ from langgraph.errors import GraphBubbleUp
 from deerflow.agents.middlewares.llm_error_handling_middleware import (
     LLMErrorHandlingMiddleware,
 )
-from deerflow.config.app_config import AppConfig
-from deerflow.config.sandbox_config import SandboxConfig
+from vassilflow.config.app_config import AppConfig
+from vassilflow.config.sandbox_config import SandboxConfig
 
 
 def _make_app_config() -> AppConfig:

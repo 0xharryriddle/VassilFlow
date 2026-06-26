@@ -444,7 +444,7 @@ class TestGuardrailRequestAttribution:
 
 class TestGuardrailsConfig:
     def test_config_defaults(self):
-        from deerflow.config.guardrails_config import GuardrailsConfig
+        from vassilflow.config.guardrails_config import GuardrailsConfig
 
         config = GuardrailsConfig()
         assert config.enabled is False
@@ -453,7 +453,7 @@ class TestGuardrailsConfig:
         assert config.provider is None
 
     def test_config_from_dict(self):
-        from deerflow.config.guardrails_config import GuardrailsConfig
+        from vassilflow.config.guardrails_config import GuardrailsConfig
 
         config = GuardrailsConfig.model_validate(
             {
@@ -473,7 +473,7 @@ class TestGuardrailsConfig:
         assert config.provider.config == {"denied_tools": ["bash"]}
 
     def test_singleton_load_and_get(self):
-        from deerflow.config.guardrails_config import get_guardrails_config, load_guardrails_config_from_dict, reset_guardrails_config
+        from vassilflow.config.guardrails_config import get_guardrails_config, load_guardrails_config_from_dict, reset_guardrails_config
 
         try:
             load_guardrails_config_from_dict({"enabled": True, "provider": {"use": "test:Foo"}})

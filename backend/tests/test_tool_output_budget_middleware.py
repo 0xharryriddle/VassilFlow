@@ -30,9 +30,9 @@ from deerflow.agents.middlewares.tool_output_budget_middleware import (
     _snap_to_line_boundary,
     _tool_message_over_budget,
 )
-from deerflow.config.app_config import AppConfig
-from deerflow.config.sandbox_config import SandboxConfig
-from deerflow.config.tool_output_config import ToolOutputConfig
+from vassilflow.config.app_config import AppConfig
+from vassilflow.config.sandbox_config import SandboxConfig
+from vassilflow.config.tool_output_config import ToolOutputConfig
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -121,19 +121,18 @@ class TestExternalize:
                 assert f.read() == "full content here"
 
     def test_returns_none_on_invalid_path(self):
-        # ``/dev/null`` is a character device on both Linux and macOS, so
-        # ``os.makedirs`` cannot create any subdirectory under it for any
-        # user (including root). The previously-used ``/nonexistent/...``
-        # path was silently created by ``mkdir -p`` when the test process
-        # ran as root inside the CI container, which made this test fail
-        # in CI independently of the externalization logic under test.
-        path = _externalize(
-            "data",
-            tool_name="test",
-            tool_call_id="tc-1",
-            outputs_path="/dev/null/cannot-mkdir-here",
-            storage_subdir=".tool-results",
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            blocker = os.path.join(tmpdir, "not-a-directory")
+            with open(blocker, "w", encoding="utf-8") as f:
+                f.write("block mkdir")
+
+            path = _externalize(
+                "data",
+                tool_name="test",
+                tool_call_id="tc-1",
+                outputs_path=os.path.join(blocker, "cannot-mkdir-here"),
+                storage_subdir=".tool-results",
+            )
         assert path is None
 
     def test_txt_extension_for_unknown_tool(self):
@@ -376,9 +375,13 @@ class TestWrapToolCallFallback:
         mw = ToolOutputBudgetMiddleware(config=config)
         content = "x" * 500
         msg = _tm(content, name="tool")
-        req = _make_request(outputs_path="/dev/null/cannot-mkdir-here")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            blocker = os.path.join(tmpdir, "not-a-directory")
+            with open(blocker, "w", encoding="utf-8") as f:
+                f.write("block mkdir")
 
-        result = mw.wrap_tool_call(req, lambda _: msg)
+            req = _make_request(outputs_path=os.path.join(blocker, "cannot-mkdir-here"))
+            result = mw.wrap_tool_call(req, lambda _: msg)
 
         assert isinstance(result, ToolMessage)
         assert "omitted from tool output" in result.content

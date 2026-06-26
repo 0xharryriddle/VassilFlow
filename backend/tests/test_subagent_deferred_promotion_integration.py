@@ -108,10 +108,10 @@ def test_subagent_builder_emits_working_deferred_filter():
     wrong catalog hash silently stops promotion (turn 2 would keep mcp_calc hidden), a
     dropped filter stops hiding (turn 1 would bind mcp_calc)."""
     from deerflow.agents.middlewares.tool_error_handling_middleware import build_subagent_runtime_middlewares
-    from deerflow.config.app_config import AppConfig, CircuitBreakerConfig
-    from deerflow.config.guardrails_config import GuardrailsConfig
-    from deerflow.config.model_config import ModelConfig
-    from deerflow.config.sandbox_config import SandboxConfig
+    from vassilflow.config.app_config import AppConfig, CircuitBreakerConfig
+    from vassilflow.config.guardrails_config import GuardrailsConfig
+    from vassilflow.config.model_config import ModelConfig
+    from vassilflow.config.sandbox_config import SandboxConfig
 
     bound: list[list[str]] = []
 
