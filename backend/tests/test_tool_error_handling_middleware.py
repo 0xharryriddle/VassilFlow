@@ -5,11 +5,11 @@ import pytest
 from langchain_core.messages import ToolMessage
 from langgraph.errors import GraphInterrupt
 
-from deerflow.agents.middlewares.tool_error_handling_middleware import (
+from vassilflow.agents.middlewares.tool_error_handling_middleware import (
     ToolErrorHandlingMiddleware,
     build_subagent_runtime_middlewares,
 )
-from deerflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
+from vassilflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from vassilflow.config.app_config import AppConfig, CircuitBreakerConfig
 from vassilflow.config.guardrails_config import GuardrailsConfig
 from vassilflow.config.model_config import ModelConfig
@@ -144,8 +144,8 @@ def test_build_subagent_runtime_middlewares_threads_app_config_to_llm_middleware
     # 8 baseline (InputSanitization, ToolOutputBudget, ThreadData, Sandbox,
     # DanglingToolCall, LLMErrorHandling, SandboxAudit, ToolErrorHandling)
     # + 1 SafetyFinishReasonMiddleware (enabled by default).
-    from deerflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
-    from deerflow.agents.middlewares.tool_output_budget_middleware import ToolOutputBudgetMiddleware
+    from vassilflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
+    from vassilflow.agents.middlewares.tool_output_budget_middleware import ToolOutputBudgetMiddleware
 
     assert len(middlewares) == 9
     assert isinstance(middlewares[0], FakeMiddleware)  # InputSanitizationMiddleware stub
@@ -267,10 +267,10 @@ def test_subagent_runtime_middlewares_attach_deferred_filter_when_setup_has_name
     """A subagent built with deferred MCP tools gets DeferredToolFilterMiddleware, positioned before SafetyFinishReasonMiddleware (mirrors the lead ordering)."""
     from langchain_core.tools import tool as as_tool
 
-    from deerflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
-    from deerflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
-    from deerflow.tools.builtins.tool_search import build_deferred_tool_setup
-    from deerflow.tools.mcp_metadata import tag_mcp_tool
+    from vassilflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+    from vassilflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
+    from vassilflow.tools.builtins.tool_search import build_deferred_tool_setup
+    from vassilflow.tools.mcp_metadata import tag_mcp_tool
 
     app_config = _make_app_config()
     _stub_runtime_middleware_imports(monkeypatch)
@@ -294,8 +294,8 @@ def test_subagent_runtime_middlewares_attach_deferred_filter_when_setup_has_name
 
 def test_subagent_runtime_middlewares_skip_deferred_filter_without_names(monkeypatch):
     """No deferred setup (disabled / no MCP tool) -> no DeferredToolFilterMiddleware."""
-    from deerflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
-    from deerflow.tools.builtins.tool_search import DeferredToolSetup
+    from vassilflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+    from vassilflow.tools.builtins.tool_search import DeferredToolSetup
 
     app_config = _make_app_config()
     _stub_runtime_middleware_imports(monkeypatch)
@@ -306,7 +306,7 @@ def test_subagent_runtime_middlewares_skip_deferred_filter_without_names(monkeyp
 
 
 def test_guardrail_provider_framework_hint_defaults_to_vassilflow(monkeypatch):
-    from deerflow.guardrails.provider import GuardrailDecision
+    from vassilflow.guardrails.provider import GuardrailDecision
 
     captured: dict[str, object] = {}
 
@@ -343,7 +343,7 @@ def test_guardrail_provider_framework_hint_defaults_to_vassilflow(monkeypatch):
 
 
 def test_guardrail_provider_framework_hint_can_be_overridden(monkeypatch):
-    from deerflow.guardrails.provider import GuardrailDecision
+    from vassilflow.guardrails.provider import GuardrailDecision
 
     captured: dict[str, object] = {}
 

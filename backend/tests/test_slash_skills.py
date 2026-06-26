@@ -7,8 +7,8 @@ from langchain.agents.middleware.types import ModelRequest
 from langchain_core.messages import AIMessage, HumanMessage
 
 from app.channels.commands import KNOWN_CHANNEL_COMMANDS
-from deerflow.agents.middlewares import skill_activation_middleware as middleware_module
-from deerflow.agents.middlewares.skill_activation_middleware import SkillActivationMiddleware, is_slash_skill_activation_reminder
+from vassilflow.agents.middlewares import skill_activation_middleware as middleware_module
+from vassilflow.agents.middlewares.skill_activation_middleware import SkillActivationMiddleware, is_slash_skill_activation_reminder
 from vassilflow.skills.slash import RESERVED_SLASH_SKILL_NAMES, parse_slash_skill_reference, resolve_slash_skill
 from vassilflow.skills.types import Skill, SkillCategory
 from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY

@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from deerflow.skills.parser import parse_skill_file
+from vassilflow.skills.parser import parse_skill_file
 
 # ---------------------------------------------------------------------------
 # Helpers

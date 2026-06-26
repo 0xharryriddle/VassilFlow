@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 from langchain_core.messages import ToolMessage
 
-from deerflow.agents.middlewares.tool_error_handling_middleware import (
+from vassilflow.agents.middlewares.tool_error_handling_middleware import (
     ToolErrorHandlingMiddleware,
 )
 from vassilflow.subagents.status_contract import (
