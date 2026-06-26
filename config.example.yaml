@@ -23,7 +23,7 @@ config_version: 17
 # ============================================================================
 # Logging
 # ============================================================================
-# Log level for deerflow modules (debug/info/warning/error)
+# Log level for VassilFlow modules (debug/info/warning/error)
 log_level: info
 
 # ============================================================================
@@ -1242,7 +1242,7 @@ skill_evolution:
 #
 # checkpointer:
 #   type: postgres
-#   connection_string: postgresql://user:password@localhost:5432/deerflow
+#   connection_string: postgresql://user:password@localhost:5432/vassilflow
 
 # ============================================================================
 # Database
@@ -1532,7 +1532,7 @@ run_events:
 # When enabled, the login page will show SSO buttons alongside the standard email/password form.
 #
 # Provider configuration:
-#   - issuer:      The OIDC issuer URL (e.g. https://keycloak.example.com/realms/deerflow)
+#   - issuer:      The OIDC issuer URL (e.g. https://keycloak.example.com/realms/vassilflow)
 #   - client_id:   OAuth2 client ID from the provider
 #   - client_secret: OAuth2 client secret ($ENV_VAR references supported)
 #   - redirect_uri: Callback URL. In production, this must match what you configure in
@@ -1548,16 +1548,16 @@ run_events:
 #     enabled: true
 #     # Base URL of the frontend, used for redirects after SSO callback.
 #     # In production behind a reverse proxy, set this to the public frontend URL
-#     # (e.g. https://deerflow.example.com). In development, leave unset.
+#     # (e.g. https://vassilflow.example.com). In development, leave unset.
 #     # frontend_base_url: http://localhost:3000
 #     providers:
 #       keycloak:
 #         display_name: Keycloak
-#         issuer: https://keycloak.example.com/realms/deerflow
-#         client_id: deerflow
+#         issuer: https://keycloak.example.com/realms/vassilflow
+#         client_id: vassilflow
 #         client_secret: $KEYCLOAK_CLIENT_SECRET
 #         # Optional: explicitly set the callback URL.
-#         # redirect_uri: https://deerflow.example.com/api/v1/auth/callback/keycloak
+#         # redirect_uri: https://vassilflow.example.com/api/v1/auth/callback/keycloak
 #         scopes:
 #           - openid
 #           - email
