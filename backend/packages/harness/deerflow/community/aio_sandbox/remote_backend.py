@@ -38,7 +38,7 @@ class RemoteSandboxBackend(SandboxBackend):
     Typical config.yaml::
 
         sandbox:
-          use: deerflow.community.aio_sandbox:AioSandboxProvider
+          use: vassilflow.community.aio_sandbox:AioSandboxProvider
           provisioner_url: http://provisioner:8002
     """
 

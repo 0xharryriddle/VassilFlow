@@ -17,7 +17,7 @@ class SkillsConfig(BaseModel):
     """Configuration for skills system"""
 
     use: str = Field(
-        default="deerflow.skills.storage.local_skill_storage:LocalSkillStorage",
+        default="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage",
         description="Class path of the SkillStorage implementation.",
     )
     path: str | None = Field(

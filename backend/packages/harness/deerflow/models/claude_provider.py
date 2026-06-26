@@ -46,7 +46,7 @@ class ClaudeChatModel(ChatAnthropic):
 
     Config example:
         - name: claude-sonnet-4.6
-          use: deerflow.models.claude_provider:ClaudeChatModel
+          use: vassilflow.models.claude_provider:ClaudeChatModel
           model: claude-sonnet-4-6
           max_tokens: 16384
           enable_prompt_caching: true
