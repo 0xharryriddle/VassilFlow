@@ -99,7 +99,7 @@ def _restore_title_config_singleton():
     independent regardless of order.
     """
     try:
-        from deerflow.config.title_config import reset_title_config
+        from vassilflow.config.title_config import reset_title_config
     except ImportError:
         yield
         return

@@ -91,7 +91,7 @@ def _patch_update_agent_dependencies(tmp_path: Path):
         # reads paths via its own module-level get_paths reference. Patch it too
         # or the tool returns "Agent does not exist" before touching disk.
         patch(
-            "deerflow.config.agents_config.get_paths",
+            "vassilflow.config.agents_config.get_paths",
             return_value=_make_paths_mock(tmp_path),
         ),
     ]

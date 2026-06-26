@@ -1034,7 +1034,7 @@ class TestFromConfig:
 
     @staticmethod
     def _config(**kwargs):
-        from deerflow.config.loop_detection_config import LoopDetectionConfig
+        from vassilflow.config.loop_detection_config import LoopDetectionConfig
 
         return LoopDetectionConfig(**kwargs)
 

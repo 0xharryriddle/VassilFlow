@@ -2066,7 +2066,7 @@ class TestSubagentTracingWiring:
         """Reset tracing config and env between tests so monkeypatched env
         vars do not leak across tests in this class or the rest of the suite.
         """
-        from deerflow.config.tracing_config import reset_tracing_config
+        from vassilflow.config.tracing_config import reset_tracing_config
 
         for name in ("LANGFUSE_TRACING", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"):
             monkeypatch.delenv(name, raising=False)
@@ -2138,7 +2138,7 @@ class TestSubagentTracingWiring:
         monkeypatch.setenv("LANGFUSE_TRACING", "true")
         monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
         monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
-        from deerflow.config.tracing_config import reset_tracing_config
+        from vassilflow.config.tracing_config import reset_tracing_config
 
         reset_tracing_config()
 
@@ -2202,7 +2202,7 @@ class TestSubagentTracingWiring:
         monkeypatch.setenv("LANGFUSE_TRACING", "true")
         monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
         monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
-        from deerflow.config.tracing_config import reset_tracing_config
+        from vassilflow.config.tracing_config import reset_tracing_config
 
         reset_tracing_config()
         monkeypatch.setattr(executor_module, "build_tracing_callbacks", lambda: [object()])
@@ -2231,7 +2231,7 @@ class TestSubagentTracingWiring:
         monkeypatch.setenv("LANGFUSE_TRACING", "true")
         monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
         monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
-        from deerflow.config.tracing_config import reset_tracing_config
+        from vassilflow.config.tracing_config import reset_tracing_config
 
         reset_tracing_config()
         monkeypatch.setattr(executor_module, "build_tracing_callbacks", lambda: [object()])
@@ -2275,7 +2275,7 @@ class TestSubagentTracingWiring:
         monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
         monkeypatch.setenv("VASSILFLOW_ENV", "staging")
         monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
-        from deerflow.config.tracing_config import reset_tracing_config
+        from vassilflow.config.tracing_config import reset_tracing_config
 
         reset_tracing_config()
         monkeypatch.setattr(executor_module, "build_tracing_callbacks", lambda: [object()])
