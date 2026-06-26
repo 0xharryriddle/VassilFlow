@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Initial VassilFlow-owned boundary vocabulary. This contract is intentionally implementation-neutral so DeerFlow can remain the v0 runtime while VassilFlow stabilizes its session, run, trace, tool, policy, approval, and completion semantics.",
+  "description": "Initial VassilFlow-owned boundary vocabulary. This contract is intentionally implementation-neutral so the legacy implementation can remain the v0 runtime while VassilFlow stabilizes its session, run, trace, tool, policy, approval, and completion semantics.",
   "status_values": {
     "session": [
       "created",
