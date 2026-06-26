@@ -83,13 +83,13 @@ def fake_translator(text: str, target_lang: str) -> str:
 
 
 def _patch_mcp_pipeline(monkeypatch: pytest.MonkeyPatch, mcp_tools: list) -> None:
-    from deerflow.config.extensions_config import ExtensionsConfig, McpServerConfig
+    from vassilflow.config.extensions_config import ExtensionsConfig, McpServerConfig
 
     real_ext = ExtensionsConfig(
         mcpServers={"fake-server": McpServerConfig(type="stdio", command="echo", enabled=True)},
     )
     monkeypatch.setattr(
-        "deerflow.config.extensions_config.ExtensionsConfig.from_file",
+        "vassilflow.config.extensions_config.ExtensionsConfig.from_file",
         classmethod(lambda cls: real_ext),
     )
     monkeypatch.setattr("deerflow.mcp.cache.get_cached_mcp_tools", lambda: list(mcp_tools))
@@ -99,8 +99,8 @@ def _force_tool_search_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Build a minimal mock AppConfig and patch the symbol — never call the
     real loader, which would trigger ``_apply_singleton_configs`` and
     permanently mutate cross-test singletons (memory, title, …)."""
-    from deerflow.config.app_config import AppConfig
-    from deerflow.config.tool_search_config import ToolSearchConfig
+    from vassilflow.config.app_config import AppConfig
+    from vassilflow.config.tool_search_config import ToolSearchConfig
 
     mock_cfg = AppConfig.model_construct(
         log_level="info",

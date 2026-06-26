@@ -24,7 +24,7 @@ def _make_patches(*, interceptor_paths=None):
             return_value=mock_client,
         ),
         "from_file": patch(
-            "deerflow.config.extensions_config.ExtensionsConfig.from_file",
+            "vassilflow.config.extensions_config.ExtensionsConfig.from_file",
             return_value=MagicMock(
                 model_extra=extra,
                 get_enabled_mcp_servers=MagicMock(return_value={}),
