@@ -188,7 +188,7 @@ def test_validate_local_tool_path_rejects_non_virtual_path_mentions_configured_m
 
 
 def test_validate_local_tool_path_prioritizes_user_data_before_custom_mounts() -> None:
-    from deerflow.config.sandbox_config import VolumeMountConfig
+    from vassilflow.config.sandbox_config import VolumeMountConfig
 
     mounts = [
         VolumeMountConfig(host_path="/tmp/host-user-data", container_path=VIRTUAL_PATH_PREFIX, read_only=False),
@@ -821,7 +821,7 @@ def test_apply_cwd_prefix_quotes_path_with_spaces() -> None:
 
 def test_validate_local_bash_command_paths_allows_mcp_filesystem_paths() -> None:
     """Bash commands referencing MCP filesystem server paths should be allowed."""
-    from deerflow.config.extensions_config import ExtensionsConfig, McpServerConfig
+    from vassilflow.config.extensions_config import ExtensionsConfig, McpServerConfig
 
     mock_config = ExtensionsConfig(
         mcp_servers={
@@ -832,7 +832,7 @@ def test_validate_local_bash_command_paths_allows_mcp_filesystem_paths() -> None
             )
         }
     )
-    with patch("deerflow.config.extensions_config.get_extensions_config", return_value=mock_config):
+    with patch("vassilflow.config.extensions_config.get_extensions_config", return_value=mock_config):
         # Should not raise - MCP filesystem paths are allowed
         validate_local_bash_command_paths("ls /mnt/d/workspace", _THREAD_DATA)
         validate_local_bash_command_paths("cat /mnt/d/workspace/subdir/file.txt", _THREAD_DATA)
@@ -851,7 +851,7 @@ def test_validate_local_bash_command_paths_allows_mcp_filesystem_paths() -> None
                 )
             }
         )
-        with patch("deerflow.config.extensions_config.get_extensions_config", return_value=disabled_config):
+        with patch("vassilflow.config.extensions_config.get_extensions_config", return_value=disabled_config):
             with pytest.raises(PermissionError, match="Unsafe absolute paths"):
                 validate_local_bash_command_paths("ls /mnt/d/workspace", _THREAD_DATA)
 
@@ -861,7 +861,7 @@ def test_validate_local_bash_command_paths_allows_mcp_filesystem_paths() -> None
 
 def _mock_custom_mounts():
     """Create mock VolumeMountConfig objects for testing."""
-    from deerflow.config.sandbox_config import VolumeMountConfig
+    from vassilflow.config.sandbox_config import VolumeMountConfig
 
     return [
         VolumeMountConfig(host_path="/home/user/code-read", container_path="/mnt/code-read", read_only=True),
@@ -880,7 +880,7 @@ def test_is_custom_mount_path_recognises_configured_mounts() -> None:
 
 
 def test_get_custom_mount_for_path_returns_longest_prefix() -> None:
-    from deerflow.config.sandbox_config import VolumeMountConfig
+    from vassilflow.config.sandbox_config import VolumeMountConfig
 
     mounts = [
         VolumeMountConfig(host_path="/var/mnt", container_path="/mnt", read_only=False),
@@ -952,7 +952,7 @@ def test_get_custom_mounts_caching(monkeypatch, tmp_path) -> None:
     dir_b = tmp_path / "data"
     dir_b.mkdir()
 
-    from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+    from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
     mounts = [
         VolumeMountConfig(host_path=str(dir_a), container_path="/mnt/code-read", read_only=True),
@@ -978,7 +978,7 @@ def test_get_custom_mounts_filters_nonexistent_host_path(monkeypatch, tmp_path) 
     if hasattr(_get_custom_mounts, "_cached"):
         monkeypatch.delattr(_get_custom_mounts, "_cached")
 
-    from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+    from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
     existing_dir = tmp_path / "existing"
     existing_dir.mkdir()

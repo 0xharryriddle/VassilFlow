@@ -113,7 +113,13 @@ class LocalSandbox(Sandbox):
     @cached_property
     def _reverse_output_patterns(self) -> list[re.Pattern[str]]:
         """Compiled matchers for local paths in command output (longest local path first)."""
-        return [re.compile(re.escape(self._resolved_local_paths[m]) + r"(?:[/\\][^\s\"';&|<>()]*)?") for m in self._mappings_by_local_specificity]
+        return [re.compile(self._path_regex_with_flexible_separators(self._resolved_local_paths[m]) + r"(?:[/\\][^\s\"';&|<>()]*)?") for m in self._mappings_by_local_specificity]
+
+    @staticmethod
+    def _path_regex_with_flexible_separators(path: str) -> str:
+        """Return a regex for a filesystem path accepting / or \\ separators."""
+        parts = re.split(r"[/\\]+", path)
+        return r"[/\\]+".join(re.escape(part) for part in parts)
 
     @cached_property
     def _resolved_local_paths(self) -> dict[PathMapping, str]:

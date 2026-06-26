@@ -488,14 +488,14 @@ class TestMultipleMounts:
             ],
         )
 
-        # Mock subprocess to capture the resolved command
+        # Mock subprocess to capture the resolved command without depending on
+        # a platform-specific shell existing on the test host.
         captured = {}
-        original_run = __import__("subprocess").run
 
         def mock_run(*args, **kwargs):
             if len(args) > 0:
                 captured["command"] = args[0]
-            return original_run(*args, **kwargs)
+            return SimpleNamespace(stdout="hello", stderr="", returncode=0)
 
         monkeypatch.setattr("deerflow.sandbox.local.local_sandbox.subprocess.run", mock_run)
         monkeypatch.setattr("deerflow.sandbox.local.local_sandbox.LocalSandbox._get_shell", lambda self: "/bin/sh")
@@ -522,7 +522,7 @@ class TestMultipleMounts:
         )
 
         resolved = sandbox._reverse_resolve_path(str(target))
-        assert resolved == str(target.resolve())
+        assert resolved == str(target.resolve()).replace("\\", "/")
 
     def test_reverse_resolve_paths_in_output_supports_backslash_separator(self, tmp_path):
         mount_dir = tmp_path / "mount"
@@ -548,7 +548,7 @@ class TestLocalSandboxProviderMounts:
         custom_dir = tmp_path / "custom"
         custom_dir.mkdir()
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
             use="deerflow.sandbox.local:LocalSandboxProvider",
@@ -570,7 +570,7 @@ class TestLocalSandboxProviderMounts:
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
             use="deerflow.sandbox.local:LocalSandboxProvider",
@@ -594,7 +594,7 @@ class TestLocalSandboxProviderMounts:
         custom_dir = tmp_path / "custom"
         custom_dir.mkdir()
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
             use="deerflow.sandbox.local:LocalSandboxProvider",
@@ -626,7 +626,7 @@ class TestLocalSandboxProviderMounts:
         skills_dir.mkdir()
         missing_host_path = tmp_path / "does-not-exist"
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
             use="deerflow.sandbox.local:LocalSandboxProvider",
@@ -758,7 +758,7 @@ class TestLocalSandboxProviderMounts:
         custom_dir = tmp_path / "custom"
         custom_dir.mkdir()
 
-        from deerflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
+        from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
             use="deerflow.sandbox.local:LocalSandboxProvider",
@@ -786,7 +786,7 @@ class TestLocalSandboxProviderResetClearsSingleton:
     """
 
     def _build_config(self, skills_dir, mounts):
-        from deerflow.config.sandbox_config import SandboxConfig
+        from vassilflow.config.sandbox_config import SandboxConfig
 
         sandbox_config = SandboxConfig(
             use="deerflow.sandbox.local:LocalSandboxProvider",
@@ -802,13 +802,13 @@ class TestLocalSandboxProviderResetClearsSingleton:
         )
 
     def test_reset_sandbox_provider_clears_local_singleton(self, tmp_path):
-        from deerflow.config.sandbox_config import VolumeMountConfig
         from deerflow.sandbox import local as local_module
         from deerflow.sandbox.local import local_sandbox_provider as lsp_module
         from deerflow.sandbox.sandbox_provider import (
             get_sandbox_provider,
             reset_sandbox_provider,
         )
+        from vassilflow.config.sandbox_config import VolumeMountConfig
 
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()
@@ -861,13 +861,13 @@ class TestLocalSandboxProviderResetClearsSingleton:
         assert hasattr(local_module.local_sandbox_provider, "_singleton")
 
     def test_shutdown_sandbox_provider_clears_local_singleton(self, tmp_path):
-        from deerflow.config.sandbox_config import VolumeMountConfig
         from deerflow.sandbox.local import local_sandbox_provider as lsp_module
         from deerflow.sandbox.sandbox_provider import (
             get_sandbox_provider,
             reset_sandbox_provider,
             shutdown_sandbox_provider,
         )
+        from vassilflow.config.sandbox_config import VolumeMountConfig
 
         skills_dir = tmp_path / "skills"
         skills_dir.mkdir()

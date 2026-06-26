@@ -23,8 +23,8 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.config.sandbox_config import SandboxConfig
 from deerflow.sandbox.local.local_sandbox_provider import LocalSandboxProvider
+from vassilflow.config.sandbox_config import SandboxConfig
 
 
 def _build_config(skills_dir: Path) -> SimpleNamespace:
