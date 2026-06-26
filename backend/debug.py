@@ -5,7 +5,7 @@ Run this file directly in VS Code with breakpoints.
 
 Requirements:
     Run with `uv run` from the backend/ directory so that the uv workspace
-    resolves deerflow-harness and app packages correctly:
+    resolves vassilflow-harness and app packages correctly:
 
         cd backend && PYTHONPATH=. uv run python debug.py
 
