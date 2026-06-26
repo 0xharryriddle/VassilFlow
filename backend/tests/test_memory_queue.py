@@ -3,7 +3,7 @@ import time
 from unittest.mock import MagicMock, call, patch
 
 from deerflow.agents.memory.queue import ConversationContext, MemoryUpdateQueue
-from deerflow.config.memory_config import MemoryConfig
+from vassilflow.config.memory_config import MemoryConfig
 
 
 def _memory_config(**overrides: object) -> MemoryConfig:

@@ -20,7 +20,7 @@ from deerflow.agents.memory.prompt import (
     format_memory_for_injection,
     warm_tiktoken_cache,
 )
-from deerflow.config.memory_config import MemoryConfig
+from vassilflow.config.memory_config import MemoryConfig
 
 # ---------------------------------------------------------------------------
 # _get_tiktoken_encoding

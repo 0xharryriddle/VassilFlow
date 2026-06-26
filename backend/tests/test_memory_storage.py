@@ -11,7 +11,7 @@ from deerflow.agents.memory.storage import (
     create_empty_memory,
     get_memory_storage,
 )
-from deerflow.config.memory_config import MemoryConfig
+from vassilflow.config.memory_config import MemoryConfig
 
 
 class TestCreateEmptyMemory:

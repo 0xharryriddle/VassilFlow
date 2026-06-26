@@ -11,7 +11,7 @@ from deerflow.agents.memory.updater import (
     import_memory_data,
     update_memory_fact,
 )
-from deerflow.config.memory_config import MemoryConfig
+from vassilflow.config.memory_config import MemoryConfig
 
 
 def _make_memory(facts: list[dict[str, object]] | None = None) -> dict[str, object]:
