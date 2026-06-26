@@ -59,7 +59,11 @@ def test_compose_provisioner_defaults_use_vassilflow_labels(compose_file: str):
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for docker.sh naming tests")
 def test_docker_script_defaults_to_vassilflow_project_and_sandbox_prefix():
-    command = f'source \'{DOCKER_SCRIPT}\' >/dev/null && printf \'%s\\n%s\\n%s\\n\' "$COMPOSE_PROJECT_NAME" "$COMPOSE_CMD" "$SANDBOX_CONTAINER_PREFIX"'
+    command = (
+        "export VASSILFLOW_DOCKER_CLI_AUTH=0 DEER_FLOW_DOCKER_CLI_AUTH=0; "
+        f"source '{DOCKER_SCRIPT}' >/dev/null && printf '%s\\n%s\\n%s\\n' "
+        '"$COMPOSE_PROJECT_NAME" "$COMPOSE_CMD" "$SANDBOX_CONTAINER_PREFIX"'
+    )
 
     output = subprocess.check_output(
         [BASH_EXECUTABLE, "-lc", command],
@@ -69,7 +73,25 @@ def test_docker_script_defaults_to_vassilflow_project_and_sandbox_prefix():
 
     assert output[0] == "vassilflow-dev"
     assert "docker compose -p vassilflow-dev" in output[1]
+    assert "docker-compose.cli-auth.yaml" not in output[1]
     assert output[2] == "vassilflow-sandbox"
+
+
+@pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for docker.sh naming tests")
+def test_docker_script_can_opt_into_cli_auth_overlay():
+    command = (
+        "export VASSILFLOW_DOCKER_CLI_AUTH=1 HOME=/tmp; "
+        f"source '{DOCKER_SCRIPT}' >/dev/null && printf '%s\\n' \"$COMPOSE_CMD\""
+    )
+
+    output = subprocess.check_output(
+        [BASH_EXECUTABLE, "-lc", command],
+        text=True,
+        encoding="utf-8",
+    )
+
+    assert "docker-compose-dev.yaml" in output
+    assert "docker-compose.cli-auth.yaml" in output
 
 
 def test_scripts_keep_legacy_docker_names_only_for_cleanup():

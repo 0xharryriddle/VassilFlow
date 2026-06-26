@@ -52,10 +52,73 @@ sync_vassilflow_envs() {
     sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
     sync_vassilflow_env DEER_FLOW_DOCKER_DEV_PROJECT
     sync_vassilflow_env DEER_FLOW_SANDBOX_CONTAINER_PREFIX
+    sync_vassilflow_env DEER_FLOW_DOCKER_CLI_AUTH
     sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
     sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
     sync_vassilflow_env DEER_FLOW_CHANNELS_LANGGRAPH_URL
     sync_vassilflow_env DEER_FLOW_CHANNELS_GATEWAY_URL
+}
+
+load_env_var_from_dotenv_if_unset() {
+    local var="$1"
+    local env_file="$PROJECT_ROOT/.env"
+    local line
+    local value
+
+    if [ -n "${!var+x}" ] || [ ! -f "$env_file" ]; then
+        return
+    fi
+
+    line="$(grep -E "^[[:space:]]*${var}=" "$env_file" | tail -n 1 || true)"
+    if [ -z "$line" ]; then
+        return
+    fi
+
+    value="${line#*=}"
+    value="${value%%#*}"
+    value="$(printf '%s' "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+    value="${value%\"}"
+    value="${value#\"}"
+    value="${value%\'}"
+    value="${value#\'}"
+    value="${value%$'\r'}"
+    export "${var}=${value}"
+}
+
+load_docker_control_env_from_dotenv() {
+    load_env_var_from_dotenv_if_unset VASSILFLOW_DOCKER_CLI_AUTH
+    load_env_var_from_dotenv_if_unset DEER_FLOW_DOCKER_CLI_AUTH
+}
+
+is_truthy() {
+    case "${1:-}" in
+        1|true|TRUE|yes|YES|on|ON) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+ensure_home_for_cli_auth_overlay() {
+    if [ -n "${HOME:-}" ]; then
+        return 0
+    fi
+    if [ -n "${USERPROFILE:-}" ] && command -v cygpath >/dev/null 2>&1; then
+        export HOME
+        HOME="$(cygpath -u "$USERPROFILE")"
+        return 0
+    fi
+
+    echo -e "${YELLOW}VASSILFLOW_DOCKER_CLI_AUTH is enabled, but HOME is not set for the compose auth overlay.${NC}"
+    echo "Set HOME to your user directory or disable VASSILFLOW_DOCKER_CLI_AUTH."
+    exit 1
+}
+
+enable_cli_auth_overlay_if_requested() {
+    load_docker_control_env_from_dotenv
+    sync_vassilflow_env DEER_FLOW_DOCKER_CLI_AUTH
+    if is_truthy "${VASSILFLOW_DOCKER_CLI_AUTH:-${DEER_FLOW_DOCKER_CLI_AUTH:-}}"; then
+        ensure_home_for_cli_auth_overlay
+        COMPOSE_CMD="$COMPOSE_CMD -f docker-compose.cli-auth.yaml"
+    fi
 }
 
 compose_project_has_containers() {
@@ -94,6 +157,8 @@ container_runtime_home_for() {
         *) printf '%s\n' "/app/backend/.vassilflow" ;;
     esac
 }
+
+enable_cli_auth_overlay_if_requested
 
 load_proxy_env_from_dotenv() {
     local env_file="$PROJECT_ROOT/.env"
