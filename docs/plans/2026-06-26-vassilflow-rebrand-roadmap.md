@@ -69,8 +69,12 @@ Add VassilFlow-owned facade modules over existing DeerFlow internals.
   `contracts/vassilflow_boundary_contract.json`; dynamic config class paths now
   accept `vassilflow.*` and the setup wizard/config examples prefer those names.
   The facade now exposes `VassilFlowClient`, `create_vassilflow_agent`, and
-  `vassilflow.config.load_config` for new embedded integrations. Deeper
-  internal import renames remain deferred.
+  `vassilflow.config.load_config` for new embedded integrations. Direct
+  implementation-deep imports such as `vassilflow.models.*`,
+  `vassilflow.sandbox.*`, `vassilflow.community.*`, and
+  `vassilflow.guardrails.*` now lazy-alias to the current `deerflow.*`
+  modules so new config/provider paths are importable without duplicating
+  classes. Broad internal package renames remain deferred.
 - Keep existing `deerflow` imports working.
 - Introduce stable VassilFlow names for session, run, trace, tool, policy, approval, memory, and completion evidence contracts.
 - Add tests around `contracts/vassilflow_boundary_contract.json`.

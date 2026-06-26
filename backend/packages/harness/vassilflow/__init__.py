@@ -5,6 +5,7 @@ package exposes the VassilFlow-owned public vocabulary without breaking existing
 ``deerflow.*`` imports.
 """
 
+from vassilflow._module_aliases import install_vassilflow_module_aliases
 from vassilflow.agents import create_deerflow_agent, create_vassilflow_agent
 from vassilflow.boundary import (
     ApprovalRequest,
@@ -22,6 +23,8 @@ from vassilflow.boundary import (
     TraceStep,
 )
 from vassilflow.client import DeerFlowClient, StreamEvent, StreamEventType, VassilFlowClient
+
+install_vassilflow_module_aliases()
 
 __all__ = [
     "ApprovalRequest",
@@ -43,4 +46,5 @@ __all__ = [
     "VassilFlowClient",
     "create_deerflow_agent",
     "create_vassilflow_agent",
+    "install_vassilflow_module_aliases",
 ]

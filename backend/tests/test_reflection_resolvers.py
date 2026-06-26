@@ -1,5 +1,6 @@
 """Tests for reflection resolvers."""
 
+import importlib
 from pathlib import Path
 
 import pytest
@@ -78,14 +79,51 @@ def test_resolve_variable_invalid_path_format():
             "vassilflow.guardrails.builtin:AllowlistProvider",
             "deerflow.guardrails.builtin:AllowlistProvider",
         ),
-        (
-            "vassilflow.agents:create_vassilflow_agent",
-            "deerflow.agents:create_deerflow_agent",
-        ),
     ],
 )
 def test_resolve_variable_bridges_vassilflow_internal_class_paths(vassilflow_path, deerflow_path):
     assert resolve_variable(vassilflow_path) is resolve_variable(deerflow_path)
+
+
+def test_resolve_variable_exposes_vassilflow_agent_factory_wrapper():
+    facade_factory = resolve_variable("vassilflow.agents:create_vassilflow_agent")
+    deerflow_factory = resolve_variable("deerflow.agents:create_deerflow_agent")
+
+    assert facade_factory.__name__ == "create_vassilflow_agent"
+    assert getattr(facade_factory, "__wrapped__", None) is deerflow_factory
+
+
+@pytest.mark.parametrize(
+    ("vassilflow_path", "deerflow_path"),
+    [
+        (
+            "vassilflow.models.openai_codex_provider:CodexChatModel",
+            "deerflow.models.openai_codex_provider:CodexChatModel",
+        ),
+        (
+            "vassilflow.community.ddg_search.tools:web_search_tool",
+            "deerflow.community.ddg_search.tools:web_search_tool",
+        ),
+        (
+            "vassilflow.sandbox.tools:read_file_tool",
+            "deerflow.sandbox.tools:read_file_tool",
+        ),
+        (
+            "vassilflow.sandbox.local:LocalSandboxProvider",
+            "deerflow.sandbox.local:LocalSandboxProvider",
+        ),
+        (
+            "vassilflow.guardrails.builtin:AllowlistProvider",
+            "deerflow.guardrails.builtin:AllowlistProvider",
+        ),
+        (
+            "vassilflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector",
+            "deerflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector",
+        ),
+    ],
+)
+def test_direct_vassilflow_internal_imports_alias_to_deerflow_modules(vassilflow_path, deerflow_path):
+    assert _import_variable(vassilflow_path) is _import_variable(deerflow_path)
 
 
 def test_config_example_prefers_vassilflow_dynamic_paths():
@@ -120,3 +158,9 @@ def _walk_config_values(value):
     elif isinstance(value, list):
         for child in value:
             yield from _walk_config_values(child)
+
+
+def _import_variable(variable_path: str):
+    module_path, variable_name = variable_path.rsplit(":", 1)
+
+    return getattr(importlib.import_module(module_path), variable_name)
