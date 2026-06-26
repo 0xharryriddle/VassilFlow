@@ -179,12 +179,12 @@ class ClaudeChatModel(ChatAnthropic):
         if "user_id" not in payload["metadata"]:
             # Generate a stable device_id from the machine's hostname
             hostname = socket.gethostname()
-            device_id = hashlib.sha256(f"deerflow-{hostname}".encode()).hexdigest()
+            device_id = hashlib.sha256(f"vassilflow-{hostname}".encode()).hexdigest()
             session_id = str(uuid.uuid4())
             payload["metadata"]["user_id"] = json.dumps(
                 {
                     "device_id": device_id,
-                    "account_uuid": "deerflow",
+                    "account_uuid": "vassilflow",
                     "session_id": session_id,
                 }
             )
