@@ -66,8 +66,8 @@ Docker Compose 在容器中运行所有服务。适用于更接近生产的本�
 ### 开发 Compose
 
 ```bash
-# 设置 deer-flow 仓库根目录的绝对路径
-export DEER_FLOW_ROOT=/path/to/deer-flow
+# 设置 VassilFlow 仓库根目录的绝对路径
+export VASSILFLOW_ROOT=/path/to/VassilFlow
 
 docker compose -f docker/docker-compose-dev.yaml up --build
 ```
@@ -81,7 +81,7 @@ docker compose -f docker/docker-compose-dev.yaml up --build
 ```bash
 # .env
 OPENAI_API_KEY=sk-...
-DEER_FLOW_ROOT=/absolute/path/to/deer-flow
+VASSILFLOW_ROOT=/absolute/path/to/VassilFlow
 BETTER_AUTH_SECRET=your-secret-here-min-32-chars
 ```
 
@@ -94,11 +94,11 @@ BETTER_AUTH_SECRET=your-secret-here-min-32-chars
 
 ### 数据持久化
 
-线程数据存储在 `backend/.deer-flow/threads/`。在 Docker 部署中，此目录会绑定挂载到 gateway 容器中。
+线程数据存储在 `backend/.vassilflow/threads/`。在 Docker 部署中，此目录会绑定挂载到 gateway 容器中。
 
 为避免容器重建时数据丢失：
 
-1. 将 `DEER_FLOW_ROOT` 设置为仓库根目录的绝对路径。
+1. 将 `VASSILFLOW_ROOT` 设置为仓库根目录的绝对路径。
 2. 验证 `threads/` 和 `skills/` 目录挂载正确。
 
 对于生产环境，使用命名卷或持久化卷声明（PVC）代替主机绑定挂载。
@@ -124,9 +124,9 @@ BETTER_AUTH_SECRET=your-secret-here-min-32-chars
 在你的 `.env` 或 compose 覆盖文件中设置必需的环境变量：
 
 ```bash
-K8S_NAMESPACE=deer-flow
+K8S_NAMESPACE=vassilflow
 SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-DEER_FLOW_ROOT=/absolute/path/to/deer-flow
+VASSILFLOW_ROOT=/absolute/path/to/VassilFlow
 ```
 
 #### 配置沙箱提供者
@@ -144,8 +144,8 @@ sandbox:
 
 ```bash
 # 在 .env 或 compose 环境中
-USERDATA_PVC_NAME=deer-flow-userdata-pvc
-SKILLS_PVC_NAME=deer-flow-skills-pvc
+USERDATA_PVC_NAME=vassilflow-userdata-pvc
+SKILLS_PVC_NAME=vassilflow-skills-pvc
 ```
 
 当设置 `USERDATA_PVC_NAME` 时，Provisioner 自动使用子路径（`threads/{thread_id}/user-data`），每个线程在 PVC 中获得自己的目录。

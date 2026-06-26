@@ -66,8 +66,8 @@ Docker Compose runs all services in containers. Use this for a more production-l
 ### Development compose
 
 ```bash
-# Set the absolute path to your deer-flow repo root
-export DEER_FLOW_ROOT=/path/to/deer-flow
+# Set the absolute path to your VassilFlow repo root
+export VASSILFLOW_ROOT=/path/to/VassilFlow
 
 docker compose -f docker/docker-compose-dev.yaml up --build
 ```
@@ -83,7 +83,7 @@ Create a `.env` file in the repo root for secrets and runtime configuration:
 ```bash
 # .env
 OPENAI_API_KEY=sk-...
-DEER_FLOW_ROOT=/absolute/path/to/deer-flow
+VASSILFLOW_ROOT=/absolute/path/to/VassilFlow
 BETTER_AUTH_SECRET=your-secret-here-min-32-chars
 ```
 
@@ -97,11 +97,11 @@ The `docker-compose*.yaml` files include an `env_file: ../.env` directive that l
 
 ### Data persistence
 
-Thread data is stored in `backend/.deer-flow/threads/`. In Docker deployments, this directory is bind-mounted into the gateway container.
+Thread data is stored in `backend/.vassilflow/threads/`. In Docker deployments, this directory is bind-mounted into the gateway container.
 
 To avoid data loss when containers are recreated:
 
-1. Set `DEER_FLOW_ROOT` to the absolute repo root path (or a stable host path).
+1. Set `VASSILFLOW_ROOT` to the absolute repo root path (or a stable host path).
 2. Verify the `threads/` and `skills/` directories are mounted correctly.
 
 For production, use a named volume or a Persistent Volume Claim (PVC) instead of a host bind-mount.
@@ -129,9 +129,9 @@ The provisioner manages sandbox Pods in a Kubernetes cluster. It is included in 
 Set required environment variables in your `.env` or compose override:
 
 ```bash
-K8S_NAMESPACE=deer-flow
+K8S_NAMESPACE=vassilflow
 SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-DEER_FLOW_ROOT=/absolute/path/to/deer-flow
+VASSILFLOW_ROOT=/absolute/path/to/VassilFlow
 ```
 
 #### Configure the sandbox provider
@@ -149,8 +149,8 @@ For production, use PVCs instead of hostPath volumes:
 
 ```bash
 # In .env or compose environment
-USERDATA_PVC_NAME=deer-flow-userdata-pvc
-SKILLS_PVC_NAME=deer-flow-skills-pvc
+USERDATA_PVC_NAME=vassilflow-userdata-pvc
+SKILLS_PVC_NAME=vassilflow-skills-pvc
 ```
 
 When `USERDATA_PVC_NAME` is set, the provisioner automatically uses subPath (`threads/{thread_id}/user-data`) so each thread gets its own directory in the PVC.
