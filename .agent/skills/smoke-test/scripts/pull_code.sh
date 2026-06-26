@@ -8,14 +8,14 @@ echo ""
 
 # Check whether the current directory is a Git repository
 if [ ! -d ".git" ]; then
-    echo "✗ The current directory is not a Git repository"
+    echo "[FAIL] The current directory is not a Git repository"
     exit 1
 fi
 
 # Check Git status
 echo "Checking Git status..."
 if git status --porcelain | grep -q .; then
-    echo "⚠  Uncommitted changes detected:"
+    echo "[WARN]  Uncommitted changes detected:"
     git status --short
     echo ""
     echo "Please commit or stash your changes before continuing"
@@ -25,7 +25,7 @@ if git status --porcelain | grep -q .; then
     echo "  3. git reset --hard HEAD (discard local changes - use with caution)"
     exit 1
 else
-    echo "✓ Working tree is clean"
+    echo "[OK] Working tree is clean"
 fi
 echo ""
 

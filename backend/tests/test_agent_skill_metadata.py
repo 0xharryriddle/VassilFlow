@@ -53,3 +53,38 @@ def test_readme_documents_public_claude_vassilflow_skill():
     assert "claude-to-vassilflow" in content
     assert "skills/public/claude-to-vassilflow/SKILL.md" in content
     assert "claude-to-deerflow" not in content
+
+
+def test_smoke_test_skill_uses_vassilflow_identity():
+    skill_path = REPO_ROOT / ".agent" / "skills" / "smoke-test" / "SKILL.md"
+    metadata = _frontmatter(skill_path)
+    body = skill_path.read_text(encoding="utf-8")
+    docker_template = (
+        REPO_ROOT
+        / ".agent"
+        / "skills"
+        / "smoke-test"
+        / "templates"
+        / "report.docker.template.md"
+    ).read_text(encoding="utf-8")
+
+    assert "VassilFlow" in metadata["description"]
+    assert "# VassilFlow Smoke Test Skill" in body
+    assert "VassilFlow Smoke Test Report" in docker_template
+    assert "vassilflow-nginx" in docker_template
+    assert "deer-flow-nginx" not in docker_template
+
+
+def test_smoke_test_scripts_detect_vassilflow_and_legacy_names():
+    health_check = (
+        REPO_ROOT / ".agent" / "skills" / "smoke-test" / "scripts" / "health_check.sh"
+    ).read_text(encoding="utf-8")
+    check_docker = (
+        REPO_ROOT / ".agent" / "skills" / "smoke-test" / "scripts" / "check_docker.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "vassilflow_containers_running()" in health_check
+    assert "vassilflow|deer-flow|deerflow" in health_check
+    assert "vassilflow_process_found" in check_docker
+    assert "*[Vv]assil[Ff]low*" in check_docker
+    assert "*[Dd]eer[Ff]low*" in check_docker

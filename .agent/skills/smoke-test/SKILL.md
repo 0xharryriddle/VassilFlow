@@ -1,11 +1,11 @@
 ---
 name: smoke-test
-description: End-to-end smoke test skill for DeerFlow. Guides through: 1) Pulling latest code, 2) Docker OR Local installation and deployment (user preference, default to Local if Docker network issues), 3) Service availability verification, 4) Health check, 5) Final test report. Use when the user says "run smoke test", "smoke test deployment", "verify installation", "test service availability", "end-to-end test", or similar.
+description: "End-to-end smoke test skill for VassilFlow. Guides through: 1) Pulling latest code, 2) Docker OR Local installation and deployment (user preference, default to Local if Docker network issues), 3) Service availability verification, 4) Health check, 5) Final test report. Use when the user says \"run smoke test\", \"smoke test deployment\", \"verify installation\", \"test service availability\", \"end-to-end test\", or similar."
 ---
 
-# DeerFlow Smoke Test Skill
+# VassilFlow Smoke Test Skill
 
-This skill guides the Agent through DeerFlow's full end-to-end smoke test workflow, including code updates, deployment (supporting both Docker and local installation modes), service availability verification, and health checks.
+This skill guides the Agent through VassilFlow's full end-to-end smoke test workflow, including code updates, deployment (supporting both Docker and local installation modes), service availability verification, and health checks.
 
 ## Deployment Mode Selection
 
@@ -22,28 +22,28 @@ This skill supports two deployment modes:
 
 ```
 smoke-test/
-├── SKILL.md                          ← You are here - core workflow and logic
-├── scripts/
-│   ├── check_docker.sh               ← Check the Docker environment
-│   ├── check_local_env.sh            ← Check local environment dependencies
-│   ├── frontend_check.sh             ← Frontend page smoke check
-│   ├── pull_code.sh                  ← Pull the latest code
-│   ├── deploy_docker.sh              ← Docker deployment
-│   ├── deploy_local.sh               ← Local deployment
-│   └── health_check.sh               ← Service health check
-├── references/
-│   ├── SOP.md                        ← Standard operating procedure
-│   └── troubleshooting.md            ← Troubleshooting guide
-└── templates/
-    ├── report.local.template.md      ← Local mode smoke test report template
-    └── report.docker.template.md     ← Docker mode smoke test report template
+|- SKILL.md                         <- You are here - core workflow and logic
+|- scripts/
+|  |- check_docker.sh               <- Check the Docker environment
+|  |- check_local_env.sh            <- Check local environment dependencies
+|  |- frontend_check.sh             <- Frontend page smoke check
+|  |- pull_code.sh                  <- Pull the latest code
+|  |- deploy_docker.sh              <- Docker deployment
+|  |- deploy_local.sh               <- Local deployment
+|  `- health_check.sh               <- Service health check
+|- references/
+|  |- SOP.md                        <- Standard operating procedure
+|  `- troubleshooting.md            <- Troubleshooting guide
+`- templates/
+   |- report.local.template.md      <- Local mode smoke test report template
+   `- report.docker.template.md     <- Docker mode smoke test report template
 ```
 
 ## Standard Operating Procedure (SOP)
 
 ### Phase 1: Code Update Check
 
-1. **Confirm current directory** - Verify that the current working directory is the DeerFlow project root
+1. **Confirm current directory** - Verify that the current working directory is the VassilFlow project root
 2. **Check Git status** - See whether there are uncommitted changes
 3. **Pull the latest code** - Use `git pull origin main` to get the latest updates
 4. **Confirm code update** - Verify that the latest code was pulled successfully
@@ -136,7 +136,7 @@ smoke-test/
 The following warnings can appear during smoke testing and do not block a successful result:
 - Feishu/Lark SSL errors in Gateway logs (certificate verification failure) can be ignored if that channel is not enabled
 - Warnings in Gateway logs about missing methods in the custom checkpointer, such as `adelete_for_runs` or `aprune`, do not affect the core functionality
-- The `frontend_check.sh` script automatically handles authentication. When auth is enabled it registers / logs in a smoke-test user (`smoke-test@deerflow.dev` by default) to verify the real `/workspace/*` pages. The registration may produce a log entry from the auth provider, which is expected and harmless.
+- The `frontend_check.sh` script automatically handles authentication. When auth is enabled it registers / logs in a smoke-test user (`smoke-test@vassilflow.local` by default) to verify the real `/workspace/*` pages. The registration may produce a log entry from the auth provider, which is expected and harmless.
 
 ## Key Tools
 

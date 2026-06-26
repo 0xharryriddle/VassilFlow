@@ -109,6 +109,8 @@ standalone product references. `VassilFlowClient` and
 legacy `deerflow.*`, `DeerFlowClient`, and `create_deerflow_agent` imports
 remain supported as compatibility shims. Project-owned maintainer-orchestrator
 agent docs and skill metadata now use VassilFlow naming. The public Claude Code
-bridge skill is now named `claude-to-vassilflow`.
+bridge skill is now named `claude-to-vassilflow`. The repository smoke-test
+skill, reports, and troubleshooting references now use VassilFlow naming while
+still detecting legacy DeerFlow container/env aliases.
 
 Historical upstream references should remain where they explain provenance, fixes, or compatibility decisions. Product docs should use VassilFlow.

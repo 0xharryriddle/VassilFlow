@@ -1,12 +1,12 @@
-# DeerFlow Smoke Test Standard Operating Procedure (SOP)
+# VassilFlow Smoke Test Standard Operating Procedure (SOP)
 
-This document describes the detailed operating steps for each phase of the DeerFlow smoke test.
+This document describes the detailed operating steps for each phase of the VassilFlow smoke test.
 
 ## Phase 1: Code Update Check
 
 ### 1.1 Confirm Current Directory
 
-**Objective**: Verify that the current working directory is the DeerFlow project root.
+**Objective**: Verify that the current working directory is the VassilFlow project root.
 
 **Steps**:
 1. Run `pwd` to view the current working directory
@@ -140,7 +140,7 @@ This document describes the detailed operating steps for each phase of the DeerF
    lsof -i :8001  # Gateway
    ```
 
-**Success Criteria**: All ports are free, or they are occupied only by DeerFlow-related processes.
+**Success Criteria**: All ports are free, or they are occupied only by VassilFlow-related processes.
 
 **Failure Handling**:
 - If a port is occupied, ask the user to stop the related process
@@ -184,7 +184,7 @@ This document describes the detailed operating steps for each phase of the DeerF
 **Steps**:
 1. Run `lsof -i :2026` (macOS/Linux) or `netstat -ano | findstr :2026` (Windows)
 
-**Success Criteria**: Port 2026 is free, or it is occupied only by a DeerFlow-related process.
+**Success Criteria**: Port 2026 is free, or it is occupied only by a VassilFlow-related process.
 
 **Failure Handling**:
 - If the port is occupied by another process, ask the user to stop that process or change the configuration
@@ -367,13 +367,13 @@ curl http://localhost:2026/health
 
 **Steps**:
 1. Run `bash .agent/skills/smoke-test/scripts/frontend_check.sh`.
-2. The script auto-detects whether authentication (`DEER_FLOW_AUTH_DISABLED`) is enabled.
-3. When auth is on, the script registers / logs in a smoke-test user (`smoke-test@deerflow.dev` by default) and passes the session cookie so the real `/workspace/*` pages are verified — not the login redirect.
+2. The script auto-detects whether authentication (`VASSILFLOW_AUTH_DISABLED`, legacy `DEER_FLOW_AUTH_DISABLED`) is enabled.
+3. When auth is on, the script registers / logs in a smoke-test user (`smoke-test@vassilflow.local` by default) and passes the session cookie so the real `/workspace/*` pages are verified - not the login redirect.
 4. When auth is off, the routes are checked anonymously as before.
 
 **Customisation**:
-- `SMOKE_TEST_EMAIL` — email for the test account (default: `smoke-test@deerflow.dev`).
-- `SMOKE_TEST_PASSWORD` — password for the test account (default: `SmokeTest123!`).
+- `SMOKE_TEST_EMAIL` - email for the test account (default: `smoke-test@vassilflow.local`).
+- `SMOKE_TEST_PASSWORD` - password for the test account (default: `SmokeTest123!`).
 
 ---
 
@@ -384,9 +384,9 @@ curl http://localhost:2026/health
 **Steps**:
 1. Run `docker ps`
 2. Confirm that the following containers are running:
-   - `deer-flow-nginx`
-   - `deer-flow-frontend`
-   - `deer-flow-gateway`
+   - `vassilflow-nginx`
+   - `vassilflow-frontend`
+   - `vassilflow-gateway`
 
 ---
 
@@ -433,13 +433,13 @@ curl http://localhost:2026/health
 
 **Steps**:
 1. Run `bash .agent/skills/smoke-test/scripts/frontend_check.sh`.
-2. The script auto-detects whether authentication (`DEER_FLOW_AUTH_DISABLED`) is enabled.
-3. When auth is on, the script registers / logs in a smoke-test user (`smoke-test@deerflow.dev` by default) and passes the session cookie so the real `/workspace/*` pages are verified — not the login redirect.
+2. The script auto-detects whether authentication (`VASSILFLOW_AUTH_DISABLED`, legacy `DEER_FLOW_AUTH_DISABLED`) is enabled.
+3. When auth is on, the script registers / logs in a smoke-test user (`smoke-test@vassilflow.local` by default) and passes the session cookie so the real `/workspace/*` pages are verified - not the login redirect.
 4. When auth is off, the routes are checked anonymously as before.
 
 **Customisation**:
-- `SMOKE_TEST_EMAIL` — email for the test account (default: `smoke-test@deerflow.dev`).
-- `SMOKE_TEST_PASSWORD` — password for the test account (default: `SmokeTest123!`).
+- `SMOKE_TEST_EMAIL` - email for the test account (default: `smoke-test@vassilflow.local`).
+- `SMOKE_TEST_PASSWORD` - password for the test account (default: `SmokeTest123!`).
 
 ---
 

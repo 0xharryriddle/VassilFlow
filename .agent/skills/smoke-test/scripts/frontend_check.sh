@@ -9,13 +9,14 @@ echo ""
 BASE_URL="${BASE_URL:-http://localhost:2026}"
 DOC_PATH="${DOC_PATH:-/en/docs}"
 
-# When the gateway has authentication enabled (DEER_FLOW_AUTH_DISABLED != 1),
+# When the gateway has authentication enabled (VASSILFLOW_AUTH_DISABLED != 1;
+# legacy DEER_FLOW_AUTH_DISABLED is still accepted),
 # protected /workspace/* routes redirect anonymous requests to /login.
 # We detect auth, register / log in a smoke-test user, and pass the session
 # cookie to all curl calls so the real pages are verified, not the login form.
-SMOKE_TEST_EMAIL="${SMOKE_TEST_EMAIL:-smoke-test@deerflow.dev}"
+SMOKE_TEST_EMAIL="${SMOKE_TEST_EMAIL:-smoke-test@vassilflow.local}"
 SMOKE_TEST_PASSWORD="${SMOKE_TEST_PASSWORD:-SmokeTest123!}"
-COOKIE_JAR=$(mktemp /tmp/deerflow-smoke-cookies.XXXXXX)
+COOKIE_JAR=$(mktemp /tmp/vassilflow-smoke-cookies.XXXXXX)
 trap 'rm -f "$COOKIE_JAR"' EXIT
 CURL_AUTH_OPTS=""
 
@@ -24,7 +25,7 @@ authenticate() {
     local health
     health=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}/" 2>/dev/null)
     if [ "$health" = "000" ]; then
-        echo "✗ Cannot reach ${BASE_URL} — is the service running?"
+        echo "[FAIL] Cannot reach ${BASE_URL} - is the service running?"
         return 1
     fi
 
@@ -32,11 +33,11 @@ authenticate() {
     local auth_check
     auth_check=$(curl -s -o /dev/null -w "%{http_code}" "${BASE_URL}/api/models" 2>/dev/null)
     if [ "$auth_check" != "401" ]; then
-        echo "ℹ Auth is disabled — no login needed"
+        echo "[INFO] Auth is disabled - no login needed"
         return 0
     fi
 
-    echo "🔐 Auth is enabled — setting up smoke test session..."
+    echo "[AUTH] Auth is enabled - setting up smoke test session..."
 
     # Check whether the system needs first-boot initialization
     local needs_setup
@@ -51,14 +52,14 @@ authenticate() {
             -d "{\"email\":\"${SMOKE_TEST_EMAIL}\",\"password\":\"${SMOKE_TEST_PASSWORD}\"}" \
             -c "$COOKIE_JAR" 2>/dev/null)
         if [ "$init_code" != "201" ]; then
-            echo "✗ Initialize failed (HTTP $init_code)"
+            echo "[FAIL] Initialize failed (HTTP $init_code)"
             return 1
         fi
-        echo "✓ Admin initialized & logged in"
+        echo "[OK] Admin initialized & logged in"
     elif [ -z "$needs_setup" ]; then
-        echo "⚠ Could not determine setup status — skipping initialize, trying register/login"
+        echo "[WARN] Could not determine setup status - skipping initialize, trying register/login"
     else
-        # Register first — on success (201) it also auto-logs-in via the cookie.
+        # Register first - on success (201) it also auto-logs-in via the cookie.
         # This avoids a wasted login attempt that counts toward rate-limiting.
         local auth_code
         auth_code=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -68,9 +69,9 @@ authenticate() {
             -c "$COOKIE_JAR" 2>/dev/null)
 
         if [ "$auth_code" = "201" ]; then
-            echo "✓ Registered as ${SMOKE_TEST_EMAIL}"
+            echo "[OK] Registered as ${SMOKE_TEST_EMAIL}"
         else
-            # User already exists — clear stale cookies from register attempt, then log in
+            # User already exists - clear stale cookies from register attempt, then log in
             : > "$COOKIE_JAR"
             local login_code
             login_code=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -79,10 +80,10 @@ authenticate() {
                 --data-urlencode "password=${SMOKE_TEST_PASSWORD}" \
                 -c "$COOKIE_JAR" 2>/dev/null)
             if [ "$login_code" != "200" ]; then
-                echo "✗ Login failed (HTTP $login_code)"
+                echo "[FAIL] Login failed (HTTP $login_code)"
                 return 1
             fi
-            echo "✓ Logged in as ${SMOKE_TEST_EMAIL}"
+            echo "[OK] Logged in as ${SMOKE_TEST_EMAIL}"
         fi
     fi
 
@@ -92,12 +93,12 @@ authenticate() {
         -b "$COOKIE_JAR" "${BASE_URL}/api/v1/auth/me" 2>/dev/null)
 
     if [ "$me_code" = "200" ]; then
-        echo "✓ Session verified for ${SMOKE_TEST_EMAIL}"
+        echo "[OK] Session verified for ${SMOKE_TEST_EMAIL}"
         CURL_AUTH_OPTS="-b $COOKIE_JAR"
         return 0
     fi
 
-    echo "✗ Auth failed — session cookie not accepted (HTTP $me_code)"
+    echo "[FAIL] Auth failed - session cookie not accepted (HTTP $me_code)"
     echo "  Set SMOKE_TEST_EMAIL / SMOKE_TEST_PASSWORD or check the existing account"
     return 1
 }
@@ -112,9 +113,9 @@ check_status() {
     local status
     status="$(curl -s -o /dev/null -w "%{http_code}" -L ${CURL_AUTH_OPTS} "$url")"
     if echo "$status" | grep -Eq "$expected_re"; then
-        echo "✓ $name ($url) -> $status"
+        echo "[OK] $name ($url) -> $status"
     else
-        echo "✗ $name ($url) -> $status (expected: $expected_re)"
+        echo "[FAIL] $name ($url) -> $status (expected: $expected_re)"
         all_passed=false
     fi
 }
@@ -127,9 +128,9 @@ check_final_url() {
     local effective
     effective="$(curl -s -o /dev/null -w "%{url_effective}" -L ${CURL_AUTH_OPTS} "$url")"
     if echo "$effective" | grep -Eq "$expected_path_re"; then
-        echo "✓ $name redirect target -> $effective"
+        echo "[OK] $name redirect target -> $effective"
     else
-        echo "✗ $name redirect target -> $effective (expected path: $expected_path_re)"
+        echo "[FAIL] $name redirect target -> $effective (expected path: $expected_path_re)"
         all_passed=false
     fi
 }
@@ -162,9 +163,9 @@ echo "  Frontend Smoke Check Summary"
 echo "=========================================="
 echo ""
 if [ "$all_passed" = true ]; then
-    echo "✅ Frontend smoke checks passed!"
+    echo "[OK] Frontend smoke checks passed!"
     exit 0
 else
-    echo "❌ Frontend smoke checks failed"
+    echo "[FAIL] Frontend smoke checks failed"
     exit 1
 fi
