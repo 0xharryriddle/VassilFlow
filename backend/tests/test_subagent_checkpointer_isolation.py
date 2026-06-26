@@ -11,6 +11,7 @@ once, and extracts the last AIMessage. It never resumes, so persistence
 is unnecessary and inheriting the parent checkpointer is harmful.
 """
 
+import importlib
 import sys
 from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock
@@ -57,8 +58,10 @@ def _setup_executor_module():
     storage_module.get_or_new_skill_storage = lambda **kwargs: SimpleNamespace(load_skills=lambda *, enabled_only: [])
     sys.modules["deerflow.skills.storage"] = storage_module
 
-    from deerflow.subagents.config import SubagentConfig
-    from deerflow.subagents.executor import SubagentExecutor
+    subagent_config_module = importlib.import_module("deerflow.subagents.config")
+    executor_impl_module = importlib.import_module("deerflow.subagents.executor")
+    SubagentConfig = subagent_config_module.SubagentConfig
+    SubagentExecutor = executor_impl_module.SubagentExecutor
 
     executor_module = sys.modules["deerflow.subagents.executor"]
     executor_module.get_app_config = _default_app_config

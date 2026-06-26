@@ -81,12 +81,12 @@ def _setup_executor_classes():
     # Import real classes inside fixture
     from langchain_core.messages import AIMessage, HumanMessage
 
-    from deerflow.subagents.config import SubagentConfig
-    from deerflow.subagents.executor import (
-        SubagentExecutor,
-        SubagentResult,
-        SubagentStatus,
-    )
+    subagent_config_module = importlib.import_module("deerflow.subagents.config")
+    executor_impl_module = importlib.import_module("deerflow.subagents.executor")
+    SubagentConfig = subagent_config_module.SubagentConfig
+    SubagentExecutor = executor_impl_module.SubagentExecutor
+    SubagentResult = executor_impl_module.SubagentResult
+    SubagentStatus = executor_impl_module.SubagentStatus
 
     executor_module = sys.modules["deerflow.subagents.executor"]
 
@@ -251,7 +251,7 @@ class TestAgentConstruction:
         monkeypatch: pytest.MonkeyPatch,
     ):
         """Explicit app_config must flow into both model and middleware factories."""
-        import deerflow.config as config_module
+        config_module = importlib.import_module("deerflow.config")
         from vassilflow.subagents import executor as executor_module
 
         SubagentExecutor = classes["SubagentExecutor"]
