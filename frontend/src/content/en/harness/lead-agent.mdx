@@ -47,7 +47,7 @@ The user message arrives and is added to `ThreadState.messages`. The `ThreadStat
 
 ### Middleware pre-processing
 
-Before the model is called, each active middleware has a chance to modify the state. For example, the `MemoryMiddleware` injects persisted memory facts into the system prompt, and the `SummarizationMiddleware` may condense old messages if the token budget is exceeded.
+Before the model is called, each active middleware has a chance to modify the state. For example, the `MemoryMiddleware` injects persisted memory facts into the system prompt, and the `VassilFlowSummarizationMiddleware` may condense old messages if the token budget is exceeded.
 
 ### LLM reasoning
 

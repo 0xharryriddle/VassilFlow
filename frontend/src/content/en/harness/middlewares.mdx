@@ -22,7 +22,7 @@ This design keeps the agent core simple and stable while allowing rich, composab
 The middleware chain is built once per agent invocation, based on the current configuration and request parameters. The middlewares run in a defined order:
 
 1. Runtime middlewares (error handling, thread data, uploads, dangling tool call patching)
-2. `SummarizationMiddleware` — context compression (if enabled)
+2. `VassilFlowSummarizationMiddleware` — context compression (if enabled)
 3. `TodoMiddleware` — task list management (plan mode only)
 4. `TokenUsageMiddleware` — token tracking (if enabled)
 5. `TitleMiddleware` — automatic thread title generation
@@ -125,7 +125,7 @@ Audits sandbox operations performed during the agent's execution. Provides a rec
 
 ---
 
-### SummarizationMiddleware
+### VassilFlowSummarizationMiddleware
 
 When the conversation grows long, summarizes older messages to reduce context size. The summary is injected back into the conversation in place of the original messages, preserving meaning without the full token cost.
 
@@ -149,7 +149,7 @@ When tool search is enabled, this middleware hides deferred tool schemas from th
 
 ## Summarization configuration
 
-The `SummarizationMiddleware` is one of the most impactful middlewares for long-horizon tasks. Here is the full configuration reference:
+The `VassilFlowSummarizationMiddleware` wraps LangChain's base summarization behavior and is one of the most impactful middlewares for long-horizon tasks. Here is the full configuration reference:
 
 ```yaml
 summarization:

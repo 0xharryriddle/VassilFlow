@@ -47,7 +47,7 @@ Lead Agent 基于 **LangGraph** 和 **LangChain Agent** 原语构建：
 
 ### 中间件前处理
 
-在调用模型之前，每个活跃的中间件都有机会修改状态。例如，`MemoryMiddleware` 将持久化的记忆事实注入到系统提示中，`SummarizationMiddleware` 在 token 预算超出时可能压缩旧消息。
+在调用模型之前，每个活跃的中间件都有机会修改状态。例如，`MemoryMiddleware` 将持久化的记忆事实注入到系统提示中，`VassilFlowSummarizationMiddleware` 在 token 预算超出时可能压缩旧消息。
 
 ### LLM 推理
 

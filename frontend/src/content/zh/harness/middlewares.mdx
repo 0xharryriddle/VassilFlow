@@ -22,7 +22,7 @@ import { Callout } from "nextra/components";
 中间件链在每次 Agent 调用时根据当前配置和请求参数构建一次。中间件按定义的顺序运行：
 
 1. 运行时中间件（错误处理、线程数据、上传、悬空工具调用修补）
-2. `SummarizationMiddleware` — 上下文压缩（如果启用）
+2. `VassilFlowSummarizationMiddleware` — 上下文压缩（如果启用）
 3. `TodoMiddleware` — 任务列表管理（仅计划模式）
 4. `TokenUsageMiddleware` — token 追踪（如果启用）
 5. `TitleMiddleware` — 自动生成线程标题
@@ -117,7 +117,7 @@ token_usage:
 
 ---
 
-### SummarizationMiddleware
+### VassilFlowSummarizationMiddleware
 
 当对话变长时，对旧消息进行摘要以减少上下文大小。摘要被注入回对话，替代原始消息，在不需要完整 token 成本的情况下保留含义。
 
@@ -141,7 +141,7 @@ token_usage:
 
 ## 摘要压缩配置详解
 
-`SummarizationMiddleware` 是长时序任务中影响最大的中间件之一。完整配置参考如下：
+`VassilFlowSummarizationMiddleware` 封装了 LangChain 的基础摘要行为，是长时序任务中影响最大的中间件之一。完整配置参考如下：
 
 ```yaml
 summarization:
