@@ -1,4 +1,4 @@
-"""Tests for deerflow.utils.messages text extraction.
+"""Tests for vassilflow.utils.messages text extraction.
 
 ``message_to_text`` is the shared extractor that ``RunJournal._message_text``
 (BaseMessage, with ``.text`` fallback) and the gateway thread-messages helper
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from deerflow.utils.messages import message_content_to_text, message_to_text
+from vassilflow.utils.messages import message_content_to_text, message_to_text
 
 # ---------- message_to_text: content shapes ----------
 

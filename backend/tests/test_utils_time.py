@@ -1,11 +1,11 @@
-"""Tests for ``deerflow.utils.time``."""
+"""Tests for ``vassilflow.utils.time``."""
 
 from __future__ import annotations
 
 import re
 from datetime import UTC, datetime, timedelta, timezone
 
-from deerflow.utils.time import coerce_iso, now_iso
+from vassilflow.utils.time import coerce_iso, now_iso
 
 _ISO_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
