@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from langchain_core.messages import AIMessage, HumanMessage
 
 from deerflow.runtime import RunStatus
-from deerflow.utils.messages import ORIGINAL_USER_CONTENT_KEY
+from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY
 
 
 def _checkpoint(checkpoint_id: str, messages: list[object]):
