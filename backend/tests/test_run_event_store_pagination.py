@@ -2,7 +2,7 @@
 
 import pytest
 
-from deerflow.runtime.events.store.memory import MemoryRunEventStore
+from vassilflow.runtime.events.store.memory import MemoryRunEventStore
 
 
 @pytest.fixture
