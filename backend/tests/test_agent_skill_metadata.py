@@ -105,10 +105,12 @@ def test_blocking_io_guard_skill_uses_vassilflow_paths_and_scope():
     reference = reference_path.read_text(encoding="utf-8")
 
     assert "packages/harness/vassilflow/" in metadata["description"]
+    assert "packages/harness/deerflow/ (legacy implementation backing the facade)" in metadata["description"]
     assert "VassilFlow's blocking-IO CI gate" in body
     assert ".vassilflow/blocking-io-findings.json" in body
     assert ".deer-flow/blocking-io-findings.json" not in body
-    assert "`vassilflow.*`" in reference
+    assert "`app.*`, `vassilflow.*`, and legacy" in reference
+    assert "`deerflow.*` implementation imports" in reference
 
 
 def test_public_frontend_design_skill_uses_vassilflow_branding():

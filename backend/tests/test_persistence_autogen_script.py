@@ -68,13 +68,17 @@ def test_alembic_default_url_uses_vassilflow_sqlite_name() -> None:
         / "packages/harness/deerflow/persistence/migrations/alembic.ini"
     )
     autogen_script = Path(__file__).resolve().parents[1] / "scripts/_autogen_revision.py"
+    backend_makefile = Path(__file__).resolve().parents[1] / "Makefile"
     content = alembic_ini.read_text(encoding="utf-8")
     script_content = autogen_script.read_text(encoding="utf-8")
+    makefile_content = backend_makefile.read_text(encoding="utf-8")
 
     assert "sqlite+aiosqlite:///./data/vassilflow.db" in content
     assert "./data/deerflow.db" not in content
     assert "sqlite:///./data/vassilflow.db" in script_content
     assert "sqlite:///./data/deerflow.db" not in script_content
+    assert "./data/vassilflow.db" in makefile_content
+    assert "./data/deerflow.db" not in makefile_content
 
 
 def test_autogen_temp_db_is_at_head(autogen_module) -> None:
