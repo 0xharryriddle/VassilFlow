@@ -49,7 +49,7 @@ def test_autogen_builds_temp_db_at_head_without_data_dir(autogen_module, monkeyp
     import os  # noqa: PLC0415
     import tempfile  # noqa: PLC0415
 
-    workdir = tempfile.mkdtemp(prefix="deerflow-autogen-test-")
+    workdir = tempfile.mkdtemp(prefix="vassilflow-autogen-test-")
     monkeypatch.chdir(workdir)
     # Sanity: this directory has no ``./data/`` -- so the alembic.ini default
     # URL would fail if used.

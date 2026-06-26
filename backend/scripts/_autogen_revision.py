@@ -55,7 +55,7 @@ def _alembic_config(url: str) -> Config:
 
 
 def _build_temp_db_at_head() -> str:
-    tmpdir = tempfile.mkdtemp(prefix="deerflow-autogen-")
+    tmpdir = tempfile.mkdtemp(prefix="vassilflow-autogen-")
     db_path = os.path.join(tmpdir, "autogen.db").replace(os.sep, "/")
     url = f"sqlite+aiosqlite:///{db_path}"
     command.upgrade(_alembic_config(url), "head")
