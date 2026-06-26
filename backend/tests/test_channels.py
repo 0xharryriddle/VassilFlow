@@ -715,7 +715,7 @@ class TestChannelManager:
                 channel_name="slack",
                 chat_id="C123",
                 user_id="U-platform",
-                owner_user_id="deerflow-user-1",
+                owner_user_id="vassilflow-user-1",
                 connection_id="connection-1",
                 text="/memory",
                 msg_type=InboundMessageType.COMMAND,
@@ -724,7 +724,7 @@ class TestChannelManager:
             reply = await manager._fetch_gateway("/api/memory", "memory", msg=msg)
 
             assert reply == "Memory contains 1 fact(s)."
-            assert calls[0]["headers"][INTERNAL_OWNER_USER_ID_HEADER_NAME] == "deerflow-user-1"
+            assert calls[0]["headers"][INTERNAL_OWNER_USER_ID_HEADER_NAME] == "vassilflow-user-1"
 
         _run(go())
 
@@ -2779,7 +2779,7 @@ class TestResolveRunParamsUserId:
     @pytest.mark.parametrize(
         "kwargs",
         [
-            {"user_id": "U-platform", "owner_user_id": "deerflow-user-1"},  # bound
+            {"user_id": "U-platform", "owner_user_id": "vassilflow-user-1"},  # bound
             {"user_id": "U-platform"},  # unbound auth-enabled
             {"user_id": "feishu|ou_AbC/123"},  # unbound needing sanitization
         ],
@@ -2808,14 +2808,14 @@ class TestResolveRunParamsUserId:
             channel_name="slack",
             chat_id="C123",
             user_id="U-platform",
-            owner_user_id="deerflow-user-1",
+            owner_user_id="vassilflow-user-1",
             connection_id="connection-1",
             text="hi",
         )
 
         _, _, run_context = manager._resolve_run_params(msg, "thread-1")
 
-        assert run_context["user_id"] == "deerflow-user-1"
+        assert run_context["user_id"] == "vassilflow-user-1"
         assert run_context["channel_user_id"] == "U-platform"
 
     def test_auth_disabled_user_id_is_used_for_unbound_channel_messages(self, monkeypatch):
@@ -3020,7 +3020,7 @@ class TestChannelManagerBoundIdentityPolicy:
                     channel_name="slack",
                     chat_id="C123",
                     user_id="U-platform",
-                    owner_user_id="deerflow-user-1",
+                    owner_user_id="vassilflow-user-1",
                     connection_id="connection-1",
                     workspace_id="T123",
                     text="hi",
@@ -3089,7 +3089,7 @@ class TestChannelManagerBoundIdentityPolicy:
                 [
                     {
                         "id": "connection-1",
-                        "owner_user_id": "deerflow-user-1",
+                        "owner_user_id": "vassilflow-user-1",
                         "provider": "slack",
                         "external_account_id": "U-platform",
                         "workspace_id": "T123",
@@ -3105,7 +3105,7 @@ class TestChannelManagerBoundIdentityPolicy:
                     channel_name="slack",
                     chat_id="C123",
                     user_id="U-platform",
-                    owner_user_id="deerflow-user-1",
+                    owner_user_id="vassilflow-user-1",
                     connection_id="connection-1",
                     workspace_id="T123",
                     text="hi",
@@ -3115,7 +3115,7 @@ class TestChannelManagerBoundIdentityPolicy:
             mock_client.threads.create.assert_called_once()
             mock_client.runs.wait.assert_called_once()
             run_context = mock_client.runs.wait.call_args.kwargs["context"]
-            assert run_context["user_id"] == "deerflow-user-1"
+            assert run_context["user_id"] == "vassilflow-user-1"
             assert run_context["channel_user_id"] == "U-platform"
 
         _run(go())
@@ -3132,7 +3132,7 @@ class TestChannelManagerBoundIdentityPolicy:
                 [
                     {
                         "id": "connection-1",
-                        "owner_user_id": "deerflow-user-1",
+                        "owner_user_id": "vassilflow-user-1",
                         "provider": "slack",
                         "external_account_id": "U-platform",
                         "workspace_id": "T123",
@@ -3149,7 +3149,7 @@ class TestChannelManagerBoundIdentityPolicy:
                         channel_name="slack",
                         chat_id="C123",
                         user_id="U-platform",
-                        owner_user_id="deerflow-user-1",
+                        owner_user_id="vassilflow-user-1",
                         connection_id="connection-1",
                         workspace_id="T123",
                         text="hi",
@@ -3326,7 +3326,7 @@ class TestChannelManagerBoundIdentityPolicy:
                 [
                     {
                         "id": "connection-1",
-                        "owner_user_id": "deerflow-user-1",
+                        "owner_user_id": "vassilflow-user-1",
                         "provider": "slack",
                         "external_account_id": "U-platform",
                         "workspace_id": "T123",
@@ -3342,7 +3342,7 @@ class TestChannelManagerBoundIdentityPolicy:
                     channel_name="slack",
                     chat_id="C123",
                     user_id="U-platform",
-                    owner_user_id="deerflow-user-1",
+                    owner_user_id="vassilflow-user-1",
                     connection_id="connection-1",
                     workspace_id="T123",
                     text="/new",

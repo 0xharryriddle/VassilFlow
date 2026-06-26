@@ -378,7 +378,7 @@ def test_connect_code_bypasses_allowed_users_filter(tmp_path: Path):
             )
             code = "wechat-bind-code"
             await repo.create_oauth_state(
-                owner_user_id="deerflow-user-1",
+                owner_user_id="vassilflow-user-1",
                 provider="wechat",
                 state=code,
                 expires_at=datetime.now(UTC) + timedelta(minutes=5),
@@ -409,7 +409,7 @@ def test_connect_code_bypasses_allowed_users_filter(tmp_path: Path):
                 }
             )
 
-            connections = await repo.list_connections("deerflow-user-1")
+            connections = await repo.list_connections("vassilflow-user-1")
             assert len(connections) == 1
             assert connections[0]["provider"] == "wechat"
             assert connections[0]["external_account_id"] == "blocked-user"
