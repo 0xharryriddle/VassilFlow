@@ -109,3 +109,48 @@ def test_blocking_io_guard_skill_uses_vassilflow_paths_and_scope():
     assert ".vassilflow/blocking-io-findings.json" in body
     assert ".deer-flow/blocking-io-findings.json" not in body
     assert "`vassilflow.*`" in reference
+
+
+def test_public_frontend_design_skill_uses_vassilflow_branding():
+    body = (REPO_ROOT / "skills" / "public" / "frontend-design" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "Created By VassilFlow" in body
+    assert "https://github.com/linhlln1104/VassilFlow" in body
+    assert "Created By Deerflow" not in body
+    assert "https://deerflow.tech" not in body
+
+
+def test_public_github_deep_research_template_uses_vassilflow_identity():
+    template = (
+        REPO_ROOT
+        / "skills"
+        / "public"
+        / "github-deep-research"
+        / "assets"
+        / "report_template.md"
+    ).read_text(encoding="utf-8")
+
+    assert "Github Deep Research by VassilFlow" in template
+    assert "Github Deep Research by DeerFlow" not in template
+
+
+def test_public_slr_skill_uses_vassilflow_runtime_branding():
+    skill_body = (
+        REPO_ROOT / "skills" / "public" / "systematic-literature-review" / "SKILL.md"
+    ).read_text(encoding="utf-8")
+    search_script = (
+        REPO_ROOT
+        / "skills"
+        / "public"
+        / "systematic-literature-review"
+        / "scripts"
+        / "arxiv_search.py"
+    ).read_text(encoding="utf-8")
+
+    assert "The VassilFlow runtime enforces `MAX_CONCURRENT_SUBAGENTS = 3`" in skill_body
+    assert "what VassilFlow users most often want to survey" in skill_body
+    assert "vassilflow-slr-skill/0.1" in search_script
+    assert "The DeerFlow runtime enforces" not in skill_body
+    assert "deerflow-slr-skill/0.1" not in search_script
