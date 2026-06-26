@@ -62,7 +62,7 @@ class _FakeBridge:
 
 @pytest.fixture(autouse=True)
 def _clear_tracing_env(monkeypatch):
-    from deerflow.config.tracing_config import reset_tracing_config
+    from vassilflow.config.tracing_config import reset_tracing_config
 
     for name in ("LANGFUSE_TRACING", "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL"):
         monkeypatch.delenv(name, raising=False)
@@ -76,7 +76,7 @@ async def test_run_agent_injects_langfuse_metadata(monkeypatch):
     monkeypatch.setenv("LANGFUSE_TRACING", "true")
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
-    from deerflow.config.tracing_config import reset_tracing_config
+    from vassilflow.config.tracing_config import reset_tracing_config
 
     reset_tracing_config()
 
@@ -130,7 +130,7 @@ async def test_run_agent_falls_back_to_default_user_when_unset(monkeypatch):
     monkeypatch.setenv("LANGFUSE_TRACING", "true")
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
-    from deerflow.config.tracing_config import reset_tracing_config
+    from vassilflow.config.tracing_config import reset_tracing_config
     from vassilflow.runtime.runs import worker as worker_module
     from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
@@ -172,7 +172,7 @@ async def test_run_agent_preserves_caller_metadata_overrides(monkeypatch):
     monkeypatch.setenv("LANGFUSE_TRACING", "true")
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
-    from deerflow.config.tracing_config import reset_tracing_config
+    from vassilflow.config.tracing_config import reset_tracing_config
 
     reset_tracing_config()
 
