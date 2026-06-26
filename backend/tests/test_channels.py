@@ -23,7 +23,7 @@ from app.channels.message_bus import (
     ResolvedAttachment,
 )
 from app.channels.store import ChannelStore
-from deerflow.skills.types import Skill, SkillCategory
+from vassilflow.skills.types import Skill, SkillCategory
 from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY
 
 

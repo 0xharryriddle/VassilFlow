@@ -63,7 +63,7 @@ def provisioner_module():
 # ---------------------------------------------------------------------------
 #
 # Repository methods read ``user_id`` from a contextvar by default
-# (see ``deerflow.runtime.user_context``). Without this fixture, every
+# (see ``vassilflow.runtime.user_context``). Without this fixture, every
 # pre-existing persistence test would raise RuntimeError because the
 # contextvar is unset. The fixture sets a default test user on every
 # test; tests that explicitly want to verify behaviour *without* a user
@@ -74,7 +74,7 @@ def provisioner_module():
 def _reset_skill_storage_singleton():
     """Reset the SkillStorage singleton between tests to prevent cross-test contamination."""
     try:
-        from deerflow.skills.storage import reset_skill_storage
+        from vassilflow.skills.storage import reset_skill_storage
     except ImportError:
         yield
         return
@@ -123,7 +123,7 @@ def _auto_user_context(request):
         return
 
     try:
-        from deerflow.runtime.user_context import (
+        from vassilflow.runtime.user_context import (
             reset_current_user,
             set_current_user,
         )
