@@ -143,8 +143,8 @@ Root-level orchestration and config:
 
 Backend core:
 
-- `backend/packages/harness/vassilflow/` - VassilFlow public facade package
-- `backend/packages/harness/deerflow/agents/` - current lead agent implementation, middleware chain, memory
+- `backend/packages/harness/vassilflow/` - VassilFlow public facade package; prefer `vassilflow.*` imports in docs, scripts, and new integration tests
+- `backend/packages/harness/deerflow/agents/` - current lead agent implementation behind the facade; use `deerflow.*` only when patching implementation globals or working inside that package
 - `backend/app/gateway/` - FastAPI gateway API
 - `backend/packages/harness/deerflow/sandbox/` - current sandbox provider + tool wrappers implementation
 - `backend/packages/harness/deerflow/subagents/` - current subagent registry/execution implementation
