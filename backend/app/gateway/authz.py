@@ -118,6 +118,9 @@ _ALL_PERMISSIONS: list[str] = [
     Permissions.RUNS_CANCEL,
 ]
 
+_TEST_BYPASS_AUTH_ATTR = "_vassilflow_test_bypass_auth"
+_LEGACY_TEST_BYPASS_AUTH_ATTR = "_deerflow_test_bypass_auth"
+
 
 def _make_test_request_stub() -> Any:
     """Create a minimal request-like object for direct unit calls.
@@ -125,7 +128,12 @@ def _make_test_request_stub() -> Any:
     Used when decorated route handlers are invoked without FastAPI's
     request injection. Includes fields accessed by auth helpers.
     """
-    return SimpleNamespace(state=SimpleNamespace(), cookies={}, _deerflow_test_bypass_auth=True)
+    return SimpleNamespace(state=SimpleNamespace(), cookies={}, **{_TEST_BYPASS_AUTH_ATTR: True})
+
+
+def _is_test_bypass_request(request: Any) -> bool:
+    """Return True for direct unit-call stubs that intentionally bypass auth."""
+    return bool(getattr(request, _TEST_BYPASS_AUTH_ATTR, False) or getattr(request, _LEGACY_TEST_BYPASS_AUTH_ATTR, False))
 
 
 async def _authenticate(request: Request) -> AuthContext:
@@ -179,7 +187,7 @@ def require_auth[**P, T](func: Callable[P, T]) -> Callable[P, T]:
                 raise ValueError("require_auth decorator requires 'request' parameter")
             request = kwargs["request"]
 
-        if getattr(request, "_deerflow_test_bypass_auth", False):
+        if _is_test_bypass_request(request):
             return await func(*args, **kwargs)
 
         # Authenticate and set context
@@ -248,7 +256,7 @@ def require_permission(
                     return await func(*args, **kwargs)
                 request = kwargs["request"]
 
-            if getattr(request, "_deerflow_test_bypass_auth", False):
+            if _is_test_bypass_request(request):
                 return await func(*args, **kwargs)
 
             auth: AuthContext = getattr(request.state, "auth", None)

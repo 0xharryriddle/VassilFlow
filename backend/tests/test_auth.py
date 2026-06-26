@@ -239,6 +239,26 @@ def test_require_auth_requires_request_param():
         asyncio.run(bad_endpoint())
 
 
+def test_direct_unit_call_bypass_uses_vassilflow_attr_and_accepts_legacy():
+    """Direct unit-call auth bypass uses the VassilFlow attr while accepting legacy stubs."""
+    from types import SimpleNamespace
+
+    from app.gateway.authz import (
+        _LEGACY_TEST_BYPASS_AUTH_ATTR,
+        _TEST_BYPASS_AUTH_ATTR,
+        _is_test_bypass_request,
+        _make_test_request_stub,
+    )
+
+    request = _make_test_request_stub()
+    assert getattr(request, _TEST_BYPASS_AUTH_ATTR) is True
+    assert not hasattr(request, _LEGACY_TEST_BYPASS_AUTH_ATTR)
+    assert _is_test_bypass_request(request) is True
+
+    legacy_request = SimpleNamespace(**{_LEGACY_TEST_BYPASS_AUTH_ATTR: True})
+    assert _is_test_bypass_request(legacy_request) is True
+
+
 # ── require_permission decorator ─────────────────────────────────────────────
 
 
