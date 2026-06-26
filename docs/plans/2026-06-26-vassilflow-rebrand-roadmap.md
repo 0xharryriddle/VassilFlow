@@ -74,7 +74,8 @@ Add VassilFlow-owned facade modules over existing DeerFlow internals.
   `vassilflow.sandbox.*`, `vassilflow.community.*`, and
   `vassilflow.guardrails.*` now lazy-alias to the current `deerflow.*`
   modules so new config/provider paths are importable without duplicating
-  classes. Broad internal package renames remain deferred.
+  classes. Diagnostic scripts can now import implementation-deep modules through
+  `vassilflow.*`. Broad internal package renames remain deferred.
 - Keep existing `deerflow` imports working.
 - Introduce stable VassilFlow names for session, run, trace, tool, policy, approval, memory, and completion evidence contracts.
 - Add tests around `contracts/vassilflow_boundary_contract.json`.
