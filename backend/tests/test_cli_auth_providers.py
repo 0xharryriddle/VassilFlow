@@ -5,10 +5,10 @@ import json
 import pytest
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from deerflow.models import openai_codex_provider as codex_provider_module
-from deerflow.models.claude_provider import ClaudeChatModel
-from deerflow.models.credential_loader import CodexCliCredential
-from deerflow.models.openai_codex_provider import CodexChatModel
+from vassilflow.models import openai_codex_provider as codex_provider_module
+from vassilflow.models.claude_provider import ClaudeChatModel
+from vassilflow.models.credential_loader import CodexCliCredential
+from vassilflow.models.openai_codex_provider import CodexChatModel
 
 
 def test_codex_provider_rejects_non_positive_retry_attempts():
