@@ -9,7 +9,7 @@ The store and checkpointer share the same ``checkpointer`` section in
 
 Usage (e.g. FastAPI lifespan)::
 
-    from deerflow.runtime.store import make_store
+    from vassilflow.runtime.store import make_store
 
     async with make_store() as store:
         app.state.store = store
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 async def _async_store(config) -> AsyncIterator[BaseStore]:
     """Async context manager that constructs and tears down a Store.
 
-    The ``config`` argument is a :class:`deerflow.config.checkpointer_config.CheckpointerConfig`
+    The ``config`` argument is a :class:`vassilflow.config.checkpointer_config.CheckpointerConfig`
     instance — the same object used by the checkpointer factory.
     """
     if config.type == "memory":
