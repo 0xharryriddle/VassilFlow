@@ -140,3 +140,31 @@ def test_upload_path_docs_use_vassilflow_runtime_paths_and_facade():
     assert ".deer-flow/threads/" not in file_upload
     assert ".deer-flow/threads/" not in path_examples
     assert "THREAD_DATA_BASE_DIR" not in path_examples
+
+
+def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
+    auth_design = (REPO_ROOT / "backend" / "docs" / "AUTH_DESIGN.md").read_text(
+        encoding="utf-8"
+    )
+    auth_upgrade = (REPO_ROOT / "backend" / "docs" / "AUTH_UPGRADE.md").read_text(
+        encoding="utf-8"
+    )
+    auth_test_plan = (
+        REPO_ROOT / "backend" / "docs" / "AUTH_TEST_PLAN.md"
+    ).read_text(encoding="utf-8")
+
+    assert "本文档描述 VassilFlow 当前内置认证模块的设计" in auth_design
+    assert "认证模块的核心目标是把 VassilFlow" in auth_design
+    assert "VassilFlow 使用 Double Submit Cookie" in auth_design
+    assert "{runtime_home}/admin_initial_credentials.txt" in auth_design
+    assert "{runtime_home}/data/vassilflow.db" in auth_design
+    assert "VassilFlow 内置了认证模块" in auth_upgrade
+    assert "rm -f backend/.vassilflow/data/vassilflow.db" in auth_upgrade
+    assert "VassilFlowClient" in auth_upgrade
+    assert "sqlite3 backend/.vassilflow/data/vassilflow.db" in auth_test_plan
+    assert "docker logs vassilflow-gateway" in auth_test_plan
+    assert "VASSILFLOW_HOME" in auth_test_plan
+    assert "本文档描述 DeerFlow 当前内置认证模块的设计" not in auth_design
+    assert "DeerFlow 内置了认证模块" not in auth_upgrade
+    assert "docker logs deer-flow-gateway" not in auth_test_plan
+    assert "sqlite3 backend/.deer-flow/data/deerflow.db" not in auth_test_plan
