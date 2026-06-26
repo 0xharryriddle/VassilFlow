@@ -266,3 +266,17 @@ def test_contributing_docs_use_vassilflow_public_examples():
     assert "git clone https://github.com/YOUR_USERNAME/deer-flow.git" not in content
     assert "from deerflow.models.factory import create_chat_model" not in content
     assert "use: deerflow.tools.builtins.my_tool:my_tool" not in content
+
+
+def test_sandbox_memory_profiling_docs_use_vassilflow_defaults():
+    content = (
+        REPO_ROOT / "backend" / "docs" / "SANDBOX_MEMORY_PROFILING.md"
+    ).read_text(encoding="utf-8")
+
+    assert "same VassilFlow workload" in content
+    assert "--namespace vassilflow" in content
+    assert "--selector app=vassilflow-sandbox" in content
+    assert "reproducible VassilFlow workload data" in content
+    assert "same DeerFlow workload" not in content
+    assert "--namespace deer-flow" not in content
+    assert "--selector app=deer-flow-sandbox" not in content
