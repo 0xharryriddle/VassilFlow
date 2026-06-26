@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock
 
-from deerflow.runtime.converters import (
+from vassilflow.runtime.converters import (
     langchain_messages_to_openai,
     langchain_to_openai_completion,
     langchain_to_openai_message,

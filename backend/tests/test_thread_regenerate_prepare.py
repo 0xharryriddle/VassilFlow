@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException
 from langchain_core.messages import AIMessage, HumanMessage
 
-from deerflow.runtime import RunStatus
+from vassilflow.runtime import RunStatus
 from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY
 
 

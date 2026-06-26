@@ -14,7 +14,7 @@ from _router_auth_helpers import make_authed_test_app
 from fastapi.testclient import TestClient
 
 from app.gateway.routers import thread_runs
-from deerflow.runtime import RunManager, RunStatus
+from vassilflow.runtime import RunManager, RunStatus
 
 THREAD_ID = "thread-cancel-test"
 
