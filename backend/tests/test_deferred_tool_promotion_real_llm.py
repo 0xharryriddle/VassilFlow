@@ -135,9 +135,9 @@ async def test_real_llm_promotes_then_invokes_with_subagent_reentry(monkeypatch:
     from langchain.agents import create_agent
     from langchain_openai import ChatOpenAI
 
-    from deerflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
-    from deerflow.tools.builtins.tool_search import build_deferred_tool_setup
-    from deerflow.tools.tools import get_available_tools
+    from vassilflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+    from vassilflow.tools.builtins.tool_search import build_deferred_tool_setup
+    from vassilflow.tools.tools import get_available_tools
 
     _patch_mcp_pipeline(monkeypatch, [fake_calculator, fake_translator])
     _force_tool_search_enabled(monkeypatch)

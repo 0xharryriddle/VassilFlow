@@ -100,7 +100,7 @@ def _patch_update_agent_dependencies(tmp_path: Path):
 def _build_update_graph(*, soul_payload: str):
     from langchain.agents import create_agent
 
-    from deerflow.tools.builtins.update_agent_tool import update_agent
+    from vassilflow.tools.builtins.update_agent_tool import update_agent
 
     fake_model = build_single_tool_call_model(
         tool_name="update_agent",

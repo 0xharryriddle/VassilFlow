@@ -252,7 +252,7 @@ def _build_real_bootstrap_graph(authenticated_user_id: str):
     """
     from langchain.agents import create_agent
 
-    from deerflow.tools.builtins.setup_agent_tool import setup_agent
+    from vassilflow.tools.builtins.setup_agent_tool import setup_agent
 
     # First model turn: emit a tool_call for setup_agent
     # Second model turn (after tool result): final answer (terminates the loop)
@@ -395,7 +395,7 @@ async def test_subgraph_invocation_preserves_user_id_in_runtime(tmp_path: Path):
     from langchain.agents import create_agent
     from langgraph.runtime import Runtime
 
-    from deerflow.tools.builtins.setup_agent_tool import setup_agent
+    from vassilflow.tools.builtins.setup_agent_tool import setup_agent
 
     auth_uid = "deadbeef-0000-1111-2222-333344445555"
 
@@ -464,7 +464,7 @@ def test_sync_tool_dispatch_through_thread_pool_uses_runtime_context(tmp_path: P
     from langchain.agents import create_agent
     from langgraph.runtime import Runtime
 
-    from deerflow.tools.builtins.setup_agent_tool import setup_agent
+    from vassilflow.tools.builtins.setup_agent_tool import setup_agent
 
     auth_uid = "11112222-3333-4444-5555-666677778888"
 
