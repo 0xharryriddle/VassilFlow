@@ -11,7 +11,7 @@ class OIDCProviderConfig(BaseModel):
     """Configuration for a single OIDC identity provider (Keycloak, Google, Azure AD, etc.)."""
 
     display_name: str = Field(description="Human-readable name shown on the login button")
-    issuer: str = Field(description="OIDC issuer URL (e.g. https://keycloak.example.com/realms/deerflow)")
+    issuer: str = Field(description="OIDC issuer URL (e.g. https://keycloak.example.com/realms/vassilflow)")
     client_id: str = Field(description="OAuth2 client ID assigned by the provider")
     client_secret: str | None = Field(default=None, description="OAuth2 client secret ($ENV_VAR references supported)")
     redirect_uri: str | None = Field(default=None, description="Callback URL the provider will redirect to after auth")
@@ -27,7 +27,7 @@ class OIDCProviderConfig(BaseModel):
     # ── User provisioning ─────────────────────────────────────────────
     auto_create_users: bool = Field(
         default=True,
-        description="Automatically create a DeerFlow user on first SSO login",
+        description="Automatically create a VassilFlow user on first SSO login",
     )
     require_verified_email: bool = Field(
         default=True,
@@ -68,6 +68,6 @@ class OIDCAuthConfig(BaseModel):
 
 
 class AuthAppConfig(BaseModel):
-    """Authentication configuration section for the DeerFlow app config."""
+    """Authentication configuration section for the VassilFlow app config."""
 
     oidc: OIDCAuthConfig = Field(default_factory=OIDCAuthConfig, description="OIDC SSO authentication settings")
