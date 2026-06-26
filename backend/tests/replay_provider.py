@@ -83,7 +83,7 @@ from langchain_core.runnables import Runnable
 from pydantic import PrivateAttr
 
 _FIXTURE_ENV = "VASSILFLOW_REPLAY_FIXTURE"
-_LEGACY_FIXTURE_ENV = "DEERFLOW_REPLAY_FIXTURE"
+_LEGACY_FIXTURE_ENVS = ("DEER_FLOW_REPLAY_FIXTURE", "DEERFLOW_REPLAY_FIXTURE")
 _DEFAULT_CALLER = "lead_agent"
 _CALLER_TAG_PREFIXES = ("middleware:", "subagent:")
 _CALLER_NAME_ALIASES = {
@@ -296,17 +296,23 @@ class ReplayChatModel(BaseChatModel):
     def __init__(self, **kwargs: Any) -> None:
         # Ignore provider noise the factory forwards from config (model, api_key,
         # base_url, ...). Fixture path comes from the ``fixture`` kwarg or env.
-        fixture_path = (
-            kwargs.pop("fixture", None)
-            or os.environ.get(_FIXTURE_ENV)
-            or os.environ.get(_LEGACY_FIXTURE_ENV)
-        )
+        fixture_path = kwargs.pop("fixture", None) or os.environ.get(_FIXTURE_ENV)
+        if not fixture_path:
+            fixture_path = next(
+                (
+                    os.environ[legacy_env]
+                    for legacy_env in _LEGACY_FIXTURE_ENVS
+                    if os.environ.get(legacy_env)
+                ),
+                None,
+            )
         callbacks = kwargs.pop("callbacks", None)
         super().__init__(callbacks=callbacks)
         if not fixture_path:
+            legacy_names = " / ".join(_LEGACY_FIXTURE_ENVS)
             raise ValueError(
                 "ReplayChatModel needs a fixture path via the ``fixture`` kwarg "
-                f"or ${_FIXTURE_ENV} (legacy ${_LEGACY_FIXTURE_ENV} is still accepted)"
+                f"or ${_FIXTURE_ENV} (legacy {legacy_names} are still accepted)"
             )
         self._fixture_path = fixture_path
         self._table = _load_fixture(fixture_path)

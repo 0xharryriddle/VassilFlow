@@ -55,6 +55,7 @@ def test_replay_write_read_file_ultra_matches_golden(tmp_path: Path, monkeypatch
     monkeypatch.setenv("VASSILFLOW_HOME", str(home))
     monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
     monkeypatch.setenv("VASSILFLOW_REPLAY_FIXTURE", str(fixture_path))
+    monkeypatch.delenv("DEER_FLOW_REPLAY_FIXTURE", raising=False)
     monkeypatch.delenv("DEERFLOW_REPLAY_FIXTURE", raising=False)
 
     cfg_path = tmp_path / "config.yaml"

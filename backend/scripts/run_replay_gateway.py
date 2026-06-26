@@ -53,6 +53,7 @@ def main() -> int:
     # Override (not setdefault): the replay gateway must be hermetic, so outer
     # runtime env vars can't leak in and shift prompt-affecting paths/skills.
     _set_hermetic_runtime_env(home, cfg, prepare_hermetic_extras(home))
+    os.environ.pop("DEER_FLOW_REPLAY_FIXTURE", None)
     os.environ.pop("DEERFLOW_REPLAY_FIXTURE", None)
     os.environ["VASSILFLOW_REPLAY_FIXTURE"] = args.fixture
     os.environ.setdefault("AUTH_JWT_SECRET", "ci-replay-secret")
@@ -69,6 +70,7 @@ def main() -> int:
     # router is registered before uvicorn serves it.
     if (
         os.environ.get("VASSILFLOW_ENABLE_TEST_SEED") == "1"
+        or os.environ.get("DEER_FLOW_ENABLE_TEST_SEED") == "1"
         or os.environ.get("DEERFLOW_ENABLE_TEST_SEED") == "1"
     ):
         from seed_runs_router import router as seed_router
