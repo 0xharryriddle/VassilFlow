@@ -56,8 +56,8 @@ services:
     container_name: vassilflow-frontend
     environment:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
-      - DEER_FLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
       - VASSILFLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
+      - DEER_FLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
     env_file:
       - ../frontend/.env
     networks:

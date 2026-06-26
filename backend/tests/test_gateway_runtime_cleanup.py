@@ -128,6 +128,8 @@ def test_compose_files_expose_vassilflow_runtime_aliases():
     assert "VASSILFLOW_INTERNAL_AUTH_TOKEN=${VASSILFLOW_INTERNAL_AUTH_TOKEN:-${DEER_FLOW_INTERNAL_AUTH_TOKEN:-}}" in prod
     assert "VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.vassilflow}}" in prod
     assert "VASSILFLOW_HOST_SKILLS_PATH=${VASSILFLOW_REPO_ROOT:-${DEER_FLOW_REPO_ROOT:-..}}/skills" in prod
+    assert "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001" in prod
+    assert prod.index("VASSILFLOW_INTERNAL_GATEWAY_BASE_URL") < prod.index("DEER_FLOW_INTERNAL_GATEWAY_BASE_URL")
 
     assert "${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/skills" in dev
     assert "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001" in dev
