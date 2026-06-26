@@ -23,7 +23,7 @@ def _assert_tz_aware(value: str | None, *, context: str) -> None:
 
 
 async def _init_sqlite(tmp_path):
-    from deerflow.persistence.engine import get_session_factory, init_engine
+    from vassilflow.persistence.engine import get_session_factory, init_engine
 
     url = f"sqlite+aiosqlite:///{tmp_path / 'tz.db'}"
     await init_engine("sqlite", url=url, sqlite_dir=str(tmp_path))
@@ -31,14 +31,14 @@ async def _init_sqlite(tmp_path):
 
 
 async def _cleanup():
-    from deerflow.persistence.engine import close_engine
+    from vassilflow.persistence.engine import close_engine
 
     await close_engine()
 
 
 @pytest.mark.anyio
 async def test_thread_meta_emits_tz_aware_timestamps(tmp_path):
-    from deerflow.persistence.thread_meta import ThreadMetaRepository
+    from vassilflow.persistence.thread_meta import ThreadMetaRepository
 
     repo = ThreadMetaRepository(await _init_sqlite(tmp_path))
     try:
@@ -62,7 +62,7 @@ async def test_thread_meta_emits_tz_aware_timestamps(tmp_path):
 
 @pytest.mark.anyio
 async def test_run_repository_emits_tz_aware_timestamps(tmp_path):
-    from deerflow.persistence.run import RunRepository
+    from vassilflow.persistence.run import RunRepository
 
     repo = RunRepository(await _init_sqlite(tmp_path))
     try:
@@ -76,7 +76,7 @@ async def test_run_repository_emits_tz_aware_timestamps(tmp_path):
 
 @pytest.mark.anyio
 async def test_feedback_repository_emits_tz_aware_timestamps(tmp_path):
-    from deerflow.persistence.feedback import FeedbackRepository
+    from vassilflow.persistence.feedback import FeedbackRepository
 
     repo = FeedbackRepository(await _init_sqlite(tmp_path))
     try:
@@ -88,7 +88,7 @@ async def test_feedback_repository_emits_tz_aware_timestamps(tmp_path):
 
 @pytest.mark.anyio
 async def test_run_event_store_emits_tz_aware_timestamps(tmp_path):
-    from deerflow.runtime.events.store.db import DbRunEventStore
+    from vassilflow.runtime.events.store.db import DbRunEventStore
 
     store = DbRunEventStore(await _init_sqlite(tmp_path))
     try:
