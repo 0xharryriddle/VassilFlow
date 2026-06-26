@@ -38,6 +38,10 @@ import {
   getAgent,
 } from "@/core/agents/api";
 import { useI18n } from "@/core/i18n/hooks";
+import {
+  hasSeenAgentCreateSaveHint,
+  markAgentCreateSaveHintSeen,
+} from "@/core/settings/local";
 import { useThreadStream } from "@/core/threads/hooks";
 import { uuid } from "@/core/utils/uuid";
 import { isIMEComposing } from "@/lib/ime";
@@ -47,7 +51,6 @@ type Step = "name" | "chat";
 type SetupAgentStatus = "idle" | "requested" | "completed";
 
 const NAME_RE = /^[A-Za-z0-9-]+$/;
-const SAVE_HINT_STORAGE_KEY = "deerflow.agent-create.save-hint-seen";
 const AGENT_READ_RETRY_DELAYS_MS = [200, 500, 1_000, 2_000];
 
 function wait(ms: number) {
@@ -115,11 +118,11 @@ export default function NewAgentPage() {
     if (typeof window === "undefined" || step !== "chat") {
       return;
     }
-    if (window.localStorage.getItem(SAVE_HINT_STORAGE_KEY) === "1") {
+    if (hasSeenAgentCreateSaveHint()) {
       return;
     }
     setShowSaveHint(true);
-    window.localStorage.setItem(SAVE_HINT_STORAGE_KEY, "1");
+    markAgentCreateSaveHintSeen();
   }, [step]);
 
   const handleConfirmName = useCallback(async () => {

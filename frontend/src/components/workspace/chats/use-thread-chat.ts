@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { uuid } from "@/core/utils/uuid";
 
-export const THREAD_CHAT_RESET_EVENT = "deer-flow:thread-chat-reset";
+export const THREAD_CHAT_RESET_EVENT = "vassilflow:thread-chat-reset";
+export const LEGACY_THREAD_CHAT_RESET_EVENT = "deer-flow:thread-chat-reset";
 
 type ThreadChatResetDetail = {
   deletedThreadId: string;
@@ -103,8 +104,11 @@ export function useThreadChat() {
     };
 
     window.addEventListener(THREAD_CHAT_RESET_EVENT, handleReset);
-    return () =>
+    window.addEventListener(LEGACY_THREAD_CHAT_RESET_EVENT, handleReset);
+    return () => {
       window.removeEventListener(THREAD_CHAT_RESET_EVENT, handleReset);
+      window.removeEventListener(LEGACY_THREAD_CHAT_RESET_EVENT, handleReset);
+    };
   }, [resetToNewThread, threadId, threadIdFromPath]);
 
   const setThreadId = useCallback((nextThreadId: string) => {

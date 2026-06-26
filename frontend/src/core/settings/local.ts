@@ -20,6 +20,10 @@ export const LOCAL_SETTINGS_KEY = "vassilflow.local-settings";
 export const LEGACY_LOCAL_SETTINGS_KEY = "deerflow.local-settings";
 export const THREAD_MODEL_KEY_PREFIX = "vassilflow.thread-model.";
 export const LEGACY_THREAD_MODEL_KEY_PREFIX = "deerflow.thread-model.";
+export const AGENT_CREATE_SAVE_HINT_KEY =
+  "vassilflow.agent-create.save-hint-seen";
+export const LEGACY_AGENT_CREATE_SAVE_HINT_KEY =
+  "deerflow.agent-create.save-hint-seen";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";
@@ -154,4 +158,27 @@ export function saveLocalSettings(settings: LocalSettings) {
   }
   localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(settings));
   localStorage.removeItem(LEGACY_LOCAL_SETTINGS_KEY);
+}
+
+export function hasSeenAgentCreateSaveHint(): boolean {
+  if (!isBrowser()) {
+    return false;
+  }
+  if (localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY) === "1") {
+    return true;
+  }
+  if (localStorage.getItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY) === "1") {
+    localStorage.setItem(AGENT_CREATE_SAVE_HINT_KEY, "1");
+    localStorage.removeItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY);
+    return true;
+  }
+  return false;
+}
+
+export function markAgentCreateSaveHintSeen() {
+  if (!isBrowser()) {
+    return;
+  }
+  localStorage.setItem(AGENT_CREATE_SAVE_HINT_KEY, "1");
+  localStorage.removeItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY);
 }

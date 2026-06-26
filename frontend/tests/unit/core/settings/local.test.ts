@@ -8,13 +8,17 @@ import {
 } from "@rstest/core";
 
 import {
+  AGENT_CREATE_SAVE_HINT_KEY,
   DEFAULT_LOCAL_SETTINGS,
+  LEGACY_AGENT_CREATE_SAVE_HINT_KEY,
   LEGACY_LOCAL_SETTINGS_KEY,
   LEGACY_THREAD_MODEL_KEY_PREFIX,
   LOCAL_SETTINGS_KEY,
   THREAD_MODEL_KEY_PREFIX,
   getLocalSettings,
   getThreadModelName,
+  hasSeenAgentCreateSaveHint,
+  markAgentCreateSaveHintSeen,
   saveLocalSettings,
   saveThreadModelName,
 } from "@/core/settings/local";
@@ -55,6 +59,9 @@ describe("VassilFlow localStorage keys", () => {
   test("uses VassilFlow keys as the primary storage namespace", () => {
     expect(LOCAL_SETTINGS_KEY).toBe("vassilflow.local-settings");
     expect(THREAD_MODEL_KEY_PREFIX).toBe("vassilflow.thread-model.");
+    expect(AGENT_CREATE_SAVE_HINT_KEY).toBe(
+      "vassilflow.agent-create.save-hint-seen",
+    );
   });
 
   test("loads legacy local settings once and migrates them to the VassilFlow key", () => {
@@ -125,5 +132,22 @@ describe("VassilFlow localStorage keys", () => {
     expect(localStorage.getItem(`${THREAD_MODEL_KEY_PREFIX}thread-1`)).toBe(
       "model-b",
     );
+  });
+
+  test("loads the legacy agent-create save hint flag and migrates it", () => {
+    localStorage.setItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY, "1");
+
+    expect(hasSeenAgentCreateSaveHint()).toBe(true);
+    expect(localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY)).toBe("1");
+    expect(localStorage.getItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY)).toBeNull();
+  });
+
+  test("marks the agent-create save hint with the VassilFlow key", () => {
+    localStorage.setItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY, "1");
+
+    markAgentCreateSaveHintSeen();
+
+    expect(localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY)).toBe("1");
+    expect(localStorage.getItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY)).toBeNull();
   });
 });
