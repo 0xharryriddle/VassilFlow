@@ -22,15 +22,15 @@ import pytest
 
 from app.channels import manager as mgr
 from app.channels.message_bus import InboundMessage
-from deerflow.uploads.manager import get_uploads_dir
+from vassilflow.uploads.manager import get_uploads_dir
 
 pytestmark = pytest.mark.asyncio
 
 
 async def test_ingest_inbound_files_does_not_block_event_loop(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setenv("DEER_FLOW_HOME", str(tmp_path))
+    monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
     # Rebuild the cached Paths against the tmp home so uploads resolve under it.
-    import deerflow.config.paths as paths_mod
+    import vassilflow.config.paths as paths_mod
 
     monkeypatch.setattr(paths_mod, "_paths", None)
 
