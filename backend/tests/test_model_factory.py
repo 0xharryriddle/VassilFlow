@@ -1,15 +1,15 @@
-"""Tests for deerflow.models.factory.create_chat_model."""
+"""Tests for vassilflow.models.factory.create_chat_model."""
 
 from __future__ import annotations
 
 import pytest
 from langchain.chat_models import BaseChatModel
 
-from deerflow.config.app_config import AppConfig
-from deerflow.config.model_config import ModelConfig
-from deerflow.config.sandbox_config import SandboxConfig
-from deerflow.models import factory as factory_module
-from deerflow.models import openai_codex_provider as codex_provider_module
+from vassilflow.config.app_config import AppConfig
+from vassilflow.config.model_config import ModelConfig
+from vassilflow.config.sandbox_config import SandboxConfig
+from vassilflow.models import factory as factory_module
+from vassilflow.models import openai_codex_provider as codex_provider_module
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -19,7 +19,7 @@ from deerflow.models import openai_codex_provider as codex_provider_module
 def _make_app_config(models: list[ModelConfig]) -> AppConfig:
     return AppConfig(
         models=models,
-        sandbox=SandboxConfig(use="deerflow.sandbox.local:LocalSandboxProvider"),
+        sandbox=SandboxConfig(use="vassilflow.sandbox.local:LocalSandboxProvider"),
     )
 
 
@@ -753,7 +753,7 @@ def test_codex_provider_disables_reasoning_when_thinking_disabled(monkeypatch):
         [
             _make_model(
                 "codex",
-                use="deerflow.models.openai_codex_provider:CodexChatModel",
+                use="vassilflow.models.openai_codex_provider:CodexChatModel",
                 supports_thinking=True,
                 supports_reasoning_effort=True,
             )
@@ -773,7 +773,7 @@ def test_codex_provider_preserves_explicit_reasoning_effort(monkeypatch):
         [
             _make_model(
                 "codex",
-                use="deerflow.models.openai_codex_provider:CodexChatModel",
+                use="vassilflow.models.openai_codex_provider:CodexChatModel",
                 supports_thinking=True,
                 supports_reasoning_effort=True,
             )
@@ -793,7 +793,7 @@ def test_codex_provider_defaults_reasoning_effort_to_medium(monkeypatch):
         [
             _make_model(
                 "codex",
-                use="deerflow.models.openai_codex_provider:CodexChatModel",
+                use="vassilflow.models.openai_codex_provider:CodexChatModel",
                 supports_thinking=True,
                 supports_reasoning_effort=True,
             )
@@ -813,7 +813,7 @@ def test_codex_provider_strips_unsupported_max_tokens(monkeypatch):
         [
             _make_model(
                 "codex",
-                use="deerflow.models.openai_codex_provider:CodexChatModel",
+                use="vassilflow.models.openai_codex_provider:CodexChatModel",
                 supports_thinking=True,
                 supports_reasoning_effort=True,
                 max_tokens=4096,
@@ -833,7 +833,7 @@ def test_thinking_disabled_vllm_chat_template_format(monkeypatch):
     wte = {"extra_body": {"chat_template_kwargs": {"thinking": True}}}
     model = _make_model(
         "vllm-qwen",
-        use="deerflow.models.vllm_provider:VllmChatModel",
+        use="vassilflow.models.vllm_provider:VllmChatModel",
         supports_thinking=True,
         when_thinking_enabled=wte,
     )
@@ -860,7 +860,7 @@ def test_thinking_disabled_vllm_enable_thinking_format(monkeypatch):
     wte = {"extra_body": {"chat_template_kwargs": {"enable_thinking": True}}}
     model = _make_model(
         "vllm-qwen-enable",
-        use="deerflow.models.vllm_provider:VllmChatModel",
+        use="vassilflow.models.vllm_provider:VllmChatModel",
         supports_thinking=True,
         when_thinking_enabled=wte,
     )
@@ -1002,13 +1002,13 @@ def test_openai_responses_api_settings_are_passed_to_chatopenai(monkeypatch):
 
 @pytest.mark.parametrize("model_id", ["mimo-v2.5-pro", "mimo-v2.5", "mimo-v2-flash"])
 def test_create_chat_model_resolves_patched_mimo_provider(model_id):
-    from deerflow.models.patched_mimo import PatchedChatMiMo
+    from vassilflow.models.patched_mimo import PatchedChatMiMo
 
     model = ModelConfig(
         name=f"{model_id}-thinking",
         display_name=f"{model_id} Thinking",
         description=None,
-        use="deerflow.models.patched_mimo:PatchedChatMiMo",
+        use="vassilflow.models.patched_mimo:PatchedChatMiMo",
         model=model_id,
         api_key="test-key",
         base_url="https://api.xiaomimimo.com/v1",
@@ -1045,7 +1045,7 @@ def test_no_duplicate_kwarg_when_reasoning_effort_in_config_and_thinking_disable
         name="doubao-model",
         display_name="Doubao 1.8",
         description=None,
-        use="deerflow.models.patched_deepseek:PatchedChatDeepSeek",
+        use="vassilflow.models.patched_deepseek:PatchedChatDeepSeek",
         model="doubao-seed-1-8-250315",
         reasoning_effort="high",  # user-set extra field in config.yaml
         supports_thinking=True,
