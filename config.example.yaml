@@ -1,4 +1,4 @@
-# Configuration for the DeerFlow application
+# Configuration for the VassilFlow application
 #
 # Guidelines:
 # - Copy this file to `config.yaml` and customize it for your environment
@@ -29,7 +29,7 @@ log_level: info
 # Token Usage
 # ============================================================================
 # Enable token usage collection and display.
-# When enabled, DeerFlow records input/output/total tokens per model call
+# When enabled, VassilFlow records input/output/total tokens per model call
 # and shows usage metadata in the workspace UI when providers return it.
 token_usage:
   enabled: true
@@ -137,7 +137,7 @@ models:
   #   base_url: http://host.docker.internal:11434
 
   # Example: Anthropic Claude model (with extended thinking)
-  # supports_thinking: true is required — without it, DeerFlow silently falls
+  # supports_thinking: true is required — without it, VassilFlow silently falls
   # back to non-thinking mode even when the UI thinking toggle is on.
   # budget_tokens is required by the Anthropic API when thinking.type=enabled
   # (no server default; min 1024; must be less than max_tokens).
@@ -335,8 +335,8 @@ models:
   #   supports_thinking: true
   #   # PatchedChatMiniMax is the MiniMax adapter: it enables reasoning_split and
   #   # maps MiniMax's structured reasoning into reasoning_content (the field
-  #   # DeerFlow understands), and it strips the per-message `name` field that
-  #   # DeerFlow middlewares attach — MiniMax rejects requests whose user-message
+  #   # VassilFlow understands), and it strips the per-message `name` field that
+  #   # VassilFlow middlewares attach — MiniMax rejects requests whose user-message
   #   # names differ with "user name must be consistent (2013)". Declare the
   #   # thinking toggle so non-thinking paths (flash mode, follow-up suggestions,
   #   # title/memory generation) truly disable reasoning instead of spending
@@ -354,7 +354,7 @@ models:
   # effect (per MiniMax docs), so the toggle above is omitted for M2.7. The
   # follow-up-suggestions endpoint strips inline <think> defensively regardless.
   # Still use the PatchedChatMiniMax adapter: it strips the per-message `name`
-  # field DeerFlow middlewares attach, which MiniMax otherwise rejects with
+  # field VassilFlow middlewares attach, which MiniMax otherwise rejects with
   # "user name must be consistent (2013)".
   # - name: minimax-m2.7
   #   display_name: MiniMax M2.7
@@ -399,8 +399,8 @@ models:
   #   supports_thinking: true
   #   # PatchedChatMiniMax is the MiniMax adapter: it enables reasoning_split and
   #   # maps MiniMax's structured reasoning into reasoning_content (the field
-  #   # DeerFlow understands), and it strips the per-message `name` field that
-  #   # DeerFlow middlewares attach — MiniMax rejects requests whose user-message
+  #   # VassilFlow understands), and it strips the per-message `name` field that
+  #   # VassilFlow middlewares attach — MiniMax rejects requests whose user-message
   #   # names differ with "user name must be consistent (2013)". Declare the
   #   # thinking toggle so non-thinking paths (flash mode, follow-up suggestions,
   #   # title/memory generation) truly disable reasoning instead of spending
@@ -418,7 +418,7 @@ models:
   # effect (per MiniMax docs), so the toggle above is omitted for M2.7. The
   # follow-up-suggestions endpoint strips inline <think> defensively regardless.
   # Still use the PatchedChatMiniMax adapter: it strips the per-message `name`
-  # field DeerFlow middlewares attach, which MiniMax otherwise rejects with
+  # field VassilFlow middlewares attach, which MiniMax otherwise rejects with
   # "user name must be consistent (2013)".
   # - name: minimax-m2.7
   #   display_name: MiniMax M2.7
@@ -500,7 +500,7 @@ models:
   #         type: disabled
 
   # Example: vLLM 0.19.0 (OpenAI-compatible, with reasoning toggle)
-  # DeerFlow's vLLM provider preserves vLLM reasoning across tool-call turns and
+  # VassilFlow's vLLM provider preserves vLLM reasoning across tool-call turns and
   # toggles Qwen-style reasoning by writing
   # extra_body.chat_template_kwargs.enable_thinking=true/false.
   # Some reasoning models also require the server to be started with
@@ -973,7 +973,7 @@ sandbox:
 #   #     container_path: /home/user/shared
 #   #     read_only: false
 #   #
-#   #   # DeerFlow will surface configured container_path values to the agent,
+#   #   # VassilFlow will surface configured container_path values to the agent,
 #   #   # so it can directly read/write mounted directories such as /home/user/shared
 #
 #   # Optional: Environment variables to inject into the sandbox container
@@ -1054,7 +1054,7 @@ sandbox:
 
 # acp_agents:
 #   claude_code:
-#     # DeerFlow expects an ACP adapter here. The standard `claude` CLI does not
+#     # VassilFlow expects an ACP adapter here. The standard `claude` CLI does not
 #     # speak ACP directly. Install `claude-agent-acp` separately or use:
 #     command: npx
 #     args: ["-y", "@zed-industries/claude-agent-acp"]
@@ -1065,7 +1065,7 @@ sandbox:
 #     #   ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY  # $VAR resolves from host environment
 #
 #   codex:
-#     # DeerFlow expects an ACP adapter here. The standard `codex` CLI does not
+#     # VassilFlow expects an ACP adapter here. The standard `codex` CLI does not
 #     # speak ACP directly. Install `codex-acp` separately or use:
 #     command: npx
 #     args: ["-y", "@zed-industries/codex-acp"]
@@ -1229,7 +1229,7 @@ skill_evolution:
 # ============================================================================
 # Legacy standalone checkpointer config. Kept for backward compatibility.
 # Prefer the unified `database` section below, which drives BOTH the
-# LangGraph checkpointer AND DeerFlow application data (runs, feedback,
+# LangGraph checkpointer AND VassilFlow application data (runs, feedback,
 # events) from a single backend setting.
 #
 # If both `checkpointer` and `database` are present, `checkpointer`
@@ -1246,14 +1246,14 @@ skill_evolution:
 # ============================================================================
 # Database
 # ============================================================================
-# Unified storage backend for LangGraph checkpointer and DeerFlow
+# Unified storage backend for LangGraph checkpointer and VassilFlow
 # application data (runs, threads metadata, feedback, etc.).
 #
 # backend: memory  -- No persistence, data lost on restart
 # backend: sqlite  -- Single-node deployment, files in sqlite_dir
 # backend: postgres -- Production multi-node deployment
 #
-# If this section is omitted or empty in config.yaml, DeerFlow uses:
+# If this section is omitted or empty in config.yaml, VassilFlow uses:
 #   backend: sqlite
 #   sqlite_dir: .deer-flow/data
 #
@@ -1317,7 +1317,7 @@ run_events:
 # ============================================================================
 # User-Owned IM Channel Connections
 # ============================================================================
-# Lets logged-in users connect their own IM accounts from the DeerFlow frontend
+# Lets logged-in users connect their own IM accounts from the VassilFlow frontend
 # while reusing the existing `channels` runtime configuration below.
 #
 # Security notes:
@@ -1331,7 +1331,7 @@ run_events:
 # channel_connections:
 #   enabled: false
 #   # Security: keep this enabled unless you intentionally want legacy open-bot behavior.
-#   # Disabling it lets unbound external IM users create DeerFlow threads/runs.
+#   # Disabling it lets unbound external IM users create VassilFlow threads/runs.
 #   require_bound_identity: true
 #
 #   telegram:
@@ -1359,7 +1359,7 @@ run_events:
 # ============================================================================
 # IM Channels Configuration
 # ============================================================================
-# Connect DeerFlow to external messaging platforms.
+# Connect VassilFlow to external messaging platforms.
 # All channels use outbound connections (WebSocket or polling) — no public IP required.
 
 # channels:
@@ -1564,7 +1564,7 @@ run_events:
 #         token_endpoint_auth_method: client_secret_post
 #
 #         # User provisioning settings (safe defaults shown below):
-#         auto_create_users: true          # Auto-create DeerFlow account on first SSO login
+#         auto_create_users: true          # Auto-create VassilFlow account on first SSO login
 #         require_verified_email: true     # Reject SSO logins without verified email
 #         # allowed_email_domains:          # Restrict to specific email domains
 #         #   - example.com
