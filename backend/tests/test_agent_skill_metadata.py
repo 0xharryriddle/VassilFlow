@@ -33,3 +33,23 @@ def test_maintainer_orchestrator_design_links_vassilflow_skill():
 
     assert ".agent/skills/vassilflow-maintainer-orchestrator/SKILL.md" in content
     assert "deerflow-maintainer-orchestrator" not in content
+
+
+def test_public_claude_skill_uses_vassilflow_identity():
+    skill_path = REPO_ROOT / "skills" / "public" / "claude-to-vassilflow" / "SKILL.md"
+    legacy_path = REPO_ROOT / "skills" / "public" / "claude-to-deerflow"
+
+    assert skill_path.exists()
+    assert not legacy_path.exists()
+
+    metadata = _frontmatter(skill_path)
+    assert metadata["name"] == "claude-to-vassilflow"
+    assert "VassilFlow" in metadata["description"]
+
+
+def test_readme_documents_public_claude_vassilflow_skill():
+    content = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "claude-to-vassilflow" in content
+    assert "skills/public/claude-to-vassilflow/SKILL.md" in content
+    assert "claude-to-deerflow" not in content

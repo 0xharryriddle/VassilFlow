@@ -1,5 +1,5 @@
 ---
-name: claude-to-deerflow
+name: claude-to-vassilflow
 description: "Interact with the VassilFlow AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to VassilFlow for research/analysis, start a VassilFlow conversation thread, check VassilFlow status or health, list available models/skills/agents in VassilFlow, manage VassilFlow memory, upload files to VassilFlow threads, or delegate complex research tasks to VassilFlow. Also use when the user mentions vassilflow, deerflow, deer flow, or wants to run a deep research task that VassilFlow can handle."
 ---
 
@@ -188,7 +188,7 @@ curl -s -X POST "$VASSILFLOW_LANGGRAPH_URL/threads/search" \
 For sending messages and collecting the full response, use the helper script:
 
 ```bash
-bash /path/to/skills/claude-to-deerflow/scripts/chat.sh "Your question here"
+bash /path/to/skills/claude-to-vassilflow/scripts/chat.sh "Your question here"
 ```
 
 See `scripts/chat.sh` for the implementation. The script:

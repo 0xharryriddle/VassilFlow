@@ -609,15 +609,15 @@ Gateway-generated follow-up suggestions now normalize both plain-string model ou
 
 #### Claude Code Integration
 
-The `claude-to-deerflow` skill lets you interact with a running VassilFlow instance directly from [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Send research tasks, check status, manage threads — all without leaving the terminal.
+The `claude-to-vassilflow` skill lets you interact with a running VassilFlow instance directly from [Claude Code](https://docs.anthropic.com/en/docs/claude-code). Send research tasks, check status, manage threads — all without leaving the terminal.
 
 **Install the skill**:
 
 ```bash
-npx skills add https://github.com/bytedance/deer-flow --skill claude-to-deerflow
+npx skills add https://github.com/linhlln1104/VassilFlow --skill claude-to-vassilflow
 ```
 
-Then make sure VassilFlow is running (default at `http://localhost:2026`) and use the `/claude-to-deerflow` command in Claude Code.
+Then make sure VassilFlow is running (default at `http://localhost:2026`) and use the `/claude-to-vassilflow` command in Claude Code.
 
 **What you can do**:
 - Send messages to VassilFlow and get streaming responses
@@ -636,7 +636,7 @@ VASSILFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
 
 Legacy `DEERFLOW_*` names remain accepted by the bundled scripts.
 
-See [`skills/public/claude-to-deerflow/SKILL.md`](skills/public/claude-to-deerflow/SKILL.md) for the full API reference.
+See [`skills/public/claude-to-vassilflow/SKILL.md`](skills/public/claude-to-vassilflow/SKILL.md) for the full API reference.
 
 ### Sub-Agents
 
