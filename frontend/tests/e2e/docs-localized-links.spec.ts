@@ -9,11 +9,11 @@ test.describe("Localized documentation links", () => {
     const card = page.locator("a.nextra-card", { hasText: "Why VassilFlow" });
     await expect(card).toHaveAttribute(
       "href",
-      "/en/docs/introduction/why-deerflow",
+      "/en/docs/introduction/why-vassilflow",
     );
 
     await card.click();
-    await expect(page).toHaveURL(/\/en\/docs\/introduction\/why-deerflow$/);
+    await expect(page).toHaveURL(/\/en\/docs\/introduction\/why-vassilflow$/);
     await expect(page.locator("main h1")).toContainText("Why VassilFlow");
   });
 

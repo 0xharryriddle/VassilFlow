@@ -13,7 +13,7 @@ const meta: MetaRecord = {
   "work-with-memory": {
     title: "Work with Memory",
   },
-  "deploy-your-own-deerflow": {
+  "deploy-your-own-vassilflow": {
     title: "Deploy Your Own VassilFlow",
   },
 };

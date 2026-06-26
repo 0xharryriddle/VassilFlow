@@ -4,7 +4,7 @@ const meta: MetaRecord = {
   index: {
     title: "简介",
   },
-  "why-deerflow": {
+  "why-vassilflow": {
     title: "为什么选择 VassilFlow",
   },
   "core-concepts": {
