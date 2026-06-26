@@ -115,8 +115,8 @@ load_config()
 
 app = FastAPI()
 
-# 挂载 VassilFlow Gateway；迁移窗口内 Gateway 模块路径仍是 legacy bridge
-from deerflow.app.gateway.main import app as gateway_app
+# 从 VassilFlow 仓库源码运行时使用的应用模块路径。
+from app.gateway.app import app as gateway_app
 app.mount("/vassilflow", gateway_app)
 ```
 

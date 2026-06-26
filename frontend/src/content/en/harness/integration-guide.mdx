@@ -117,8 +117,8 @@ load_config()
 app = FastAPI()
 
 # Mount the VassilFlow gateway router.
-# The gateway module path remains legacy during the migration window.
-from deerflow.app.gateway.main import app as gateway_app
+# Source-app module path when running from the VassilFlow repository.
+from app.gateway.app import app as gateway_app
 app.mount("/vassilflow", gateway_app)
 ```
 

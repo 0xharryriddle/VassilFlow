@@ -69,7 +69,7 @@ def my_custom_tool(query: str) -> str:
 沙箱可以通过实现 `SandboxProvider` 接口来替换：
 
 ```python
-from deerflow.sandbox.sandbox_provider import SandboxProvider
+from vassilflow.sandbox.sandbox_provider import SandboxProvider
 
 class MyCustomSandboxProvider(SandboxProvider):
     def acquire(self, thread_id: str | None = None) -> str:
@@ -97,7 +97,7 @@ sandbox:
 通过实现 `MemoryStorage` 将基于文件的记忆替换为任何持久化存储：
 
 ```python
-from deerflow.agents.memory.storage import MemoryStorage
+from vassilflow.agents.memory.storage import MemoryStorage
 from typing import Any
 
 class RedisMemoryStorage(MemoryStorage):
