@@ -35,11 +35,10 @@ import sys
 import tempfile
 from pathlib import Path
 
+import vassilflow.persistence.models  # noqa: F401  -- registers ORM models with Base.metadata
 from alembic import command
 from alembic.config import Config
-
-import deerflow.persistence.models  # noqa: F401  -- registers ORM models with Base.metadata
-from deerflow.persistence.bootstrap import _escape_url_for_alembic
+from vassilflow.persistence.bootstrap import _escape_url_for_alembic
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 MIGRATIONS_DIR = BACKEND_DIR / "packages/harness/deerflow/persistence/migrations"

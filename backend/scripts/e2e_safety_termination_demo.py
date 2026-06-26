@@ -1,8 +1,8 @@
-"""End-to-end demo: SafetyFinishReasonMiddleware on the real DeerFlow lead-agent.
+"""End-to-end demo: SafetyFinishReasonMiddleware on the real VassilFlow lead-agent.
 
 What it proves
 --------------
-- The real ``make_lead_agent`` / ``DeerFlowClient`` pipeline is built (full
+- The real ``make_lead_agent`` / ``VassilFlowClient`` pipeline is built (full
   18-middleware chain, sandbox, tools, etc.).
 - A model that returns ``finish_reason='content_filter'`` + ``tool_calls``
   triggers SafetyFinishReasonMiddleware.
@@ -85,11 +85,12 @@ class _ContentFilteredFakeModel(BaseChatModel):
 def main() -> int:
     # Inject the fake model BEFORE constructing the client. Both the
     # client module and the lead-agent module bind ``create_chat_model``
-    # at import time via ``from deerflow.models import create_chat_model``,
-    # so we patch both attribute slots — the source-of-truth patch on
-    # ``factory.create_chat_model`` doesn't propagate back into already-
-    # imported names.
-    import deerflow.agents.lead_agent.agent as lead_agent_module
+    # at import time via ``from deerflow.models import create_chat_model`` in
+    # the current implementation modules, so we patch both attribute slots. The
+    # source-of-truth patch on ``factory.create_chat_model`` does not propagate
+    # back into already-imported names.
+    import vassilflow.agents.lead_agent.agent as lead_agent_module
+
     import deerflow.client as client_module
 
     fake = _ContentFilteredFakeModel()
@@ -104,10 +105,10 @@ def main() -> int:
     lead_agent_module.create_chat_model = fake_create_chat_model
     client_module.create_chat_model = fake_create_chat_model
 
-    from deerflow.client import DeerFlowClient
+    from vassilflow.client import VassilFlowClient
 
     try:
-        client = DeerFlowClient()
+        client = VassilFlowClient()
 
         print("\n=== Streaming a turn through the real lead-agent ===")
         events: list[dict[str, Any]] = []
