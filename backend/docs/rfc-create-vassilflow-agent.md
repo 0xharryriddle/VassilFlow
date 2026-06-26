@@ -1,4 +1,4 @@
-# RFC: `create_deerflow_agent` — 纯参数的 SDK 工厂 API
+# RFC: `create_vassilflow_agent` — 纯参数的 SDK 工厂 API
 
 ## 1. 问题
 
@@ -15,11 +15,11 @@ make_lead_agent
   └─ _build_middlewares()      ← 读 config.yaml（summarization、model vision）
 ```
 
-**6 处隐式 I/O** — 全部依赖文件系统。如果你想把 `deerflow-harness` 当 Python 库嵌入自己的应用，你必须准备 `config.yaml` + `extensions_config.json` + skills 目录。这对 SDK 用户是不可接受的。
+**6 处隐式 I/O** — 全部依赖文件系统。如果你想把 `vassilflow-harness` 当 Python 库嵌入自己的应用，你必须准备 `config.yaml` + `extensions_config.json` + skills 目录。这对 SDK 用户是不可接受的。
 
 ### 对比
 
-| | `langchain.create_agent` | `make_lead_agent` | `DeerFlowClient`（增强后） |
+| | `langchain.create_agent` | `make_lead_agent` | `VassilFlowClient`（增强后） |
 |---|---|---|---|
 | 定位 | 底层原语 | 内部工厂 | **唯一公开 API** |
 | 配置来源 | 纯参数 | YAML 文件 | **参数优先，config fallback** |
@@ -40,22 +40,22 @@ make_lead_agent
 
 ```
     ┌──────────────────────┐
-    │   DeerFlowClient     │  ← 唯一公开 API（chat/stream + 管理）
+    │   VassilFlowClient     │  ← 唯一公开 API（chat/stream + 管理）
     └──────────┬───────────┘
     ┌──────────▼───────────┐
     │   make_lead_agent    │  ← 内部：配置驱动工厂
     └──────────┬───────────┘
     ┌──────────▼───────────┐
-    │  create_deerflow_agent   │  ← 内部：纯参数工厂
+    │  create_vassilflow_agent   │  ← 内部：纯参数工厂
     └──────────┬───────────┘
     ┌──────────▼───────────┐
     │ langchain.create_agent│  ← 底层原语
     └──────────────────────┘
 ```
 
-`DeerFlowClient` 是唯一公开 API。`create_deerflow_agent` 和 `make_lead_agent` 都是内部实现。
+`VassilFlowClient` 是唯一公开 API。`create_vassilflow_agent` 和 `make_lead_agent` 都是内部实现。
 
-用户通过 `DeerFlowClient` 三个参数控制行为：
+用户通过 `VassilFlowClient` 三个参数控制行为：
 
 | 参数 | 类型 | 职责 |
 |------|------|------|
@@ -69,27 +69,27 @@ make_lead_agent
 
 - **配置覆盖** — `config` dict > config.yaml > 默认值
 - **三层不重叠** — config 传参数，features 传实例，extra_middleware 传新增
-- **向前兼容** — 现有 `DeerFlowClient()` 无参构造行为不变
+- **向前兼容** — 现有 `VassilFlowClient()` 无参构造行为不变
 - **harness 边界合规** — 不 import `app.*`（`test_harness_boundary.py` 强制）
 
 ## 3. API 设计
 
-### 3.1 `DeerFlowClient` — 唯一公开 API
+### 3.1 `VassilFlowClient` — 唯一公开 API
 
 在现有构造函数上增加三个可选参数：
 
 ```python
-from deerflow.client import DeerFlowClient
-from deerflow.agents.features import RuntimeFeatures
+from vassilflow.client import VassilFlowClient
+from vassilflow.agents.features import RuntimeFeatures
 
-client = DeerFlowClient(
+client = VassilFlowClient(
     # 1. config — 覆盖 config.yaml 的任意 key（结构和 yaml 一致）
     config={
         "models": [{"name": "gpt-4o", "use": "langchain_openai:ChatOpenAI", "model": "gpt-4o", "api_key": "sk-..."}],
         "memory": {"max_facts": 50, "enabled": True},
         "title": {"enabled": False},
         "summarization": {"enabled": True, "trigger": [{"type": "tokens", "value": 10000}]},
-        "sandbox": {"use": "deerflow.sandbox.local:LocalSandboxProvider"},
+        "sandbox": {"use": "vassilflow.sandbox.local:LocalSandboxProvider"},
     },
 
     # 2. features — 替换内置 middleware 实现
@@ -110,31 +110,31 @@ client = DeerFlowClient(
 
 ```python
 # 用法 1：全读 config.yaml（现有行为，不变）
-client = DeerFlowClient()
+client = VassilFlowClient()
 
 # 用法 2：只改参数，不换实现
-client = DeerFlowClient(config={"memory": {"max_facts": 50}})
+client = VassilFlowClient(config={"memory": {"max_facts": 50}})
 
 # 用法 3：替换 middleware 实现
-client = DeerFlowClient(features=RuntimeFeatures(auto_title=MyTitleMiddleware()))
+client = VassilFlowClient(features=RuntimeFeatures(auto_title=MyTitleMiddleware()))
 
 # 用法 4：添加自定义 middleware
-client = DeerFlowClient(extra_middleware=[MyAuditMiddleware()])
+client = VassilFlowClient(extra_middleware=[MyAuditMiddleware()])
 
 # 用法 5：纯 SDK（无 config.yaml）
-client = DeerFlowClient(config={
+client = VassilFlowClient(config={
     "models": [{"name": "gpt-4o", "use": "langchain_openai:ChatOpenAI", ...}],
-    "tools": [{"name": "bash", "use": "deerflow.sandbox.tools:bash_tool", "group": "bash"}],
+    "tools": [{"name": "bash", "use": "vassilflow.sandbox.tools:bash_tool", "group": "bash"}],
     "memory": {"enabled": True},
 })
 ```
 
 内部实现：`final_config = deep_merge(file_config, code_config)`
 
-### 3.2 `create_deerflow_agent` — 内部工厂（不公开）
+### 3.2 `create_vassilflow_agent` — 内部工厂（不公开）
 
 ```python
-def create_deerflow_agent(
+def create_vassilflow_agent(
     model: BaseChatModel,
     tools: list[BaseTool] | None = None,
     *,
@@ -148,7 +148,7 @@ def create_deerflow_agent(
     ...
 ```
 
-`DeerFlowClient` 内部调用此函数。
+`VassilFlowClient` 内部调用此函数。
 
 ### 3.3 `RuntimeFeatures` — 内置 Middleware 替换
 
@@ -175,13 +175,13 @@ class RuntimeFeatures:
 
 ```python
 # 改 memory 参数 → config
-client = DeerFlowClient(config={"memory": {"max_facts": 50}})
+client = VassilFlowClient(config={"memory": {"max_facts": 50}})
 
 # 换 memory 实现 → features
-client = DeerFlowClient(features=RuntimeFeatures(memory=MyMemoryMiddleware()))
+client = VassilFlowClient(features=RuntimeFeatures(memory=MyMemoryMiddleware()))
 
 # 两者组合 — config 参数给默认 middleware，但 title 换实现
-client = DeerFlowClient(
+client = VassilFlowClient(
     config={"memory": {"max_facts": 50}},
     features=RuntimeFeatures(auto_title=MyTitleMiddleware()),
 )
@@ -250,7 +250,7 @@ def _assemble_from_features(feat: RuntimeFeatures, config: AppConfig) -> tuple[l
 用户自定义 middleware 通过装饰器声明在链中的位置，类型安全：
 
 ```python
-from deerflow.agents import Next, Prev
+from vassilflow.agents import Next, Prev
 
 @Next(SandboxMiddleware)
 class MyAuditMiddleware(AgentMiddleware):
@@ -319,16 +319,16 @@ after_agent 反序 ←   [N] → [N-1] → ... → [0]
 ### 5.1 全读 config.yaml（现有行为不变）
 
 ```python
-from deerflow.client import DeerFlowClient
+from vassilflow.client import VassilFlowClient
 
-client = DeerFlowClient()
+client = VassilFlowClient()
 response = client.chat("Hello")
 ```
 
 ### 5.2 覆盖配置参数
 
 ```python
-client = DeerFlowClient(config={
+client = VassilFlowClient(config={
     "memory": {"max_facts": 50},
     "title": {"enabled": False},
     "summarization": {"trigger": [{"type": "tokens", "value": 10000}]},
@@ -338,23 +338,23 @@ client = DeerFlowClient(config={
 ### 5.3 纯 SDK（无 config.yaml）
 
 ```python
-client = DeerFlowClient(config={
+client = VassilFlowClient(config={
     "models": [{"name": "gpt-4o", "use": "langchain_openai:ChatOpenAI", "model": "gpt-4o", "api_key": "sk-..."}],
     "tools": [
-        {"name": "bash", "group": "bash", "use": "deerflow.sandbox.tools:bash_tool"},
-        {"name": "web_search", "group": "web", "use": "deerflow.community.tavily.tools:web_search_tool"},
+        {"name": "bash", "group": "bash", "use": "vassilflow.sandbox.tools:bash_tool"},
+        {"name": "web_search", "group": "web", "use": "vassilflow.community.tavily.tools:web_search_tool"},
     ],
     "memory": {"enabled": True, "max_facts": 50},
-    "sandbox": {"use": "deerflow.sandbox.local:LocalSandboxProvider"},
+    "sandbox": {"use": "vassilflow.sandbox.local:LocalSandboxProvider"},
 })
 ```
 
 ### 5.4 替换内置 middleware
 
 ```python
-from deerflow.agents.features import RuntimeFeatures
+from vassilflow.agents.features import RuntimeFeatures
 
-client = DeerFlowClient(
+client = VassilFlowClient(
     features=RuntimeFeatures(
         memory=MyMemoryMiddleware(),       # 替换
         auto_title=MyTitleMiddleware(),    # 替换
@@ -366,9 +366,9 @@ client = DeerFlowClient(
 ### 5.5 插入自定义 middleware
 
 ```python
-from deerflow.agents import Next, Prev
-from deerflow.sandbox.middleware import SandboxMiddleware
-from deerflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
+from vassilflow.agents import Next, Prev
+from vassilflow.sandbox.middleware import SandboxMiddleware
+from vassilflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
 
 @Next(SandboxMiddleware)
 class MyAuditMiddleware(AgentMiddleware):
@@ -380,7 +380,7 @@ class MyFilterMiddleware(AgentMiddleware):
     def after_model(self, state, runtime):
         filter_sensitive_output(state)
 
-client = DeerFlowClient(
+client = VassilFlowClient(
     extra_middleware=[MyAuditMiddleware(), MyFilterMiddleware()],
 )
 ```
@@ -401,16 +401,16 @@ Phase 1 中 `auto_title` 默认为 `False` 以避免无 config 时崩溃。其�
 
 ```
 Phase 1（当前 PR #1203）:
-  ✓ 新增 create_deerflow_agent + RuntimeFeatures（内部 API）
-  ✓ 不改 DeerFlowClient 和 make_lead_agent
+  ✓ 新增 create_vassilflow_agent + RuntimeFeatures（内部 API）
+  ✓ 不改 VassilFlowClient 和 make_lead_agent
   ✗ middleware 内部仍读 config（已知限制）
 
 Phase 2（#1380）:
-  - DeerFlowClient 构造函数增加可选参数（model, tools, features, system_prompt）
+  - VassilFlowClient 构造函数增加可选参数（model, tools, features, system_prompt）
   - Options 参数覆盖 config（MemoryOptions, TitleOptions 等）
   - @Next/@Prev 装饰器
   - 补缺失 middleware（Guardrail, TokenUsage, DeferredToolFilter）
-  - make_lead_agent 改为薄壳调 create_deerflow_agent
+  - make_lead_agent 改为薄壳调 create_vassilflow_agent
 
 Phase 3:
   - SDK 文档和示例
@@ -421,8 +421,8 @@ Phase 3:
 
 | 问题 | 决议 | 理由 |
 |------|------|------|
-| 公开 API | `DeerFlowClient` 唯一入口 | 自顶向下，先改现有 API 再抽底层 |
-| create_deerflow_agent | 内部实现，不公开 | 用户不需要接触 CompiledStateGraph |
+| 公开 API | `VassilFlowClient` 唯一入口 | 自顶向下，先改现有 API 再抽底层 |
+| create_vassilflow_agent | 内部实现，不公开 | 用户不需要接触 CompiledStateGraph |
 | 配置覆盖 | `config` dict，和 config.yaml 结构一致 | 无新概念，deep merge 覆盖 |
 | middleware 替换 | `features=RuntimeFeatures(memory=MyMW())` | bool 开关 + 实例替换 |
 | middleware 扩展 | `extra_middleware` 独立参数 | 和内置 features 分开 |

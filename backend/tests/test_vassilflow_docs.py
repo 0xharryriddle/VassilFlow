@@ -299,3 +299,46 @@ def test_sandbox_memory_profiling_docs_use_vassilflow_defaults():
     assert "same DeerFlow workload" not in content
     assert "--namespace deer-flow" not in content
     assert "--selector app=deer-flow-sandbox" not in content
+
+
+def test_rfc_docs_use_vassilflow_public_facades():
+    sdk_rfc = (
+        REPO_ROOT / "backend" / "docs" / "rfc-create-vassilflow-agent.md"
+    ).read_text(encoding="utf-8")
+    grep_glob_rfc = (
+        REPO_ROOT / "backend" / "docs" / "rfc-grep-glob-tools.md"
+    ).read_text(encoding="utf-8")
+    shared_modules_rfc = (
+        REPO_ROOT / "backend" / "docs" / "rfc-extract-shared-modules.md"
+    ).read_text(encoding="utf-8")
+
+    assert "from vassilflow.client import VassilFlowClient" in sdk_rfc
+    assert "from vassilflow.agents.features import RuntimeFeatures" in sdk_rfc
+    assert "create_vassilflow_agent" in sdk_rfc
+    assert '"vassilflow.sandbox.local:LocalSandboxProvider"' in sdk_rfc
+    assert '"vassilflow.sandbox.tools:bash_tool"' in sdk_rfc
+    assert "from deerflow.client import" not in sdk_rfc
+    assert "from deerflow.agents" not in sdk_rfc
+    assert "create_deerflow_agent" not in sdk_rfc
+
+    assert "# [RFC] 在 VassilFlow 中增加 `grep` 与 `glob` 文件搜索工具" in grep_glob_rfc
+    assert "use: vassilflow.sandbox.tools:glob_tool" in grep_glob_rfc
+    assert "use: vassilflow.sandbox.tools:grep_tool" in grep_glob_rfc
+    assert "use: deerflow.sandbox.tools" not in grep_glob_rfc
+
+    assert "vassilflow.skills.installer" in shared_modules_rfc
+    assert "vassilflow.uploads.manager" in shared_modules_rfc
+    assert "`VassilFlowClient`" in shared_modules_rfc
+    assert "deerflow.skills.installer" not in shared_modules_rfc
+    assert "deerflow.uploads.manager" not in shared_modules_rfc
+
+
+def test_middleware_docs_use_vassilflow_factory_name():
+    content = (
+        REPO_ROOT / "backend" / "docs" / "middleware-execution-flow.md"
+    ).read_text(encoding="utf-8")
+
+    assert "create_vassilflow_agent" in content
+    assert "VassilFlow 的实际情况" in content
+    assert "create_deerflow_agent" not in content
+    assert "DeerFlow 的实际情况" not in content

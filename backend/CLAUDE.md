@@ -449,7 +449,7 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 - Memory is stored per-user at `{base_dir}/users/{user_id}/memory.json`
 - Per-agent per-user memory at `{base_dir}/users/{user_id}/agents/{agent_name}/memory.json`
 - Custom agent definitions (`SOUL.md` + `config.yaml`) are also per-user at `{base_dir}/users/{user_id}/agents/{agent_name}/`. The legacy shared layout `{base_dir}/agents/{agent_name}/` remains read-only fallback for unmigrated installations
-- `user_id` is resolved via `get_effective_user_id()` from `deerflow.runtime.user_context`
+- `user_id` is resolved via `get_effective_user_id()` from `vassilflow.runtime.user_context`
 - The `/api/memory*` endpoints resolve the owner through `_resolve_memory_user_id(request)`: trusted internal callers (IM channel workers carrying the `X-VassilFlow-Owner-User-Id` header, with legacy `X-DeerFlow-Owner-User-Id` still accepted, e.g. a bound `/memory` command) act for the connection owner; browser/API callers fall back to `get_effective_user_id()`. The header is only honored after `AuthMiddleware` validated the internal token, mirroring `get_trusted_internal_owner_user_id` used by the threads router
 - In no-auth mode, `user_id` defaults to `"default"` (constant `DEFAULT_USER_ID`)
 - Absolute `storage_path` in config opts out of per-user isolation
@@ -566,7 +566,7 @@ Both can be modified at runtime via Gateway API endpoints or `VassilFlowClient` 
 
 `VassilFlowClient` provides direct in-process access to all VassilFlow capabilities without HTTP services. The legacy `DeerFlowClient` remains supported during the migration. All return types align with the Gateway API response schemas, so consumer code works identically in HTTP and embedded modes.
 
-**Architecture**: Imports the same `deerflow` modules that Gateway API uses. Shares the same config files and data directories. No FastAPI dependency.
+**Architecture**: Imports the same VassilFlow facade modules that Gateway API uses where available; the current implementation still lives under `deerflow` during migration. Shares the same config files and data directories. No FastAPI dependency.
 
 **Agent Conversation**:
 - `chat(message, thread_id)` — synchronous, accumulates streaming deltas per message-id and returns the final AI text
