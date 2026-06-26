@@ -1591,7 +1591,7 @@ class TestUploads:
 
 class TestArtifacts:
     def test_get_artifact(self, client):
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         with tempfile.TemporaryDirectory() as tmp:
             paths = Paths(base_dir=tmp)
@@ -1607,7 +1607,7 @@ class TestArtifacts:
             assert "text" in mime
 
     def test_get_artifact_not_found(self, client):
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         with tempfile.TemporaryDirectory() as tmp:
             paths = Paths(base_dir=tmp)
@@ -1623,7 +1623,7 @@ class TestArtifacts:
             client.get_artifact("t1", "bad/path/file.txt")
 
     def test_get_artifact_path_traversal(self, client):
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         with tempfile.TemporaryDirectory() as tmp:
             paths = Paths(base_dir=tmp)
@@ -1812,7 +1812,7 @@ class TestScenarioFileLifecycle:
 
     def test_upload_then_read_artifact(self, client):
         """Upload a file, simulate agent producing artifact, read it back."""
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -2071,7 +2071,7 @@ class TestScenarioThreadIsolation:
 
     def test_artifacts_isolated_per_thread(self, client):
         """Artifacts in thread-A are not accessible from thread-B."""
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         with tempfile.TemporaryDirectory() as tmp:
             paths = Paths(base_dir=tmp)
@@ -3011,7 +3011,7 @@ class TestUploadDeleteSymlink:
 class TestArtifactHardening:
     def test_artifact_directory_rejected(self, client):
         """get_artifact rejects paths that resolve to a directory."""
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         with tempfile.TemporaryDirectory() as tmp:
             paths = Paths(base_dir=tmp)
@@ -3025,7 +3025,7 @@ class TestArtifactHardening:
 
     def test_artifact_leading_slash_stripped(self, client):
         """Paths with leading slash are handled correctly."""
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         with tempfile.TemporaryDirectory() as tmp:
             paths = Paths(base_dir=tmp)
@@ -3144,7 +3144,7 @@ class TestBugArtifactPrefixMatchTooLoose:
 
     def test_exact_prefix_without_subpath_accepted(self, client):
         """Bare 'mnt/user-data' is accepted (will later fail as directory, not at prefix)."""
-        from deerflow.runtime.user_context import get_effective_user_id
+        from vassilflow.runtime.user_context import get_effective_user_id
 
         with tempfile.TemporaryDirectory() as tmp:
             paths = Paths(base_dir=tmp)
