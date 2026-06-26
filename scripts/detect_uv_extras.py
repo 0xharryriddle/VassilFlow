@@ -47,13 +47,28 @@ def _vassilflow_alias_for(name: str) -> str | None:
     return None
 
 
+def _legacy_alias_for(name: str) -> str | None:
+    if name.startswith("VASSILFLOW_"):
+        return f"DEER_FLOW_{name.removeprefix('VASSILFLOW_')}"
+    return None
+
+
 def _env_value(name: str) -> str | None:
     alias = _vassilflow_alias_for(name)
     if alias is not None:
         value = os.environ.get(alias)
         if value is not None:
             return value
-    return os.environ.get(name)
+        return os.environ.get(name)
+
+    value = os.environ.get(name)
+    if value is not None:
+        return value
+
+    legacy_alias = _legacy_alias_for(name)
+    if legacy_alias is not None:
+        return os.environ.get(legacy_alias)
+    return None
 
 
 def _validate_extras(names: list[str]) -> list[str]:
@@ -77,7 +92,7 @@ def parse_env_extras(value: str) -> list[str]:
 
 def find_config_file() -> Path | None:
     """Locate config.yaml using the same precedence as serve.sh."""
-    explicit = _env_value("DEER_FLOW_CONFIG_PATH")
+    explicit = _env_value("VASSILFLOW_CONFIG_PATH")
     if explicit:
         candidate = Path(explicit)
         if candidate.is_file():

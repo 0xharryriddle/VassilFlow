@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DETECT_SCRIPT_PATH = REPO_ROOT / "scripts" / "detect_uv_extras.py"
 
 
-spec = importlib.util.spec_from_file_location("deerflow_detect_uv_extras", DETECT_SCRIPT_PATH)
+spec = importlib.util.spec_from_file_location("vassilflow_detect_uv_extras", DETECT_SCRIPT_PATH)
 assert spec is not None and spec.loader is not None
 detect = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(detect)
@@ -189,6 +189,19 @@ def test_resolve_extras_respects_vassilflow_config_path_alias(tmp_path, monkeypa
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(elsewhere))
     monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
+
+    assert detect.resolve_extras() == ["postgres"]
+
+
+def test_resolve_extras_prefers_vassilflow_config_path_over_legacy(tmp_path, monkeypatch):
+    monkeypatch.delenv("UV_EXTRAS", raising=False)
+    current = tmp_path / "current.yaml"
+    legacy = tmp_path / "legacy.yaml"
+    current.write_text("database:\n  backend: postgres\n")
+    legacy.write_text("database:\n  backend: sqlite\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(current))
+    monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy))
 
     assert detect.resolve_extras() == ["postgres"]
 
