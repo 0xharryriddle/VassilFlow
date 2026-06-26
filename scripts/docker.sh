@@ -24,6 +24,24 @@ LEGACY_SANDBOX_CONTAINER_PREFIX="deer-flow-sandbox"
 DEFAULT_RUNTIME_HOME="$PROJECT_ROOT/backend/.vassilflow"
 LEGACY_RUNTIME_HOME="$PROJECT_ROOT/backend/.deer-flow"
 
+configure_msys_docker_path_conversion() {
+    # Git Bash converts /app and /root-style values for Windows executables.
+    # These values are Linux container paths and must reach Docker unchanged.
+    local excluded_vars="VASSILFLOW_CONTAINER_HOME;DEER_FLOW_CONTAINER_HOME;VASSILFLOW_HOME;DEER_FLOW_HOME;CODEX_AUTH_PATH"
+    export MSYS_NO_PATHCONV="${MSYS_NO_PATHCONV:-1}"
+    export MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:-*}"
+    if [ -n "${MSYS2_ENV_CONV_EXCL:-}" ]; then
+        case ";$MSYS2_ENV_CONV_EXCL;" in
+            *";VASSILFLOW_CONTAINER_HOME;"*) ;;
+            *) export MSYS2_ENV_CONV_EXCL="$MSYS2_ENV_CONV_EXCL;$excluded_vars" ;;
+        esac
+    else
+        export MSYS2_ENV_CONV_EXCL="$excluded_vars"
+    fi
+}
+
+configure_msys_docker_path_conversion
+
 vassilflow_alias_for() {
     case "$1" in
         DEER_FLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEER_FLOW_}" ;;

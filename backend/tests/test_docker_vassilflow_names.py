@@ -78,6 +78,26 @@ def test_docker_script_defaults_to_vassilflow_project_and_sandbox_prefix():
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for docker.sh naming tests")
+def test_docker_script_excludes_container_paths_from_msys_conversion():
+    command = (
+        f"source '{DOCKER_SCRIPT}' >/dev/null && "
+        "printf '%s\\n%s\\n%s\\n' \"$MSYS_NO_PATHCONV\" \"$MSYS2_ARG_CONV_EXCL\" \"$MSYS2_ENV_CONV_EXCL\""
+    )
+
+    output = subprocess.check_output(
+        [BASH_EXECUTABLE, "-lc", command],
+        text=True,
+        encoding="utf-8",
+    ).splitlines()
+
+    assert output[0] == "1"
+    assert output[1] == "*"
+    assert "VASSILFLOW_CONTAINER_HOME" in output[2]
+    assert "DEER_FLOW_CONTAINER_HOME" in output[2]
+    assert "CODEX_AUTH_PATH" in output[2]
+
+
+@pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for docker.sh naming tests")
 def test_docker_script_can_opt_into_cli_auth_overlay():
     command = (
         "export VASSILFLOW_DOCKER_CLI_AUTH=1 HOME=/tmp; "
