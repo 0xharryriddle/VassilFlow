@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from deerflow.mcp.session_pool import MCPSessionPool, get_session_pool, reset_session_pool
+from vassilflow.mcp.session_pool import MCPSessionPool, get_session_pool, reset_session_pool
 
 
 @pytest.fixture(autouse=True)
@@ -226,7 +226,7 @@ async def test_session_pool_tool_wrapping():
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -266,8 +266,8 @@ async def test_session_pool_tool_pins_cwd_and_temp_env(tmp_path):
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
     from vassilflow.config.paths import Paths
+    from vassilflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -319,8 +319,8 @@ async def test_session_pool_tool_does_not_override_explicit_tmpdir(tmp_path):
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
     from vassilflow.config.paths import Paths
+    from vassilflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -364,8 +364,8 @@ async def test_session_pool_tool_does_not_override_explicit_cwd(tmp_path):
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
     from vassilflow.config.paths import Paths
+    from vassilflow.mcp.tools import _MCP_TMP_SUBDIR, _make_session_pool_tool
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -412,8 +412,8 @@ async def test_session_pool_tool_skips_fs_work_for_non_stdio_transport(tmp_path)
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
     from vassilflow.config.paths import Paths
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -460,8 +460,8 @@ async def test_session_pool_tool_skips_after_walk_when_no_text_content(tmp_path)
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
     from vassilflow.config.paths import Paths
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -508,8 +508,8 @@ async def test_session_pool_tool_runs_after_walk_when_text_content_present(tmp_p
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
     from vassilflow.config.paths import Paths
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -557,7 +557,7 @@ async def test_session_pool_tool_forwards_interceptor_headers():
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         x: int = Field(..., description="x")
@@ -599,7 +599,7 @@ async def test_session_pool_tool_no_headers_omits_meta():
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         x: int = Field(..., description="x")
@@ -639,7 +639,7 @@ async def test_session_pool_tool_ignores_unsupported_header_type(caplog):
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         x: int = Field(..., description="x")
@@ -684,7 +684,7 @@ async def test_session_pool_tool_extracts_thread_id():
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         x: int = Field(..., description="x")
@@ -725,7 +725,7 @@ async def test_session_pool_tool_default_scope():
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         x: int = Field(..., description="x")
@@ -760,7 +760,7 @@ async def test_session_pool_tool_get_config_fallback():
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.mcp.tools import _make_session_pool_tool
 
     class Args(BaseModel):
         x: int = Field(..., description="x")
@@ -799,8 +799,8 @@ def test_session_pool_tool_sync_wrapper_path_is_safe():
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import _make_session_pool_tool
-    from deerflow.tools.sync import make_sync_tool_wrapper
+    from vassilflow.mcp.tools import _make_session_pool_tool
+    from vassilflow.tools.sync import make_sync_tool_wrapper
 
     class Args(BaseModel):
         url: str = Field(..., description="url")
@@ -844,7 +844,7 @@ async def test_http_transport_tools_not_pooled():
     from langchain_core.tools import StructuredTool
     from pydantic import BaseModel, Field
 
-    from deerflow.mcp.tools import get_mcp_tools
+    from vassilflow.mcp.tools import get_mcp_tools
 
     class Args(BaseModel):
         query: str = Field(..., description="query")
@@ -1462,8 +1462,8 @@ def test_reset_mcp_tools_cache_from_running_loop_is_bounded():
     so neither side could make progress. This test drives the exact scenario
     on a daemon thread and asserts the call returns within a bounded time.
     """
-    from deerflow.mcp.cache import reset_mcp_tools_cache
-    from deerflow.mcp.session_pool import get_session_pool
+    from vassilflow.mcp.cache import reset_mcp_tools_cache
+    from vassilflow.mcp.session_pool import get_session_pool
 
     conn = {"transport": "stdio", "command": "x", "args": []}
     cm = _CloseTrackingCm()

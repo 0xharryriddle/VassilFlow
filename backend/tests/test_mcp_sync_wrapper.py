@@ -7,8 +7,8 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 
-from deerflow.mcp.tools import get_mcp_tools
-from deerflow.tools.sync import make_sync_tool_wrapper
+from vassilflow.mcp.tools import get_mcp_tools
+from vassilflow.tools.sync import make_sync_tool_wrapper
 
 
 class MockArgs(BaseModel):

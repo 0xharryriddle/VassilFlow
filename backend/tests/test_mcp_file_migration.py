@@ -12,8 +12,8 @@ from unittest.mock import patch
 import pytest
 from mcp.types import CallToolResult, ResourceLink, TextContent
 
-from deerflow.mcp import tools as mcp_tools
 from vassilflow.config.paths import VIRTUAL_PATH_PREFIX, Paths
+from vassilflow.mcp import tools as mcp_tools
 
 
 @pytest.fixture

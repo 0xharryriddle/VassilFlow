@@ -3,7 +3,7 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from deerflow.mcp.tools import get_mcp_tools
+from vassilflow.mcp.tools import get_mcp_tools
 
 
 def _make_patches(*, interceptor_paths=None):
