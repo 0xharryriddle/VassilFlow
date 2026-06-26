@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from deerflow.tools.builtins.view_image_tool import view_image_tool
+from vassilflow.tools.builtins.view_image_tool import view_image_tool
 
 view_image_module = importlib.import_module("deerflow.tools.builtins.view_image_tool")
 

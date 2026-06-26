@@ -5,16 +5,16 @@ from types import SimpleNamespace
 
 import pytest
 
-from deerflow.tools.builtins.invoke_acp_agent_tool import (
+from vassilflow.config.acp_config import ACPAgentConfig
+from vassilflow.config.extensions_config import ExtensionsConfig, McpServerConfig, set_extensions_config
+from vassilflow.tools.builtins.invoke_acp_agent_tool import (
     _build_acp_mcp_servers,
     _build_mcp_servers,
     _build_permission_response,
     _get_work_dir,
     build_invoke_acp_agent_tool,
 )
-from deerflow.tools.tools import get_available_tools
-from vassilflow.config.acp_config import ACPAgentConfig
-from vassilflow.config.extensions_config import ExtensionsConfig, McpServerConfig, set_extensions_config
+from vassilflow.tools.tools import get_available_tools
 
 
 def test_build_mcp_servers_filters_disabled_and_maps_transports():

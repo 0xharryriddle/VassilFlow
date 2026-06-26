@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from deerflow.tools.builtins.setup_agent_tool import setup_agent
+from vassilflow.tools.builtins.setup_agent_tool import setup_agent
 
 # --- Helpers ---
 

@@ -18,7 +18,7 @@ import warnings
 import pytest
 from langchain.tools import ToolRuntime
 
-from deerflow.sandbox.tools import (
+from vassilflow.sandbox.tools import (
     bash_tool,
     glob_tool,
     grep_tool,
@@ -27,12 +27,12 @@ from deerflow.sandbox.tools import (
     str_replace_tool,
     write_file_tool,
 )
-from deerflow.tools.builtins.present_file_tool import present_file_tool
-from deerflow.tools.builtins.setup_agent_tool import setup_agent
-from deerflow.tools.builtins.task_tool import task_tool
-from deerflow.tools.builtins.update_agent_tool import update_agent
-from deerflow.tools.builtins.view_image_tool import view_image_tool
-from deerflow.tools.skill_manage_tool import skill_manage_tool
+from vassilflow.tools.builtins.present_file_tool import present_file_tool
+from vassilflow.tools.builtins.setup_agent_tool import setup_agent
+from vassilflow.tools.builtins.task_tool import task_tool
+from vassilflow.tools.builtins.update_agent_tool import update_agent
+from vassilflow.tools.builtins.view_image_tool import view_image_tool
+from vassilflow.tools.skill_manage_tool import skill_manage_tool
 
 
 def _make_runtime(context: dict) -> ToolRuntime:

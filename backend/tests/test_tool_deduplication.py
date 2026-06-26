@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 from langchain_core.tools import BaseTool, StructuredTool, tool
 from pydantic import BaseModel, Field
 
-from deerflow.tools.tools import get_available_tools
+from vassilflow.tools.tools import get_available_tools
 
 # ---------------------------------------------------------------------------
 # Fixture tools

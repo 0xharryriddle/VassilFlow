@@ -17,8 +17,8 @@ import pytest
 import yaml
 from langchain.tools import ToolRuntime
 
-from deerflow.tools.builtins.update_agent_tool import update_agent
 from vassilflow.config.agents_config import AgentConfig
+from vassilflow.tools.builtins.update_agent_tool import update_agent
 
 DEFAULT_USER = "test-user-autouse"  # matches the autouse fixture in tests/conftest.py
 
