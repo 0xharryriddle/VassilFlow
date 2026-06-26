@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import os
 from collections.abc import Mapping
 from contextvars import ContextVar
 from pathlib import Path
@@ -16,6 +15,7 @@ from deerflow.config.auth_config import AuthAppConfig
 from deerflow.config.channel_connections_config import ChannelConnectionsConfig
 from deerflow.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from deerflow.config.database_config import DatabaseConfig
+from deerflow.config.env_aliases import env_value
 from deerflow.config.extensions_config import ExtensionsConfig
 from deerflow.config.guardrails_config import GuardrailsConfig, load_guardrails_config_from_dict
 from deerflow.config.loop_detection_config import LoopDetectionConfig
@@ -202,7 +202,7 @@ class AppConfig(BaseModel):
 
         Priority:
         1. If provided `config_path` argument, use it.
-        2. If provided `DEER_FLOW_CONFIG_PATH` environment variable, use it.
+        2. If provided `VASSILFLOW_CONFIG_PATH`/`DEER_FLOW_CONFIG_PATH` environment variable, use it.
         3. Otherwise, search the caller project root.
         4. Finally, search legacy backend/repository-root defaults for monorepo compatibility.
         """
@@ -211,10 +211,10 @@ class AppConfig(BaseModel):
             if not Path.exists(path):
                 raise FileNotFoundError(f"Config file specified by param `config_path` not found at {path}")
             return path
-        elif os.getenv("DEER_FLOW_CONFIG_PATH"):
-            path = Path(os.getenv("DEER_FLOW_CONFIG_PATH"))
+        elif env_config_path := env_value("DEER_FLOW_CONFIG_PATH"):
+            path = Path(env_config_path)
             if not Path.exists(path):
-                raise FileNotFoundError(f"Config file specified by environment variable `DEER_FLOW_CONFIG_PATH` not found at {path}")
+                raise FileNotFoundError(f"Config file specified by environment variable `VASSILFLOW_CONFIG_PATH`/`DEER_FLOW_CONFIG_PATH` not found at {path}")
             return path
         else:
             project_config = existing_project_file(("config.yaml",))
@@ -362,7 +362,8 @@ class AppConfig(BaseModel):
     def resolve_env_variables(cls, config: Any) -> Any:
         """Recursively resolve environment variables in the config.
 
-        Environment variables are resolved using the `os.getenv` function. Example: $OPENAI_API_KEY
+        Environment variables are resolved from the process environment. DeerFlow
+        variable references also honor their VassilFlow aliases.
 
         Args:
             config: The config to resolve environment variables in.
@@ -372,10 +373,10 @@ class AppConfig(BaseModel):
         """
         if isinstance(config, str):
             if config.startswith("$"):
-                env_value = os.getenv(config[1:])
-                if env_value is None:
+                resolved_env_value = env_value(config[1:])
+                if resolved_env_value is None:
                     raise ValueError(f"Environment variable {config[1:]} not found for config value {config}")
-                return env_value
+                return resolved_env_value
             return config
         elif isinstance(config, dict):
             return {k: cls.resolve_env_variables(v) for k, v in config.items()}

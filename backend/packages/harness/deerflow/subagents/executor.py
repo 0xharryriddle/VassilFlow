@@ -23,6 +23,7 @@ from langchain_core.runnables import RunnableConfig
 from deerflow.agents.thread_state import SandboxState, ThreadDataState, ThreadState
 from deerflow.config import get_app_config
 from deerflow.config.app_config import AppConfig
+from deerflow.config.env_aliases import env_value
 from deerflow.models import create_chat_model
 from deerflow.skills.tool_policy import filter_tools_by_skill_allowed_tools
 from deerflow.skills.types import Skill
@@ -576,7 +577,7 @@ class SubagentExecutor:
                 user_id=self.user_id,
                 assistant_id=assistant_id,
                 model_name=self.model_name,
-                environment=os.environ.get("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
+                environment=env_value("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
             )
 
             context: dict[str, Any] = {}

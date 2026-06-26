@@ -9,6 +9,7 @@ def test_internal_auth_uses_shared_env_token(monkeypatch):
     import app.gateway.internal_auth as internal_auth
 
     monkeypatch.setenv("DEER_FLOW_INTERNAL_AUTH_TOKEN", "shared-token")
+    monkeypatch.delenv("VASSILFLOW_INTERNAL_AUTH_TOKEN", raising=False)
     reloaded = importlib.reload(internal_auth)
     try:
         headers = reloaded.create_internal_auth_headers()
@@ -21,10 +22,29 @@ def test_internal_auth_uses_shared_env_token(monkeypatch):
         importlib.reload(reloaded)
 
 
+def test_internal_auth_prefers_vassilflow_env_token(monkeypatch):
+    import app.gateway.internal_auth as internal_auth
+
+    monkeypatch.setenv("DEER_FLOW_INTERNAL_AUTH_TOKEN", "legacy-token")
+    monkeypatch.setenv("VASSILFLOW_INTERNAL_AUTH_TOKEN", "vassil-token")
+    reloaded = importlib.reload(internal_auth)
+    try:
+        headers = reloaded.create_internal_auth_headers()
+
+        assert headers[reloaded.INTERNAL_AUTH_HEADER_NAME] == "vassil-token"
+        assert reloaded.is_valid_internal_auth_token("vassil-token") is True
+        assert reloaded.is_valid_internal_auth_token("legacy-token") is False
+    finally:
+        monkeypatch.delenv("DEER_FLOW_INTERNAL_AUTH_TOKEN", raising=False)
+        monkeypatch.delenv("VASSILFLOW_INTERNAL_AUTH_TOKEN", raising=False)
+        importlib.reload(reloaded)
+
+
 def test_internal_auth_generates_process_local_fallback(monkeypatch):
     import app.gateway.internal_auth as internal_auth
 
     monkeypatch.delenv("DEER_FLOW_INTERNAL_AUTH_TOKEN", raising=False)
+    monkeypatch.delenv("VASSILFLOW_INTERNAL_AUTH_TOKEN", raising=False)
     reloaded = importlib.reload(internal_auth)
     try:
         token = reloaded.create_internal_auth_headers()[reloaded.INTERNAL_AUTH_HEADER_NAME]
@@ -39,6 +59,7 @@ def test_internal_auth_headers_can_carry_owner_user_id(monkeypatch):
     import app.gateway.internal_auth as internal_auth
 
     monkeypatch.setenv("DEER_FLOW_INTERNAL_AUTH_TOKEN", "shared-token")
+    monkeypatch.delenv("VASSILFLOW_INTERNAL_AUTH_TOKEN", raising=False)
     reloaded = importlib.reload(internal_auth)
     try:
         headers = reloaded.create_internal_auth_headers(owner_user_id="owner-1")

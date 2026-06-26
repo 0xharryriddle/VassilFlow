@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
-import os
 from types import SimpleNamespace
 
+from deerflow.config.env_aliases import env_value
 from deerflow.runtime.user_context import DEFAULT_USER_ID
 
 AUTH_DISABLED_ENV_VAR = "DEER_FLOW_AUTH_DISABLED"
@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 
 
 def is_explicit_production_environment() -> bool:
-    return any(os.environ.get(name, "").strip().lower() in _PRODUCTION_ENV_VALUES for name in _PRODUCTION_ENV_VARS)
+    return any((env_value(name, "") or "").strip().lower() in _PRODUCTION_ENV_VALUES for name in _PRODUCTION_ENV_VARS)
 
 
 def is_auth_disabled_requested() -> bool:
-    return os.environ.get(AUTH_DISABLED_ENV_VAR) == "1"
+    return env_value(AUTH_DISABLED_ENV_VAR) == "1"
 
 
 def is_auth_disabled() -> bool:

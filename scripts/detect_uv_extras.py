@@ -39,6 +39,23 @@ from pathlib import Path
 _EXTRA_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
 
 
+def _vassilflow_alias_for(name: str) -> str | None:
+    if name.startswith("DEER_FLOW_"):
+        return f"VASSILFLOW_{name.removeprefix('DEER_FLOW_')}"
+    if name.startswith("DEERFLOW_"):
+        return f"VASSILFLOW_{name.removeprefix('DEERFLOW_')}"
+    return None
+
+
+def _env_value(name: str) -> str | None:
+    alias = _vassilflow_alias_for(name)
+    if alias is not None:
+        value = os.environ.get(alias)
+        if value is not None:
+            return value
+    return os.environ.get(name)
+
+
 def _validate_extras(names: list[str]) -> list[str]:
     valid: list[str] = []
     for name in names:
@@ -60,7 +77,7 @@ def parse_env_extras(value: str) -> list[str]:
 
 def find_config_file() -> Path | None:
     """Locate config.yaml using the same precedence as serve.sh."""
-    explicit = os.environ.get("DEER_FLOW_CONFIG_PATH")
+    explicit = _env_value("DEER_FLOW_CONFIG_PATH")
     if explicit:
         candidate = Path(explicit)
         if candidate.is_file():

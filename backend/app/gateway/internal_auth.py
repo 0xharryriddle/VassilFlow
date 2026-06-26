@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import secrets
 from types import SimpleNamespace
 from typing import Any
 
+from deerflow.config.env_aliases import env_value
 from deerflow.runtime.user_context import DEFAULT_USER_ID
 
 INTERNAL_AUTH_HEADER_NAME = "X-DeerFlow-Internal-Token"
@@ -16,7 +16,7 @@ INTERNAL_SYSTEM_ROLE = "internal"
 
 
 def _load_internal_auth_token() -> str:
-    token = os.environ.get(INTERNAL_AUTH_ENV_VAR)
+    token = env_value(INTERNAL_AUTH_ENV_VAR)
     if token:
         return token
     return secrets.token_urlsafe(32)

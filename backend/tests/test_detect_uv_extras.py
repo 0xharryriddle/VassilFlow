@@ -27,6 +27,7 @@ def isolated_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("UV_EXTRAS", raising=False)
     monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
     return tmp_path
 
 
@@ -177,6 +178,17 @@ def test_resolve_extras_respects_explicit_config_path(tmp_path, monkeypatch):
     elsewhere.write_text("database:\n  backend: postgres\n")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(elsewhere))
+
+    assert detect.resolve_extras() == ["postgres"]
+
+
+def test_resolve_extras_respects_vassilflow_config_path_alias(tmp_path, monkeypatch):
+    monkeypatch.delenv("UV_EXTRAS", raising=False)
+    elsewhere = tmp_path / "elsewhere.yaml"
+    elsewhere.write_text("database:\n  backend: postgres\n")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(elsewhere))
+    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
 
     assert detect.resolve_extras() == ["postgres"]
 

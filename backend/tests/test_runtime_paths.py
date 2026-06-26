@@ -23,6 +23,11 @@ def _clear_path_env(monkeypatch):
         "DEER_FLOW_HOME",
         "DEER_FLOW_PROJECT_ROOT",
         "DEER_FLOW_SKILLS_PATH",
+        "VASSILFLOW_CONFIG_PATH",
+        "VASSILFLOW_EXTENSIONS_CONFIG_PATH",
+        "VASSILFLOW_HOME",
+        "VASSILFLOW_PROJECT_ROOT",
+        "VASSILFLOW_SKILLS_PATH",
     ):
         monkeypatch.delenv(name, raising=False)
 

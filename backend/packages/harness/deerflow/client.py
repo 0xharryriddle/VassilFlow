@@ -38,6 +38,7 @@ from deerflow.agents.lead_agent.prompt import apply_prompt_template
 from deerflow.agents.thread_state import ThreadState
 from deerflow.config.agents_config import AGENT_NAME_PATTERN
 from deerflow.config.app_config import get_app_config, reload_app_config
+from deerflow.config.env_aliases import env_value
 from deerflow.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from deerflow.config.paths import get_paths
 from deerflow.models import create_chat_model
@@ -616,7 +617,7 @@ class DeerFlowClient:
             user_id=get_effective_user_id(),
             assistant_id=self._agent_name or "lead-agent",
             model_name=configurable.get("model_name") or self._model_name,
-            environment=self._environment or os.environ.get("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
+            environment=self._environment or env_value("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
         )
 
         self._ensure_agent(config)
@@ -968,7 +969,7 @@ class DeerFlowClient:
         """
         config_path = ExtensionsConfig.resolve_config_path()
         if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set DEER_FLOW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
+            raise FileNotFoundError("Cannot locate extensions_config.json. Set VASSILFLOW_EXTENSIONS_CONFIG_PATH (legacy: DEER_FLOW_EXTENSIONS_CONFIG_PATH) or ensure it exists in the project root.")
 
         current_config = get_extensions_config()
 
@@ -1033,7 +1034,7 @@ class DeerFlowClient:
 
         config_path = ExtensionsConfig.resolve_config_path()
         if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set DEER_FLOW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
+            raise FileNotFoundError("Cannot locate extensions_config.json. Set VASSILFLOW_EXTENSIONS_CONFIG_PATH (legacy: DEER_FLOW_EXTENSIONS_CONFIG_PATH) or ensure it exists in the project root.")
 
         extensions_config = get_extensions_config()
         extensions_config.skills[name] = SkillStateConfig(enabled=enabled)

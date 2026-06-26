@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 from typing import TYPE_CHECKING, Any
 
 from app.channels.base import Channel
@@ -12,6 +11,7 @@ from app.channels.manager import DEFAULT_GATEWAY_URL, DEFAULT_LANGGRAPH_URL, Cha
 from app.channels.message_bus import MessageBus
 from app.channels.runtime_config_store import merge_runtime_channel_configs
 from app.channels.store import ChannelStore
+from deerflow.config.env_aliases import env_value
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +54,9 @@ def _resolve_service_url(config: dict[str, Any], config_key: str, env_key: str, 
     value = config.pop(config_key, None)
     if isinstance(value, str) and value.strip():
         return value
-    env_value = os.getenv(env_key, "").strip()
-    if env_value:
-        return env_value
+    resolved_env_value = (env_value(env_key, "") or "").strip()
+    if resolved_env_value:
+        return resolved_env_value
     return default
 
 

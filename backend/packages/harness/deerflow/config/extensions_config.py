@@ -1,12 +1,12 @@
 """Unified extensions configuration for MCP servers and skills."""
 
 import json
-import os
 from pathlib import Path
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from deerflow.config.env_aliases import env_value
 from deerflow.config.runtime_paths import existing_project_file
 
 
@@ -92,7 +92,7 @@ class ExtensionsConfig(BaseModel):
 
         Priority:
         1. If provided `config_path` argument, use it.
-        2. If provided `DEER_FLOW_EXTENSIONS_CONFIG_PATH` environment variable, use it.
+        2. If provided `VASSILFLOW_EXTENSIONS_CONFIG_PATH`/`DEER_FLOW_EXTENSIONS_CONFIG_PATH` environment variable, use it.
         3. Otherwise, search the caller project root for `extensions_config.json`, then `mcp_config.json`.
         4. For backward compatibility, also search legacy backend/repository-root defaults.
         5. If not found, return None (extensions are optional).
@@ -102,7 +102,7 @@ class ExtensionsConfig(BaseModel):
 
         Resolution order:
             1. If provided `config_path` argument, use it.
-            2. If provided `DEER_FLOW_EXTENSIONS_CONFIG_PATH` environment variable, use it.
+            2. If provided `VASSILFLOW_EXTENSIONS_CONFIG_PATH`/`DEER_FLOW_EXTENSIONS_CONFIG_PATH` environment variable, use it.
             3. Otherwise, search the caller project root for
                `extensions_config.json`, then legacy `mcp_config.json`.
             4. Finally, search backend/repository-root defaults for monorepo compatibility.
@@ -115,10 +115,10 @@ class ExtensionsConfig(BaseModel):
             if not path.exists():
                 raise FileNotFoundError(f"Extensions config file specified by param `config_path` not found at {path}")
             return path
-        elif os.getenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH"):
-            path = Path(os.getenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH"))
+        elif env_config_path := env_value("DEER_FLOW_EXTENSIONS_CONFIG_PATH"):
+            path = Path(env_config_path)
             if not path.exists():
-                raise FileNotFoundError(f"Extensions config file specified by environment variable `DEER_FLOW_EXTENSIONS_CONFIG_PATH` not found at {path}")
+                raise FileNotFoundError(f"Extensions config file specified by environment variable `VASSILFLOW_EXTENSIONS_CONFIG_PATH`/`DEER_FLOW_EXTENSIONS_CONFIG_PATH` not found at {path}")
             return path
         else:
             project_config = existing_project_file(("extensions_config.json", "mcp_config.json"))
@@ -170,7 +170,8 @@ class ExtensionsConfig(BaseModel):
     def resolve_env_variables(cls, config: Any) -> Any:
         """Recursively resolve environment variables in the config.
 
-        Environment variables are resolved using the `os.getenv` function. Example: $OPENAI_API_KEY
+        Environment variables are resolved from the process environment. DeerFlow
+        variable references also honor their VassilFlow aliases.
 
         Args:
             config: The config to resolve environment variables in.
@@ -181,13 +182,13 @@ class ExtensionsConfig(BaseModel):
         if isinstance(config, str):
             if not config.startswith("$"):
                 return config
-            env_value = os.getenv(config[1:])
-            if env_value is None:
+            resolved_env_value = env_value(config[1:])
+            if resolved_env_value is None:
                 # Unresolved placeholder — store empty string so downstream
                 # consumers (e.g. MCP servers) don't receive the literal "$VAR"
                 # token as an actual environment value.
                 return ""
-            return env_value
+            return resolved_env_value
 
         if isinstance(config, dict):
             return {key: cls.resolve_env_variables(value) for key, value in config.items()}

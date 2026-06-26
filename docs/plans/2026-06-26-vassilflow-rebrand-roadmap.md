@@ -41,6 +41,8 @@ Deferred:
 
 Add VassilFlow aliases before renaming anything relied on by users or deployments.
 
+- Status: backend/runtime/frontend env aliases are implemented; Docker compose
+  variable names and service/container renames remain deferred.
 - Support `VASSILFLOW_*` env vars alongside `DEER_FLOW_*`.
 - Add VassilFlow-named config aliases where the old names are user-facing.
 - Add tests proving old and new names resolve to the same runtime behavior.

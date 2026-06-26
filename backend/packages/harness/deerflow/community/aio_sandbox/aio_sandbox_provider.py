@@ -28,6 +28,7 @@ except ImportError:  # pragma: no cover - Windows fallback
     import msvcrt
 
 from deerflow.config import get_app_config
+from deerflow.config.env_aliases import env_value
 from deerflow.config.paths import VIRTUAL_PATH_PREFIX, get_paths
 from deerflow.runtime.user_context import get_effective_user_id
 from deerflow.sandbox.sandbox import Sandbox
@@ -334,8 +335,9 @@ class AioSandboxProvider(SandboxProvider):
     def _get_skills_mount() -> tuple[str, str, bool] | None:
         """Get the skills directory mount configuration.
 
-        Mount source uses DEER_FLOW_HOST_SKILLS_PATH when running inside Docker (DooD)
-        so the host Docker daemon can resolve the path.
+        Mount source uses VASSILFLOW_HOST_SKILLS_PATH/DEER_FLOW_HOST_SKILLS_PATH
+        when running inside Docker (DooD) so the host Docker daemon can resolve
+        the path.
         """
         try:
             config = get_app_config()
@@ -344,7 +346,7 @@ class AioSandboxProvider(SandboxProvider):
 
             if skills_path.exists():
                 # When running inside Docker with DooD, use host-side skills path.
-                host_skills = os.environ.get("DEER_FLOW_HOST_SKILLS_PATH") or str(skills_path)
+                host_skills = env_value("DEER_FLOW_HOST_SKILLS_PATH") or str(skills_path)
                 return (host_skills, container_path, True)  # Read-only for security
         except Exception as e:
             logger.warning(f"Could not setup skills mount: {e}")

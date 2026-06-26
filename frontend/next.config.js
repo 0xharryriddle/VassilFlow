@@ -4,8 +4,21 @@
  */
 import "./src/env.js";
 
+function vassilflowAliasFor(envKey) {
+  if (envKey.startsWith("DEER_FLOW_")) {
+    return `VASSILFLOW_${envKey.slice("DEER_FLOW_".length)}`;
+  }
+  if (envKey.startsWith("DEERFLOW_")) {
+    return `VASSILFLOW_${envKey.slice("DEERFLOW_".length)}`;
+  }
+  return undefined;
+}
+
 function getInternalServiceURL(envKey, fallbackURL) {
-  const configured = process.env[envKey]?.trim();
+  const alias = vassilflowAliasFor(envKey);
+  const configured = (
+    (alias ? process.env[alias] : undefined) ?? process.env[envKey]
+  )?.trim();
   return configured && configured.length > 0
     ? configured.replace(/\/+$/, "")
     : fallbackURL;
