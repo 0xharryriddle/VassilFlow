@@ -194,7 +194,12 @@ function escapeHtmlAttribute(value: string) {
 }
 
 export const HTML_PREVIEW_SCROLL_MESSAGE_SOURCE =
-  "deerflow-artifact-preview-scroll";
+  "vassilflow-artifact-preview-scroll";
+
+const HTML_PREVIEW_SCROLL_RESTORATION_ATTR =
+  "data-vassilflow-artifact-scroll-restoration";
+const LEGACY_HTML_PREVIEW_SCROLL_RESTORATION_ATTR =
+  "data-deerflow-artifact-scroll-restoration";
 
 export function createHtmlPreviewScrollKey(value: string) {
   let hash = 2166136261;
@@ -213,7 +218,7 @@ function escapeJavaScriptString(value: string) {
 }
 
 function htmlScrollRestorationScript(messageKey: string) {
-  return `<script data-deerflow-artifact-scroll-restoration>
+  return `<script ${HTML_PREVIEW_SCROLL_RESTORATION_ATTR}>
 (() => {
   const source = ${escapeJavaScriptString(HTML_PREVIEW_SCROLL_MESSAGE_SOURCE)};
   const key = ${escapeJavaScriptString(messageKey)};
@@ -259,7 +264,10 @@ export function appendHtmlPreviewScrollRestoration(
   content: string,
   scrollKey = "default",
 ) {
-  if (content.includes("data-deerflow-artifact-scroll-restoration")) {
+  if (
+    content.includes(HTML_PREVIEW_SCROLL_RESTORATION_ATTR) ||
+    content.includes(LEGACY_HTML_PREVIEW_SCROLL_RESTORATION_ATTR)
+  ) {
     return content;
   }
   const script = htmlScrollRestorationScript(
