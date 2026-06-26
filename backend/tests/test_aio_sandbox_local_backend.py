@@ -5,7 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from deerflow.community.aio_sandbox.local_backend import (
+from vassilflow.community.aio_sandbox.local_backend import (
     LocalContainerBackend,
     _format_container_command_for_log,
     _format_container_mount,
