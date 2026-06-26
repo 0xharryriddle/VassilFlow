@@ -132,7 +132,7 @@ async def test_run_agent_falls_back_to_default_user_when_unset(monkeypatch):
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
     from deerflow.config.tracing_config import reset_tracing_config
     from deerflow.runtime.runs import worker as worker_module
-    from deerflow.runtime.user_context import DEFAULT_USER_ID
+    from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
     reset_tracing_config()
     monkeypatch.setattr(worker_module, "get_effective_user_id", lambda: DEFAULT_USER_ID)

@@ -712,7 +712,7 @@ def test_start_run_uses_internal_owner_header_for_persistence(_stub_app_config):
     from deerflow.persistence.thread_meta.memory import MemoryThreadMetaStore
     from deerflow.runtime import RunManager
     from deerflow.runtime.runs.store.memory import MemoryRunStore
-    from deerflow.runtime.user_context import get_effective_user_id
+    from vassilflow.runtime.user_context import get_effective_user_id
 
     async def _scenario():
         run_store = MemoryRunStore()

@@ -315,7 +315,7 @@ def _internal_owner_request(owner_user_id: str) -> SimpleNamespace:
     what ``ChannelManager._fetch_gateway`` attaches via ``_owner_headers``.
     """
     from app.gateway.internal_auth import INTERNAL_OWNER_USER_ID_HEADER_NAME, INTERNAL_SYSTEM_ROLE
-    from deerflow.runtime.user_context import DEFAULT_USER_ID
+    from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
     return SimpleNamespace(
         headers={INTERNAL_OWNER_USER_ID_HEADER_NAME: owner_user_id},

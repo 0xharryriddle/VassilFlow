@@ -106,7 +106,7 @@ def test_delete_thread_data_rejects_invalid_thread_id(tmp_path):
 
 
 def test_delete_thread_route_cleans_thread_directory(tmp_path):
-    from deerflow.runtime.user_context import get_effective_user_id
+    from vassilflow.runtime.user_context import get_effective_user_id
 
     paths = Paths(tmp_path)
     user_id = get_effective_user_id()
