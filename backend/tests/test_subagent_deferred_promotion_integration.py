@@ -28,10 +28,10 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.tools import tool as as_tool
 
-from deerflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
-from deerflow.agents.thread_state import ThreadState
-from deerflow.tools.builtins.tool_search import assemble_deferred_tools, get_deferred_tools_prompt_section
-from deerflow.tools.mcp_metadata import tag_mcp_tool
+from vassilflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+from vassilflow.agents.thread_state import ThreadState
+from vassilflow.tools.builtins.tool_search import assemble_deferred_tools, get_deferred_tools_prompt_section
+from vassilflow.tools.mcp_metadata import tag_mcp_tool
 
 
 @as_tool
@@ -107,7 +107,7 @@ def test_subagent_builder_emits_working_deferred_filter():
     builder given a real setup, so a regression in the builder's wiring is caught: a
     wrong catalog hash silently stops promotion (turn 2 would keep mcp_calc hidden), a
     dropped filter stops hiding (turn 1 would bind mcp_calc)."""
-    from deerflow.agents.middlewares.tool_error_handling_middleware import build_subagent_runtime_middlewares
+    from vassilflow.agents.middlewares.tool_error_handling_middleware import build_subagent_runtime_middlewares
     from vassilflow.config.app_config import AppConfig, CircuitBreakerConfig
     from vassilflow.config.guardrails_config import GuardrailsConfig
     from vassilflow.config.model_config import ModelConfig

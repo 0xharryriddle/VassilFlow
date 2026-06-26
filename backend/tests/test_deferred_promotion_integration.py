@@ -17,10 +17,10 @@ from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import tool as as_tool
 
-from deerflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
-from deerflow.agents.thread_state import ThreadState
-from deerflow.tools.builtins.tool_search import build_deferred_tool_setup
-from deerflow.tools.mcp_metadata import tag_mcp_tool
+from vassilflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
+from vassilflow.agents.thread_state import ThreadState
+from vassilflow.tools.builtins.tool_search import build_deferred_tool_setup
+from vassilflow.tools.mcp_metadata import tag_mcp_tool
 
 
 @as_tool
