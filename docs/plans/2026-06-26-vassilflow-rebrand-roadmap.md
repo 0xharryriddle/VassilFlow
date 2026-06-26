@@ -46,10 +46,10 @@ Add VassilFlow aliases before renaming anything relied on by users or deployment
   the Docker dev launcher/entrypoints, and the production deploy script now use
   VassilFlow canonical runtime env variables (`VASSILFLOW_HOME`,
   `VASSILFLOW_RUNTIME_HOME`, and `VASSILFLOW_CONTAINER_HOME`) while still
-  exporting legacy `DEER_FLOW_*` names. Config upgrade and setup detection
-  tooling now resolve the config file through `VASSILFLOW_CONFIG_PATH` first.
-  Frontend browser-local namespaces now prefer VassilFlow event and storage keys
-  while reading legacy DeerFlow keys where state migration matters.
+  exporting legacy `DEER_FLOW_*` names. Config upgrade, setup detection, and
+  doctor tooling now resolve the config file through `VASSILFLOW_CONFIG_PATH`
+  first. Frontend browser-local namespaces now prefer VassilFlow event and
+  storage keys while reading legacy DeerFlow keys where state migration matters.
 - Support `VASSILFLOW_*` env vars alongside `DEER_FLOW_*`.
 - Add VassilFlow-named config aliases where the old names are user-facing.
 - Add tests proving old and new names resolve to the same runtime behavior.

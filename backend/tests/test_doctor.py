@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import sys
+from pathlib import Path
 
 import doctor
 
@@ -26,6 +27,34 @@ class TestCheckPython:
 # ---------------------------------------------------------------------------
 # check_config_exists
 # ---------------------------------------------------------------------------
+
+
+class TestResolveConfigPath:
+    def test_defaults_to_project_config(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
+        monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
+
+        assert doctor._resolve_config_path(tmp_path) == tmp_path / "config.yaml"
+
+    def test_respects_legacy_config_path(self, tmp_path, monkeypatch):
+        legacy_config = tmp_path / "legacy.yaml"
+        monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
+        monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy_config))
+
+        assert doctor._resolve_config_path(tmp_path) == legacy_config
+
+    def test_prefers_vassilflow_config_path_over_legacy(self, tmp_path, monkeypatch):
+        current_config = tmp_path / "current.yaml"
+        legacy_config = tmp_path / "legacy.yaml"
+        monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(current_config))
+        monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy_config))
+
+        assert doctor._resolve_config_path(tmp_path) == current_config
+
+    def test_loads_app_config_through_vassilflow_facade(self):
+        source = Path(doctor.__file__).read_text(encoding="utf-8")
+
+        assert "from vassilflow.config import AppConfig" in source
 
 
 class TestCheckConfigExists:

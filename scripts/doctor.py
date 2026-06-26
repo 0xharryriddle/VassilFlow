@@ -97,9 +97,18 @@ def _load_yaml_file(path: Path) -> dict:
 
 
 def _load_app_config(config_path: Path) -> object:
-    from deerflow.config.app_config import AppConfig
+    from vassilflow.config import AppConfig
 
     return AppConfig.from_file(str(config_path))
+
+
+def _resolve_config_path(project_root: Path) -> Path:
+    explicit = os.environ.get("VASSILFLOW_CONFIG_PATH") or os.environ.get(
+        "DEER_FLOW_CONFIG_PATH"
+    )
+    if explicit:
+        return Path(explicit).expanduser()
+    return project_root / "config.yaml"
 
 
 def _split_use_path(use: str) -> tuple[str, str] | None:
@@ -687,7 +696,7 @@ def main() -> int:
     _configure_output_encoding()
 
     project_root = Path(__file__).resolve().parents[1]
-    config_path = project_root / "config.yaml"
+    config_path = _resolve_config_path(project_root)
 
     # Load .env early so key checks work
     try:
