@@ -2,24 +2,25 @@
 
 ## 三种路径类型
 
-DeerFlow 的文件上传系统返回三种不同的路径，每种路径用于不同的场景：
+VassilFlow 的文件上传系统返回三种不同的路径，每种路径用于不同的场景：
 
 ### 1. 实际文件系统路径 (path)
 
 ```
-.deer-flow/threads/{thread_id}/user-data/uploads/document.pdf
+{runtime_home}/threads/{thread_id}/user-data/uploads/document.pdf
 ```
 
 **用途：**
 - 文件在服务器文件系统中的实际位置
-- 相对于 `backend/` 目录
+- 位于 VassilFlow runtime home 下（默认新工作区为 `.vassilflow`，旧工作区可继续使用 `.deer-flow`）
 - 用于直接文件系统访问、备份、调试等
 
 **示例：**
 ```python
 # Python 代码中直接访问
-from pathlib import Path
-file_path = Path("backend/.deer-flow/threads/abc123/user-data/uploads/document.pdf")
+from vassilflow.config import get_paths
+
+file_path = get_paths().sandbox_uploads_dir("abc123") / "document.pdf"
 content = file_path.read_bytes()
 ```
 
@@ -99,11 +100,11 @@ async function uploadAndProcess(threadId: string, file: File) {
   console.log('文件信息：', fileInfo);
   // {
   //   filename: "report.pdf",
-  //   path: ".deer-flow/threads/abc123/user-data/uploads/report.pdf",
+  //   path: "{runtime_home}/threads/abc123/user-data/uploads/report.pdf",
   //   virtual_path: "/mnt/user-data/uploads/report.pdf",
   //   artifact_url: "/api/threads/abc123/artifacts/mnt/user-data/uploads/report.pdf",
   //   markdown_file: "report.md",
-  //   markdown_path: ".deer-flow/threads/abc123/user-data/uploads/report.md",
+  //   markdown_path: "{runtime_home}/threads/abc123/user-data/uploads/report.md",
   //   markdown_virtual_path: "/mnt/user-data/uploads/report.md",
   //   markdown_artifact_url: "/api/threads/abc123/artifacts/mnt/user-data/uploads/report.md"
   // }
@@ -132,24 +133,22 @@ async function uploadAndProcess(threadId: string, file: File) {
 
 | 场景 | 使用的路径类型 | 示例 |
 |------|---------------|------|
-| 服务器后端代码直接访问 | `path` | `.deer-flow/threads/abc123/user-data/uploads/file.pdf` |
+| 服务器后端代码直接访问 | `path` | `{runtime_home}/threads/abc123/user-data/uploads/file.pdf` |
 | Agent 工具调用 | `virtual_path` | `/mnt/user-data/uploads/file.pdf` |
 | 前端下载/预览 | `artifact_url` | `/api/threads/abc123/artifacts/mnt/user-data/uploads/file.pdf` |
-| 备份脚本 | `path` | `.deer-flow/threads/abc123/user-data/uploads/file.pdf` |
-| 日志记录 | `path` | `.deer-flow/threads/abc123/user-data/uploads/file.pdf` |
+| 备份脚本 | `path` | `{runtime_home}/threads/abc123/user-data/uploads/file.pdf` |
+| 日志记录 | `path` | `{runtime_home}/threads/abc123/user-data/uploads/file.pdf` |
 
 ## 代码示例集合
 
 ### Python - 后端处理
 
 ```python
-from pathlib import Path
-from deerflow.agents.middlewares.thread_data_middleware import THREAD_DATA_BASE_DIR
+from vassilflow.config import get_paths
 
 def process_uploaded_file(thread_id: str, filename: str):
     # 使用实际路径
-    base_dir = Path.cwd() / THREAD_DATA_BASE_DIR / thread_id / "user-data" / "uploads"
-    file_path = base_dir / filename
+    file_path = get_paths().sandbox_uploads_dir(thread_id) / filename
 
     # 直接读取
     with open(file_path, 'rb') as f:

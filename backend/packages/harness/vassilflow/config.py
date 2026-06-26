@@ -2,6 +2,7 @@
 
 from deerflow.config.app_config import AppConfig, get_app_config, reload_app_config
 from deerflow.config.env_aliases import env_value, first_env_value, vassilflow_alias_for
+from deerflow.config.paths import Paths, get_paths
 
 
 def load_config(config_path: str | None = None) -> AppConfig:
@@ -16,9 +17,11 @@ def load_config(config_path: str | None = None) -> AppConfig:
 
 __all__ = [
     "AppConfig",
+    "Paths",
     "env_value",
     "first_env_value",
     "get_app_config",
+    "get_paths",
     "load_config",
     "reload_app_config",
     "vassilflow_alias_for",

@@ -102,9 +102,12 @@ def test_vassilflow_config_facade_exports_current_config_api(monkeypatch):
     import vassilflow.config as facade_config
 
     from deerflow.config.app_config import AppConfig, get_app_config, reload_app_config
+    from deerflow.config.paths import Paths, get_paths
 
     assert facade_config.AppConfig is AppConfig
+    assert facade_config.Paths is Paths
     assert facade_config.get_app_config is get_app_config
+    assert facade_config.get_paths is get_paths
     assert facade_config.reload_app_config is reload_app_config
 
     monkeypatch.setattr(facade_config, "reload_app_config", lambda config_path=None: ("loaded", config_path))

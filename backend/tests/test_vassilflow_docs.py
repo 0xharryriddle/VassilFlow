@@ -119,3 +119,24 @@ def test_sso_docs_use_vassilflow_realm_and_product_identity():
     assert "DeerFlow supports single sign-on" not in content
     assert "issuer: http://localhost:8080/realms/deerflow" not in content
     assert "client_id: deerflow" not in content
+
+
+def test_upload_path_docs_use_vassilflow_runtime_paths_and_facade():
+    file_upload = (REPO_ROOT / "backend" / "docs" / "FILE_UPLOAD.md").read_text(
+        encoding="utf-8"
+    )
+    path_examples = (REPO_ROOT / "backend" / "docs" / "PATH_EXAMPLES.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "VassilFlow 后端提供了完整的文件上传功能" in file_upload
+    assert "VassilFlow 的文件上传系统返回三种不同的路径" in path_examples
+    assert "{runtime_home}/threads/{thread_id}/user-data/uploads/document.pdf" in file_upload
+    assert "{runtime_home}/threads/{thread_id}/user-data/uploads/document.pdf" in path_examples
+    assert "from vassilflow.config import get_paths" in path_examples
+    assert "vassilflow.agents.middlewares.uploads_middleware" in file_upload
+    assert "DeerFlow 后端提供了完整的文件上传功能" not in file_upload
+    assert "DeerFlow 的文件上传系统返回三种不同的路径" not in path_examples
+    assert ".deer-flow/threads/" not in file_upload
+    assert ".deer-flow/threads/" not in path_examples
+    assert "THREAD_DATA_BASE_DIR" not in path_examples
