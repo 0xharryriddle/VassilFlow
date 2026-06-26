@@ -54,22 +54,23 @@ def _build_fake_create_chat_model(agent_name: str):
 
 
 @pytest.fixture
-def isolated_deer_flow_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Stand up an isolated DeerFlow data root + config under tmp_path.
+def isolated_vassilflow_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Stand up an isolated VassilFlow data root + config under tmp_path.
 
-    - Sets ``DEER_FLOW_HOME`` so paths land under tmp_path, not the real
+    - Sets ``VASSILFLOW_HOME`` so paths land under tmp_path, not the real
       runtime state directory.
     - Stages a copy of the project's ``config.yaml`` (or ``config.example.yaml``
       on a fresh CI checkout where ``config.yaml`` is gitignored) and pins
-      ``DEER_FLOW_CONFIG_PATH`` to it, so lifespan boot doesn't depend on the
+      ``VASSILFLOW_CONFIG_PATH`` to it, so lifespan boot doesn't depend on the
       developer's local config layout.
     - Sets a placeholder OPENAI_API_KEY because the config has
       ``$OPENAI_API_KEY`` that gets resolved at parse time; the LLM itself is
       mocked, so any non-empty value works.
     """
-    home = tmp_path / "deer-flow-home"
+    home = tmp_path / "vassilflow-home"
     home.mkdir()
-    monkeypatch.setenv("DEER_FLOW_HOME", str(home))
+    monkeypatch.setenv("VASSILFLOW_HOME", str(home))
+    monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-fake-key-not-used-because-llm-is-mocked")
     monkeypatch.setenv("OPENAI_API_BASE", "https://example.invalid")
 
@@ -77,10 +78,11 @@ def isolated_deer_flow_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     # ``config.yaml`` at the repo root. CI's ``actions/checkout`` only ships
     # ``config.example.yaml`` (and its ``models:`` list is commented out, so
     # AppConfig validation would reject it). Write a minimal, self-sufficient
-    # config to tmp_path and pin ``DEER_FLOW_CONFIG_PATH`` to it.
+    # config to tmp_path and pin ``VASSILFLOW_CONFIG_PATH`` to it.
     staged_config = tmp_path / "config.yaml"
     staged_config.write_text(_MINIMAL_CONFIG_YAML, encoding="utf-8")
-    monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(staged_config))
+    monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(staged_config))
+    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
 
     return home
 
@@ -101,7 +103,7 @@ models:
     api_key: $OPENAI_API_KEY
     base_url: $OPENAI_API_BASE
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
 agents_api:
   enabled: true
 database:
@@ -115,11 +117,11 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
     This fixture stands up a full FastAPI app + sqlite DB + LangGraph runtime
     inside ``tmp_path``. To get true per-test isolation we have to invalidate
     a handful of module-level caches that production normally never resets,
-    so they pick up our test-only ``DEER_FLOW_HOME`` and sqlite path:
+    so they pick up our test-only ``VASSILFLOW_HOME`` and sqlite path:
 
     - ``deerflow.config.app_config`` caches the parsed ``config.yaml``.
     - ``deerflow.config.paths`` caches the ``Paths`` singleton derived from
-      ``DEER_FLOW_HOME`` at first access.
+      ``VASSILFLOW_HOME`` at first access.
     - ``deerflow.persistence.engine`` caches the SQLAlchemy engine and
       session factory after the first call to ``init_engine_from_config``.
 
@@ -145,20 +147,20 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def isolated_app(isolated_deer_flow_home: Path, monkeypatch: pytest.MonkeyPatch):
-    """Build a fresh FastAPI app inside a clean DEER_FLOW_HOME.
+def isolated_app(isolated_vassilflow_home: Path, monkeypatch: pytest.MonkeyPatch):
+    """Build a fresh FastAPI app inside a clean VASSILFLOW_HOME.
 
     Each test gets its own sqlite DB and checkpoint store under ``tmp_path``,
     with no cross-test contamination.
     """
     _reset_process_singletons(monkeypatch)
 
-    # Re-resolve the config from the test-only DEER_FLOW_HOME and pin its
+    # Re-resolve the config from the test-only VASSILFLOW_HOME and pin its
     # sqlite path into tmp_path so the lifespan-time engine init lands there.
     from deerflow.config import app_config as app_config_module
 
     cfg = app_config_module.get_app_config()
-    cfg.database.sqlite_dir = str(isolated_deer_flow_home / "db")
+    cfg.database.sqlite_dir = str(isolated_vassilflow_home / "db")
 
     from app.gateway.app import create_app
 
@@ -210,7 +212,7 @@ def _wait_for_file(path: Path, *, timeout: float = 10.0) -> bool:
 @pytest.mark.no_auto_user
 def test_real_http_create_agent_lands_in_authenticated_user_dir(
     isolated_app: Any,
-    isolated_deer_flow_home: Path,
+    isolated_vassilflow_home: Path,
     monkeypatch: pytest.MonkeyPatch,
 ):
     """The full real-server contract test.
@@ -306,8 +308,8 @@ def test_real_http_create_agent_lands_in_authenticated_user_dir(
         assert "event:" in transcript, f"no SSE events in response: {transcript[:500]!r}"
 
         # --- 4. Verify filesystem outcome ---
-        expected_dir = isolated_deer_flow_home / "users" / auth_uid / "agents" / agent_name
-        default_dir = isolated_deer_flow_home / "users" / "default" / "agents" / agent_name
+        expected_dir = isolated_vassilflow_home / "users" / auth_uid / "agents" / agent_name
+        default_dir = isolated_vassilflow_home / "users" / "default" / "agents" / agent_name
 
         # The setup_agent tool runs inside the background asyncio task spawned
         # by start_run; SSE-drain typically waits for it, but we add a bounded
@@ -315,7 +317,7 @@ def test_real_http_create_agent_lands_in_authenticated_user_dir(
         assert _wait_for_file(expected_dir / "SOUL.md", timeout=15.0), (
             "SOUL.md did not appear under users/<auth_uid>/agents/. "
             f"Expected: {expected_dir / 'SOUL.md'}. "
-            f"tmp tree: {sorted(str(p.relative_to(isolated_deer_flow_home)) for p in isolated_deer_flow_home.rglob('SOUL.md'))}. "
+            f"tmp tree: {sorted(str(p.relative_to(isolated_vassilflow_home)) for p in isolated_vassilflow_home.rglob('SOUL.md'))}. "
             f"SSE transcript tail: {transcript[-1000:]!r}"
         )
 
