@@ -25,7 +25,7 @@ make_lead_agent
 | 配置来源 | 纯参数 | YAML 文件 | **参数优先，config fallback** |
 | 内置能力 | 无 | Sandbox/Memory/Skills/Subagent/... | **按需组合 + 管理 API** |
 | 用户接口 | `graph.invoke(state)` | 内部使用 | **`client.chat("hello")`** |
-| 适合谁 | 写 LangChain 的人 | 内部使用 | **所有 DeerFlow 用户** |
+| 适合谁 | 写 LangChain 的人 | 内部使用 | **所有 VassilFlow 用户** |
 
 ## 2. 设计原则
 
@@ -304,7 +304,7 @@ after_agent 反序 ←   [N] → [N-1] → ... → [0]
 
 `before_agent` / `after_agent` 只跑一次。`before_model` / `after_model` 每轮 tool call 循环都跑。
 
-### DeerFlow 的实际情况
+### VassilFlow 当前实现的实际情况
 
 **不是洋葱，是管道。** 11 个 middleware 中只有 SandboxMiddleware 有 before/after 对称（获取/释放），其余只用一个钩子。
 
@@ -414,7 +414,7 @@ Phase 2（#1380）:
 
 Phase 3:
   - SDK 文档和示例
-  - deerflow.client 稳定 API
+  - vassilflow.client 稳定 API（legacy deerflow.client 兼容）
 ```
 
 ## 8. 设计决议
