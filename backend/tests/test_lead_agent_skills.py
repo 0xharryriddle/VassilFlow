@@ -1,9 +1,9 @@
 from pathlib import Path
 from types import SimpleNamespace
 
-from deerflow.agents.lead_agent.prompt import get_skills_prompt_section
-from deerflow.skills.types import Skill
+from vassilflow.agents.lead_agent.prompt import get_skills_prompt_section
 from vassilflow.config.agents_config import AgentConfig
+from vassilflow.skills.types import Skill
 
 
 class NamedTool:
@@ -142,7 +142,7 @@ def test_get_skills_prompt_section_uses_explicit_config_for_enabled_skills(monke
 def test_make_lead_agent_empty_skills_passed_correctly(monkeypatch):
     from unittest.mock import MagicMock
 
-    from deerflow.agents.lead_agent import agent as lead_agent_module
+    from vassilflow.agents.lead_agent import agent as lead_agent_module
 
     # Mock dependencies
     monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: MagicMock())
@@ -187,7 +187,7 @@ def test_make_lead_agent_empty_skills_passed_correctly(monkeypatch):
 def test_make_lead_agent_filters_tools_from_available_skills(monkeypatch):
     from unittest.mock import MagicMock
 
-    from deerflow.agents.lead_agent import agent as lead_agent_module
+    from vassilflow.agents.lead_agent import agent as lead_agent_module
 
     monkeypatch.setattr(lead_agent_module, "_resolve_model_name", lambda x=None, **kwargs: "default-model")
     monkeypatch.setattr(lead_agent_module, "create_chat_model", lambda **kwargs: "model")
@@ -210,7 +210,7 @@ def test_make_lead_agent_filters_tools_from_available_skills(monkeypatch):
 def test_make_lead_agent_all_legacy_skills_preserve_all_tools(monkeypatch):
     from unittest.mock import MagicMock
 
-    from deerflow.agents.lead_agent import agent as lead_agent_module
+    from vassilflow.agents.lead_agent import agent as lead_agent_module
 
     monkeypatch.setattr(lead_agent_module, "_resolve_model_name", lambda x=None, **kwargs: "default-model")
     monkeypatch.setattr(lead_agent_module, "create_chat_model", lambda **kwargs: "model")
@@ -233,8 +233,8 @@ def test_make_lead_agent_all_legacy_skills_preserve_all_tools(monkeypatch):
 def test_make_lead_agent_enforces_allowed_tools_when_skill_cache_is_cold(monkeypatch):
     from unittest.mock import MagicMock
 
-    from deerflow.agents.lead_agent import agent as lead_agent_module
-    from deerflow.agents.lead_agent import prompt as prompt_module
+    from vassilflow.agents.lead_agent import agent as lead_agent_module
+    from vassilflow.agents.lead_agent import prompt as prompt_module
 
     monkeypatch.setattr(lead_agent_module, "_resolve_model_name", lambda x=None, **kwargs: "default-model")
     monkeypatch.setattr(lead_agent_module, "create_chat_model", lambda **kwargs: "model")
@@ -263,8 +263,8 @@ def test_make_lead_agent_fails_closed_when_skill_policy_load_fails(monkeypatch):
 
     import pytest
 
-    from deerflow.agents.lead_agent import agent as lead_agent_module
-    from deerflow.agents.lead_agent import prompt as prompt_module
+    from vassilflow.agents.lead_agent import agent as lead_agent_module
+    from vassilflow.agents.lead_agent import prompt as prompt_module
 
     monkeypatch.setattr(lead_agent_module, "_resolve_model_name", lambda x=None, **kwargs: "default-model")
     monkeypatch.setattr(lead_agent_module, "create_chat_model", lambda **kwargs: "model")
