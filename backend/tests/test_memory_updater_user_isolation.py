@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from deerflow.agents.memory.updater import _save_memory_to_file, clear_memory_data, get_memory_data
+from vassilflow.agents.memory.updater import _save_memory_to_file, clear_memory_data, get_memory_data
 
 
 def test_get_memory_data_passes_user_id():

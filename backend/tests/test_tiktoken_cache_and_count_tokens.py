@@ -13,7 +13,7 @@ from __future__ import annotations
 import threading
 from unittest import mock
 
-from deerflow.agents.memory.prompt import (
+from vassilflow.agents.memory.prompt import (
     _count_tokens,
     _get_tiktoken_encoding,
     _tiktoken_encoding_cache,
@@ -110,7 +110,7 @@ class TestGetTiktokenEncoding:
         assert get_encoding.call_count == 1
 
         # Simulate the cooldown having elapsed by ageing the cached timestamp.
-        from deerflow.agents.memory import prompt as prompt_module
+        from vassilflow.agents.memory import prompt as prompt_module
 
         _, _failed_at = _tiktoken_encoding_cache["flaky_encoding"]
         _tiktoken_encoding_cache["flaky_encoding"] = (

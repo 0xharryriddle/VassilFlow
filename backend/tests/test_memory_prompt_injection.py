@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from deerflow.agents.memory.prompt import _coerce_confidence, format_memory_for_injection
+from vassilflow.agents.memory.prompt import _coerce_confidence, format_memory_for_injection
 
 
 def test_format_memory_includes_facts_section() -> None:
@@ -316,7 +316,7 @@ def test_fallback_on_ranking_error(monkeypatch) -> None:
     # Force _select_fact_lines to raise on the *first* call (the guaranteed
     # path) but succeed on subsequent calls (the fallback path).
     call_count = {"n": 0}
-    prompt_module = __import__("deerflow.agents.memory.prompt", fromlist=["_select_fact_lines"])
+    prompt_module = __import__("vassilflow.agents.memory.prompt", fromlist=["_select_fact_lines"])
     original_select = prompt_module._select_fact_lines
 
     def flaky_select(*args, **kwargs):
@@ -620,7 +620,7 @@ def test_fallback_uses_prefiltered_valid_facts(monkeypatch) -> None:
     )
 
     call_count = {"select": 0}
-    original_select = __import__("deerflow.agents.memory.prompt", fromlist=["_select_fact_lines"])._select_fact_lines
+    original_select = __import__("vassilflow.agents.memory.prompt", fromlist=["_select_fact_lines"])._select_fact_lines
 
     def raising_select(*args, **kwargs):
         call_count["select"] += 1

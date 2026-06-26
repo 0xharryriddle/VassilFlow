@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.agents.memory.storage import FileMemoryStorage, create_empty_memory
+from vassilflow.agents.memory.storage import FileMemoryStorage, create_empty_memory
 
 
 @pytest.fixture

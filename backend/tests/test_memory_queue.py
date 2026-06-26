@@ -2,7 +2,7 @@ import threading
 import time
 from unittest.mock import MagicMock, call, patch
 
-from deerflow.agents.memory.queue import ConversationContext, MemoryUpdateQueue
+from vassilflow.agents.memory.queue import ConversationContext, MemoryUpdateQueue
 from vassilflow.config.memory_config import MemoryConfig
 
 

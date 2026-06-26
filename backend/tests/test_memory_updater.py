@@ -1,8 +1,8 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from deerflow.agents.memory.prompt import format_conversation_for_update
-from deerflow.agents.memory.updater import (
+from vassilflow.agents.memory.prompt import format_conversation_for_update
+from vassilflow.agents.memory.updater import (
     MemoryUpdater,
     _extract_text,
     clear_memory_data,

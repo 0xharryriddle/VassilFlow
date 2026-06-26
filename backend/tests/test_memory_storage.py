@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from deerflow.agents.memory.storage import (
+from vassilflow.agents.memory.storage import (
     FileMemoryStorage,
     MemoryStorage,
     create_empty_memory,
@@ -229,7 +229,7 @@ class TestGetMemoryStorage:
     @pytest.fixture(autouse=True)
     def reset_storage_instance(self):
         """Reset the global storage instance before and after each test."""
-        import deerflow.agents.memory.storage as storage_mod
+        import vassilflow.agents.memory.storage as storage_mod
 
         storage_mod._storage_instance = None
         yield

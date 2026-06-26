@@ -401,7 +401,7 @@ class TestListCustomAgents:
 class TestMemoryFilePath:
     def test_global_memory_path(self, tmp_path):
         """None agent_name should return global memory file."""
-        from deerflow.agents.memory.storage import FileMemoryStorage
+        from vassilflow.agents.memory.storage import FileMemoryStorage
         from vassilflow.config.memory_config import MemoryConfig
 
         with (
@@ -414,7 +414,7 @@ class TestMemoryFilePath:
 
     def test_agent_memory_path(self, tmp_path):
         """Providing agent_name should return per-agent memory file."""
-        from deerflow.agents.memory.storage import FileMemoryStorage
+        from vassilflow.agents.memory.storage import FileMemoryStorage
         from vassilflow.config.memory_config import MemoryConfig
 
         with (
@@ -426,7 +426,7 @@ class TestMemoryFilePath:
         assert path == tmp_path / "agents" / "code-reviewer" / "memory.json"
 
     def test_different_paths_for_different_agents(self, tmp_path):
-        from deerflow.agents.memory.storage import FileMemoryStorage
+        from vassilflow.agents.memory.storage import FileMemoryStorage
         from vassilflow.config.memory_config import MemoryConfig
 
         with (
