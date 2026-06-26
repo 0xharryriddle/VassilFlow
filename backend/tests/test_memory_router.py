@@ -57,7 +57,7 @@ def test_import_memory_route_returns_imported_memory() -> None:
         facts=[
             {
                 "id": "fact_import",
-                "content": "User works on DeerFlow.",
+                "content": "User works on VassilFlow.",
                 "category": "context",
                 "confidence": 0.87,
                 "createdAt": "2026-03-20T00:00:00Z",
