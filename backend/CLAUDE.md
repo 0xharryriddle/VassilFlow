@@ -99,8 +99,8 @@ make format             # Format code with ruff
 make migrate-rev MSG="..."  # Autogenerate a new alembic revision (see Schema Migrations section)
 ```
 
-The `detect-blocking-io` target parses `app/`, `packages/harness/deerflow/`,
-`packages/harness/vassilflow/`, and `scripts/` with AST. By default it reports
+The `detect-blocking-io` target parses `app/`, `packages/harness/vassilflow/`,
+`packages/harness/deerflow/`, and `scripts/` with AST. By default it reports
 only blocking IO candidates that are inside async code, reachable from async code
 in the same file, or reachable from sync-only `AgentMiddleware` before/after
 hooks that LangGraph can execute on the async graph path. It prints a concise
@@ -129,8 +129,8 @@ Regression tests related to Docker/provisioner behavior:
 
 Blocking-IO runtime gate (`tests/blocking_io/`):
 - Wraps every item under `tests/blocking_io/` with a strict Blockbuster
-  context scoped to `app.*`, `deerflow.*`, and `vassilflow.*` (see
-  `tests/support/detectors/blocking_io_runtime.py`). Any sync blocking IO
+  context scoped to `app.*`, `vassilflow.*`, and legacy `deerflow.*`
+  implementation imports (see `tests/support/detectors/blocking_io_runtime.py`). Any sync blocking IO
   call whose stack passes through VassilFlow business code while running on
   the asyncio event loop raises `BlockingError` and fails the test.
 - Regression anchors live there: `test_skills_load.py` (locks the

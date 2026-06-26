@@ -39,12 +39,15 @@ def test_backend_claude_uses_vassilflow_project_identity():
     assert "VASSILFLOW_CHANNELS_LANGGRAPH_URL" in content
     assert "VASSILFLOW_CHANNELS_GATEWAY_URL" in content
     assert "VassilFlowSummarizationMiddleware" in content
+    assert "parses `app/`, `packages/harness/vassilflow/`" in content
+    assert "context scoped to `app.*`, `vassilflow.*`, and legacy `deerflow.*`" in content
     assert "DeerFlow is a LangGraph-based AI super agent system" not in content
     assert "DeerFlow's application tables" not in content
     assert "from deerflow.agents import make_lead_agent" not in content
     assert "from deerflow.models import create_chat_model" not in content
     assert "from deerflow.config import get_app_config" not in content
     assert "deerflow.models.vllm_provider:VllmChatModel" not in content
+    assert "context scoped to `app.*`, `deerflow.*`, and `vassilflow.*`" not in content
     assert "or set `DEER_FLOW_CHANNELS_LANGGRAPH_URL`" not in content
     assert "**SummarizationMiddleware** - Context reduction" not in content
 
