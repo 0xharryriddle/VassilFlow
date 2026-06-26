@@ -52,14 +52,17 @@ def test_replay_write_read_file_ultra_matches_golden(tmp_path: Path, monkeypatch
 
     home = tmp_path / "home"
     home.mkdir()
-    monkeypatch.setenv("DEER_FLOW_HOME", str(home))
+    monkeypatch.setenv("VASSILFLOW_HOME", str(home))
+    monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
     monkeypatch.setenv("VASSILFLOW_REPLAY_FIXTURE", str(fixture_path))
     monkeypatch.delenv("DEERFLOW_REPLAY_FIXTURE", raising=False)
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(build_config_yaml(model_block=REPLAY_MODEL_BLOCK, home=home), encoding="utf-8")
-    monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(cfg_path))
-    monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(prepare_hermetic_extras(home)))
+    monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(cfg_path))
+    monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(prepare_hermetic_extras(home)))
+    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
     _reset_process_singletons(monkeypatch)
     from vassilflow.config import app_config as app_config_module
