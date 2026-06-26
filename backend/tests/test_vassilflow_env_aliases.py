@@ -8,6 +8,8 @@ from deerflow.config.extensions_config import ExtensionsConfig
 from deerflow.config.runtime_paths import project_root, runtime_home
 from deerflow.config.skills_config import SkillsConfig
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def test_vassilflow_alias_for_deer_flow_names():
     assert vassilflow_alias_for("DEER_FLOW_HOME") == "VASSILFLOW_HOME"
@@ -27,6 +29,30 @@ def test_env_value_supports_legacy_deerflow_prefix_alias(monkeypatch):
     monkeypatch.setenv("VASSILFLOW_WRITE_FILE_MAX_BYTES", "2048")
 
     assert env_value("DEERFLOW_WRITE_FILE_MAX_BYTES") == "2048"
+
+
+def test_vassilflow_env_alias_precedence_is_documented():
+    docs = (
+        REPO_ROOT / ".env.example",
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "backend/docs/CONFIGURATION.md",
+        REPO_ROOT / "backend/docs/SETUP.md",
+        REPO_ROOT / "frontend/src/content/en/harness/configuration.mdx",
+    )
+
+    for path in docs:
+        content = path.read_text(encoding="utf-8")
+        assert "VASSILFLOW_*" in content, path
+        assert "DEER_FLOW_*" in content, path
+        assert any(
+            phrase in content
+            for phrase in (
+                "VASSILFLOW_* wins",
+                "`VASSILFLOW_*` wins",
+                "VASSILFLOW_* takes precedence",
+                "`VASSILFLOW_*` takes precedence",
+            )
+        ), path
 
 
 def test_vassilflow_project_root_and_home_aliases(tmp_path: Path, monkeypatch):

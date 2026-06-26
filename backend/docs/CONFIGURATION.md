@@ -400,12 +400,17 @@ The default GitHub API rate limits are quite restrictive. For frequent project r
 
 ## Environment Variables
 
-DeerFlow supports environment variable substitution using the `$` prefix:
+VassilFlow supports environment variable substitution using the `$` prefix:
 
 ```yaml
 models:
   - api_key: $OPENAI_API_KEY  # Reads from environment
 ```
+
+During the VassilFlow transition, runtime variables should use the
+`VASSILFLOW_*` names below. Legacy `DEER_FLOW_*` names remain supported for
+compatibility, and scripts mirror the two forms where needed. When both names
+are set, `VASSILFLOW_*` takes precedence.
 
 **Common Environment Variables**:
 - `OPENAI_API_KEY` - OpenAI API key
@@ -417,24 +422,24 @@ models:
 - `BRAVE_SEARCH_API_KEY` - Brave Search API key
 - `SERPER_API_KEY` - Serper (Google Search/Images API) key for `web_search` and `image_search`
 - `GROUNDROUTE_API_KEY` - GroundRoute meta-search API key for `web_search` and `web_fetch` (routes across Serper, Brave, Exa, Tavily, Firecrawl, Perplexity with gain-share pricing)
-- `DEER_FLOW_PROJECT_ROOT` - Project root for relative runtime paths
-- `DEER_FLOW_CONFIG_PATH` - Custom config file path
-- `DEER_FLOW_EXTENSIONS_CONFIG_PATH` - Custom extensions config file path
-- `DEER_FLOW_HOME` - Runtime state directory (defaults to `.deer-flow` under the project root)
-- `DEER_FLOW_SKILLS_PATH` - Skills directory when `skills.path` is omitted
+- `VASSILFLOW_PROJECT_ROOT` (`DEER_FLOW_PROJECT_ROOT`) - Project root for relative runtime paths
+- `VASSILFLOW_CONFIG_PATH` (`DEER_FLOW_CONFIG_PATH`) - Custom config file path
+- `VASSILFLOW_EXTENSIONS_CONFIG_PATH` (`DEER_FLOW_EXTENSIONS_CONFIG_PATH`) - Custom extensions config file path
+- `VASSILFLOW_HOME` (`DEER_FLOW_HOME`) - Runtime state directory (defaults to `.deer-flow` under the project root)
+- `VASSILFLOW_SKILLS_PATH` (`DEER_FLOW_SKILLS_PATH`) - Skills directory when `skills.path` is omitted
 - `GATEWAY_ENABLE_DOCS` - Set to `false` to disable Swagger UI (`/docs`), ReDoc (`/redoc`), and OpenAPI schema (`/openapi.json`) endpoints (default: `true`)
 
 ## Configuration Location
 
-The configuration file should be placed in the **project root directory** (`deer-flow/config.yaml`). Set `DEER_FLOW_PROJECT_ROOT` when the process may start from another working directory, or set `DEER_FLOW_CONFIG_PATH` to point at a specific file.
+The configuration file should be placed in the **project root directory** (`VassilFlow/config.yaml`). Set `VASSILFLOW_PROJECT_ROOT` when the process may start from another working directory, or set `VASSILFLOW_CONFIG_PATH` to point at a specific file. The legacy `DEER_FLOW_PROJECT_ROOT` and `DEER_FLOW_CONFIG_PATH` names still work as fallbacks.
 
 ## Configuration Priority
 
-DeerFlow searches for configuration in this order:
+VassilFlow searches for configuration in this order:
 
 1. Path specified in code via `config_path` argument
-2. Path from `DEER_FLOW_CONFIG_PATH` environment variable
-3. `config.yaml` under `DEER_FLOW_PROJECT_ROOT`, or under the current working directory when `DEER_FLOW_PROJECT_ROOT` is unset
+2. Path from `VASSILFLOW_CONFIG_PATH`, falling back to `DEER_FLOW_CONFIG_PATH`
+3. `config.yaml` under `VASSILFLOW_PROJECT_ROOT`, falling back to `DEER_FLOW_PROJECT_ROOT` or the current working directory
 4. Legacy backend/repository-root locations for monorepo compatibility
 
 ## Security Notes

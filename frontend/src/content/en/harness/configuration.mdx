@@ -17,20 +17,24 @@ DeerFlow's configuration system is designed around one goal: every meaningful be
 
 ## Config file location
 
-DeerFlow resolves `config.yaml` using the following priority order:
+VassilFlow resolves `config.yaml` using the following priority order:
 
 1. The path passed to `AppConfig.from_file(config_path)` explicitly.
-2. The `DEER_FLOW_CONFIG_PATH` environment variable.
-3. `backend/config.yaml` (relative to the backend directory).
-4. `config.yaml` in the repository root.
+2. The `VASSILFLOW_CONFIG_PATH` environment variable, falling back to legacy `DEER_FLOW_CONFIG_PATH`.
+3. `config.yaml` under `VASSILFLOW_PROJECT_ROOT`, falling back to `DEER_FLOW_PROJECT_ROOT` or the current working directory.
+4. Legacy backend/repository-root locations for monorepo compatibility.
 
 If none of these paths exist, the application raises an error at startup.
 
 To use a custom location:
 
 ```bash
-export DEER_FLOW_CONFIG_PATH=/path/to/my-config.yaml
+export VASSILFLOW_CONFIG_PATH=/path/to/my-config.yaml
 ```
+
+During the transition from DeerFlow to VassilFlow, prefer `VASSILFLOW_*`
+environment variable names. Legacy `DEER_FLOW_*` names still work as fallbacks,
+and `VASSILFLOW_*` wins when both are set.
 
 ## Environment variable interpolation
 
