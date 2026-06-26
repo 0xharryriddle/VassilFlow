@@ -79,6 +79,11 @@ WORDING_TARGETS = [
         "So ``VassilFlowClient.stream()`` is",
     ),
     (
+        "backend/packages/harness/deerflow/runtime/runs/worker.py",
+        "Shared helper with ``DeerFlowClient.stream``",
+        "Shared helper with ``VassilFlowClient.stream``",
+    ),
+    (
         "backend/packages/harness/deerflow/agents/middlewares/input_sanitization_middleware.py",
         "I use DeerFlow's <think> tag?",
         "I use VassilFlow's <think> tag?",

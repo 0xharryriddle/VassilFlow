@@ -72,6 +72,10 @@ def _run_migration_with_env(env: dict[str, str]) -> subprocess.CompletedProcess[
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for runtime migration tests")
 def test_runtime_home_migration_copies_legacy_data_without_removing_source(tmp_path: Path):
+    script_content = MIGRATION_SCRIPT.read_text(encoding="utf-8")
+    assert "Copy legacy runtime state" in script_content
+    assert "Copy legacy DeerFlow runtime state" not in script_content
+
     source = tmp_path / ".deer-flow"
     target = tmp_path / ".vassilflow"
     (source / "data").mkdir(parents=True)

@@ -234,7 +234,7 @@ async def run_agent(
 
         # Inject Langfuse trace-attribute metadata so the langchain CallbackHandler
         # can lift session_id / user_id / trace_name / tags onto the root trace.
-        # Shared helper with ``DeerFlowClient.stream`` so both entry points stay
+        # Shared helper with ``VassilFlowClient.stream`` so both entry points stay
         # in sync; caller-provided metadata wins via setdefault inside the helper.
         inject_langfuse_metadata(
             config,

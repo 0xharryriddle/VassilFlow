@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copy legacy DeerFlow runtime state from backend/.deer-flow to
+# Copy legacy runtime state from backend/.deer-flow to
 # backend/.vassilflow without overwriting an existing target.
 
 set -e
