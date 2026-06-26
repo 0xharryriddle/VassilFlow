@@ -84,3 +84,16 @@ def test_im_channel_docs_use_vassilflow_identity():
     assert "DeerFlow supports user-owned IM channel bindings" not in content
     assert "connect the channel from DeerFlow Settings" not in content
     assert "Send /connect <code> to the DeerFlow Slack bot." not in content
+
+
+def test_api_docs_use_vassilflow_identity_and_runtime_paths():
+    content = (REPO_ROOT / "backend" / "docs" / "API.md").read_text(encoding="utf-8")
+
+    assert "reference for the VassilFlow backend APIs" in content
+    assert "VassilFlow backend exposes two sets of APIs" in content
+    assert '".vassilflow/threads/abc123/user-data/uploads/document.pdf"' in content
+    assert "Remove VassilFlow-managed local thread files" in content
+    assert "VassilFlow enforces authentication" in content
+    assert "reference for the DeerFlow backend APIs" not in content
+    assert '".deer-flow/threads/abc123/user-data/uploads/document.pdf"' not in content
+    assert "DeerFlow enforces authentication" not in content
