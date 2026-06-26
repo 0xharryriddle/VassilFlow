@@ -124,7 +124,7 @@ def test_json_output_uses_concise_review_record_schema(tmp_path: Path, capsys) -
         {
             "priority": "HIGH",
             "location": {
-                "path": str(source_file),
+                "path": source_file.as_posix(),
                 "line": 4,
                 "column": 5,
                 "function": "handler",
@@ -419,3 +419,10 @@ def test_parse_errors_are_reported_as_findings(tmp_path: Path) -> None:
     assert findings[0]["blocking_call"]["category"] == "PARSE_ERROR"
     assert findings[0]["priority"] == "MEDIUM"
     assert f"{source_file.name}:1:18" in detector.format_text(detector.scan_file(source_file, repo_root=tmp_path))
+
+
+def test_default_scan_paths_include_vassilflow_facade_and_current_implementation() -> None:
+    scan_paths = {path.as_posix() for path in detector.DEFAULT_SCAN_PATHS}
+
+    assert any(path.endswith("/backend/packages/harness/deerflow") for path in scan_paths)
+    assert any(path.endswith("/backend/packages/harness/vassilflow") for path in scan_paths)

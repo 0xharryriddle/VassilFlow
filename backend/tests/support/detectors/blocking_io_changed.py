@@ -29,6 +29,7 @@ REPO_ROOT = resolve_repo_root(Path(__file__))
 SCAN_ROOTS = (
     "backend/app",
     "backend/packages/harness/deerflow",
+    "backend/packages/harness/vassilflow",
     "backend/scripts",
 )
 

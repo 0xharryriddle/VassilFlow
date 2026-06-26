@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 from blockbuster import BlockingError
-from support.detectors.blocking_io_runtime import detect_blocking_io_strict
+from support.detectors.blocking_io_runtime import _SCANNED_MODULES, detect_blocking_io_strict
 
 pytestmark = pytest.mark.asyncio
 
@@ -31,6 +31,10 @@ async def test_gate_catches_unoffloaded_blocking_io_in_deerflow_module(tmp_path:
 
     with pytest.raises(BlockingError):
         ensure_sqlite_parent_dir(str(db_file))
+
+
+async def test_gate_scans_vassilflow_facade_and_current_implementation() -> None:
+    assert _SCANNED_MODULES == ("app", "deerflow", "vassilflow")
 
 
 async def test_gate_restores_blockbuster_patches_after_exceptions() -> None:

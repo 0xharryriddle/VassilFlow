@@ -88,3 +88,24 @@ def test_smoke_test_scripts_detect_vassilflow_and_legacy_names():
     assert "vassilflow_process_found" in check_docker
     assert "*[Vv]assil[Ff]low*" in check_docker
     assert "*[Dd]eer[Ff]low*" in check_docker
+
+
+def test_blocking_io_guard_skill_uses_vassilflow_paths_and_scope():
+    skill_path = REPO_ROOT / ".agent" / "skills" / "blocking-io-guard" / "SKILL.md"
+    reference_path = (
+        REPO_ROOT
+        / ".agent"
+        / "skills"
+        / "blocking-io-guard"
+        / "references"
+        / "good-anchor-rules.md"
+    )
+    metadata = _frontmatter(skill_path)
+    body = skill_path.read_text(encoding="utf-8")
+    reference = reference_path.read_text(encoding="utf-8")
+
+    assert "packages/harness/vassilflow/" in metadata["description"]
+    assert "VassilFlow's blocking-IO CI gate" in body
+    assert ".vassilflow/blocking-io-findings.json" in body
+    assert ".deer-flow/blocking-io-findings.json" not in body
+    assert "`vassilflow.*`" in reference
