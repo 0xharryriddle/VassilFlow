@@ -61,7 +61,7 @@ def test_no_cookie_raises_401():
 
 
 def test_auth_disabled_skips_csrf_and_authenticates_e2e_user(monkeypatch):
-    monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
+    monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
 
     identity = asyncio.run(authenticate(_req(method="POST")))
 

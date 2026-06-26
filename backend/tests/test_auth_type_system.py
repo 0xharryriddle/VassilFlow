@@ -532,7 +532,7 @@ def test_api_auth_me_no_cookie_returns_structured_401():
 
 def test_api_auth_me_auth_disabled_returns_synthetic_user(monkeypatch):
     _setup_config()
-    monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
+    monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
     client = _get_auth_client()
 
     resp = client.get("/api/v1/auth/me")
