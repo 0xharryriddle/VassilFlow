@@ -27,3 +27,16 @@ def test_backend_claude_uses_vassilflow_project_identity():
     assert "VassilFlowClient` provides direct in-process access" in content
     assert "DeerFlow is a LangGraph-based AI super agent system" not in content
     assert "DeerFlow's application tables" not in content
+
+
+def test_backend_docs_index_and_mcp_use_vassilflow_identity():
+    docs_readme = (REPO_ROOT / "backend" / "docs" / "README.md").read_text(encoding="utf-8")
+    mcp_docs = (REPO_ROOT / "backend" / "docs" / "MCP_SERVER.md").read_text(encoding="utf-8")
+
+    assert "VassilFlow backend" in docs_readme
+    assert "New to VassilFlow?" in docs_readme
+    assert "VassilFlow supports configurable MCP servers" in mcp_docs
+    assert "VassilFlow's built-in file tools" in mcp_docs
+    assert "DeerFlow backend" not in docs_readme
+    assert "New to DeerFlow?" not in docs_readme
+    assert "DeerFlow supports configurable MCP servers" not in mcp_docs
