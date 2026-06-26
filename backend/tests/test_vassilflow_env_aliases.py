@@ -179,4 +179,11 @@ def test_vassilflow_channel_url_alias(monkeypatch):
     monkeypatch.setenv("VASSILFLOW_CHANNELS_GATEWAY_URL", "http://gateway.internal")
     monkeypatch.delenv("DEER_FLOW_CHANNELS_GATEWAY_URL", raising=False)
 
-    assert _resolve_service_url({}, "gateway_url", "DEER_FLOW_CHANNELS_GATEWAY_URL", "http://default") == "http://gateway.internal"
+    assert _resolve_service_url({}, "gateway_url", "VASSILFLOW_CHANNELS_GATEWAY_URL", "http://default") == "http://gateway.internal"
+
+
+def test_legacy_channel_url_still_configures_vassilflow_env(monkeypatch):
+    monkeypatch.setenv("DEER_FLOW_CHANNELS_GATEWAY_URL", "http://legacy-gateway.internal")
+    monkeypatch.delenv("VASSILFLOW_CHANNELS_GATEWAY_URL", raising=False)
+
+    assert _resolve_service_url({}, "gateway_url", "VASSILFLOW_CHANNELS_GATEWAY_URL", "http://default") == "http://legacy-gateway.internal"
