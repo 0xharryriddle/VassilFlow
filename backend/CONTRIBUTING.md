@@ -63,66 +63,33 @@ make dev
 ## Project Structure
 
 ```
-backend/src/
-├── agents/                  # Agent system
-│   ├── lead_agent/         # Main agent implementation
-│   │   └── agent.py        # Agent factory and creation
-│   ├── middlewares/        # Agent middlewares
-│   │   ├── thread_data_middleware.py
-│   │   ├── sandbox_middleware.py
-│   │   ├── title_middleware.py
-│   │   ├── uploads_middleware.py
-│   │   ├── view_image_middleware.py
-│   │   └── clarification_middleware.py
-│   └── thread_state.py     # Thread state definition
-│
-├── gateway/                 # FastAPI Gateway
-│   ├── app.py              # FastAPI application
-│   └── routers/            # Route handlers
-│       ├── models.py       # /api/models endpoints
-│       ├── mcp.py          # /api/mcp endpoints
-│       ├── skills.py       # /api/skills endpoints
-│       ├── artifacts.py    # /api/threads/.../artifacts
-│       └── uploads.py      # /api/threads/.../uploads
-│
-├── sandbox/                 # Sandbox execution
-│   ├── __init__.py         # Sandbox interface
-│   ├── local.py            # Local sandbox provider
-│   └── tools.py            # Sandbox tools (bash, file ops)
-│
-├── tools/                   # Agent tools
-│   └── builtins/           # Built-in tools
-│       ├── present_file_tool.py
-│       ├── ask_clarification_tool.py
-│       └── view_image_tool.py
-│
-├── mcp/                     # MCP integration
-│   └── manager.py          # MCP server management
-│
-├── models/                  # Model system
-│   └── factory.py          # Model factory
-│
-├── skills/                  # Skills system
-│   └── loader.py           # Skills loader
-│
-├── config/                  # Configuration
-│   ├── app_config.py       # Main app config
-│   ├── extensions_config.py # Extensions config
-│   └── summarization_config.py
-│
-├── community/               # Community tools
-│   ├── tavily/             # Tavily web search
-│   ├── jina/               # Jina web fetch
-│   ├── firecrawl/          # Firecrawl scraping
-│   ├── fastcrw/            # fastCRW scraping (Firecrawl-compatible)
-│   └── aio_sandbox/        # Docker sandbox
-│
-├── reflection/              # Dynamic loading
-│   └── __init__.py         # Module resolution
-│
-└── utils/                   # Utilities
-    └── __init__.py
+backend/
+├── app/                         # Application layer: FastAPI Gateway + IM channels
+│   ├── gateway/                 # Gateway API and LangGraph-compatible routes
+│   │   ├── app.py               # FastAPI application factory
+│   │   ├── services.py          # Run/service orchestration helpers
+│   │   └── routers/             # models, mcp, memory, skills, uploads, runs...
+│   └── channels/                # Slack, Telegram, Discord, DingTalk, WeChat...
+├── packages/
+│   └── harness/                 # vassilflow-harness package
+│       ├── vassilflow/          # Public facade imports for new integrations
+│       └── deerflow/            # Current implementation package during migration
+│           ├── agents/          # Lead agent, state, middleware, memory
+│           ├── sandbox/         # Sandbox providers and shell/file tools
+│           ├── tools/           # Built-in tools and tool registry
+│           ├── community/       # Search/fetch/image/aio sandbox integrations
+│           ├── mcp/             # MCP tool discovery and cache
+│           ├── models/          # Model factory and provider adapters
+│           ├── skills/          # Skill discovery, loading, parsing
+│           ├── config/          # App/config/env/path schemas
+│           ├── persistence/     # SQLite/Postgres/Mongo persistence
+│           └── runtime/         # RunManager, worker, stream bridge, serialization
+├── scripts/                     # Backend helper scripts
+├── tests/                       # Backend test suite
+└── docs/                        # Backend documentation
 ```
+
+Use `packages/harness/vassilflow/` for public facade examples and `packages/harness/deerflow/` for current implementation edits during the migration.
 
 ## Code Style
 
@@ -272,7 +239,7 @@ legacy `deerflow.*` only as a compatibility fallback.
 
 ### Adding New Tools
 
-1. Create tool in `packages/harness/deerflow/tools/builtins/` or `packages/harness/deerflow/community/`:
+1. Create the implementation under the current harness package, for example `packages/harness/deerflow/tools/builtins/` or `packages/harness/deerflow/community/`. New config examples should still use the public `vassilflow.*` facade path.
 
 ```python
 # packages/harness/deerflow/tools/builtins/my_tool.py
@@ -291,7 +258,7 @@ def my_tool(param: str) -> str:
     return f"Result: {param}"
 ```
 
-2. Register in `config.yaml`:
+2. Register in `config.yaml` with the VassilFlow facade path:
 
 ```yaml
 tools:
@@ -302,7 +269,7 @@ tools:
 
 ### Adding New Middleware
 
-1. Create middleware in `packages/harness/deerflow/agents/middlewares/`:
+1. Create the implementation in `packages/harness/deerflow/agents/middlewares/` while documenting public imports through `vassilflow.agents.middlewares.*`:
 
 ```python
 # packages/harness/deerflow/agents/middlewares/my_middleware.py
@@ -318,7 +285,7 @@ class MyMiddleware(BaseMiddleware):
         return state
 ```
 
-2. Register in `packages/harness/deerflow/agents/lead_agent/agent.py`:
+2. Register in the current implementation factory, `packages/harness/deerflow/agents/lead_agent/agent.py`:
 
 ```python
 middlewares = [
@@ -363,7 +330,7 @@ app.include_router(my_router.router)
 
 When adding new configuration options:
 
-1. Update `packages/harness/deerflow/config/app_config.py` with new fields
+1. Update `packages/harness/deerflow/config/app_config.py` with new fields and expose public examples through `vassilflow.config`
 2. Add default values in `config.example.yaml`
 3. Document in `docs/CONFIGURATION.md`
 

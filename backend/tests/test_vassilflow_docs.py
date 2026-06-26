@@ -31,12 +31,16 @@ def test_backend_claude_uses_vassilflow_project_identity():
     assert "vassilflow.models.vllm_provider:VllmChatModel" in content
     assert "VassilFlowClient.stream" in content
     assert "why Gateway and VassilFlowClient are parallel paths" in content
+    assert "vassilflow/          # Public facade imports" in content
+    assert "VASSILFLOW_CHANNELS_LANGGRAPH_URL" in content
+    assert "VASSILFLOW_CHANNELS_GATEWAY_URL" in content
     assert "DeerFlow is a LangGraph-based AI super agent system" not in content
     assert "DeerFlow's application tables" not in content
     assert "from deerflow.agents import make_lead_agent" not in content
     assert "from deerflow.models import create_chat_model" not in content
     assert "from deerflow.config import get_app_config" not in content
     assert "deerflow.models.vllm_provider:VllmChatModel" not in content
+    assert "or set `DEER_FLOW_CHANNELS_LANGGRAPH_URL`" not in content
 
 
 def test_backend_docs_index_and_mcp_use_vassilflow_identity():
@@ -283,9 +287,13 @@ def test_contributing_docs_use_vassilflow_public_examples():
     assert "# Contributing to VassilFlow Backend" in content
     assert "contributing to VassilFlow" in content
     assert "git clone https://github.com/YOUR_USERNAME/VassilFlow.git" in content
+    assert "backend/" in content
+    assert "app/" in content
+    assert "packages/harness/vassilflow/" in content
     assert "from vassilflow.models.factory import create_chat_model" in content
     assert "use: vassilflow.tools.builtins.my_tool:my_tool" in content
     assert "Thank you for contributing to VassilFlow!" in content
+    assert "backend/src/" not in content
     assert "# Contributing to DeerFlow Backend" not in content
     assert "git clone https://github.com/YOUR_USERNAME/deer-flow.git" not in content
     assert "from deerflow.models.factory import create_chat_model" not in content

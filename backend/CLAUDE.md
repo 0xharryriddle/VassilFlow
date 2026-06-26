@@ -27,8 +27,9 @@ VassilFlow/
 │   ├── packages/
 │   │   └── harness/           # vassilflow-harness package (facade: vassilflow.*, legacy: deerflow.*)
 │   │       ├── pyproject.toml
-│   │       └── deerflow/
-│   │           ├── agents/            # LangGraph agent system
+│   │       ├── vassilflow/          # Public facade imports
+│   │       └── deerflow/            # Current implementation package
+│   │           ├── agents/          # LangGraph agent system
 │   │           │   ├── lead_agent/    # Main agent (factory + system prompt)
 │   │           │   ├── middlewares/   # 11 middleware components
 │   │           │   ├── memory/        # Memory extraction, queue, prompts
@@ -420,7 +421,7 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 **Configuration** (`config.yaml` -> `channels`):
 - `langgraph_url` - LangGraph-compatible Gateway API base URL (default: `http://localhost:8001/api`)
 - `gateway_url` - Gateway API URL for auxiliary commands (default: `http://localhost:8001`)
-- In Docker Compose, IM channels run inside the `gateway` container, so `localhost` points back to that container. Use `http://gateway:8001/api` for `langgraph_url` and `http://gateway:8001` for `gateway_url`, or set `DEER_FLOW_CHANNELS_LANGGRAPH_URL` / `DEER_FLOW_CHANNELS_GATEWAY_URL`.
+- In Docker Compose, IM channels run inside the `gateway` container, so `localhost` points back to that container. Use `http://gateway:8001/api` for `langgraph_url` and `http://gateway:8001` for `gateway_url`, or set `VASSILFLOW_CHANNELS_LANGGRAPH_URL` / `VASSILFLOW_CHANNELS_GATEWAY_URL` (legacy `DEER_FLOW_*` aliases are still accepted).
 - Per-channel configs: `feishu` (app_id, app_secret), `slack` (bot_token, app_token), `telegram` (bot_token), `dingtalk` (client_id, client_secret, optional `card_template_id` for AI Card streaming)
 
 **User-owned channel connections** (`config.yaml` -> `channel_connections`):
