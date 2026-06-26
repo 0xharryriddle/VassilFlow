@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "description": "Initial VassilFlow-owned boundary vocabulary. This contract is intentionally implementation-neutral so DeerFlow can remain the v0 runtime while VassilFlow stabilizes its session, run, trace, tool, policy, approval, and completion semantics.",
+  "status_values": {
+    "session": [
+      "created",
+      "preparing_workspace",
+      "sandbox_starting",
+      "running",
+      "waiting_approval",
+      "paused",
+      "completed",
+      "failed",
+      "archived"
+    ],
+    "run": [
+      "pending",
+      "running",
+      "waiting_approval",
+      "completed",
+      "failed",
+      "cancelled",
+      "rolled_back",
+      "incomplete"
+    ],
+    "approval": [
+      "pending",
+      "approved",
+      "denied",
+      "expired",
+      "cancelled"
+    ],
+    "policy_decision": [
+      "allow",
+      "deny",
+      "ask",
+      "redact",
+      "sanitize",
+      "escalate"
+    ]
+  },
+  "risk_tiers": {
+    "tier_0": "Read-only actions with no external side effect.",
+    "tier_1": "Sandbox-local file or command effects.",
+    "tier_2": "Network or API access with low sensitivity.",
+    "tier_3": "Credential use, external writes, package install, or repository mutation.",
+    "tier_4": "Production, financial, medical, security-critical, destructive, or irreversible actions."
+  },
+  "event_types": [
+    "session.created",
+    "run.started",
+    "plan.created",
+    "tool.requested",
+    "policy.decided",
+    "approval.requested",
+    "approval.resolved",
+    "tool.started",
+    "tool.completed",
+    "artifact.created",
+    "memory.write_candidate",
+    "memory.write_committed",
+    "verification.started",
+    "verification.completed",
+    "run.completed",
+    "run.failed"
+  ],
+  "entities": {
+    "Session": {
+      "required_fields": [
+        "session_id",
+        "project_id",
+        "owner_id",
+        "status",
+        "created_at"
+      ],
+      "optional_fields": [
+        "workspace_id",
+        "sandbox_id",
+        "thread_id",
+        "policy_scope",
+        "metadata"
+      ]
+    },
+    "Run": {
+      "required_fields": [
+        "run_id",
+        "session_id",
+        "status",
+        "goal",
+        "created_at"
+      ],
+      "optional_fields": [
+        "thread_id",
+        "started_at",
+        "ended_at",
+        "root_trace_id",
+        "completion_evidence",
+        "metadata"
+      ]
+    },
+    "TraceStep": {
+      "required_fields": [
+        "step_id",
+        "trace_id",
+        "type",
+        "actor",
+        "status",
+        "started_at"
+      ],
+      "optional_fields": [
+        "parent_step_id",
+        "request_ref",
+        "response_ref",
+        "tool_name",
+        "tool_args_ref",
+        "tool_result_ref",
+        "artifact_effects",
+        "state_effects",
+        "policy_decisions",
+        "approvals",
+        "cost",
+        "latency_ms",
+        "errors",
+        "code_refs",
+        "ended_at"
+      ]
+    },
+    "ToolSpec": {
+      "required_fields": [
+        "tool_id",
+        "name",
+        "description",
+        "input_schema",
+        "provider",
+        "permission_tier",
+        "side_effects"
+      ],
+      "optional_fields": [
+        "output_schema",
+        "network_access",
+        "filesystem_access",
+        "secrets_required",
+        "preconditions",
+        "postconditions",
+        "timeout_seconds",
+        "retry_policy",
+        "audit_level"
+      ]
+    },
+    "PolicyDecision": {
+      "required_fields": [
+        "decision_id",
+        "decision",
+        "subject",
+        "action",
+        "resource",
+        "risk_tier",
+        "created_at"
+      ],
+      "optional_fields": [
+        "rule_id",
+        "session_id",
+        "run_id",
+        "tool_call_id",
+        "reason",
+        "redactions",
+        "approval_request_id",
+        "expires_at"
+      ]
+    },
+    "ApprovalRequest": {
+      "required_fields": [
+        "approval_id",
+        "session_id",
+        "run_id",
+        "status",
+        "requested_action",
+        "risk_tier",
+        "created_at"
+      ],
+      "optional_fields": [
+        "tool_call_id",
+        "evidence_refs",
+        "expected_side_effect",
+        "resolved_by",
+        "resolved_at",
+        "resolution_reason"
+      ]
+    },
+    "CompletionEvidence": {
+      "required_fields": [
+        "task_goal",
+        "plan_status",
+        "verification_results"
+      ],
+      "optional_fields": [
+        "files_changed",
+        "commands_run",
+        "tests_run",
+        "policy_exceptions",
+        "remaining_risks",
+        "artifact_refs",
+        "human_approvals"
+      ]
+    }
+  }
+}
