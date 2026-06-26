@@ -9,7 +9,7 @@ We intentionally exercise the full pipeline:
 
     HTTP body shape (mimics LangGraph SDK wire format)
       -> app.gateway.services.start_run config-assembly chain
-      -> deerflow.runtime.runs.worker._build_runtime_context
+      -> vassilflow.runtime.runs.worker._build_runtime_context
       -> langchain.agents.create_agent graph
       -> ToolNode dispatch
       -> setup_agent tool
@@ -39,7 +39,7 @@ from app.gateway.services import (
     inject_authenticated_user_context,
     merge_run_context_overrides,
 )
-from deerflow.runtime.runs.worker import _build_runtime_context, _install_runtime_context
+from vassilflow.runtime.runs.worker import _build_runtime_context, _install_runtime_context
 
 # ---------------------------------------------------------------------------
 # Helpers — real production code paths

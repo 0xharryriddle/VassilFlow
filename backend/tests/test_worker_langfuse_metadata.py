@@ -11,9 +11,9 @@ import asyncio
 
 import pytest
 
-from deerflow.runtime.runs.manager import RunRecord
-from deerflow.runtime.runs.schemas import DisconnectMode, RunStatus
-from deerflow.runtime.runs.worker import RunContext, run_agent
+from vassilflow.runtime.runs.manager import RunRecord
+from vassilflow.runtime.runs.schemas import DisconnectMode, RunStatus
+from vassilflow.runtime.runs.worker import RunContext, run_agent
 
 
 class _FakeAgent:
@@ -131,7 +131,7 @@ async def test_run_agent_falls_back_to_default_user_when_unset(monkeypatch):
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
     from deerflow.config.tracing_config import reset_tracing_config
-    from deerflow.runtime.runs import worker as worker_module
+    from vassilflow.runtime.runs import worker as worker_module
     from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
     reset_tracing_config()
