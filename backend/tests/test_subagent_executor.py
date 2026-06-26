@@ -1147,7 +1147,7 @@ class TestSyncExecutionPath:
     @pytest.mark.anyio
     async def test_execute_in_running_event_loop_calls_isolated_loop_directly(self, classes, base_config, mock_agent, msg):
         """Test that execute() calls the isolated-loop helper directly in a running loop."""
-        from deerflow.runtime.user_context import (
+        from vassilflow.runtime.user_context import (
             get_effective_user_id,
             reset_current_user,
             set_current_user,
@@ -1817,7 +1817,7 @@ class TestCooperativeCancellation:
         """Regression: background subagent execution must keep request user context."""
         import concurrent.futures
 
-        from deerflow.runtime.user_context import (
+        from vassilflow.runtime.user_context import (
             get_effective_user_id,
             reset_current_user,
             set_current_user,
@@ -2215,7 +2215,7 @@ class TestSubagentTracingWiring:
         await executor._aexecute("do something")
 
         metadata = (fake_agent.captured_config or {}).get("metadata") or {}
-        # DEFAULT_USER_ID is "default" (see deerflow.runtime.user_context).
+        # DEFAULT_USER_ID is "default" (see vassilflow.runtime.user_context).
         assert metadata.get("langfuse_user_id") == "default"
 
     @pytest.mark.anyio
