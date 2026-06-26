@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.sandbox.exceptions import SandboxError
-from deerflow.sandbox.tools import (
+from vassilflow.sandbox.exceptions import SandboxError
+from vassilflow.sandbox.tools import (
     VIRTUAL_PATH_PREFIX,
     _apply_cwd_prefix,
     _compiled_mask_patterns,
@@ -234,7 +234,7 @@ def test_validate_local_tool_path_rejects_traversal_in_skills() -> None:
 
 def test_validate_local_tool_path_rejects_none_thread_data() -> None:
     """Missing thread_data should raise SandboxRuntimeError."""
-    from deerflow.sandbox.exceptions import SandboxRuntimeError
+    from vassilflow.sandbox.exceptions import SandboxRuntimeError
 
     with pytest.raises(SandboxRuntimeError):
         validate_local_tool_path(f"{VIRTUAL_PATH_PREFIX}/workspace/file.txt", None)
@@ -1396,7 +1396,7 @@ def test_file_operation_lock_memory_cleanup() -> None:
     """
     import gc
 
-    from deerflow.sandbox.file_operation_lock import _FILE_OPERATION_LOCKS, get_file_operation_lock
+    from vassilflow.sandbox.file_operation_lock import _FILE_OPERATION_LOCKS, get_file_operation_lock
 
     class MockSandbox:
         id = "test_cleanup_sandbox"

@@ -12,11 +12,11 @@ from langgraph.runtime import Runtime
 from langgraph.types import Command
 
 from deerflow.agents.thread_state import ThreadState
-from deerflow.sandbox.middleware import SandboxMiddleware, SandboxMiddlewareState
-from deerflow.sandbox.sandbox import Sandbox
-from deerflow.sandbox.sandbox_provider import SandboxProvider, reset_sandbox_provider, set_sandbox_provider
-from deerflow.sandbox.search import GrepMatch
-from deerflow.sandbox.tools import ls_tool
+from vassilflow.sandbox.middleware import SandboxMiddleware, SandboxMiddlewareState
+from vassilflow.sandbox.sandbox import Sandbox
+from vassilflow.sandbox.sandbox_provider import SandboxProvider, reset_sandbox_provider, set_sandbox_provider
+from vassilflow.sandbox.search import GrepMatch
+from vassilflow.sandbox.tools import ls_tool
 
 
 class _SyncProvider(SandboxProvider):

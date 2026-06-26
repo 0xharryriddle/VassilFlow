@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from deerflow.sandbox.security import is_host_bash_allowed
 from vassilflow.client import StreamEvent, VassilFlowClient
+from vassilflow.sandbox.security import is_host_bash_allowed
 from vassilflow.uploads.manager import PathTraversalError
 
 # Skip entire module in CI or when no config.yaml exists
