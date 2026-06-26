@@ -749,7 +749,7 @@ class TestClientCheckpointerFallback:
             patch("deerflow.client.create_chat_model", return_value=MagicMock()),
             patch("deerflow.client.build_middlewares", return_value=[]),
             patch("deerflow.client.apply_prompt_template", return_value=""),
-            patch("deerflow.client.DeerFlowClient._get_tools", return_value=[]),
+            patch("vassilflow.client.VassilFlowClient._get_tools", return_value=[]),
         ):
             client = VassilFlowClient(checkpointer=None)
             config = client._get_runnable_config("test-thread")
@@ -783,7 +783,7 @@ class TestClientCheckpointerFallback:
             patch("deerflow.client.create_chat_model", return_value=MagicMock()),
             patch("deerflow.client.build_middlewares", return_value=[]),
             patch("deerflow.client.apply_prompt_template", return_value=""),
-            patch("deerflow.client.DeerFlowClient._get_tools", return_value=[]),
+            patch("vassilflow.client.VassilFlowClient._get_tools", return_value=[]),
         ):
             client = VassilFlowClient(checkpointer=explicit_cp)
             config = client._get_runnable_config("test-thread")
