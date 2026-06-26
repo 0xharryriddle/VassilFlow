@@ -39,7 +39,7 @@ _MCP_TMP_SUBDIR = ".mcp/tmp"
 # server process cwd (e.g. ``temp/page.yml``, ``./shot.png``). Each match is
 # only rewritten when it resolves to an existing file inside the thread's
 # user-data tree, so an over-eager match is harmless (left untouched).
-_LOCAL_PATH_IN_TEXT_RE = re.compile(r"(?:file://)?/[^\s'\"<>|*?]+|(?:\.{0,2}/|[\w.-]+/)[^\s'\"<>|*?]+")
+_LOCAL_PATH_IN_TEXT_RE = re.compile(r"(?:file://)?(?:/[^\s'\"<>|*?]+|[A-Za-z]:[\\/][^\s'\"<>|*?]+)|(?:\.{0,2}/|[\w.-]+/)[^\s'\"<>|*?]+")
 
 # Trailing characters that are punctuation/markup rather than part of a path.
 _TEXT_PATH_TRAILING_CHARS = ".,;:!?)]}>\"'`"
@@ -57,9 +57,19 @@ def _local_path_from_uri(uri: str, *, base_dir: Path | None = None) -> Path | No
     """
     if not uri:
         return None
+    candidate = Path(uri)
+    if candidate.is_absolute():
+        return candidate
+
     parsed = urlparse(uri)
     if parsed.scheme == "file":
-        raw = unquote(parsed.path)
+        if parsed.netloc and parsed.netloc.lower() != "localhost":
+            raw = parsed.netloc + parsed.path
+        else:
+            raw = parsed.path
+        raw = unquote(raw)
+        if re.match(r"^/[A-Za-z]:[\\/]", raw):
+            raw = raw[1:]
     elif parsed.scheme == "":
         raw = uri
     else:

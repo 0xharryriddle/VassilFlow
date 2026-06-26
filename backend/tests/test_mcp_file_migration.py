@@ -12,8 +12,8 @@ from unittest.mock import patch
 import pytest
 from mcp.types import CallToolResult, ResourceLink, TextContent
 
-from deerflow.config.paths import VIRTUAL_PATH_PREFIX, Paths
 from deerflow.mcp import tools as mcp_tools
+from vassilflow.config.paths import VIRTUAL_PATH_PREFIX, Paths
 
 
 @pytest.fixture
@@ -33,14 +33,17 @@ def _workspace_file(paths: Paths, relative_path: str, *, content: bytes = b"data
 
 
 class TestLocalPathFromUri:
-    def test_file_uri(self):
-        assert mcp_tools._local_path_from_uri("file:///tmp/shot.png") == Path("/tmp/shot.png")
+    def test_file_uri(self, tmp_path: Path):
+        target = tmp_path / "shot.png"
+        assert mcp_tools._local_path_from_uri(target.as_uri()) == target
 
-    def test_bare_absolute_path(self):
-        assert mcp_tools._local_path_from_uri("/var/data/out.pdf") == Path("/var/data/out.pdf")
+    def test_bare_absolute_path(self, tmp_path: Path):
+        target = tmp_path / "out.pdf"
+        assert mcp_tools._local_path_from_uri(str(target)) == target
 
-    def test_file_uri_with_url_encoded_spaces(self):
-        assert mcp_tools._local_path_from_uri("file:///tmp/my%20shot.png") == Path("/tmp/my shot.png")
+    def test_file_uri_with_url_encoded_spaces(self, tmp_path: Path):
+        target = tmp_path / "my shot.png"
+        assert mcp_tools._local_path_from_uri(target.as_uri()) == target
 
     def test_remote_uri_is_ignored(self):
         assert mcp_tools._local_path_from_uri("https://example.com/a.png") is None
@@ -59,9 +62,11 @@ class TestLocalPathFromUri:
     def test_file_uri_with_empty_path_is_ignored(self):
         assert mcp_tools._local_path_from_uri("file://") is None
 
-    def test_file_uri_with_localhost_host(self):
+    def test_file_uri_with_localhost_host(self, tmp_path: Path):
         # file://localhost/abs/path is the host form of file:///abs/path.
-        assert mcp_tools._local_path_from_uri("file://localhost/tmp/shot.png") == Path("/tmp/shot.png")
+        target = tmp_path / "shot.png"
+        uri = target.as_uri().replace("file:///", "file://localhost/", 1)
+        assert mcp_tools._local_path_from_uri(uri) == target
 
     def test_empty_is_ignored(self):
         assert mcp_tools._local_path_from_uri("") is None
@@ -431,11 +436,12 @@ class TestConvertCallToolResultRewrites:
             content=[ResourceLink(type="resource_link", name="page", uri=uri, mimeType="image/png")],
             isError=False,
         )
+        expected_uri = str(result.content[0].uri)
 
         with _patch_paths(paths):
             content, _ = mcp_tools._convert_call_tool_result(result, thread_id="t1", user_id="u1")
 
-        assert content[0]["url"] == uri
+        assert content[0]["url"] == expected_uri
 
     def test_remote_resource_link_untouched(self, paths: Paths):
         url = "https://example.com/remote.png"
@@ -485,11 +491,12 @@ class TestConvertCallToolResultRewrites:
             content=[ResourceLink(type="resource_link", name="x", uri=uri, mimeType="image/png")],
             isError=False,
         )
+        expected_uri = str(result.content[0].uri)
 
         with _patch_paths(paths):
             content, _ = mcp_tools._convert_call_tool_result(result)
 
-        assert content[0]["url"] == uri
+        assert content[0]["url"] == expected_uri
 
     def test_text_content_passthrough(self, paths: Paths):
         result = CallToolResult(content=[TextContent(type="text", text="hello")], isError=False)
