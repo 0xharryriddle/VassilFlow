@@ -338,6 +338,9 @@ sync_vassilflow_env DEER_FLOW_PROJECT_ROOT
 
 BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.vassilflow"
 LEGACY_BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"
+if [ -z "${DEER_FLOW_HOME:-}" ] && [ -z "${VASSILFLOW_HOME:-}" ]; then
+    "$REPO_ROOT/scripts/migrate-runtime-home.sh" --quiet
+fi
 if [ -z "$DEER_FLOW_HOME" ]; then
     if [ ! -e "$BACKEND_RUNTIME_HOME" ] && [ -e "$LEGACY_BACKEND_RUNTIME_HOME" ]; then
         export DEER_FLOW_HOME="$LEGACY_BACKEND_RUNTIME_HOME"
