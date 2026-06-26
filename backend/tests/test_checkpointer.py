@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import deerflow.config.app_config as app_config_module
-from deerflow.config.checkpointer_config import (
+import vassilflow.config.app_config as app_config_module
+from vassilflow.config.checkpointer_config import (
     CheckpointerConfig,
     ensure_config_loaded,
     get_checkpointer_config,
@@ -155,7 +155,7 @@ class TestCheckpointerConfig:
         def fake_get_app_config():
             load_checkpointer_config_from_dict({"type": "memory"})
 
-        with patch("deerflow.config.app_config.get_app_config", side_effect=fake_get_app_config) as mock_get_app_config:
+        with patch("vassilflow.config.app_config.get_app_config", side_effect=fake_get_app_config) as mock_get_app_config:
             ensure_config_loaded()
 
         mock_get_app_config.assert_called_once()
@@ -166,7 +166,7 @@ class TestCheckpointerConfig:
     def test_ensure_config_loaded_skips_explicit_config(self):
         load_checkpointer_config_from_dict({"type": "memory"})
 
-        with patch("deerflow.config.app_config.get_app_config") as mock_get_app_config:
+        with patch("vassilflow.config.app_config.get_app_config") as mock_get_app_config:
             ensure_config_loaded()
 
         mock_get_app_config.assert_not_called()
@@ -222,7 +222,7 @@ class TestGetCheckpointer:
         """get_checkpointer should return InMemorySaver when not configured."""
         from langgraph.checkpoint.memory import InMemorySaver
 
-        with patch("deerflow.config.app_config.get_app_config", side_effect=FileNotFoundError):
+        with patch("vassilflow.config.app_config.get_app_config", side_effect=FileNotFoundError):
             cp = get_checkpointer()
         assert cp is not None
         assert isinstance(cp, InMemorySaver)
@@ -617,7 +617,7 @@ class TestAsyncCheckpointer:
     @pytest.mark.anyio
     async def test_database_postgres_uses_connection_pool(self):
         """Unified database postgres path should use AsyncConnectionPool with keepalive."""
-        from deerflow.config.database_config import DatabaseConfig
+        from vassilflow.config.database_config import DatabaseConfig
         from vassilflow.runtime.checkpointer.async_provider import make_checkpointer
 
         db_config = DatabaseConfig(backend="postgres", postgres_url="postgresql://localhost/db")
@@ -663,7 +663,7 @@ class TestAsyncCheckpointer:
     @pytest.mark.anyio
     async def test_database_sqlite_creates_parent_dir_via_to_thread(self):
         """Unified database SQLite setup should also move path IO off the event loop."""
-        from deerflow.config.database_config import DatabaseConfig
+        from vassilflow.config.database_config import DatabaseConfig
         from vassilflow.runtime.checkpointer.async_provider import _prepare_database_sqlite_checkpointer_path, make_checkpointer
 
         db_config = DatabaseConfig(backend="sqlite", sqlite_dir="relative-data")
