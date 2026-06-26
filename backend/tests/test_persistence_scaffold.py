@@ -14,8 +14,8 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.config.database_config import DEFAULT_SQLITE_FILENAME, LEGACY_SQLITE_FILENAME, DatabaseConfig
-from deerflow.runtime.runs.store.memory import MemoryRunStore
+from vassilflow.config.database_config import DEFAULT_SQLITE_FILENAME, LEGACY_SQLITE_FILENAME, DatabaseConfig
+from vassilflow.runtime.runs.store.memory import MemoryRunStore
 
 # -- DatabaseConfig --
 
@@ -277,7 +277,7 @@ class TestBaseToDictMixin:
         from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
         from sqlalchemy.orm import Mapped, mapped_column
 
-        from deerflow.persistence.base import Base
+        from vassilflow.persistence.base import Base
 
         class _Tmp(Base):
             __tablename__ = "_tmp_test"
@@ -307,7 +307,7 @@ class TestBaseToDictMixin:
 class TestEngineLifecycle:
     @pytest.mark.anyio
     async def test_memory_is_noop(self):
-        from deerflow.persistence.engine import close_engine, get_session_factory, init_engine
+        from vassilflow.persistence.engine import close_engine, get_session_factory, init_engine
 
         await init_engine("memory")
         assert get_session_factory() is None
@@ -315,7 +315,7 @@ class TestEngineLifecycle:
 
     @pytest.mark.anyio
     async def test_sqlite_creates_engine(self, tmp_path):
-        from deerflow.persistence.engine import close_engine, get_session_factory, init_engine
+        from vassilflow.persistence.engine import close_engine, get_session_factory, init_engine
 
         url = f"sqlite+aiosqlite:///{tmp_path / 'test.db'}"
         await init_engine("sqlite", url=url, sqlite_dir=str(tmp_path))
@@ -329,7 +329,7 @@ class TestEngineLifecycle:
     @pytest.mark.anyio
     async def test_postgres_without_asyncpg_gives_actionable_error(self):
         """If asyncpg is not installed, error message tells user what to do."""
-        from deerflow.persistence.engine import init_engine
+        from vassilflow.persistence.engine import init_engine
 
         with (
             patch.dict(sys.modules, {"asyncpg": None}),

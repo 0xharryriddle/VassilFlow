@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from deerflow.config.extensions_config import ExtensionsConfig
-from deerflow.mcp.oauth import OAuthTokenManager, build_oauth_tool_interceptor, get_initial_oauth_headers
+from vassilflow.config.extensions_config import ExtensionsConfig
+from vassilflow.mcp.oauth import OAuthTokenManager, build_oauth_tool_interceptor, get_initial_oauth_headers
 
 
 class _MockResponse:

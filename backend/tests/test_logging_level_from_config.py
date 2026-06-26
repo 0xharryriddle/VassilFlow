@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from deerflow.config.app_config import apply_logging_level, logging_level_from_config
+from vassilflow.config.app_config import apply_logging_level, logging_level_from_config
 
 
 @pytest.mark.parametrize(
