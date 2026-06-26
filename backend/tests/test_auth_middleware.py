@@ -336,6 +336,8 @@ def test_auth_disabled_startup_warning_when_effective(monkeypatch, caplog):
         warn_if_auth_disabled_enabled()
 
     assert "authentication is bypassed" in caplog.text
+    assert "VASSILFLOW_AUTH_DISABLED=1" in caplog.text
+    assert "legacy: DEER_FLOW_AUTH_DISABLED=1" in caplog.text
     assert "default" in caplog.text
 
 

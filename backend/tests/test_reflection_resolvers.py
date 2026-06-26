@@ -25,6 +25,7 @@ def test_resolve_variable_reports_install_hint_for_missing_google_provider(monke
     message = str(exc_info.value)
     assert "Could not import module langchain_google_genai" in message
     assert "uv add langchain-google-genai" in message
+    assert "restart VassilFlow" in message
 
 
 def test_resolve_variable_reports_install_hint_for_missing_google_transitive_dependency(
