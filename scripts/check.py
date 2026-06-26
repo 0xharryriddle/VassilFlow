@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-platform dependency checker for DeerFlow."""
+"""Cross-platform dependency checker for VassilFlow."""
 
 from __future__ import annotations
 
@@ -75,9 +75,7 @@ def main() -> int:
             if major is not None and major >= 22:
                 print(f"  OK Node.js {node_version.lstrip('v')} (>= 22 required)")
             else:
-                print(
-                    f"  FAIL Node.js {node_version.lstrip('v')} found, but version 22+ is required"
-                )
+                print(f"  FAIL Node.js {node_version.lstrip('v')} found, but version 22+ is required")
                 print("    Install from: https://nodejs.org/")
                 failed = True
         else:

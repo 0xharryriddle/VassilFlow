@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DeerFlow Interactive Setup Wizard.
+"""VassilFlow Interactive Setup Wizard.
 
 Usage:
     uv run python scripts/setup_wizard.py
@@ -21,10 +21,7 @@ def _is_interactive() -> bool:
 def main() -> int:
     try:
         if not _is_interactive():
-            print(
-                "Non-interactive environment detected.\n"
-                "Please edit config.yaml and .env directly, or run 'make setup' in a terminal."
-            )
+            print("Non-interactive environment detected.\nPlease edit config.yaml and .env directly, or run 'make setup' in a terminal.")
             return 1
 
         from wizard.ui import (
@@ -44,8 +41,8 @@ def main() -> int:
         env_path = project_root / ".env"
 
         print()
-        print(bold("Welcome to DeerFlow Setup!"))
-        print("This wizard will help you configure DeerFlow in a few minutes.")
+        print(bold("Welcome to VassilFlow Setup!"))
+        print("This wizard will help you configure VassilFlow in a few minutes.")
         print()
 
         if config_path.exists():
@@ -109,6 +106,7 @@ def main() -> int:
             env_example = project_root / ".env.example"
             if env_example.exists():
                 import shutil
+
                 shutil.copyfile(env_example, env_path)
 
         env_pairs: dict[str, str] = {}
@@ -127,6 +125,7 @@ def main() -> int:
         frontend_env_example = project_root / "frontend" / ".env.example"
         if not frontend_env.exists() and frontend_env_example.exists():
             import shutil
+
             shutil.copyfile(frontend_env_example, frontend_env)
             print_success("frontend/.env created from example")
 
@@ -160,7 +159,7 @@ def main() -> int:
         print()
         print("Next steps:")
         print(f"  {cyan('make install')}    # Install dependencies (first time only)")
-        print(f"  {cyan('make dev')}        # Start DeerFlow")
+        print(f"  {cyan('make dev')}        # Start VassilFlow")
         print()
         print(f"Run {cyan('make doctor')} to verify your setup at any time.")
         print()
