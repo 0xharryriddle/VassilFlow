@@ -18,7 +18,7 @@ from app.gateway.routers.models import ModelResponse, ModelsListResponse
 from app.gateway.routers.skills import SkillInstallResponse, SkillResponse, SkillsListResponse
 from app.gateway.routers.uploads import UploadResponse
 from deerflow.client import DeerFlowClient
-from deerflow.config.paths import Paths
+from vassilflow.config.paths import Paths
 from vassilflow.uploads.manager import PathTraversalError
 
 # ---------------------------------------------------------------------------
@@ -1421,7 +1421,7 @@ class TestMemoryManagement:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("deerflow.config.memory_config.get_memory_config", return_value=config):
+        with patch("vassilflow.config.memory_config.get_memory_config", return_value=config):
             result = client.get_memory_config()
 
         assert result["enabled"] is True
@@ -1440,7 +1440,7 @@ class TestMemoryManagement:
         data = {"version": "1.0", "facts": []}
 
         with (
-            patch("deerflow.config.memory_config.get_memory_config", return_value=config),
+            patch("vassilflow.config.memory_config.get_memory_config", return_value=config),
             patch("deerflow.agents.memory.updater.get_memory_data", return_value=data),
         ):
             result = client.get_memory_status()
@@ -2121,7 +2121,7 @@ class TestScenarioMemoryWorkflow:
         assert len(refreshed["facts"]) == 2
 
         with (
-            patch("deerflow.config.memory_config.get_memory_config", return_value=config),
+            patch("vassilflow.config.memory_config.get_memory_config", return_value=config),
             patch("deerflow.agents.memory.updater.get_memory_data", return_value=updated_data),
         ):
             status = client.get_memory_status()
@@ -2474,7 +2474,7 @@ class TestGatewayConformance:
         mem_cfg.max_injection_tokens = 2000
         mem_cfg.token_counting = "tiktoken"
 
-        with patch("deerflow.config.memory_config.get_memory_config", return_value=mem_cfg):
+        with patch("vassilflow.config.memory_config.get_memory_config", return_value=mem_cfg):
             result = client.get_memory_config()
 
         parsed = MemoryConfigResponse(**result)
@@ -2510,7 +2510,7 @@ class TestGatewayConformance:
         }
 
         with (
-            patch("deerflow.config.memory_config.get_memory_config", return_value=mem_cfg),
+            patch("vassilflow.config.memory_config.get_memory_config", return_value=mem_cfg),
             patch("deerflow.agents.memory.updater.get_memory_data", return_value=memory_data),
         ):
             result = client.get_memory_status()
