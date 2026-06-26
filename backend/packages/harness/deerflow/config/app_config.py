@@ -70,17 +70,17 @@ def logging_level_from_config(name: str | None) -> int:
 
 
 def apply_logging_level(name: str | None) -> None:
-    """Resolve *name* to a logging level and apply it to the ``deerflow``/``app`` logger hierarchies.
+    """Resolve *name* and apply it to the VassilFlow, DeerFlow, and app loggers.
 
-    Only the ``deerflow`` and ``app`` logger levels are changed so that
-    third-party library verbosity (e.g. uvicorn, sqlalchemy) is not
+    Only the product-owned logger levels are changed so that third-party
+    library verbosity (e.g. uvicorn, sqlalchemy) is not
     affected. Root handler levels are lowered (never raised) so that
     messages from the configured loggers can propagate through without
     being filtered, while preserving handler thresholds that may be
     intentionally restrictive for third-party log output.
     """
     level = logging_level_from_config(name)
-    for logger_name in ("deerflow", "app"):
+    for logger_name in ("vassilflow", "deerflow", "app"):
         logging.getLogger(logger_name).setLevel(level)
     for handler in logging.root.handlers:
         if level < handler.level:
@@ -88,13 +88,13 @@ def apply_logging_level(name: str | None) -> None:
 
 
 class AppConfig(BaseModel):
-    """Config for the DeerFlow application"""
+    """Config for the VassilFlow application."""
 
     log_level: str = Field(
         default="info",
         description=format_field_description(
             "log_level",
-            field_doc="Logging level for deerflow and app modules (debug/info/warning/error); third-party libraries are not affected.",
+            field_doc="Logging level for vassilflow, deerflow, and app modules (debug/info/warning/error); third-party libraries are not affected.",
         ),
     )
     token_usage: TokenUsageConfig = Field(default_factory=TokenUsageConfig, description="Token usage tracking configuration")
