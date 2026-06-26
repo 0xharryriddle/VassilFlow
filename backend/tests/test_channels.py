@@ -793,7 +793,7 @@ class TestChannelManager:
         from deerflow.config.paths import Paths
 
         paths = Paths(tmp_path)
-        monkeypatch.setattr("deerflow.uploads.manager.get_paths", lambda: paths)
+        monkeypatch.setattr("vassilflow.uploads.manager.get_paths", lambda: paths)
 
         async def read_file(file_info, client):
             del file_info, client

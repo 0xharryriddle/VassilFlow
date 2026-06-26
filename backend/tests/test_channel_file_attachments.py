@@ -275,7 +275,7 @@ class TestInboundFileIngestion:
             return b"attacker data"
 
         with (
-            patch("deerflow.uploads.manager.ensure_uploads_dir", return_value=uploads_dir),
+            patch("vassilflow.uploads.manager.ensure_uploads_dir", return_value=uploads_dir),
             patch.dict(manager.INBOUND_FILE_READERS, {"test-channel": fake_reader}, clear=False),
         ):
             result = _run(manager._ingest_inbound_files("thread-1", msg))
@@ -304,7 +304,7 @@ class TestInboundFileIngestion:
             return b"attacker data"
 
         with (
-            patch("deerflow.uploads.manager.ensure_uploads_dir", return_value=uploads_dir),
+            patch("vassilflow.uploads.manager.ensure_uploads_dir", return_value=uploads_dir),
             patch.dict(manager.INBOUND_FILE_READERS, {"test-channel": fake_reader}, clear=False),
         ):
             result = _run(manager._ingest_inbound_files("thread-1", msg))
@@ -334,7 +334,7 @@ class TestInboundFileIngestion:
             return b"new attachment data"
 
         with (
-            patch("deerflow.uploads.manager.ensure_uploads_dir", return_value=uploads_dir),
+            patch("vassilflow.uploads.manager.ensure_uploads_dir", return_value=uploads_dir),
             patch.dict(manager.INBOUND_FILE_READERS, {"test-channel": fake_reader}, clear=False),
         ):
             result = _run(manager._ingest_inbound_files("thread-1", msg))

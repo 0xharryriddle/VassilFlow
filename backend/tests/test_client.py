@@ -19,7 +19,7 @@ from app.gateway.routers.skills import SkillInstallResponse, SkillResponse, Skil
 from app.gateway.routers.uploads import UploadResponse
 from deerflow.client import DeerFlowClient
 from deerflow.config.paths import Paths
-from deerflow.uploads.manager import PathTraversalError
+from vassilflow.uploads.manager import PathTraversalError
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -3171,7 +3171,7 @@ class TestBugListUploadsDeadCode:
             mock_paths = MagicMock()
             mock_paths.sandbox_uploads_dir.return_value = non_existent
 
-            with patch("deerflow.uploads.manager.get_paths", return_value=mock_paths):
+            with patch("vassilflow.uploads.manager.get_paths", return_value=mock_paths):
                 result = client.list_uploads("thread-fresh")
 
             # Read path should NOT create the directory
