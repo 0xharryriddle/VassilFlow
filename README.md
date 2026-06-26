@@ -1,13 +1,10 @@
 # 🦌 VassilFlow - 2.0
 
-English | [中文](./README_zh.md) | [日本語](./README_ja.md) | [Français](./README_fr.md) | [Русский](./README_ru.md)
+English
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](./backend/pyproject.toml)
 [![Node.js](https://img.shields.io/badge/Node.js-22%2B-339933?logo=node.js&logoColor=white)](./Makefile)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-
-<a href="https://trendshift.io/repositories/14699" target="_blank"><img src="https://trendshift.io/api/badge/repositories/14699" alt="bytedance%2Fdeer-flow | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-> Upstream note: on February 28th, 2026, DeerFlow claimed the 🏆 #1 spot on GitHub Trending following the launch of version 2.
 
 VassilFlow is an open-source **super agent harness** that orchestrates **sub-agents**, **memory**, and **sandboxes** to do almost anything — powered by **extensible skills**.
 
@@ -16,9 +13,9 @@ https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 > [!NOTE]
 > VassilFlow is being migrated from the upstream DeerFlow 2.0 codebase. During the transition, compatibility shims intentionally keep existing `deerflow.*`, `DEER_FLOW_*`, and legacy `.deer-flow` state directories working while VassilFlow-owned aliases are introduced.
 
-## Upstream Website
+## Upstream Reference
 
-See the inherited upstream demos and reference material on the [**DeerFlow website**](https://deerflow.tech).
+Reference inherited upstream demos and historical material on the [**DeerFlow website**](https://deerflow.tech) while VassilFlow-owned docs are being stabilized.
 
 ## Coding Plan from ByteDance Volcengine
 
@@ -41,7 +38,7 @@ VassilFlow has newly integrated the intelligent search and crawling toolset inde
 ## Table of Contents
 
 - [🦌 VassilFlow - 2.0](#-vassilflow---20)
-  - [Upstream Website](#upstream-website)
+  - [Upstream Reference](#upstream-reference)
   - [Coding Plan from ByteDance Volcengine](#coding-plan-from-bytedance-volcengine)
   - [InfoQuest](#infoquest)
   - [Table of Contents](#table-of-contents)
@@ -780,5 +777,7 @@ A heartfelt thank you goes out to the core authors of upstream `DeerFlow`, whose
 VassilFlow carries that foundation forward while adding its own migration path, aliases, and harness direction.
 
 ## Upstream Star History
+
+This chart belongs to the upstream DeerFlow repository and is retained for attribution/history only.
 
 [![Star History Chart](https://api.star-history.com/svg?repos=bytedance/deer-flow&type=Date)](https://star-history.com/#bytedance/deer-flow&Date)
