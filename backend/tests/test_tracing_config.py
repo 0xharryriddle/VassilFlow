@@ -1,11 +1,11 @@
-"""Tests for deerflow.config.tracing_config."""
+"""Tests for vassilflow.config.tracing_config."""
 
 from __future__ import annotations
 
 import pytest
 
-from deerflow.config import tracing_config as tracing_module
-from deerflow.config.tracing_config import reset_tracing_config
+from vassilflow.config import tracing_config as tracing_module
+from vassilflow.config.tracing_config import reset_tracing_config
 
 
 def _reset_tracing_cache() -> None:
