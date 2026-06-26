@@ -7,6 +7,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -16,6 +17,22 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 def _is_interactive() -> bool:
     return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _resolve_config_path(project_root: Path) -> Path:
+    explicit = os.environ.get("VASSILFLOW_CONFIG_PATH") or os.environ.get(
+        "DEER_FLOW_CONFIG_PATH"
+    )
+    if explicit:
+        return Path(explicit).expanduser()
+    return project_root / "config.yaml"
+
+
+def _display_path(path: Path, project_root: Path) -> Path:
+    try:
+        return path.relative_to(project_root)
+    except ValueError:
+        return path
 
 
 def main() -> int:
@@ -37,7 +54,7 @@ def main() -> int:
         from wizard.writer import write_config_yaml, write_env_file
 
         project_root = Path(__file__).resolve().parents[1]
-        config_path = project_root / "config.yaml"
+        config_path = _resolve_config_path(project_root)
         env_path = project_root / ".env"
 
         print()
@@ -79,6 +96,7 @@ def main() -> int:
 
         print_header(f"Step {total_steps}/{total_steps} · Writing configuration")
 
+        config_path.parent.mkdir(parents=True, exist_ok=True)
         write_config_yaml(
             config_path,
             provider_use=llm.provider.use,
@@ -99,8 +117,9 @@ def main() -> int:
             include_bash_tool=execution.include_bash_tool,
             include_write_tools=execution.include_write_tools,
             channel_connection_providers=channels.enabled_providers,
+            example_path=project_root / "config.example.yaml",
         )
-        print_success(f"Config written to: {config_path.relative_to(project_root)}")
+        print_success(f"Config written to: {_display_path(config_path, project_root)}")
 
         if not env_path.exists():
             env_example = project_root / ".env.example"

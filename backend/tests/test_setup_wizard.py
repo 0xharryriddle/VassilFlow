@@ -6,6 +6,9 @@ Run from repo root:
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import setup_wizard
 import yaml
 from wizard import ui as wizard_ui
 from wizard.providers import LLM_PROVIDERS, SEARCH_PROVIDERS, WEB_FETCH_PROVIDERS, LLMProvider
@@ -18,6 +21,37 @@ from wizard.writer import (
     write_config_yaml,
     write_env_file,
 )
+
+
+class TestSetupWizardPaths:
+    def test_config_path_defaults_to_project_config(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
+        monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
+
+        assert setup_wizard._resolve_config_path(tmp_path) == tmp_path / "config.yaml"
+
+    def test_config_path_respects_legacy_env(self, tmp_path, monkeypatch):
+        legacy_config = tmp_path / "legacy.yaml"
+        monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
+        monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy_config))
+
+        assert setup_wizard._resolve_config_path(tmp_path) == legacy_config
+
+    def test_config_path_prefers_vassilflow_env(self, tmp_path, monkeypatch):
+        current_config = tmp_path / "current.yaml"
+        legacy_config = tmp_path / "legacy.yaml"
+        monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(current_config))
+        monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy_config))
+
+        assert setup_wizard._resolve_config_path(tmp_path) == current_config
+
+    def test_display_path_falls_back_to_absolute_path_outside_project(self, tmp_path):
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        external_config = tmp_path / "outside" / "config.yaml"
+
+        assert setup_wizard._display_path(project_root / "config.yaml", project_root) == Path("config.yaml")
+        assert setup_wizard._display_path(external_config, project_root) == external_config
 
 
 class TestProviders:
@@ -606,6 +640,30 @@ class TestWriteConfigYaml:
         with open(config_path) as f:
             data = yaml.safe_load(f)
         assert data["config_version"] == 99
+
+    def test_config_version_can_read_explicit_example_path(self, tmp_path):
+        """Custom VASSILFLOW_CONFIG_PATH can still use the project example schema."""
+
+        repo_root = tmp_path / "repo"
+        config_dir = tmp_path / "custom"
+        repo_root.mkdir()
+        config_dir.mkdir()
+        example_path = repo_root / "config.example.yaml"
+        example_path.write_text("config_version: 88\n")
+
+        config_path = config_dir / "config.yaml"
+        write_config_yaml(
+            config_path,
+            provider_use="langchain_openai:ChatOpenAI",
+            model_name="gpt-4o",
+            display_name="OpenAI",
+            api_key_field="api_key",
+            env_var="OPENAI_API_KEY",
+            example_path=example_path,
+        )
+        with open(config_path) as f:
+            data = yaml.safe_load(f)
+        assert data["config_version"] == 88
 
     def test_model_base_url_from_extra_config(self, tmp_path):
         config_path = tmp_path / "config.yaml"

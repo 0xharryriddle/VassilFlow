@@ -274,11 +274,12 @@ def write_config_yaml(
     include_bash_tool: bool = False,
     include_write_tools: bool = True,
     channel_connection_providers: list[str] | None = None,
+    example_path: Path | None = None,
 ) -> None:
     """Write (or overwrite) config.yaml with a minimal working configuration."""
     # Read config_version from config.example.yaml if present
     config_version = 5
-    example_path = config_path.parent / "config.example.yaml"
+    example_path = example_path or config_path.parent / "config.example.yaml"
     if example_path.exists():
         try:
             import yaml as _yaml
