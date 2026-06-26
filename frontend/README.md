@@ -1,6 +1,6 @@
-# DeerFlow Frontend
+# VassilFlow Frontend
 
-Like the original DeerFlow 1.0, we would love to give the community a minimalistic and easy-to-use web interface with a more modern and flexible architecture.
+VassilFlow keeps the original minimal, easy-to-use web interface direction while moving the product surface toward a modern super agent harness.
 
 ## Tech Stack
 
