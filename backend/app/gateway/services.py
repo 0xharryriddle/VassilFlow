@@ -403,7 +403,8 @@ async def start_run(
     # via check_access; only a thread already owned by another user is rejected
     # with 404, matching thread_runs.py's anti-enumeration behaviour. Internal
     # channel runs act on behalf of the connection owner carried in
-    # X-DeerFlow-Owner-User-Id, so they are scoped to that owner instead of
+    # X-VassilFlow-Owner-User-Id (legacy X-DeerFlow-Owner-User-Id is still
+    # accepted), so they are scoped to that owner instead of
     # bypassing the check -- a leaked internal token must not grant cross-user
     # thread access.
     user = getattr(request.state, "user", None)

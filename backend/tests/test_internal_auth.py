@@ -14,9 +14,30 @@ def test_internal_auth_uses_shared_env_token(monkeypatch):
     try:
         headers = reloaded.create_internal_auth_headers()
 
+        assert reloaded.INTERNAL_AUTH_HEADER_NAME == "X-VassilFlow-Internal-Token"
+        assert reloaded.LEGACY_INTERNAL_AUTH_HEADER_NAME == "X-DeerFlow-Internal-Token"
+        assert reloaded.INTERNAL_AUTH_HEADER_NAME in headers
+        assert reloaded.LEGACY_INTERNAL_AUTH_HEADER_NAME not in headers
         assert headers[reloaded.INTERNAL_AUTH_HEADER_NAME] == "shared-token"
         assert reloaded.is_valid_internal_auth_token("shared-token") is True
         assert reloaded.is_valid_internal_auth_token("other-token") is False
+    finally:
+        monkeypatch.delenv("DEER_FLOW_INTERNAL_AUTH_TOKEN", raising=False)
+        importlib.reload(reloaded)
+
+
+def test_internal_auth_reads_current_and_legacy_headers(monkeypatch):
+    import app.gateway.internal_auth as internal_auth
+
+    monkeypatch.setenv("DEER_FLOW_INTERNAL_AUTH_TOKEN", "shared-token")
+    monkeypatch.delenv("VASSILFLOW_INTERNAL_AUTH_TOKEN", raising=False)
+    reloaded = importlib.reload(internal_auth)
+    try:
+        assert reloaded.internal_auth_token_from_headers({"X-VassilFlow-Internal-Token": "shared-token"}) == "shared-token"
+        assert reloaded.internal_auth_token_from_headers({"X-DeerFlow-Internal-Token": "shared-token"}) == "shared-token"
+        assert reloaded.is_valid_internal_auth_token(reloaded.internal_auth_token_from_headers({"X-DeerFlow-Internal-Token": "shared-token"})) is True
+        assert reloaded.internal_owner_user_id_from_headers({"X-VassilFlow-Owner-User-Id": "owner-1"}) == "owner-1"
+        assert reloaded.internal_owner_user_id_from_headers({"X-DeerFlow-Owner-User-Id": "owner-1"}) == "owner-1"
     finally:
         monkeypatch.delenv("DEER_FLOW_INTERNAL_AUTH_TOKEN", raising=False)
         importlib.reload(reloaded)

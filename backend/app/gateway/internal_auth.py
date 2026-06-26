@@ -9,8 +9,10 @@ from typing import Any
 from deerflow.config.env_aliases import env_value
 from deerflow.runtime.user_context import DEFAULT_USER_ID
 
-INTERNAL_AUTH_HEADER_NAME = "X-DeerFlow-Internal-Token"
-INTERNAL_OWNER_USER_ID_HEADER_NAME = "X-DeerFlow-Owner-User-Id"
+INTERNAL_AUTH_HEADER_NAME = "X-VassilFlow-Internal-Token"
+LEGACY_INTERNAL_AUTH_HEADER_NAME = "X-DeerFlow-Internal-Token"
+INTERNAL_OWNER_USER_ID_HEADER_NAME = "X-VassilFlow-Owner-User-Id"
+LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME = "X-DeerFlow-Owner-User-Id"
 INTERNAL_AUTH_ENV_VAR = "DEER_FLOW_INTERNAL_AUTH_TOKEN"
 INTERNAL_SYSTEM_ROLE = "internal"
 
@@ -31,6 +33,18 @@ def create_internal_auth_headers(*, owner_user_id: str | None = None) -> dict[st
     if owner_user_id:
         headers[INTERNAL_OWNER_USER_ID_HEADER_NAME] = owner_user_id
     return headers
+
+
+def internal_auth_token_from_headers(headers: Any) -> str | None:
+    """Return the internal auth token from current or legacy headers."""
+
+    return headers.get(INTERNAL_AUTH_HEADER_NAME) or headers.get(LEGACY_INTERNAL_AUTH_HEADER_NAME)
+
+
+def internal_owner_user_id_from_headers(headers: Any) -> str | None:
+    """Return the owner override from current or legacy internal headers."""
+
+    return headers.get(INTERNAL_OWNER_USER_ID_HEADER_NAME) or headers.get(LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME)
 
 
 def is_valid_internal_auth_token(token: str | None) -> bool:
@@ -54,7 +68,7 @@ def get_trusted_internal_owner_user_id(request: Any) -> str | None:
     if getattr(user, "system_role", None) != INTERNAL_SYSTEM_ROLE:
         return None
 
-    owner_user_id = request.headers.get(INTERNAL_OWNER_USER_ID_HEADER_NAME)
+    owner_user_id = internal_owner_user_id_from_headers(request.headers)
     if not owner_user_id:
         return None
     owner_user_id = owner_user_id.strip()

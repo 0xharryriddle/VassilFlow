@@ -30,20 +30,18 @@ Allowed:
 Deferred:
 
 - `deerflow.*` Python imports and config provider paths.
-- `DEER_FLOW_*` environment variables.
-- `X-DeerFlow-*` internal gateway headers.
+- Removal of legacy `DEER_FLOW_*` environment variables.
 - `.deer-flow` runtime directories.
-- Docker compose project/container names.
-- npm/Python package names.
 - Historical upstream issue links and compatibility comments.
 
 ## Phase 2 - Compatibility Aliases
 
 Add VassilFlow aliases before renaming anything relied on by users or deployments.
 
-- Status: backend/runtime/frontend env aliases, Docker/script env bridges, and
-  precedence documentation are implemented; Docker service/container renames
-  remain deferred.
+- Status: backend/runtime/frontend env aliases, Docker/script env bridges,
+  internal gateway header aliases, and precedence documentation are
+  implemented. New internal calls emit `X-VassilFlow-*` headers while
+  `X-DeerFlow-*` remains accepted as a migration fallback.
 - Support `VASSILFLOW_*` env vars alongside `DEER_FLOW_*`.
 - Add VassilFlow-named config aliases where the old names are user-facing.
 - Add tests proving old and new names resolve to the same runtime behavior.

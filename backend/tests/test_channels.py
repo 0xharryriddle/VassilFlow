@@ -636,7 +636,7 @@ class TestChannelManager:
         csrf_token = headers["X-CSRF-Token"]
         assert csrf_token
         assert headers["Cookie"] == f"csrf_token={csrf_token}"
-        assert headers["X-DeerFlow-Internal-Token"]
+        assert headers["X-VassilFlow-Internal-Token"]
 
     def test_fetch_gateway_includes_internal_auth_headers(self, monkeypatch):
         from app.channels.manager import ChannelManager
@@ -675,7 +675,7 @@ class TestChannelManager:
             assert reply == "Available models:\n• default"
             assert calls[0]["url"] == "http://gateway:8001/api/models"
             assert calls[0]["timeout"] == 10
-            assert calls[0]["headers"]["X-DeerFlow-Internal-Token"]
+            assert calls[0]["headers"]["X-VassilFlow-Internal-Token"]
 
         _run(go())
 

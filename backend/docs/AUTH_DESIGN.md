@@ -249,7 +249,7 @@ agent 在 sandbox 内看到统一虚拟路径：
 
 IM channel worker 不是浏览器用户，不持有浏览器 cookie。它们通过 Gateway 内部认证：
 
-- 请求带 `X-DeerFlow-Internal-Token`。
+- 请求带 `X-VassilFlow-Internal-Token`；迁移期间仍接受旧的 `X-DeerFlow-Internal-Token`。
 - 同时带匹配的 CSRF cookie/header。
 - 服务端识别为内部用户，`id="default"`、`system_role="internal"`。
 

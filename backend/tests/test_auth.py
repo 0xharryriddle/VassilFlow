@@ -325,6 +325,20 @@ def test_require_permission_internal_role_scoped_by_owner_header():
     assert response.status_code == 200
 
 
+def test_require_permission_internal_role_accepts_legacy_owner_header():
+    """Legacy internal owner header remains accepted during header migration."""
+    from app.gateway.internal_auth import LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME
+
+    app = _make_internal_owner_check_app()
+    with patch("app.gateway.authz._authenticate", return_value=_internal_auth_context()):
+        with TestClient(app) as client:
+            response = client.get(
+                "/threads/alice-thread",
+                headers={LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME: "alice"},
+            )
+    assert response.status_code == 200
+
+
 def test_require_permission_internal_role_denied_for_other_owner():
     """The internal token must not grant access to another user's thread."""
     from app.gateway.internal_auth import INTERNAL_OWNER_USER_ID_HEADER_NAME

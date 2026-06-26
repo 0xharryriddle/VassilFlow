@@ -25,7 +25,7 @@ from app.gateway.auth_disabled import (
     is_auth_disabled,
 )
 from app.gateway.authz import _ALL_PERMISSIONS, AuthContext
-from app.gateway.internal_auth import INTERNAL_AUTH_HEADER_NAME, get_internal_user, is_valid_internal_auth_token
+from app.gateway.internal_auth import get_internal_user, internal_auth_token_from_headers, is_valid_internal_auth_token
 from deerflow.runtime.user_context import reset_current_user, set_current_user
 
 # Paths that never require authentication.
@@ -87,7 +87,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         internal_user = None
-        if is_valid_internal_auth_token(request.headers.get(INTERNAL_AUTH_HEADER_NAME)):
+        if is_valid_internal_auth_token(internal_auth_token_from_headers(request.headers)):
             internal_user = get_internal_user()
 
         auth_source = AUTH_SOURCE_SESSION

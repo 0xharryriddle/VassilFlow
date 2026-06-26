@@ -372,6 +372,22 @@ def test_mcp_cache_reset_post_no_cookie_returns_401(client):
     assert res.status_code == 401
 
 
+def test_protected_post_with_legacy_internal_auth_header_passes():
+    from app.gateway.internal_auth import LEGACY_INTERNAL_AUTH_HEADER_NAME, create_internal_auth_headers
+
+    app = _make_app()
+    client = TestClient(app)
+    current_headers = create_internal_auth_headers()
+    legacy_headers = {LEGACY_INTERNAL_AUTH_HEADER_NAME: next(iter(current_headers.values()))}
+
+    res = client.post(
+        "/api/threads/abc/runs/stream",
+        headers=legacy_headers,
+    )
+
+    assert res.status_code == 200
+
+
 def test_protected_post_with_internal_auth_header_passes():
     from app.gateway.internal_auth import create_internal_auth_headers
 
