@@ -26,8 +26,15 @@ _PACKAGE_ALIAS_ROOTS = {
 
 _REAL_FACADE_ROOTS_WITH_DEEP_ALIASES = {"agents", "config", "runtime"}
 
+_REAL_FACADE_MODULES = {
+    "vassilflow.agents.factory",
+}
+
 
 def _target_module_name(fullname: str) -> str | None:
+    if fullname in _REAL_FACADE_MODULES:
+        return None
+
     prefix = "vassilflow."
     if not fullname.startswith(prefix):
         return None

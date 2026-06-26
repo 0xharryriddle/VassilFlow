@@ -26,6 +26,10 @@ _VASSILFLOW_INTERNAL_ROOTS = {
     "utils",
 }
 
+_VASSILFLOW_REAL_FACADE_MODULES = {
+    "vassilflow.agents.factory",
+}
+
 
 def _resolve_vassilflow_module_alias(module_path: str) -> str:
     """Map VassilFlow facade class paths to the current DeerFlow implementation.
@@ -38,6 +42,8 @@ def _resolve_vassilflow_module_alias(module_path: str) -> str:
 
     prefix = "vassilflow."
     if not module_path.startswith(prefix):
+        return module_path
+    if module_path in _VASSILFLOW_REAL_FACADE_MODULES:
         return module_path
 
     suffix = module_path[len(prefix) :]

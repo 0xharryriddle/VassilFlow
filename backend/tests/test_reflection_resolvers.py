@@ -87,10 +87,12 @@ def test_resolve_variable_bridges_vassilflow_internal_class_paths(vassilflow_pat
 
 def test_resolve_variable_exposes_vassilflow_agent_factory_wrapper():
     facade_factory = resolve_variable("vassilflow.agents:create_vassilflow_agent")
+    module_factory = resolve_variable("vassilflow.agents.factory:create_vassilflow_agent")
     deerflow_factory = resolve_variable("deerflow.agents:create_deerflow_agent")
 
     assert facade_factory.__name__ == "create_vassilflow_agent"
     assert getattr(facade_factory, "__wrapped__", None) is deerflow_factory
+    assert module_factory is facade_factory
 
 
 @pytest.mark.parametrize(
