@@ -45,7 +45,7 @@ class SkillsConfig(BaseModel):
         if self.path:
             # Use configured path (can be absolute or relative to project root)
             return resolve_path(self.path)
-        if env_path := env_value("DEER_FLOW_SKILLS_PATH"):
+        if env_path := env_value("VASSILFLOW_SKILLS_PATH"):
             return resolve_path(env_path)
 
         project_default = project_root() / "skills"

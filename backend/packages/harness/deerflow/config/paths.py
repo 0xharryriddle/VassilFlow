@@ -130,13 +130,13 @@ class Paths:
 
         Falls back to base_dir when the env var is not set (native/local execution).
         """
-        if env := env_value("DEER_FLOW_HOST_BASE_DIR"):
+        if env := env_value("VASSILFLOW_HOST_BASE_DIR"):
             return Path(env)
         return self.base_dir
 
     def _host_base_dir_str(self) -> str:
         """Return the host base dir as a raw string for bind mounts."""
-        if env := env_value("DEER_FLOW_HOST_BASE_DIR"):
+        if env := env_value("VASSILFLOW_HOST_BASE_DIR"):
             return env
         return str(self.base_dir)
 
@@ -146,7 +146,7 @@ class Paths:
         if self._base_dir is not None:
             return self._base_dir
 
-        if env_home := env_value("DEER_FLOW_HOME"):
+        if env_home := env_value("VASSILFLOW_HOME"):
             return Path(env_home).resolve()
 
         return _default_local_base_dir()

@@ -242,7 +242,7 @@ async def run_agent(
             user_id=get_effective_user_id(),
             assistant_id=record.assistant_id,
             model_name=record.model_name,
-            environment=env_value("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
+            environment=env_value("VASSILFLOW_ENV") or os.environ.get("ENVIRONMENT"),
         )
 
         # Resolve after runtime context installation so context/configurable reflect

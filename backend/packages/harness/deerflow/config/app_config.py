@@ -210,7 +210,7 @@ class AppConfig(BaseModel):
             if not Path.exists(path):
                 raise FileNotFoundError(f"Config file specified by param `config_path` not found at {path}")
             return path
-        elif env_config_path := env_value("DEER_FLOW_CONFIG_PATH"):
+        elif env_config_path := env_value("VASSILFLOW_CONFIG_PATH"):
             path = Path(env_config_path)
             if not Path.exists(path):
                 raise FileNotFoundError(f"Config file specified by environment variable `VASSILFLOW_CONFIG_PATH`/`DEER_FLOW_CONFIG_PATH` not found at {path}")

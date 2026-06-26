@@ -115,7 +115,7 @@ class ExtensionsConfig(BaseModel):
             if not path.exists():
                 raise FileNotFoundError(f"Extensions config file specified by param `config_path` not found at {path}")
             return path
-        elif env_config_path := env_value("DEER_FLOW_EXTENSIONS_CONFIG_PATH"):
+        elif env_config_path := env_value("VASSILFLOW_EXTENSIONS_CONFIG_PATH"):
             path = Path(env_config_path)
             if not path.exists():
                 raise FileNotFoundError(f"Extensions config file specified by environment variable `VASSILFLOW_EXTENSIONS_CONFIG_PATH`/`DEER_FLOW_EXTENSIONS_CONFIG_PATH` not found at {path}")
