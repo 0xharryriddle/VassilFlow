@@ -18,6 +18,7 @@ Run from backend/ directory:
 from __future__ import annotations
 
 import sys
+from importlib import import_module
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
@@ -89,20 +90,20 @@ def main() -> int:
     # the current implementation modules, so we patch both attribute slots. The
     # source-of-truth patch on ``factory.create_chat_model`` does not propagate
     # back into already-imported names.
-    import deerflow.client as client_module
     import vassilflow.agents.lead_agent.agent as lead_agent_module
 
+    implementation_client_module = import_module("deerflow.client")
     fake = _ContentFilteredFakeModel()
     originals = {
         "lead": lead_agent_module.create_chat_model,
-        "client": client_module.create_chat_model,
+        "client": implementation_client_module.create_chat_model,
     }
 
     def fake_create_chat_model(*args, **kwargs):
         return fake
 
     lead_agent_module.create_chat_model = fake_create_chat_model
-    client_module.create_chat_model = fake_create_chat_model
+    implementation_client_module.create_chat_model = fake_create_chat_model
 
     from vassilflow.client import VassilFlowClient
 
@@ -199,7 +200,7 @@ def main() -> int:
         return 0
     finally:
         lead_agent_module.create_chat_model = originals["lead"]
-        client_module.create_chat_model = originals["client"]
+        implementation_client_module.create_chat_model = originals["client"]
 
 
 if __name__ == "__main__":
