@@ -386,7 +386,7 @@ make migrate-rev MSG="add foo column to runs"
 
 The target invokes `scripts/_autogen_revision.py`, which builds a fresh temp
 SQLite at `head` and diffs the live models against it — so a clean checkout
-does not need a pre-existing `./data/deerflow.db`. Review the generated file
+does not need a pre-existing persistent SQLite file. Review the generated file
 and switch raw `op.add_column` / `op.drop_column` calls to the idempotent
 helpers in `migrations/_helpers.py` before committing. There is no
 `make migrate` / `make migrate-stamp` target on purpose — Gateway startup is

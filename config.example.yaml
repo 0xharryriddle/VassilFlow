@@ -1258,8 +1258,9 @@ skill_evolution:
 #   backend: sqlite
 #   sqlite_dir: .vassilflow/data
 #
-# SQLite mode uses a single deerflow.db file with WAL journal mode
-# for both checkpointer and application data.
+# SQLite mode uses a single vassilflow.db file with WAL journal mode
+# for both checkpointer and application data. Existing deerflow.db files
+# are still used as a migration fallback when vassilflow.db is absent.
 #
 # Postgres mode: put your connection URL in .env as DATABASE_URL,
 # then reference it here with $DATABASE_URL.

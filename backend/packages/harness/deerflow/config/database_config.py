@@ -1,13 +1,14 @@
 """Unified database backend configuration.
 
-Controls BOTH the LangGraph checkpointer and the DeerFlow application
+Controls BOTH the LangGraph checkpointer and the VassilFlow application
 persistence layer (runs, threads metadata, users, etc.). The user
 configures one backend; the system handles physical separation details.
 
 SQLite mode: checkpointer and app share a single .db file
-({sqlite_dir}/deerflow.db) with WAL journal mode enabled on every
-connection. WAL allows concurrent readers and a single writer without
-blocking, making a unified file safe for both workloads.  Writers
+({sqlite_dir}/vassilflow.db for new installs, preserving an existing
+{sqlite_dir}/deerflow.db during migration) with WAL journal mode enabled on
+every connection. WAL allows concurrent readers and a single writer without
+blocking, making a unified file safe for both workloads. Writers
 that contend for the lock wait via the default 5-second sqlite3
 busy timeout rather than failing immediately.
 
@@ -40,6 +41,8 @@ from deerflow.config.runtime_paths import DEFAULT_RUNTIME_HOME_NAME, LEGACY_RUNT
 
 DEFAULT_SQLITE_DIR = f"{DEFAULT_RUNTIME_HOME_NAME}/data"
 LEGACY_SQLITE_DIR = f"{LEGACY_RUNTIME_HOME_NAME}/data"
+DEFAULT_SQLITE_FILENAME = "vassilflow.db"
+LEGACY_SQLITE_FILENAME = "deerflow.db"
 
 
 def default_sqlite_dir() -> str:
@@ -62,14 +65,18 @@ class DatabaseConfig(BaseModel):
     )
     sqlite_dir: str = Field(
         default_factory=default_sqlite_dir,
-        description=("Directory for the SQLite database file. Both checkpointer and application data share {sqlite_dir}/deerflow.db."),
+        description=(
+            "Directory for the SQLite database file. Both checkpointer and "
+            "application data share {sqlite_dir}/vassilflow.db; an existing "
+            "{sqlite_dir}/deerflow.db is preserved during migration."
+        ),
     )
     postgres_url: str = Field(
         default="",
         description=(
             "PostgreSQL connection URL, shared by checkpointer and app. "
             "Use $DATABASE_URL in config.yaml to reference .env. "
-            "Example: postgresql://user:pass@host:5432/deerflow "
+            "Example: postgresql://user:pass@host:5432/vassilflow "
             "(the +asyncpg driver suffix is added automatically where needed)."
         ),
     )
@@ -94,7 +101,11 @@ class DatabaseConfig(BaseModel):
     @property
     def sqlite_path(self) -> str:
         """Unified SQLite file path shared by checkpointer and app."""
-        return os.path.join(self._resolved_sqlite_dir, "deerflow.db")
+        current_path = os.path.join(self._resolved_sqlite_dir, DEFAULT_SQLITE_FILENAME)
+        legacy_path = os.path.join(self._resolved_sqlite_dir, LEGACY_SQLITE_FILENAME)
+        if not os.path.exists(current_path) and os.path.exists(legacy_path):
+            return legacy_path
+        return current_path
 
     # Backward-compatible aliases
     @property

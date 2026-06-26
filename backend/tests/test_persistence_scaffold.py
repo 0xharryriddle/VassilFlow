@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
-from deerflow.config.database_config import DatabaseConfig
+from deerflow.config.database_config import DEFAULT_SQLITE_FILENAME, LEGACY_SQLITE_FILENAME, DatabaseConfig
 from deerflow.runtime.runs.store.memory import MemoryRunStore
 
 # -- DatabaseConfig --
@@ -28,17 +28,35 @@ class TestDatabaseConfig:
 
     def test_sqlite_paths_unified(self):
         c = DatabaseConfig(backend="sqlite", sqlite_dir="./mydata")
-        assert c.sqlite_path.endswith("deerflow.db")
+        assert c.sqlite_path.endswith(DEFAULT_SQLITE_FILENAME)
         assert "mydata" in c.sqlite_path
         # Backward-compatible aliases point to the same file
         assert c.checkpointer_sqlite_path == c.sqlite_path
         assert c.app_sqlite_path == c.sqlite_path
 
+    def test_sqlite_path_preserves_existing_legacy_file(self, tmp_path):
+        legacy_db = tmp_path / LEGACY_SQLITE_FILENAME
+        legacy_db.write_text("legacy", encoding="utf-8")
+
+        c = DatabaseConfig(backend="sqlite", sqlite_dir=str(tmp_path))
+
+        assert c.sqlite_path == str(legacy_db.resolve())
+
+    def test_sqlite_path_prefers_current_file_when_both_exist(self, tmp_path):
+        legacy_db = tmp_path / LEGACY_SQLITE_FILENAME
+        current_db = tmp_path / DEFAULT_SQLITE_FILENAME
+        legacy_db.write_text("legacy", encoding="utf-8")
+        current_db.write_text("current", encoding="utf-8")
+
+        c = DatabaseConfig(backend="sqlite", sqlite_dir=str(tmp_path))
+
+        assert c.sqlite_path == str(current_db.resolve())
+
     def test_app_sqlalchemy_url_sqlite(self):
         c = DatabaseConfig(backend="sqlite", sqlite_dir="./data")
         url = c.app_sqlalchemy_url
         assert url.startswith("sqlite+aiosqlite:///")
-        assert "deerflow.db" in url
+        assert DEFAULT_SQLITE_FILENAME in url
 
     def test_app_sqlalchemy_url_postgres(self):
         c = DatabaseConfig(

@@ -688,7 +688,7 @@ class TestAsyncCheckpointer:
             patch(
                 "deerflow.runtime.checkpointer.async_provider.asyncio.to_thread",
                 new_callable=AsyncMock,
-                return_value="/tmp/data/deerflow.db",
+                return_value="/tmp/data/vassilflow.db",
             ) as mock_to_thread,
         ):
             async with make_checkpointer() as saver:
@@ -698,7 +698,7 @@ class TestAsyncCheckpointer:
         called_fn, called_db_config = mock_to_thread.await_args.args
         assert called_fn is _prepare_database_sqlite_checkpointer_path
         assert called_db_config is db_config
-        mock_saver_cls.from_conn_string.assert_called_once_with("/tmp/data/deerflow.db")
+        mock_saver_cls.from_conn_string.assert_called_once_with("/tmp/data/vassilflow.db")
         mock_saver.setup.assert_awaited_once()
 
 

@@ -71,7 +71,9 @@ Rename files, package names, Docker names, and module paths only after alias tes
   `deer-flow-*` stacks and sandbox containers during the transition. Runtime
   state now defaults to `.vassilflow` for fresh workspaces while preserving
   existing `.deer-flow` directories as an automatic fallback. Channel platform
-  identifiers emitted to WeChat/Discord now use `vassilflow` prefixes.
+  identifiers emitted to WeChat/Discord now use `vassilflow` prefixes. Fresh
+  SQLite runtime databases now default to `vassilflow.db` while preserving
+  existing `deerflow.db` files when present.
 - Rename one ownership boundary at a time.
 - Leave deprecation shims for at least one migration window.
 - Update docs and examples in the same commit as each supported alias.
