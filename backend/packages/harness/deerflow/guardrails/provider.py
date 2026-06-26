@@ -48,7 +48,7 @@ class GuardrailProvider(Protocol):
 
     Any class with these methods works - no base class required.
     Providers are loaded by class path via resolve_variable(),
-    the same mechanism DeerFlow uses for models, tools, and sandbox.
+    the same mechanism VassilFlow uses for models, tools, and sandbox.
     """
 
     name: str

@@ -35,7 +35,7 @@ def _enable_stream_usage_by_default(model_use_path: str, model_settings_from_con
     """Enable stream usage for OpenAI-compatible models unless explicitly configured.
 
     LangChain only auto-enables ``stream_usage`` for OpenAI models when no custom
-    base URL or client is configured. DeerFlow frequently uses OpenAI-compatible
+    base URL or client is configured. VassilFlow frequently uses OpenAI-compatible
     gateways, so token usage tracking would otherwise stay empty and the
     TokenUsageMiddleware would have nothing to log.
     """
