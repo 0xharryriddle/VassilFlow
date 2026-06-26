@@ -46,7 +46,7 @@ def isolated_paths(monkeypatch, tmp_path):
     Without this, per-thread directories would be created under the developer's
     real runtime state tree.
     """
-    monkeypatch.setenv("DEER_FLOW_HOME", str(tmp_path))
+    monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
     from vassilflow.config import paths as paths_module
 
     monkeypatch.setattr(paths_module, "_paths", None)
