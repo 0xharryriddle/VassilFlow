@@ -256,6 +256,7 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
 
     assert "TodoList middleware in VassilFlow" in plan_mode
     assert "from vassilflow.agents.lead_agent.agent import make_lead_agent" in plan_mode
+    assert "**Public import**: `vassilflow.agents.lead_agent.agent`" in plan_mode
     assert "custom VassilFlow-style prompts" in plan_mode
     assert "VassilFlowSummarizationMiddleware" in plan_mode
     assert "vassilflow.agents:make_lead_agent" in auto_title
@@ -273,6 +274,10 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
     assert '"lead_agent": "deerflow.agents:lead_agent"' not in auto_title
     assert "from deerflow.config.title_config import TitleConfig" not in auto_title
     assert "from deerflow.agents.title_middleware import TitleMiddleware" not in auto_title
+    assert (
+        "- **Location**: `packages/harness/deerflow/agents/lead_agent/agent.py`"
+        not in plan_mode
+    )
     assert 'SqliteSaver.from_conn_string("deerflow.db")' not in title_implementation
     assert '"lead_agent": "deerflow.agents:lead_agent"' not in title_implementation
 
