@@ -55,8 +55,9 @@ Add VassilFlow-owned facade modules over existing DeerFlow internals.
 
 - Status: initial `vassilflow` Python facade package is implemented with
   boundary dataclasses/enums mirrored from
-  `contracts/vassilflow_boundary_contract.json`; deeper runtime mapping remains
-  deferred.
+  `contracts/vassilflow_boundary_contract.json`; dynamic config class paths now
+  accept `vassilflow.*` and the setup wizard/config examples prefer those names.
+  Deeper internal import renames remain deferred.
 - Keep existing `deerflow` imports working.
 - Introduce stable VassilFlow names for session, run, trace, tool, policy, approval, memory, and completion evidence contracts.
 - Add tests around `contracts/vassilflow_boundary_contract.json`.

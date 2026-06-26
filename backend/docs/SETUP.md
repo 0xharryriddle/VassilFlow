@@ -58,7 +58,7 @@ The backend searches for `config.yaml` in this order:
 
 ## Sandbox Setup (Optional but Recommended)
 
-If you plan to use Docker/Container-based sandbox (configured in `config.yaml` under `sandbox.use: deerflow.community.aio_sandbox:AioSandboxProvider`), it's highly recommended to pre-pull the container image:
+If you plan to use Docker/Container-based sandbox (configured in `config.yaml` under `sandbox.use: vassilflow.community.aio_sandbox:AioSandboxProvider`), it's highly recommended to pre-pull the container image:
 
 ```bash
 # From project root

@@ -100,12 +100,25 @@ print()
 
 MIGRATIONS = {
     1: {
-        'description': 'Rename src.* module paths to deerflow.*',
+        'description': 'Rename src.* module paths to vassilflow.*',
         'replacements': [
-            ('src.community.', 'deerflow.community.'),
-            ('src.sandbox.', 'deerflow.sandbox.'),
-            ('src.models.', 'deerflow.models.'),
-            ('src.tools.', 'deerflow.tools.'),
+            ('src.community.', 'vassilflow.community.'),
+            ('src.sandbox.', 'vassilflow.sandbox.'),
+            ('src.models.', 'vassilflow.models.'),
+            ('src.tools.', 'vassilflow.tools.'),
+        ],
+    },
+    16: {
+        'description': 'Prefer VassilFlow facade module paths in config.yaml',
+        'replacements': [
+            ('deerflow.community.', 'vassilflow.community.'),
+            ('deerflow.sandbox.', 'vassilflow.sandbox.'),
+            ('deerflow.models.', 'vassilflow.models.'),
+            ('deerflow.guardrails.', 'vassilflow.guardrails.'),
+            (
+                'deerflow.agents.middlewares.safety_termination_detectors',
+                'vassilflow.agents.middlewares.safety_termination_detectors',
+            ),
         ],
     },
     # Future migrations go here:

@@ -85,3 +85,20 @@ def test_get_available_tools_keeps_bash_for_aio_sandbox(monkeypatch):
 def test_is_host_bash_allowed_defaults_false_when_sandbox_missing():
     assert is_host_bash_allowed(SimpleNamespace()) is False
     assert is_host_bash_allowed(SimpleNamespace(sandbox=None)) is False
+
+
+def test_vassilflow_local_sandbox_alias_keeps_host_bash_disabled_by_default(monkeypatch):
+    config = _make_config(
+        allow_host_bash=False,
+        sandbox_use="vassilflow.sandbox.local:LocalSandboxProvider",
+        extra_tools=[SimpleNamespace(name="bash", group="tools", use="vassilflow.sandbox.tools:bash_tool")],
+    )
+    monkeypatch.setattr(
+        "deerflow.tools.tools.resolve_variable",
+        lambda use, _: SimpleNamespace(name="bash" if "bash_tool" in use else "ls"),
+    )
+
+    assert is_host_bash_allowed(config) is False
+    names = [tool.name for tool in get_available_tools(app_config=config, include_mcp=False)]
+    assert "bash" not in names
+    assert "ls" in names

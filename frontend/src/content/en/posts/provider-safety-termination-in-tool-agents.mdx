@@ -102,13 +102,13 @@ GLM streaming responses use `sensitive` as the safety finish value. If the curre
 safety_finish_reason:
   enabled: true
   detectors:
-    - use: deerflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector
+    - use: vassilflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector
       config:
         finish_reasons: ["content_filter", "sensitive"]
 
-    - use: deerflow.agents.middlewares.safety_termination_detectors:AnthropicRefusalDetector
+    - use: vassilflow.agents.middlewares.safety_termination_detectors:AnthropicRefusalDetector
 
-    - use: deerflow.agents.middlewares.safety_termination_detectors:GeminiSafetyDetector
+    - use: vassilflow.agents.middlewares.safety_termination_detectors:GeminiSafetyDetector
 ```
 
 Two configuration details matter here.

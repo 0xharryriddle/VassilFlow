@@ -5,6 +5,8 @@ from deerflow.config import get_app_config
 _LOCAL_SANDBOX_PROVIDER_MARKERS = (
     "deerflow.sandbox.local:LocalSandboxProvider",
     "deerflow.sandbox.local.local_sandbox_provider:LocalSandboxProvider",
+    "vassilflow.sandbox.local:LocalSandboxProvider",
+    "vassilflow.sandbox.local.local_sandbox_provider:LocalSandboxProvider",
 )
 
 LOCAL_HOST_BASH_DISABLED_MESSAGE = (
@@ -29,7 +31,7 @@ def uses_local_sandbox_provider(config=None) -> bool:
     sandbox_use = getattr(sandbox_cfg, "use", "")
     if sandbox_use in _LOCAL_SANDBOX_PROVIDER_MARKERS:
         return True
-    return sandbox_use.endswith(":LocalSandboxProvider") and "deerflow.sandbox.local" in sandbox_use
+    return sandbox_use.endswith(":LocalSandboxProvider") and ("deerflow.sandbox.local" in sandbox_use or "vassilflow.sandbox.local" in sandbox_use)
 
 
 def is_host_bash_allowed(config=None) -> bool:

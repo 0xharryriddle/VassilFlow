@@ -66,10 +66,10 @@ Examples:
 
 ```yaml
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
 
 tools:
-  - use: deerflow.community.tavily.tools:web_search_tool
+  - use: vassilflow.community.tavily.tools:web_search_tool
     api_key: $TAVILY_API_KEY
 ```
 
@@ -147,15 +147,15 @@ models:
     supports_vision: true
 
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
 
 tools:
-  - use: deerflow.community.ddg_search.tools:web_search_tool
-  - use: deerflow.community.jina_ai.tools:web_fetch_tool
-  - use: deerflow.sandbox.tools:ls_tool
-  - use: deerflow.sandbox.tools:read_file_tool
-  - use: deerflow.sandbox.tools:write_file_tool
-  - use: deerflow.sandbox.tools:bash_tool
+  - use: vassilflow.community.ddg_search.tools:web_search_tool
+  - use: vassilflow.community.jina_ai.tools:web_fetch_tool
+  - use: vassilflow.sandbox.tools:ls_tool
+  - use: vassilflow.sandbox.tools:read_file_tool
+  - use: vassilflow.sandbox.tools:write_file_tool
+  - use: vassilflow.sandbox.tools:bash_tool
 ```
 
 Start from `config.example.yaml` in the repository root and uncomment the sections you need.

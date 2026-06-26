@@ -109,7 +109,7 @@ Both runtimes use OCI-compatible images. The default image works with both:
 
 ```yaml
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  use: vassilflow.community.aio_sandbox:AioSandboxProvider
   image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest  # Default image
 ```
 

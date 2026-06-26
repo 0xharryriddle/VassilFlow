@@ -102,13 +102,13 @@ GLM 流式响应使用的安全结束值是 `sensitive`。如果当前适配层�
 safety_finish_reason:
   enabled: true
   detectors:
-    - use: deerflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector
+    - use: vassilflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector
       config:
         finish_reasons: ["content_filter", "sensitive"]
 
-    - use: deerflow.agents.middlewares.safety_termination_detectors:AnthropicRefusalDetector
+    - use: vassilflow.agents.middlewares.safety_termination_detectors:AnthropicRefusalDetector
 
-    - use: deerflow.agents.middlewares.safety_termination_detectors:GeminiSafetyDetector
+    - use: vassilflow.agents.middlewares.safety_termination_detectors:GeminiSafetyDetector
 ```
 
 这里有两个配置细节需要注意。

@@ -95,13 +95,13 @@ task(agent="general-purpose", task="...", context="...")
 
 ```yaml
 tools:
-  - use: deerflow.sandbox.tools:ls_tool
-  - use: deerflow.sandbox.tools:read_file_tool
-  - use: deerflow.sandbox.tools:glob_tool
-  - use: deerflow.sandbox.tools:grep_tool
-  - use: deerflow.sandbox.tools:write_file_tool
-  - use: deerflow.sandbox.tools:str_replace_tool
-  - use: deerflow.sandbox.tools:bash_tool
+  - use: vassilflow.sandbox.tools:ls_tool
+  - use: vassilflow.sandbox.tools:read_file_tool
+  - use: vassilflow.sandbox.tools:glob_tool
+  - use: vassilflow.sandbox.tools:grep_tool
+  - use: vassilflow.sandbox.tools:write_file_tool
+  - use: vassilflow.sandbox.tools:str_replace_tool
+  - use: vassilflow.sandbox.tools:bash_tool
 ```
 
 ## 社区工具
@@ -114,14 +114,14 @@ tools:
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.ddg_search.tools:web_search_tool
+  - use: vassilflow.community.ddg_search.tools:web_search_tool
 ```
 无需 API Key。默认配置，适合开发和通用用途。
   </Tabs.Tab>
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.tavily.tools:web_search_tool
+  - use: vassilflow.community.tavily.tools:web_search_tool
     api_key: $TAVILY_API_KEY
 ```
 高质量搜索，带结构化结果。需要 [Tavily](https://tavily.com) API Key。
@@ -132,7 +132,7 @@ tools:
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.brave.tools:web_search_tool
+  - use: vassilflow.community.brave.tools:web_search_tool
     api_key: $BRAVE_SEARCH_API_KEY
 ```
 通过官方 [Brave Search API](https://brave.com/search/api/) 返回 Brave 独立索引的结果。需要 API Key，`max_results` 上限为 20。
@@ -143,7 +143,7 @@ tools:
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.exa.tools:web_search_tool
+  - use: vassilflow.community.exa.tools:web_search_tool
     api_key: $EXA_API_KEY
 ```
 带神经检索的语义搜索。需要 [Exa](https://exa.ai) API Key。
@@ -154,7 +154,7 @@ tools:
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.infoquest.tools:web_search_tool
+  - use: vassilflow.community.infoquest.tools:web_search_tool
     api_key: $INFOQUEST_API_KEY
 ```
 InfoQuest 搜索集成。
@@ -162,7 +162,7 @@ InfoQuest 搜索集成。
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.firecrawl.tools:web_search_tool
+  - use: vassilflow.community.firecrawl.tools:web_search_tool
     api_key: $FIRECRAWL_API_KEY
 ```
 Firecrawl 驱动的搜索和爬取。需要 [Firecrawl](https://firecrawl.dev) API Key。
@@ -170,7 +170,7 @@ Firecrawl 驱动的搜索和爬取。需要 [Firecrawl](https://firecrawl.dev) A
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.groundroute.tools:web_search_tool
+  - use: vassilflow.community.groundroute.tools:web_search_tool
     api_key: $GROUNDROUTE_API_KEY
 ```
 GroundRoute 是一个元搜索层：一个 API 接入六个搜索引擎（Serper、Brave、Exa、Tavily、Firecrawl、Perplexity）。为每个查询路由到满足质量门槛的最低成本引擎，并在引擎故障时自动切换。定价采用收益分成模式，您可保留约一半的缓存节省。
@@ -188,7 +188,7 @@ GroundRoute 是一个元搜索层：一个 API 接入六个搜索引擎（Serper
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.jina_ai.tools:web_fetch_tool
+  - use: vassilflow.community.jina_ai.tools:web_fetch_tool
     api_key: $JINA_API_KEY # 可选；匿名使用有速率限制
 ```
 将网页转换为干净的 Markdown。无 API Key 也可使用，但有更严格的速率限制。
@@ -196,14 +196,14 @@ tools:
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.exa.tools:web_fetch_tool
+  - use: vassilflow.community.exa.tools:web_fetch_tool
     api_key: $EXA_API_KEY
 ```
   </Tabs.Tab>
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.groundroute.tools:web_fetch_tool
+  - use: vassilflow.community.groundroute.tools:web_fetch_tool
     api_key: $GROUNDROUTE_API_KEY
 ```
   </Tabs.Tab>
@@ -215,14 +215,14 @@ tools:
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.image_search.tools:image_search_tool
+  - use: vassilflow.community.image_search.tools:image_search_tool
 ```
 无需 API Key。默认配置，适合开发和通用用途。
   </Tabs.Tab>
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.infoquest.tools:image_search_tool
+  - use: vassilflow.community.infoquest.tools:image_search_tool
     api_key: $INFOQUEST_API_KEY
 ```
 需要 InfoQuest API Key。
@@ -230,7 +230,7 @@ tools:
   <Tabs.Tab>
 ```yaml
 tools:
-  - use: deerflow.community.serper.tools:image_search_tool
+  - use: vassilflow.community.serper.tools:image_search_tool
     api_key: $SERPER_API_KEY
 ```
 通过 Serper 获取 Google 图片结果。需要 [Serper](https://serper.dev) API Key，与 Serper `web_search` 工具复用同一个 `SERPER_API_KEY`。

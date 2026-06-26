@@ -7,6 +7,45 @@ MODULE_TO_PACKAGE_HINTS = {
     "langchain_deepseek": "langchain-deepseek",
 }
 
+_VASSILFLOW_INTERNAL_ROOTS = {
+    "agents",
+    "community",
+    "config",
+    "guardrails",
+    "mcp",
+    "models",
+    "persistence",
+    "reflection",
+    "runtime",
+    "sandbox",
+    "skills",
+    "subagents",
+    "tools",
+    "tracing",
+    "uploads",
+    "utils",
+}
+
+
+def _resolve_vassilflow_module_alias(module_path: str) -> str:
+    """Map VassilFlow facade class paths to the current DeerFlow implementation.
+
+    The migration exposes ``vassilflow.*`` in config files before the internal
+    package tree is renamed. Top-level facade modules such as
+    ``vassilflow.runtime`` remain real modules, while deeper implementation
+    paths used by dynamic config resolution bridge to ``deerflow.*``.
+    """
+
+    prefix = "vassilflow."
+    if not module_path.startswith(prefix):
+        return module_path
+
+    suffix = module_path[len(prefix) :]
+    root, separator, _rest = suffix.partition(".")
+    if root in _VASSILFLOW_INTERNAL_ROOTS and separator:
+        return f"deerflow.{suffix}"
+    return module_path
+
 
 def _build_missing_dependency_hint(module_path: str, err: ImportError) -> str:
     """Build an actionable hint when module import fails."""
@@ -45,6 +84,7 @@ def resolve_variable[T](
     except ValueError as err:
         raise ImportError(f"{variable_path} doesn't look like a variable path. Example: parent_package_name.sub_package_name.module_name:variable_name") from err
 
+    module_path = _resolve_vassilflow_module_alias(module_path)
     try:
         module = import_module(module_path)
     except ImportError as err:

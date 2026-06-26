@@ -27,7 +27,7 @@ DeerFlow 支持三种沙箱模式，选择适合你部署的一种：
 
 ```yaml
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
   allow_host_bash: false # 默认；仅对完全受信任的工作流设置为 true
 ```
 
@@ -39,7 +39,7 @@ sandbox:
 
 ```yaml
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  use: vassilflow.community.aio_sandbox:AioSandboxProvider
 
   # 可选：容器镜像（下方显示默认值）
   image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
@@ -65,7 +65,7 @@ sandbox:
 
 ```yaml
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  use: vassilflow.community.aio_sandbox:AioSandboxProvider
   provisioner_url: http://provisioner:8002
 ```
 
@@ -86,7 +86,7 @@ sandbox:
 
 ```yaml
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
   mounts:
     - host_path: /home/user/my-project
       container_path: /mnt/my-project
@@ -105,7 +105,7 @@ sandbox:
 
 ```yaml
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
 
   # bash 使用中间截断（头部 + 尾部）
   bash_output_max_chars: 20000

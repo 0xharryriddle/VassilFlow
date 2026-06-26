@@ -89,7 +89,7 @@ The simplest option. Ships with DeerFlow. Block or allow tools by name. No exter
 guardrails:
   enabled: true
   provider:
-    use: deerflow.guardrails.builtin:AllowlistProvider
+    use: vassilflow.guardrails.builtin:AllowlistProvider
     config:
       denied_tools: ["bash", "write_file"]
 ```
@@ -101,7 +101,7 @@ You can also use an allowlist (only these tools are permitted):
 guardrails:
   enabled: true
   provider:
-    use: deerflow.guardrails.builtin:AllowlistProvider
+    use: vassilflow.guardrails.builtin:AllowlistProvider
     config:
       allowed_tools: ["web_search", "read_file", "ls"]
 ```
@@ -220,7 +220,7 @@ class MyGuardrailProvider:
     name = "my-company"
 
     def evaluate(self, request):
-        from deerflow.guardrails.provider import GuardrailDecision, GuardrailReason
+        from vassilflow.guardrails.provider import GuardrailDecision, GuardrailReason
 
         # Example: block any bash command containing "delete"
         if request.tool_name == "bash" and "delete" in str(request.tool_input):
@@ -278,7 +278,7 @@ import asyncio
 import json
 from pathlib import Path
 
-from deerflow.guardrails.provider import GuardrailDecision, GuardrailReason
+from vassilflow.guardrails.provider import GuardrailDecision, GuardrailReason
 
 
 class ContextAwareGuardrailProvider:
@@ -532,7 +532,7 @@ guardrails:
 
   # Provider: loaded by class path via resolve_variable
   provider:
-    use: deerflow.guardrails.builtin:AllowlistProvider
+    use: vassilflow.guardrails.builtin:AllowlistProvider
     config:  # optional kwargs passed to provider.__init__
       denied_tools: ["bash"]
 ```

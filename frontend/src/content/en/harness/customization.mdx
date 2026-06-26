@@ -162,7 +162,7 @@ Add pre-execution authorization for tool calls through the `guardrails:` config:
 guardrails:
   enabled: true
   provider:
-    use: deerflow.guardrails.builtin:AllowlistProvider
+    use: vassilflow.guardrails.builtin:AllowlistProvider
     config:
       denied_tools: ["bash", "write_file"]
 ```

@@ -113,12 +113,12 @@ ollama pull llama3.3
 ```yaml
 # 本地开发（默认）
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
   allow_host_bash: false
 
 # 基于容器（推荐用于多用户）
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  use: vassilflow.community.aio_sandbox:AioSandboxProvider
   replicas: 3
   idle_timeout: 600
 ```
@@ -129,12 +129,12 @@ sandbox:
 
 ```yaml
 tools:
-  - use: deerflow.community.ddg_search.tools:web_search_tool
-  - use: deerflow.community.jina_ai.tools:web_fetch_tool
-  - use: deerflow.sandbox.tools:ls_tool
-  - use: deerflow.sandbox.tools:read_file_tool
-  - use: deerflow.sandbox.tools:write_file_tool
-  - use: deerflow.sandbox.tools:bash_tool
+  - use: vassilflow.community.ddg_search.tools:web_search_tool
+  - use: vassilflow.community.jina_ai.tools:web_fetch_tool
+  - use: vassilflow.sandbox.tools:ls_tool
+  - use: vassilflow.sandbox.tools:read_file_tool
+  - use: vassilflow.sandbox.tools:write_file_tool
+  - use: vassilflow.sandbox.tools:bash_tool
 ```
 
 ### 技能

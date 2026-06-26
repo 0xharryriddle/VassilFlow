@@ -28,7 +28,7 @@ Commands run directly on the host machine's filesystem. There is no container is
 
 ```yaml
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
   allow_host_bash: false # default; set to true only for fully trusted workflows
 ```
 
@@ -40,7 +40,7 @@ Commands run in an isolated container (Docker on Linux/Windows, or Apple Contain
 
 ```yaml
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  use: vassilflow.community.aio_sandbox:AioSandboxProvider
 
   # Optional: container image (default shown below)
   image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
@@ -73,7 +73,7 @@ Each sandbox gets a dedicated Pod in a Kubernetes cluster, managed by the provis
 
 ```yaml
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  use: vassilflow.community.aio_sandbox:AioSandboxProvider
   provisioner_url: http://provisioner:8002
 ```
 
@@ -96,7 +96,7 @@ You can add additional mounts for the local sandbox using the `mounts:` configur
 
 ```yaml
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
   mounts:
     - host_path: /home/user/my-project
       container_path: /mnt/my-project
@@ -114,7 +114,7 @@ The sandbox tools limit output size to keep the agent's context manageable. Thes
 
 ```yaml
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
 
   # bash uses middle-truncation (head + tail)
   bash_output_max_chars: 20000

@@ -36,9 +36,9 @@ models:
 - OpenAI (`langchain_openai:ChatOpenAI`)
 - Anthropic (`langchain_anthropic:ChatAnthropic`)
 - DeepSeek (`langchain_deepseek:ChatDeepSeek`)
-- Xiaomi MiMo (`deerflow.models.patched_mimo:PatchedChatMiMo`)
-- Claude Code OAuth (`deerflow.models.claude_provider:ClaudeChatModel`)
-- Codex CLI (`deerflow.models.openai_codex_provider:CodexChatModel`)
+- Xiaomi MiMo (`vassilflow.models.patched_mimo:PatchedChatMiMo`)
+- Claude Code OAuth (`vassilflow.models.claude_provider:ClaudeChatModel`)
+- Codex CLI (`vassilflow.models.openai_codex_provider:CodexChatModel`)
 - Any LangChain-compatible provider
 
 CLI-backed provider examples:
@@ -47,14 +47,14 @@ CLI-backed provider examples:
 models:
   - name: gpt-5.4
     display_name: GPT-5.4 (Codex CLI)
-    use: deerflow.models.openai_codex_provider:CodexChatModel
+    use: vassilflow.models.openai_codex_provider:CodexChatModel
     model: gpt-5.4
     supports_thinking: true
     supports_reasoning_effort: true
 
   - name: claude-sonnet-4.6
     display_name: Claude Sonnet 4.6 (Claude Code OAuth)
-    use: deerflow.models.claude_provider:ClaudeChatModel
+    use: vassilflow.models.claude_provider:ClaudeChatModel
     model: claude-sonnet-4-6
     max_tokens: 4096
     supports_thinking: true
@@ -156,13 +156,13 @@ HTTP 400 INVALID_ARGUMENT: function call `<tool>` in the N. content block is
 missing a `thought_signature`.
 ```
 
-Standard `langchain_openai:ChatOpenAI` silently drops `thought_signature` when serialising messages.  Use `deerflow.models.patched_openai:PatchedChatOpenAI` instead — it re-injects the tool-call signatures (sourced from `AIMessage.additional_kwargs["tool_calls"]`) into every outgoing payload:
+Standard `langchain_openai:ChatOpenAI` silently drops `thought_signature` when serialising messages.  Use `vassilflow.models.patched_openai:PatchedChatOpenAI` instead — it re-injects the tool-call signatures (sourced from `AIMessage.additional_kwargs["tool_calls"]`) into every outgoing payload:
 
 ```yaml
 models:
   - name: gemini-2.5-pro-thinking
     display_name: Gemini 2.5 Pro (Thinking)
-    use: deerflow.models.patched_openai:PatchedChatOpenAI
+    use: vassilflow.models.patched_openai:PatchedChatOpenAI
     model: google/gemini-2.5-pro-preview   # model name as expected by your gateway
     api_key: $GEMINI_API_KEY
     base_url: https://<your-openai-compat-gateway>/v1
@@ -179,7 +179,7 @@ For Gemini accessed **without** thinking (e.g. via OpenRouter where thinking is 
 
 **MiMo with thinking via OpenAI-compatible API**:
 
-MiMo returns `reasoning_content` on assistant messages in thinking mode. In multi-turn agent conversations with tool calls, subsequent requests must preserve that historical `reasoning_content` on assistant messages or the MiMo API can return HTTP 400. Standard `langchain_openai:ChatOpenAI` drops this provider-specific field, so use `deerflow.models.patched_mimo:PatchedChatMiMo`:
+MiMo returns `reasoning_content` on assistant messages in thinking mode. In multi-turn agent conversations with tool calls, subsequent requests must preserve that historical `reasoning_content` on assistant messages or the MiMo API can return HTTP 400. Standard `langchain_openai:ChatOpenAI` drops this provider-specific field, so use `vassilflow.models.patched_mimo:PatchedChatMiMo`:
 
 For pay-as-you-go API keys (`sk-...`), use `https://api.xiaomimimo.com/v1`. For Token Plan keys (`tp-...`), use the regional Token Plan Base URL shown in the MiMo console, such as `https://token-plan-cn.xiaomimimo.com/v1`. MiMo documents these key types as separate and non-interchangeable.
 
@@ -189,7 +189,7 @@ For pay-as-you-go API keys (`sk-...`), use `https://api.xiaomimimo.com/v1`. For 
 models:
   - name: mimo-v2.5-pro
     display_name: MiMo V2.5 Pro
-    use: deerflow.models.patched_mimo:PatchedChatMiMo
+    use: vassilflow.models.patched_mimo:PatchedChatMiMo
     model: mimo-v2.5-pro
     api_key: $MIMO_API_KEY
     base_url: https://api.xiaomimimo.com/v1
@@ -228,7 +228,7 @@ Configure specific tools available to the agent:
 tools:
   - name: web_search
     group: web
-    use: deerflow.community.tavily.tools:web_search_tool
+    use: vassilflow.community.tavily.tools:web_search_tool
     max_results: 5
     # api_key: $TAVILY_API_KEY  # Optional
 ```
@@ -250,14 +250,14 @@ DeerFlow supports multiple sandbox execution modes. Configure your preferred mod
 **Local Execution** (runs sandbox code directly on the host machine):
 ```yaml
 sandbox:
-   use: deerflow.sandbox.local:LocalSandboxProvider # Local execution
+   use: vassilflow.sandbox.local:LocalSandboxProvider # Local execution
    allow_host_bash: false # default; host bash is disabled unless explicitly re-enabled
 ```
 
 **Docker Execution** (runs sandbox code in isolated Docker containers):
 ```yaml
 sandbox:
-   use: deerflow.community.aio_sandbox:AioSandboxProvider # Docker-based sandbox
+   use: vassilflow.community.aio_sandbox:AioSandboxProvider # Docker-based sandbox
 ```
 
 **Docker Execution with Kubernetes** (runs sandbox code in Kubernetes pods via provisioner service):
@@ -266,7 +266,7 @@ This mode runs each sandbox in an isolated Kubernetes Pod on your **host machine
 
 ```yaml
 sandbox:
-   use: deerflow.community.aio_sandbox:AioSandboxProvider
+   use: vassilflow.community.aio_sandbox:AioSandboxProvider
    provisioner_url: http://provisioner:8002
 ```
 
@@ -279,7 +279,7 @@ Choose between local execution or Docker-based isolation:
 **Option 1: Local Sandbox** (default, simpler setup):
 ```yaml
 sandbox:
-  use: deerflow.sandbox.local:LocalSandboxProvider
+  use: vassilflow.sandbox.local:LocalSandboxProvider
   allow_host_bash: false
 ```
 
@@ -288,7 +288,7 @@ sandbox:
 **Option 2: Docker Sandbox** (isolated, more secure):
 ```yaml
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  use: vassilflow.community.aio_sandbox:AioSandboxProvider
   port: 8080
   auto_start: true
   container_prefix: deer-flow-sandbox
@@ -329,7 +329,7 @@ Use the custom image in local Docker or Apple Container mode with `sandbox.image
 
 ```yaml
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  use: vassilflow.community.aio_sandbox:AioSandboxProvider
   image: your-registry/your-aio-sandbox:tag
 ```
 
@@ -452,8 +452,8 @@ before exposing an instance to untrusted input.
 
 | Mode | `config.yaml` | Host Docker socket | Isolation |
 |------|---------------|--------------------|-----------|
-| `local` (default) | `deerflow.sandbox.local:LocalSandboxProvider` | Not mounted | Commands run **inside the gateway container** on its filesystem. Not a strong boundary — `allow_host_bash` is `false` by default and should stay off for untrusted workloads. |
-| `aio` (pure DooD) | `deerflow.community.aio_sandbox:AioSandboxProvider` (no `provisioner_url`) | **Mounted** (opt-in overlay) | Sandbox containers are started via the host Docker daemon. |
+| `local` (default) | `vassilflow.sandbox.local:LocalSandboxProvider` | Not mounted | Commands run **inside the gateway container** on its filesystem. Not a strong boundary — `allow_host_bash` is `false` by default and should stay off for untrusted workloads. |
+| `aio` (pure DooD) | `vassilflow.community.aio_sandbox:AioSandboxProvider` (no `provisioner_url`) | **Mounted** (opt-in overlay) | Sandbox containers are started via the host Docker daemon. |
 | `provisioner` (Kubernetes) | `AioSandboxProvider` + `provisioner_url` | Not mounted | Sandbox pods are created through the provisioner's K8s API over HTTP. Strongest isolation. |
 
 #### The Docker socket is host root

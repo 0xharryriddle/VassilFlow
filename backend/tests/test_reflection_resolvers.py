@@ -1,9 +1,13 @@
 """Tests for reflection resolvers."""
 
+from pathlib import Path
+
 import pytest
 
 from deerflow.reflection import resolvers
 from deerflow.reflection.resolvers import resolve_variable
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_resolve_variable_reports_install_hint_for_missing_google_provider(monkeypatch: pytest.MonkeyPatch):
@@ -47,3 +51,39 @@ def test_resolve_variable_invalid_path_format():
         resolve_variable("invalid.variable.path")
 
     assert "doesn't look like a variable path" in str(exc_info.value)
+
+
+@pytest.mark.parametrize(
+    ("vassilflow_path", "deerflow_path"),
+    [
+        (
+            "vassilflow.models.openai_codex_provider:CodexChatModel",
+            "deerflow.models.openai_codex_provider:CodexChatModel",
+        ),
+        (
+            "vassilflow.community.ddg_search.tools:web_search_tool",
+            "deerflow.community.ddg_search.tools:web_search_tool",
+        ),
+        (
+            "vassilflow.sandbox.tools:read_file_tool",
+            "deerflow.sandbox.tools:read_file_tool",
+        ),
+        (
+            "vassilflow.sandbox.local:LocalSandboxProvider",
+            "deerflow.sandbox.local:LocalSandboxProvider",
+        ),
+        (
+            "vassilflow.guardrails.builtin:AllowlistProvider",
+            "deerflow.guardrails.builtin:AllowlistProvider",
+        ),
+    ],
+)
+def test_resolve_variable_bridges_vassilflow_internal_class_paths(vassilflow_path, deerflow_path):
+    assert resolve_variable(vassilflow_path) is resolve_variable(deerflow_path)
+
+
+def test_config_example_prefers_vassilflow_dynamic_paths():
+    content = (REPO_ROOT / "config.example.yaml").read_text(encoding="utf-8")
+
+    assert "use: vassilflow." in content
+    assert "use: deerflow." not in content

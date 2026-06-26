@@ -387,7 +387,10 @@ def check_llm_auth(config_path: Path) -> list[CheckResult]:
             use = model.get("use", "")
             model_name = model.get("name", "default")
 
-            if use == "deerflow.models.openai_codex_provider:CodexChatModel":
+            if use in {
+                "vassilflow.models.openai_codex_provider:CodexChatModel",
+                "deerflow.models.openai_codex_provider:CodexChatModel",
+            }:
                 auth_path = Path(os.environ.get("CODEX_AUTH_PATH", "~/.codex/auth.json")).expanduser()
                 if auth_path.exists():
                     results.append(CheckResult(f"Codex CLI auth available (model: {model_name})", "ok", str(auth_path)))
@@ -401,7 +404,10 @@ def check_llm_auth(config_path: Path) -> list[CheckResult]:
                         )
                     )
 
-            if use == "deerflow.models.claude_provider:ClaudeChatModel":
+            if use in {
+                "vassilflow.models.claude_provider:ClaudeChatModel",
+                "deerflow.models.claude_provider:ClaudeChatModel",
+            }:
                 credential_paths = [Path(os.environ["CLAUDE_CODE_CREDENTIALS_PATH"]).expanduser() for env_name in ("CLAUDE_CODE_CREDENTIALS_PATH",) if os.environ.get(env_name)]
                 credential_paths.append(Path("~/.claude/.credentials.json").expanduser())
                 has_oauth_env = any(
@@ -460,7 +466,10 @@ def check_web_tool(config_path: Path, *, tool_name: str, label: str) -> CheckRes
         free_providers = {
             "web_search": {"ddg_search": "DuckDuckGo (no key needed)"},
             "web_fetch": {"jina_ai": "Jina AI Reader (no key needed)"},
-            "image_search": {"deerflow.community.image_search.tools": "DuckDuckGo Images (no key needed)"},
+            "image_search": {
+                "vassilflow.community.image_search.tools": "DuckDuckGo Images (no key needed)",
+                "deerflow.community.image_search.tools": "DuckDuckGo Images (no key needed)",
+            },
         }
         key_providers = {
             "web_search": {
