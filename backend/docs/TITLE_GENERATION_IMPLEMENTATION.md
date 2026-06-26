@@ -4,27 +4,27 @@
 
 ### 1. 核心实现文件
 
-#### [`packages/harness/deerflow/agents/thread_state.py`](../packages/harness/deerflow/agents/thread_state.py)
+#### `vassilflow.agents.thread_state`
 - ✅ 添加 `title: str | None = None` 字段到 `ThreadState`
 
-#### [`packages/harness/deerflow/config/title_config.py`](../packages/harness/deerflow/config/title_config.py) (新建)
+#### `vassilflow.config.title_config` (新建)
 - ✅ 创建 `TitleConfig` 配置类
 - ✅ 支持配置：enabled, max_words, max_chars, model_name, prompt_template
 - ✅ 提供 `get_title_config()` 和 `set_title_config()` 函数
 - ✅ 提供 `load_title_config_from_dict()` 从配置文件加载
 
-#### [`packages/harness/deerflow/agents/middlewares/title_middleware.py`](../packages/harness/deerflow/agents/middlewares/title_middleware.py) (新建)
+#### `vassilflow.agents.middlewares.title_middleware` (新建)
 - ✅ 创建 `TitleMiddleware` 类
 - ✅ 实现 `_should_generate_title()` 检查是否需要生成
 - ✅ 实现 `_generate_title()` 调用 LLM 生成标题
 - ✅ 实现 `after_agent()` 钩子，在首次对话后自动触发
 - ✅ 包含 fallback 策略（LLM 失败时使用用户消息前几个词）
 
-#### [`packages/harness/deerflow/config/app_config.py`](../packages/harness/deerflow/config/app_config.py)
+#### `vassilflow.config.app_config`
 - ✅ 导入 `load_title_config_from_dict`
 - ✅ 在 `from_file()` 中加载 title 配置
 
-#### [`packages/harness/deerflow/agents/lead_agent/agent.py`](../packages/harness/deerflow/agents/lead_agent/agent.py)
+#### `vassilflow.agents.lead_agent.agent`
 - ✅ 导入 `TitleMiddleware`
 - ✅ 注册到 `middleware` 列表：`[SandboxMiddleware(), TitleMiddleware()]`
 
