@@ -29,8 +29,8 @@ import weakref
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from deerflow.persistence import bootstrap as bootstrap_mod
-from deerflow.persistence.bootstrap import _get_sqlite_local_lock
+from vassilflow.persistence import bootstrap as bootstrap_mod
+from vassilflow.persistence.bootstrap import _get_sqlite_local_lock
 
 
 def _make_engine():

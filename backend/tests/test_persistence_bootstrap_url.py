@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 from sqlalchemy.engine.url import make_url
 
-from deerflow.persistence.bootstrap import _alembic_safe_url, _escape_url_for_alembic, _get_alembic_config
+from vassilflow.persistence.bootstrap import _alembic_safe_url, _escape_url_for_alembic, _get_alembic_config
 
 
 def _fake_engine(url: str) -> SimpleNamespace:

@@ -20,8 +20,8 @@ from pathlib import Path
 import pytest
 import sqlalchemy as sa
 
-import deerflow.persistence.models  # noqa: F401
-from deerflow.persistence.base import Base
+import vassilflow.persistence.models  # noqa: F401
+from vassilflow.persistence.base import Base
 
 
 @pytest.fixture(scope="module")

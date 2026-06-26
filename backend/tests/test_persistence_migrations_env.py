@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import sqlalchemy as sa
 
-from deerflow.persistence.migrations._env_filters import (
+from vassilflow.persistence.migrations._env_filters import (
     LANGGRAPH_OWNED_TABLES,
     include_object,
 )
