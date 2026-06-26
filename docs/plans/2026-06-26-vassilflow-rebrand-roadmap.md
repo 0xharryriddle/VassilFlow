@@ -51,8 +51,10 @@ Add VassilFlow aliases before renaming anything relied on by users or deployment
   `VASSILFLOW_CONFIG_PATH` first. Frontend browser-local namespaces now prefer
   VassilFlow event and storage keys while reading legacy DeerFlow keys where
   state migration matters. Runtime helper scripts now prefer `VASSILFLOW_HOME`
-  before legacy runtime directories. Local launcher process-scoping helpers now
-  use VassilFlow-owned names while accepting legacy daemon tags.
+  before legacy runtime directories, and the runtime migration helper honors
+  custom `VASSILFLOW_HOME` / `DEER_FLOW_HOME` paths. Local launcher
+  process-scoping helpers now use VassilFlow-owned names while accepting legacy
+  daemon tags.
 - Support `VASSILFLOW_*` env vars alongside `DEER_FLOW_*`.
 - Add VassilFlow-named config aliases where the old names are user-facing.
 - Add tests proving old and new names resolve to the same runtime behavior.

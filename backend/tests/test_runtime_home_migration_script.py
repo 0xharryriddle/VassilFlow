@@ -55,6 +55,21 @@ def _run_migration(source: Path, target: Path, *extra_args: str) -> subprocess.C
     )
 
 
+def _run_migration_with_env(env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+    if BASH_EXECUTABLE is None:
+        raise RuntimeError("bash is required")
+
+    return subprocess.run(
+        [BASH_EXECUTABLE, str(MIGRATION_SCRIPT)],
+        cwd=REPO_ROOT,
+        env={**os.environ, **env},
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+
+
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for runtime migration tests")
 def test_runtime_home_migration_copies_legacy_data_without_removing_source(tmp_path: Path):
     source = tmp_path / ".deer-flow"
@@ -98,3 +113,21 @@ def test_runtime_home_migration_dry_run_does_not_copy(tmp_path: Path):
 
     assert "Would copy legacy runtime home" in result.stdout
     assert not target.exists()
+
+
+@pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for runtime migration tests")
+def test_runtime_home_migration_uses_env_defaults(tmp_path: Path):
+    source = tmp_path / "custom-legacy"
+    target = tmp_path / "custom-current"
+    source.mkdir()
+    (source / "memory.json").write_text('{"legacy": true}', encoding="utf-8")
+
+    result = _run_migration_with_env(
+        {
+            "DEER_FLOW_HOME": _bash_path(source),
+            "VASSILFLOW_HOME": _bash_path(target),
+        }
+    )
+
+    assert "Copied legacy runtime home" in result.stdout
+    assert (target / "memory.json").read_text(encoding="utf-8") == '{"legacy": true}'
