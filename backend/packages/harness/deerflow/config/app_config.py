@@ -362,8 +362,8 @@ class AppConfig(BaseModel):
     def resolve_env_variables(cls, config: Any) -> Any:
         """Recursively resolve environment variables in the config.
 
-        Environment variables are resolved from the process environment. DeerFlow
-        variable references also honor their VassilFlow aliases.
+        Environment variables are resolved from the process environment. VassilFlow
+        variable references also honor their legacy DeerFlow aliases.
 
         Args:
             config: The config to resolve environment variables in.
@@ -496,7 +496,7 @@ def _load_and_cache_app_config(config_path: str | None = None) -> AppConfig:
 
 
 def get_app_config() -> AppConfig:
-    """Get the DeerFlow config instance.
+    """Get the VassilFlow config instance.
 
     Returns a cached singleton instance and automatically reloads it when the
     underlying config file path or content signature changes. Use

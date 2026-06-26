@@ -1,6 +1,8 @@
 """Static guards for VassilFlow-owned public config descriptions."""
 
+from vassilflow.config.app_config import AppConfig, get_app_config
 from vassilflow.config.auth_config import AuthAppConfig, OIDCProviderConfig
+from vassilflow.config.extensions_config import ExtensionsConfig
 
 
 def test_auth_config_descriptions_use_vassilflow_name() -> None:
@@ -14,3 +16,15 @@ def test_auth_config_descriptions_use_vassilflow_name() -> None:
     assert "VassilFlow app config" in (AuthAppConfig.__doc__ or "")
     assert "DeerFlow user" not in auto_create_description
     assert "DeerFlow app config" not in (AuthAppConfig.__doc__ or "")
+
+
+def test_runtime_config_docstrings_use_vassilflow_primary_name() -> None:
+    app_resolver_doc = AppConfig.resolve_env_variables.__doc__ or ""
+    extensions_resolver_doc = ExtensionsConfig.resolve_env_variables.__doc__ or ""
+
+    assert "VassilFlow" in app_resolver_doc
+    assert "VassilFlow" in extensions_resolver_doc
+    assert "legacy DeerFlow aliases" in app_resolver_doc
+    assert "legacy DeerFlow aliases" in extensions_resolver_doc
+    assert "Get the VassilFlow config instance" in (get_app_config.__doc__ or "")
+    assert "Get the DeerFlow config instance" not in (get_app_config.__doc__ or "")

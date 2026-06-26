@@ -170,8 +170,8 @@ class ExtensionsConfig(BaseModel):
     def resolve_env_variables(cls, config: Any) -> Any:
         """Recursively resolve environment variables in the config.
 
-        Environment variables are resolved from the process environment. DeerFlow
-        variable references also honor their VassilFlow aliases.
+        Environment variables are resolved from the process environment. VassilFlow
+        variable references also honor their legacy DeerFlow aliases.
 
         Args:
             config: The config to resolve environment variables in.
