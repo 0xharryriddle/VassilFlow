@@ -1,8 +1,8 @@
-"""Tests for DeerFlowClient's graph-root tracing wiring.
+"""Tests for VassilFlowClient's graph-root tracing wiring.
 
 Regression coverage for the Copilot review on PR #2944: when the title
 and summarization middlewares request ``attach_tracing=False`` we must
-make sure ``DeerFlowClient`` injects the tracing callbacks at the graph
+make sure ``VassilFlowClient`` injects the tracing callbacks at the graph
 invocation root instead, otherwise those middlewares produce untraced
 LLM calls.
 """
@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from deerflow.client import DeerFlowClient
+from vassilflow.client import VassilFlowClient
 
 
 class _FakeAgent:
@@ -53,15 +53,15 @@ def _stub_agent_creation(monkeypatch, fake_agent: _FakeAgent) -> dict[str, Any]:
         self._agent = fake_agent
         self._agent_config_key = ("stub",)
 
-    monkeypatch.setattr(DeerFlowClient, "_ensure_agent", _stub_ensure_agent)
+    monkeypatch.setattr(VassilFlowClient, "_ensure_agent", _stub_ensure_agent)
     return captured
 
 
-def _make_client(_monkeypatch) -> DeerFlowClient:
+def _make_client(_monkeypatch) -> VassilFlowClient:
     """Build a client without going through ``__init__`` so we never load
     config.yaml or perform any other side-effectful startup work."""
     fake_app_config = SimpleNamespace(models=[SimpleNamespace(name="stub-model")])
-    client = DeerFlowClient.__new__(DeerFlowClient)
+    client = VassilFlowClient.__new__(VassilFlowClient)
     client._app_config = fake_app_config
     client._extensions_config = None
     client._model_name = "stub-model"
@@ -124,6 +124,27 @@ def test_stream_is_inert_when_langfuse_disabled(monkeypatch):
     assert "langfuse_user_id" not in metadata
 
 
+def test_stream_uses_vassilflow_env_for_langfuse_tags(monkeypatch):
+    monkeypatch.setenv("LANGFUSE_TRACING", "true")
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
+    monkeypatch.setenv("VASSILFLOW_ENV", "staging")
+    monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
+    from deerflow.config.tracing_config import reset_tracing_config
+
+    reset_tracing_config()
+    monkeypatch.setattr("deerflow.client.build_tracing_callbacks", lambda: [])
+
+    fake_agent = _FakeAgent()
+    captured = _stub_agent_creation(monkeypatch, fake_agent)
+    client = _make_client(monkeypatch)
+
+    list(client.stream("hi", thread_id="thread-client-env"))
+
+    metadata = captured["config"].get("metadata") or {}
+    assert "env:staging" in metadata.get("langfuse_tags", [])
+
+
 def test_stream_preserves_caller_metadata_overrides(monkeypatch):
     monkeypatch.setenv("LANGFUSE_TRACING", "true")
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
@@ -139,7 +160,7 @@ def test_stream_preserves_caller_metadata_overrides(monkeypatch):
 
     # Drive stream with a pre-populated metadata so the worker-equivalent
     # ``setdefault`` semantics are exercised.
-    original_get_config = DeerFlowClient._get_runnable_config
+    original_get_config = VassilFlowClient._get_runnable_config
 
     def patched_get_runnable_config(self, thread_id, **overrides):
         cfg = original_get_config(self, thread_id, **overrides)
@@ -149,7 +170,7 @@ def test_stream_preserves_caller_metadata_overrides(monkeypatch):
         }
         return cfg
 
-    monkeypatch.setattr(DeerFlowClient, "_get_runnable_config", patched_get_runnable_config)
+    monkeypatch.setattr(VassilFlowClient, "_get_runnable_config", patched_get_runnable_config)
     list(client.stream("hi", thread_id="thread-client-3"))
 
     metadata = captured["config"].get("metadata") or {}
