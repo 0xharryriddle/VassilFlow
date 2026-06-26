@@ -11,7 +11,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.errors import GraphBubbleUp
 
-from deerflow.agents.middlewares.input_sanitization_middleware import (
+from vassilflow.agents.middlewares.input_sanitization_middleware import (
     _BLOCKED_TAG_NAMES,
     _USER_INPUT_BEGIN,
     _USER_INPUT_END,

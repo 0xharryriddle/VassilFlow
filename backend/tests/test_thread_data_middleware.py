@@ -1,7 +1,7 @@
 import pytest
 from langgraph.runtime import Runtime
 
-from deerflow.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
+from vassilflow.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
 
 
 def _as_posix(path: str) -> str:

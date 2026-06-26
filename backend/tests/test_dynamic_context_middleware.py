@@ -9,7 +9,7 @@ from unittest import mock
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from deerflow.agents.middlewares.dynamic_context_middleware import (
+from vassilflow.agents.middlewares.dynamic_context_middleware import (
     _DYNAMIC_CONTEXT_REMINDER_KEY,
     DynamicContextMiddleware,
 )
@@ -468,7 +468,7 @@ def test_memory_message_carries_reminder_key_for_title_eligibility():
     Similarly, summarization_middleware._preserve_dynamic_context_reminders
     would not rescue the memory block from summary compression.
     """
-    from deerflow.agents.middlewares.dynamic_context_middleware import is_dynamic_context_reminder
+    from vassilflow.agents.middlewares.dynamic_context_middleware import is_dynamic_context_reminder
 
     mw = _make_middleware()
     state = {"messages": [HumanMessage(content="Hi", id="msg-1")]}
@@ -491,7 +491,7 @@ def test_memory_message_carries_reminder_key_for_title_eligibility():
     assert is_dynamic_context_reminder(memory_msg) is True
 
     # Only the actual user message is title-eligible
-    from deerflow.agents.middlewares.title_middleware import TitleMiddleware
+    from vassilflow.agents.middlewares.title_middleware import TitleMiddleware
 
     title_eligible = [m for m in msgs if TitleMiddleware._is_user_message_for_title(m)]
     assert len(title_eligible) == 1
@@ -534,7 +534,7 @@ def test_user_suffix_message_is_not_injection_target():
     message again, it would perform another ID-swap → ``X__user__user`` → … →
     unbounded suffix growth and ghost-message re-execution (issue #3725).
     """
-    from deerflow.agents.middlewares.dynamic_context_middleware import _is_user_injection_target
+    from vassilflow.agents.middlewares.dynamic_context_middleware import _is_user_injection_target
 
     # A __user-suffix message is NOT a valid injection target
     user_swap_msg = HumanMessage(content="Hello", id="msg-1__user")
@@ -559,7 +559,7 @@ def test_endswith_not_substring_prevents_false_positive():
 
     A substring check (``"__user" in id``) would incorrectly reject such IDs.
     """
-    from deerflow.agents.middlewares.dynamic_context_middleware import _is_user_injection_target
+    from vassilflow.agents.middlewares.dynamic_context_middleware import _is_user_injection_target
 
     # ID contains "__user" in the middle — should NOT be rejected
     middle_match = HumanMessage(content="question", id="user__question-123")

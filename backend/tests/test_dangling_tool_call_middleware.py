@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
-from deerflow.agents.middlewares.dangling_tool_call_middleware import (
+from vassilflow.agents.middlewares.dangling_tool_call_middleware import (
     DanglingToolCallMiddleware,
 )
 

@@ -13,7 +13,7 @@ from langchain_core.runnables import Runnable
 from langchain_core.tools import tool as as_tool
 from pydantic import PrivateAttr
 
-from deerflow.agents.middlewares.loop_detection_middleware import (
+from vassilflow.agents.middlewares.loop_detection_middleware import (
     _HARD_STOP_MSG,
     _MAX_PENDING_WARNINGS_PER_RUN,
     LoopDetectionMiddleware,
