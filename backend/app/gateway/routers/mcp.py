@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Literal
 
@@ -8,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.gateway.deps import require_admin_user
+from vassilflow.config.env_aliases import env_value
 from vassilflow.config.extensions_config import ExtensionsConfig, get_extensions_config, reload_extensions_config
 from vassilflow.mcp.cache import reset_mcp_tools_cache
 
@@ -17,7 +17,8 @@ router = APIRouter(prefix="/api", tags=["mcp"])
 _ADMIN_REQUIRED_DETAIL = "Admin privileges required to manage MCP configuration."
 
 
-_MCP_STDIO_COMMAND_ALLOWLIST_ENV = "DEER_FLOW_MCP_STDIO_COMMAND_ALLOWLIST"
+_MCP_STDIO_COMMAND_ALLOWLIST_ENV = "VASSILFLOW_MCP_STDIO_COMMAND_ALLOWLIST"
+_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV = "DEER_FLOW_MCP_STDIO_COMMAND_ALLOWLIST"
 _DEFAULT_MCP_STDIO_COMMAND_ALLOWLIST = frozenset({"npx", "uvx"})
 _SHELL_METACHARS = frozenset(";|&`$<>\n\r")
 
@@ -85,7 +86,7 @@ _MASKED_VALUE = "***"
 
 def _allowed_stdio_commands() -> set[str]:
     """Return executable names allowed for API-managed stdio MCP servers."""
-    raw = os.environ.get(_MCP_STDIO_COMMAND_ALLOWLIST_ENV)
+    raw = env_value(_MCP_STDIO_COMMAND_ALLOWLIST_ENV)
     base = set(_DEFAULT_MCP_STDIO_COMMAND_ALLOWLIST)
     if raw is None:
         return base
@@ -130,7 +131,10 @@ def _validate_mcp_update_request(request: McpConfigUpdateRequest) -> None:
             allowed = ", ".join(sorted(allowed_commands)) or "<none>"
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(f"MCP server '{name}' uses disallowed stdio command '{command_name}'. Allowed commands: {allowed}. Configure {_MCP_STDIO_COMMAND_ALLOWLIST_ENV} to extend this list."),
+                detail=(
+                    f"MCP server '{name}' uses disallowed stdio command '{command_name}'. Allowed commands: {allowed}. "
+                    f"Configure {_MCP_STDIO_COMMAND_ALLOWLIST_ENV} (legacy: {_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV}) to extend this list."
+                ),
             )
 
 

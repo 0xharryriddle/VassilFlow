@@ -260,8 +260,9 @@ Content-Type: application/json
 
 Requires an authenticated admin session. API-managed `stdio` MCP servers may
 only use allowed executable names for `command` (default: `npx`, `uvx`). Set
-`DEER_FLOW_MCP_STDIO_COMMAND_ALLOWLIST` to a comma-separated list when a
-deployment needs additional trusted launchers.
+`VASSILFLOW_MCP_STDIO_COMMAND_ALLOWLIST` to a comma-separated list when a
+deployment needs additional trusted launchers. Legacy
+`DEER_FLOW_MCP_STDIO_COMMAND_ALLOWLIST` remains accepted as a fallback.
 
 **Request Body:**
 ```json

@@ -16,6 +16,7 @@ from app.gateway.deps import require_admin_user
 from app.gateway.routers import mcp as mcp_router
 from app.gateway.routers.mcp import (
     _ADMIN_REQUIRED_DETAIL,
+    _LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV,
     _MCP_STDIO_COMMAND_ALLOWLIST_ENV,
     McpConfigUpdateRequest,
     McpOAuthConfigResponse,
@@ -410,6 +411,7 @@ async def test_update_mcp_configuration_resets_tools_cache(monkeypatch, tmp_path
 
 def test_validate_mcp_update_allows_default_npx_stdio_command(monkeypatch):
     monkeypatch.delenv(_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
+    monkeypatch.delenv(_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
     request = McpConfigUpdateRequest(
         mcp_servers={
             "github": McpServerConfigResponse(
@@ -425,6 +427,7 @@ def test_validate_mcp_update_allows_default_npx_stdio_command(monkeypatch):
 
 def test_validate_mcp_update_rejects_shell_stdio_command(monkeypatch):
     monkeypatch.delenv(_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
+    monkeypatch.delenv(_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
     request = McpConfigUpdateRequest(
         mcp_servers={
             "backdoor": McpServerConfigResponse(
@@ -444,6 +447,7 @@ def test_validate_mcp_update_rejects_shell_stdio_command(monkeypatch):
 
 def test_validate_mcp_update_rejects_inline_shell_command(monkeypatch):
     monkeypatch.delenv(_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
+    monkeypatch.delenv(_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
     request = McpConfigUpdateRequest(
         mcp_servers={
             "inline": McpServerConfigResponse(
@@ -463,6 +467,7 @@ def test_validate_mcp_update_rejects_inline_shell_command(monkeypatch):
 
 def test_validate_mcp_update_rejects_path_with_allowed_basename(monkeypatch):
     monkeypatch.setenv(_MCP_STDIO_COMMAND_ALLOWLIST_ENV, "npx")
+    monkeypatch.delenv(_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
     request = McpConfigUpdateRequest(
         mcp_servers={
             "path-bypass": McpServerConfigResponse(
@@ -482,6 +487,23 @@ def test_validate_mcp_update_rejects_path_with_allowed_basename(monkeypatch):
 
 def test_validate_mcp_update_uses_explicit_stdio_allowlist(monkeypatch):
     monkeypatch.setenv(_MCP_STDIO_COMMAND_ALLOWLIST_ENV, "python,npx")
+    monkeypatch.delenv(_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
+    request = McpConfigUpdateRequest(
+        mcp_servers={
+            "python-mcp": McpServerConfigResponse(
+                type="stdio",
+                command="python",
+                args=["-m", "trusted_mcp_server"],
+            )
+        }
+    )
+
+    _validate_mcp_update_request(request)
+
+
+def test_validate_mcp_update_uses_legacy_stdio_allowlist(monkeypatch):
+    monkeypatch.delenv(_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
+    monkeypatch.setenv(_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV, "python,npx")
     request = McpConfigUpdateRequest(
         mcp_servers={
             "python-mcp": McpServerConfigResponse(
@@ -497,6 +519,7 @@ def test_validate_mcp_update_uses_explicit_stdio_allowlist(monkeypatch):
 
 def test_validate_mcp_update_ignores_remote_transports(monkeypatch):
     monkeypatch.delenv(_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
+    monkeypatch.delenv(_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
     request = McpConfigUpdateRequest(
         mcp_servers={
             "remote": McpServerConfigResponse(
