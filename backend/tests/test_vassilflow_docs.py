@@ -225,3 +225,20 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
     assert '"lead_agent": "deerflow.agents:lead_agent"' not in auto_title
     assert "from deerflow.config.title_config import TitleConfig" not in auto_title
     assert "from deerflow.agents.title_middleware import TitleMiddleware" not in auto_title
+
+
+def test_streaming_docs_use_vassilflow_client_vocabulary():
+    content = (REPO_ROOT / "backend" / "docs" / "STREAMING.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "# VassilFlow 流式输出设计" in content
+    assert "VassilFlow 有**两条并行**的流式路径" in content
+    assert "VassilFlowClient 路径" in content
+    assert "`VassilFlowClient.stream(message)`" in content
+    assert "## VassilFlowClient 路径：sync + in-process" in content
+    assert "participant C as VassilFlowClient" in content
+    assert "Gateway 和 VassilFlowClient 是两套独立实现" in content
+    assert "# DeerFlow 流式输出设计" not in content
+    assert "DeerFlow 有**两条并行**的流式路径" not in content
+    assert "## DeerFlowClient 路径：sync + in-process" not in content
