@@ -11,13 +11,13 @@ Covers:
 
 import pytest
 
-from deerflow.config.subagents_config import (
+from deerflow.subagents.config import SubagentConfig
+from vassilflow.config.subagents_config import (
     SubagentOverrideConfig,
     SubagentsAppConfig,
     get_subagents_app_config,
     load_subagents_config_from_dict,
 )
-from deerflow.subagents.config import SubagentConfig
 
 # ---------------------------------------------------------------------------
 # Helpers

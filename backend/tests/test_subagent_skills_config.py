@@ -13,14 +13,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from deerflow.config.subagents_config import (
+from deerflow.subagents.config import SubagentConfig
+from vassilflow.config.subagents_config import (
     CustomSubagentConfig,
     SubagentOverrideConfig,
     SubagentsAppConfig,
     get_subagents_app_config,
     load_subagents_config_from_dict,
 )
-from deerflow.subagents.config import SubagentConfig
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -351,7 +351,7 @@ class TestRegistryCustomAgentLookup:
         def fail_get_subagents_app_config():
             raise AssertionError("ambient get_subagents_app_config() must not be used when app_config is explicit")
 
-        monkeypatch.setattr("deerflow.config.subagents_config.get_subagents_app_config", fail_get_subagents_app_config)
+        monkeypatch.setattr("vassilflow.config.subagents_config.get_subagents_app_config", fail_get_subagents_app_config)
 
         app_config = SimpleNamespace(
             subagents=SubagentsAppConfig(
