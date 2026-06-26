@@ -10,8 +10,8 @@ from _run_message_pagination_helpers import assert_run_message_page
 from fastapi.testclient import TestClient
 
 from app.gateway.routers import thread_runs
-from deerflow.runtime import RunManager
-from deerflow.runtime.runs.store.memory import MemoryRunStore
+from vassilflow.runtime import RunManager
+from vassilflow.runtime.runs.store.memory import MemoryRunStore
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -239,7 +239,7 @@ def test_list_run_messages_injects_turn_duration():
     """Verify that list_run_messages injects turn_duration into ALL AI messages for the run."""
     from unittest.mock import AsyncMock
 
-    from deerflow.runtime import RunRecord
+    from vassilflow.runtime import RunRecord
 
     # Mock a run record that took exactly 5 seconds
     mock_run = RunRecord(
@@ -279,7 +279,7 @@ def test_list_thread_messages_injects_turn_duration():
     """Verify that list_thread_messages injects turn_duration into the inner content."""
     from unittest.mock import AsyncMock
 
-    from deerflow.runtime import RunRecord
+    from vassilflow.runtime import RunRecord
 
     mock_run = RunRecord(
         run_id="run-1",
