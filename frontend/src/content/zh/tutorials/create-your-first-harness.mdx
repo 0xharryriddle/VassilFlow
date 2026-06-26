@@ -16,7 +16,7 @@ description: 本教程介绍如何以编程方式使用 VassilFlow Harness Pytho
 ## 安装
 
 ```bash
-cd deer-flow/backend
+cd VassilFlow/backend
 uv sync
 ```
 
@@ -49,8 +49,8 @@ tools:
 ```python
 import asyncio
 import os
-from deerflow.client import DeerFlowClient
-from deerflow.config import load_config
+from vassilflow.client import VassilFlowClient
+from vassilflow.config import load_config
 
 # 设置 API Key
 os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -58,7 +58,7 @@ os.environ["OPENAI_API_KEY"] = "sk-..."
 # 加载配置
 load_config()
 
-client = DeerFlowClient()
+client = VassilFlowClient()
 
 async def main():
     async for event in client.astream(

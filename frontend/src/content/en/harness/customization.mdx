@@ -26,7 +26,7 @@ To add a custom middleware:
 
 ```python
 from langchain.agents.middleware import AgentMiddleware
-from deerflow.agents.thread_state import ThreadState
+from vassilflow.agents import ThreadState
 
 class AuditMiddleware(AgentMiddleware):
     async def on_start(self, state: ThreadState, config):
@@ -152,7 +152,7 @@ checkpointer:
   connection_string: ./my-checkpoints.db
 ```
 
-For custom backends, implement the LangGraph `BaseCheckpointSaver` interface and configure it programmatically when initializing the `DeerFlowClient`.
+For custom backends, implement the LangGraph `BaseCheckpointSaver` interface and configure it programmatically when initializing the `VassilFlowClient`.
 
 ## Guardrails
 

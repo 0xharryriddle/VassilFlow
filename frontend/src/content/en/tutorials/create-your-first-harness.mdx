@@ -18,7 +18,7 @@ This tutorial shows you how to use the VassilFlow Harness programmatically — i
 ## Install
 
 ```bash
-cd deer-flow/backend
+cd VassilFlow/backend
 uv sync
 ```
 
@@ -55,15 +55,15 @@ Create `my_agent.py` in the `backend/` directory:
 ```python
 import asyncio
 import os
-from deerflow.client import DeerFlowClient
-from deerflow.config import load_config
+from vassilflow.client import VassilFlowClient
+from vassilflow.config import load_config
 
 os.environ["OPENAI_API_KEY"] = "sk-..."
 
 # Load config.yaml
 load_config()
 
-client = DeerFlowClient()
+client = VassilFlowClient()
 
 async def main():
     async for event in client.astream(
