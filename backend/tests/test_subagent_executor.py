@@ -2261,19 +2261,20 @@ class TestSubagentTracingWiring:
         assert metadata.get("langfuse_trace_name") == "subagent"
 
     @pytest.mark.anyio
-    async def test_environment_tag_emitted_from_deer_flow_env(
+    async def test_environment_tag_emitted_from_vassilflow_env(
         self,
         classes,
         executor_module,
         monkeypatch,
     ):
-        """``DEER_FLOW_ENV`` must surface as an ``env:<value>`` tag so Langfuse
+        """``VASSILFLOW_ENV`` must surface as an ``env:<value>`` tag so Langfuse
         cost aggregation can split traces by deployment environment.
         """
         monkeypatch.setenv("LANGFUSE_TRACING", "true")
         monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
         monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
-        monkeypatch.setenv("DEER_FLOW_ENV", "staging")
+        monkeypatch.setenv("VASSILFLOW_ENV", "staging")
+        monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
         from deerflow.config.tracing_config import reset_tracing_config
 
         reset_tracing_config()

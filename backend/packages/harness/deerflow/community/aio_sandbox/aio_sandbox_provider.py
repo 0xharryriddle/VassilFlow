@@ -346,7 +346,7 @@ class AioSandboxProvider(SandboxProvider):
 
             if skills_path.exists():
                 # When running inside Docker with DooD, use host-side skills path.
-                host_skills = env_value("DEER_FLOW_HOST_SKILLS_PATH") or str(skills_path)
+                host_skills = env_value("VASSILFLOW_HOST_SKILLS_PATH") or str(skills_path)
                 return (host_skills, container_path, True)  # Read-only for security
         except Exception as e:
             logger.warning(f"Could not setup skills mount: {e}")

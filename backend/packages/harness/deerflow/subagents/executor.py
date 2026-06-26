@@ -577,7 +577,7 @@ class SubagentExecutor:
                 user_id=self.user_id,
                 assistant_id=assistant_id,
                 model_name=self.model_name,
-                environment=env_value("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
+                environment=env_value("VASSILFLOW_ENV") or os.environ.get("ENVIRONMENT"),
             )
 
             context: dict[str, Any] = {}

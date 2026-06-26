@@ -148,7 +148,8 @@ class DeerFlowClient:
             environment: Deployment environment label that ends up in
                 ``langfuse_tags`` (e.g. ``"production"`` / ``"staging"``).
                 When ``None`` the worker/client falls back to the
-                ``DEER_FLOW_ENV`` or ``ENVIRONMENT`` env vars. Pass an
+                ``VASSILFLOW_ENV`` (legacy: ``DEER_FLOW_ENV``) or
+                ``ENVIRONMENT`` env vars. Pass an
                 explicit value for programmatic callers that do not want
                 env-var coupling.
         """
@@ -617,7 +618,7 @@ class DeerFlowClient:
             user_id=get_effective_user_id(),
             assistant_id=self._agent_name or "lead-agent",
             model_name=configurable.get("model_name") or self._model_name,
-            environment=self._environment or env_value("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
+            environment=self._environment or env_value("VASSILFLOW_ENV") or os.environ.get("ENVIRONMENT"),
         )
 
         self._ensure_agent(config)
