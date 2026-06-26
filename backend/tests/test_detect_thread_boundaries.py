@@ -180,3 +180,10 @@ def test_parse_errors_are_reported_as_findings(tmp_path):
     assert findings[0].severity == "WARN"
     assert findings[0].column == 11
     assert f"{source_file.name}:1:12" in detector.format_text(findings)
+
+
+def test_default_scan_paths_include_vassilflow_facade_and_current_implementation():
+    scan_paths = {path.as_posix() for path in detector.DEFAULT_SCAN_PATHS}
+
+    assert any(path.endswith("/backend/packages/harness/deerflow") for path in scan_paths)
+    assert any(path.endswith("/backend/packages/harness/vassilflow") for path in scan_paths)
