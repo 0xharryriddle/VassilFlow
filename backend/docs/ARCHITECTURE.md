@@ -54,7 +54,9 @@ This document provides a comprehensive overview of the VassilFlow backend archit
 
 The agent runtime is embedded in the FastAPI Gateway and built on LangGraph for robust multi-agent workflow orchestration. Nginx rewrites `/api/langgraph/*` to Gateway's native `/api/*` routes, so the public API remains compatible with LangGraph SDK clients without running a separate LangGraph server.
 
-**Entry Point**: `packages/harness/deerflow/agents/lead_agent/agent.py:make_lead_agent`
+**Entry Point**: `vassilflow.agents:make_lead_agent`
+
+The current implementation is still hosted under `packages/harness/deerflow/agents/lead_agent/agent.py` during the migration, but new integrations should use the VassilFlow facade import above.
 
 **Key Responsibilities**:
 - Agent creation and configuration

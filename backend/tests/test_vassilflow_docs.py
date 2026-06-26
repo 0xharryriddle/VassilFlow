@@ -81,12 +81,17 @@ def test_architecture_docs_use_vassilflow_runtime_identity():
     assert "overview of the VassilFlow backend architecture" in content
     assert "Local VassilFlow thread data cleanup" in content
     assert "VassilFlow-managed filesystem data" in content
+    assert "**Entry Point**: `vassilflow.agents:make_lead_agent`" in content
     assert '"path": "vassilflow.agents:make_lead_agent"' in content
     assert "VassilFlowSummarizationMiddleware" in content
     assert "`{runtime_home}/threads/{thread_id}/user-data/workspace`" in content
     assert "`skills/` under the project root by default" in content
     assert "overview of the DeerFlow backend architecture" not in content
     assert "Local DeerFlow thread data cleanup" not in content
+    assert (
+        "**Entry Point**: `packages/harness/deerflow/agents/lead_agent/agent.py:make_lead_agent`"
+        not in content
+    )
     assert '"path": "deerflow.agents:make_lead_agent"' not in content
     assert "`backend/.deer-flow/threads/{thread_id}/user-data/workspace`" not in content
 
