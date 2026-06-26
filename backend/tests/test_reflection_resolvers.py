@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+import yaml
 
 from deerflow.reflection import resolvers
 from deerflow.reflection.resolvers import resolve_variable
@@ -76,6 +77,10 @@ def test_resolve_variable_invalid_path_format():
             "vassilflow.guardrails.builtin:AllowlistProvider",
             "deerflow.guardrails.builtin:AllowlistProvider",
         ),
+        (
+            "vassilflow.agents:create_vassilflow_agent",
+            "deerflow.agents:create_deerflow_agent",
+        ),
     ],
 )
 def test_resolve_variable_bridges_vassilflow_internal_class_paths(vassilflow_path, deerflow_path):
@@ -87,3 +92,30 @@ def test_config_example_prefers_vassilflow_dynamic_paths():
 
     assert "use: vassilflow." in content
     assert "use: deerflow." not in content
+
+
+def test_active_config_example_vassilflow_use_paths_resolve():
+    config = yaml.safe_load((REPO_ROOT / "config.example.yaml").read_text(encoding="utf-8"))
+    use_paths = sorted(
+        {
+            value["use"]
+            for value in _walk_config_values(config)
+            if isinstance(value, dict)
+            and isinstance(value.get("use"), str)
+            and value["use"].startswith("vassilflow.")
+        }
+    )
+
+    assert use_paths
+    for variable_path in use_paths:
+        assert resolve_variable(variable_path) is not None, variable_path
+
+
+def _walk_config_values(value):
+    if isinstance(value, dict):
+        yield value
+        for child in value.values():
+            yield from _walk_config_values(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _walk_config_values(child)
