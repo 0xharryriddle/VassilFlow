@@ -14,18 +14,18 @@ import { Callout } from "nextra/components";
 
 VassilFlow Harness 不仅仅是一个独立应用程序——它是一个可以导入并在你自己的后端、API 服务器、自动化系统或多 Agent 协调器中使用的 Python 库。
 
-## 嵌入 DeerFlowClient
+## 嵌入 VassilFlowClient
 
-主要集成点是 `DeerFlowClient`。它封装了 LangGraph 运行时，并提供一个简洁的 API，用于在任何 Python 应用中发送消息和流式传输响应。
+主要集成点是 `VassilFlowClient`。它封装了 LangGraph 运行时，并提供一个简洁的 API，用于在任何 Python 应用中发送消息和流式传输响应。
 
 ```python
-from deerflow.client import DeerFlowClient
-from deerflow.config import load_config
+from vassilflow.client import VassilFlowClient
+from vassilflow.config import load_config
 
-# 加载配置（读取 config.yaml 或 DEER_FLOW_CONFIG_PATH）
+# 加载配置（读取 config.yaml 或 VASSILFLOW_CONFIG_PATH）
 load_config()
 
-client = DeerFlowClient()
+client = VassilFlowClient()
 ```
 
 客户端是线程安全的，设计为实例化一次并在请求之间复用。
@@ -109,26 +109,26 @@ VassilFlow Gateway 本身是一个 FastAPI 应用程序。你可以将其作为�
 
 ```python
 from fastapi import FastAPI
-from deerflow.config import load_config
+from vassilflow.config import load_config
 
 load_config()
 
 app = FastAPI()
 
-# 挂载 VassilFlow Gateway
+# 挂载 VassilFlow Gateway；迁移窗口内 Gateway 模块路径仍是 legacy bridge
 from deerflow.app.gateway.main import app as gateway_app
-app.mount("/deerflow", gateway_app)
+app.mount("/vassilflow", gateway_app)
 ```
 
-或者在你自己的 FastAPI 路由中直接使用 `DeerFlowClient` 进行流式传输：
+或者在你自己的 FastAPI 路由中直接使用 `VassilFlowClient` 进行流式传输：
 
 ```python
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from deerflow.client import DeerFlowClient
+from vassilflow.client import VassilFlowClient
 
 app = FastAPI()
-client = DeerFlowClient()
+client = VassilFlowClient()
 
 @app.post("/chat/{thread_id}")
 async def chat(thread_id: str, body: dict):
@@ -144,17 +144,17 @@ async def chat(thread_id: str, body: dict):
 
 ```python
 import os
-os.environ["DEER_FLOW_CONFIG_PATH"] = "/path/to/my-deerflow-config.yaml"
+os.environ["VASSILFLOW_CONFIG_PATH"] = "/path/to/my-vassilflow-config.yaml"
 
-from deerflow.config import load_config
+from vassilflow.config import load_config
 load_config()
 ```
 
 或直接传递路径：
 
 ```python
-from deerflow.config import load_config
-load_config(config_path="/path/to/my-deerflow-config.yaml")
+from vassilflow.config import load_config
+load_config(config_path="/path/to/my-vassilflow-config.yaml")
 ```
 
 <Cards num={2}>
