@@ -1,8 +1,8 @@
 # [About VassilFlow](https://github.com/linhlln1104/VassilFlow)
 
-> **From Working Foundation, Toward a VassilFlow-Owned Harness**
+> **VassilFlow Harness for Long-Horizon Agent Runs**
 
-**VassilFlow** is a Super Agent Harness project built from a verified DeerFlow-derived foundation. The first goal is to preserve the runnable long-horizon agent runtime while VassilFlow-owned boundaries for sessions, runs, traces, tools, policy, approvals, memory, verification, and completion evidence are stabilized.
+**VassilFlow** is a Super Agent Harness for long-horizon agent execution. It focuses on stable VassilFlow-owned boundaries for sessions, runs, traces, tools, policy, approvals, memory, verification, and completion evidence while preserving a runnable agent runtime during the migration.
 
 ---
 
@@ -24,7 +24,7 @@ VassilFlow is open source and distributed under the **MIT License**.
 
 ## Acknowledgments
 
-VassilFlow stands on a working open-source foundation and keeps clear attribution for inherited design and implementation choices.
+VassilFlow stands on a working open-source foundation and keeps clear attribution for inherited design and implementation choices while evolving its own harness contracts.
 
 ### Core Frameworks
 
@@ -34,4 +34,4 @@ VassilFlow stands on a working open-source foundation and keeps clear attributio
 
 ### Upstream Foundation
 
-- **[DeerFlow](https://github.com/bytedance/deer-flow)**: The verified v0 runtime substrate for VassilFlow's initial harness foundation.
+- **[DeerFlow](https://github.com/bytedance/deer-flow)**: The upstream project that provided the initial runnable runtime foundation.
