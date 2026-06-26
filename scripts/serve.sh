@@ -98,7 +98,7 @@ done
 
 # ── Stop helper ──────────────────────────────────────────────────────────────
 
-# Every deer-flow worktree (the main checkout + each linked worktree) hardcodes
+# Every VassilFlow worktree (the main checkout + each linked worktree) hardcodes
 # the same dev ports (8001/3000/2026), so a service started from ANY of them
 # must be reclaimable from here — otherwise `make stop`/`make dev` in this
 # worktree can neither kill nor take over a port held by a sibling worktree.
@@ -115,9 +115,9 @@ DEERFLOW_ROOTS="$(
     } | awk 'NF && !seen[$0]++ {print length($0)"\t"$0}' | sort -rn | sed 's/^[0-9]*\t//'
 )"
 
-# True if PID has an open file/cwd under any deer-flow worktree root. The
-# trailing slash keeps a sibling dir like ".../deer-flow-notes" from matching
-# the ".../deer-flow" root.
+# True if PID has an open file/cwd under any VassilFlow worktree root. The
+# trailing slash keeps a sibling dir like ".../VassilFlow-notes" from matching
+# the ".../VassilFlow" root.
 _is_deerflow_pid() {
     local pid=$1 files root
 
@@ -281,12 +281,13 @@ stop_all() {
     sleep 1
     _kill_repo_nginx
     # Force-kill any survivors still holding the service ports. 2026 is included
-    # so a lingering nginx (or any deer-flow process) that _kill_repo_nginx did
+    # so a lingering nginx (or any VassilFlow process) that _kill_repo_nginx did
     # not match by name still gets reclaimed — otherwise `make dev` fails its
     # nginx port preflight.
     _kill_repo_port 8001
     _kill_repo_port 3000
     _kill_repo_port 2026
+    ./scripts/cleanup-containers.sh vassilflow-sandbox 2>/dev/null || true
     ./scripts/cleanup-containers.sh deer-flow-sandbox 2>/dev/null || true
     echo "✓ All services stopped"
 }

@@ -1,4 +1,4 @@
-"""DeerFlow Sandbox Provisioner Service.
+"""VassilFlow Sandbox Provisioner Service.
 
 Dynamically creates and manages per-sandbox Pods in Kubernetes.
 Each ``sandbox_id`` gets its own Pod + NodePort Service.  The backend
@@ -53,7 +53,10 @@ logging.basicConfig(
 
 # ── Configuration (all tuneable via environment variables) ───────────────
 
-K8S_NAMESPACE = os.environ.get("K8S_NAMESPACE", "deer-flow")
+K8S_NAMESPACE = os.environ.get("K8S_NAMESPACE", "vassilflow")
+SANDBOX_APP_LABEL = os.environ.get("SANDBOX_APP_LABEL", "vassilflow-sandbox")
+SANDBOX_APP_NAME_LABEL = os.environ.get("SANDBOX_APP_NAME_LABEL", "vassilflow")
+USERDATA_PVC_SUBPATH_ROOT = os.environ.get("USERDATA_PVC_SUBPATH_ROOT", "vassilflow")
 SANDBOX_IMAGE = os.environ.get(
     "SANDBOX_IMAGE",
     "enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest",
@@ -182,7 +185,7 @@ def _ensure_namespace() -> None:
                 metadata=k8s_client.V1ObjectMeta(
                     name=K8S_NAMESPACE,
                     labels={
-                        "app.kubernetes.io/name": "deer-flow",
+                        "app.kubernetes.io/name": SANDBOX_APP_NAME_LABEL,
                         "app.kubernetes.io/component": "sandbox",
                     },
                 )
@@ -206,7 +209,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="DeerFlow Sandbox Provisioner", lifespan=lifespan)
+app = FastAPI(title="VassilFlow Sandbox Provisioner", lifespan=lifespan)
 
 
 # ── Request / Response models ───────────────────────────────────────────
@@ -286,7 +289,7 @@ def _build_volume_mounts(thread_id: str, user_id: str = DEFAULT_USER_ID) -> list
         read_only=False,
     )
     if USERDATA_PVC_NAME:
-        userdata_mount.sub_path = f"deer-flow/users/{user_id}/threads/{thread_id}/user-data"
+        userdata_mount.sub_path = f"{USERDATA_PVC_SUBPATH_ROOT}/users/{user_id}/threads/{thread_id}/user-data"
 
     return [
         k8s_client.V1VolumeMount(
@@ -305,9 +308,9 @@ def _build_pod(sandbox_id: str, thread_id: str, user_id: str = DEFAULT_USER_ID) 
             name=_pod_name(sandbox_id),
             namespace=K8S_NAMESPACE,
             labels={
-                "app": "deer-flow-sandbox",
+                "app": SANDBOX_APP_LABEL,
                 "sandbox-id": sandbox_id,
-                "app.kubernetes.io/name": "deer-flow",
+                "app.kubernetes.io/name": SANDBOX_APP_NAME_LABEL,
                 "app.kubernetes.io/component": "sandbox",
             },
         ),
@@ -376,9 +379,9 @@ def _build_service(sandbox_id: str) -> k8s_client.V1Service:
             name=_svc_name(sandbox_id),
             namespace=K8S_NAMESPACE,
             labels={
-                "app": "deer-flow-sandbox",
+                "app": SANDBOX_APP_LABEL,
                 "sandbox-id": sandbox_id,
-                "app.kubernetes.io/name": "deer-flow",
+                "app.kubernetes.io/name": SANDBOX_APP_NAME_LABEL,
                 "app.kubernetes.io/component": "sandbox",
             },
         ),
@@ -463,9 +466,7 @@ async def create_sandbox(req: CreateSandboxRequest):
         logger.info(f"Created Pod {_pod_name(sandbox_id)}")
     except ApiException as exc:
         if exc.status != 409:  # 409 = AlreadyExists
-            raise HTTPException(
-                status_code=500, detail=f"Pod creation failed: {exc.reason}"
-            )
+            raise HTTPException(status_code=500, detail=f"Pod creation failed: {exc.reason}")
 
     # ── Create Service ───────────────────────────────────────────────
     try:
@@ -478,9 +479,7 @@ async def create_sandbox(req: CreateSandboxRequest):
                 core_v1.delete_namespaced_pod(_pod_name(sandbox_id), K8S_NAMESPACE)
             except ApiException:
                 pass
-            raise HTTPException(
-                status_code=500, detail=f"Service creation failed: {exc.reason}"
-            )
+            raise HTTPException(status_code=500, detail=f"Service creation failed: {exc.reason}")
 
     # ── Read the auto-allocated NodePort ─────────────────────────────
     node_port: int | None = None
@@ -491,9 +490,7 @@ async def create_sandbox(req: CreateSandboxRequest):
         time.sleep(0.5)
 
     if not node_port:
-        raise HTTPException(
-            status_code=500, detail="NodePort was not allocated in time"
-        )
+        raise HTTPException(status_code=500, detail="NodePort was not allocated in time")
 
     return SandboxResponse(
         sandbox_id=sandbox_id,
@@ -524,9 +521,7 @@ async def destroy_sandbox(sandbox_id: str):
             errors.append(f"pod: {exc.reason}")
 
     if errors:
-        raise HTTPException(
-            status_code=500, detail=f"Partial cleanup: {', '.join(errors)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Partial cleanup: {', '.join(errors)}")
 
     return {"ok": True, "sandbox_id": sandbox_id}
 
@@ -551,12 +546,10 @@ async def list_sandboxes():
     try:
         services = core_v1.list_namespaced_service(
             K8S_NAMESPACE,
-            label_selector="app=deer-flow-sandbox",
+            label_selector=f"app={SANDBOX_APP_LABEL}",
         )
     except ApiException as exc:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to list services: {exc.reason}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to list services: {exc.reason}")
 
     sandboxes: list[SandboxResponse] = []
     for svc in services.items:

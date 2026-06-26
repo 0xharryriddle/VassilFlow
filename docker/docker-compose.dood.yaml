@@ -1,8 +1,8 @@
-# DeerFlow — Docker-out-of-Docker (DooD) overlay (OPT-IN, NOT loaded by default)
+# VassilFlow — Docker-out-of-Docker (DooD) overlay (OPT-IN, NOT loaded by default)
 #
 # Mounts the host Docker socket into the gateway container so that
 # AioSandboxProvider running in pure-Docker mode — config.yaml:
-#   sandbox.use: deerflow.community.aio_sandbox:AioSandboxProvider
+#   sandbox.use: vassilflow.community.aio_sandbox:AioSandboxProvider
 # with NO provisioner_url — can start per-thread sandbox containers via the
 # host Docker daemon.
 #

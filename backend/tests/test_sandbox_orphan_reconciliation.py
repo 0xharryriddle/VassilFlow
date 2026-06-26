@@ -55,7 +55,7 @@ def _make_local_backend():
     return LocalContainerBackend(
         image="test-image:latest",
         base_port=8080,
-        container_prefix="deer-flow-sandbox",
+        container_prefix="vassilflow-sandbox",
         config_mounts=[],
         environment={},
     )
@@ -112,10 +112,10 @@ def test_list_running_returns_containers(monkeypatch):
 
     _mock_ps_and_inspect(
         monkeypatch,
-        ps_output="deer-flow-sandbox-abc12345\ndeer-flow-sandbox-def67890\n",
+        ps_output="vassilflow-sandbox-abc12345\nvassilflow-sandbox-def67890\n",
         inspect_payload=[
-            _make_inspect_entry("deer-flow-sandbox-abc12345", "2026-04-08T01:22:50.000000000Z", "8081"),
-            _make_inspect_entry("deer-flow-sandbox-def67890", "2026-04-08T02:22:50.000000000Z", "8082"),
+            _make_inspect_entry("vassilflow-sandbox-abc12345", "2026-04-08T01:22:50.000000000Z", "8081"),
+            _make_inspect_entry("vassilflow-sandbox-def67890", "2026-04-08T02:22:50.000000000Z", "8082"),
         ],
     )
 
@@ -145,9 +145,9 @@ def test_list_running_skips_non_matching_names(monkeypatch):
 
     _mock_ps_and_inspect(
         monkeypatch,
-        ps_output="deer-flow-sandbox-abc12345\nsome-other-container\n",
+        ps_output="vassilflow-sandbox-abc12345\nsome-other-container\n",
         inspect_payload=[
-            _make_inspect_entry("deer-flow-sandbox-abc12345", "2026-04-08T01:22:50Z", "8081"),
+            _make_inspect_entry("vassilflow-sandbox-abc12345", "2026-04-08T01:22:50Z", "8081"),
         ],
     )
 
@@ -163,9 +163,9 @@ def test_list_running_includes_containers_without_port(monkeypatch):
 
     _mock_ps_and_inspect(
         monkeypatch,
-        ps_output="deer-flow-sandbox-abc12345\n",
+        ps_output="vassilflow-sandbox-abc12345\n",
         inspect_payload=[
-            _make_inspect_entry("deer-flow-sandbox-abc12345", "2026-04-08T01:22:50Z", host_port=None),
+            _make_inspect_entry("vassilflow-sandbox-abc12345", "2026-04-08T01:22:50Z", host_port=None),
         ],
     )
 
@@ -201,7 +201,7 @@ def test_list_running_handles_inspect_failure(monkeypatch):
 
     _mock_ps_and_inspect(
         monkeypatch,
-        ps_output="deer-flow-sandbox-abc12345\n",
+        ps_output="vassilflow-sandbox-abc12345\n",
         inspect_payload=None,  # Signals inspect failure
     )
 
@@ -219,7 +219,7 @@ def test_list_running_handles_malformed_inspect_json(monkeypatch):
         result = MagicMock()
         if len(cmd) >= 2 and cmd[1] == "ps":
             result.returncode = 0
-            result.stdout = "deer-flow-sandbox-abc12345\n"
+            result.stdout = "vassilflow-sandbox-abc12345\n"
             result.stderr = ""
         else:
             result.returncode = 0
@@ -245,19 +245,19 @@ def test_list_running_uses_single_batch_inspect_call(monkeypatch):
         result = MagicMock()
         if len(cmd) >= 2 and cmd[1] == "ps":
             result.returncode = 0
-            result.stdout = "deer-flow-sandbox-a\ndeer-flow-sandbox-b\ndeer-flow-sandbox-c\n"
+            result.stdout = "vassilflow-sandbox-a\nvassilflow-sandbox-b\nvassilflow-sandbox-c\n"
             result.stderr = ""
             return result
         if len(cmd) >= 2 and cmd[1] == "inspect":
             inspect_call_count["count"] += 1
             # Expect all three names passed in a single call
-            assert cmd[2:] == ["deer-flow-sandbox-a", "deer-flow-sandbox-b", "deer-flow-sandbox-c"]
+            assert cmd[2:] == ["vassilflow-sandbox-a", "vassilflow-sandbox-b", "vassilflow-sandbox-c"]
             result.returncode = 0
             result.stdout = json.dumps(
                 [
-                    _make_inspect_entry("deer-flow-sandbox-a", "2026-04-08T01:22:50Z", "8081"),
-                    _make_inspect_entry("deer-flow-sandbox-b", "2026-04-08T01:22:50Z", "8082"),
-                    _make_inspect_entry("deer-flow-sandbox-c", "2026-04-08T01:22:50Z", "8083"),
+                    _make_inspect_entry("vassilflow-sandbox-a", "2026-04-08T01:22:50Z", "8081"),
+                    _make_inspect_entry("vassilflow-sandbox-b", "2026-04-08T01:22:50Z", "8082"),
+                    _make_inspect_entry("vassilflow-sandbox-c", "2026-04-08T01:22:50Z", "8083"),
                 ]
             )
             result.stderr = ""
@@ -368,7 +368,7 @@ def test_reconcile_adopts_old_containers_into_warm_pool():
     old_info = SandboxInfo(
         sandbox_id="old12345",
         sandbox_url="http://localhost:8081",
-        container_name="deer-flow-sandbox-old12345",
+        container_name="vassilflow-sandbox-old12345",
         created_at=now - 1200,  # 20 minutes old, > 600s idle_timeout
     )
     provider._backend.list_running.return_value = [old_info]
@@ -388,7 +388,7 @@ def test_reconcile_adopts_young_containers():
     young_info = SandboxInfo(
         sandbox_id="young123",
         sandbox_url="http://localhost:8082",
-        container_name="deer-flow-sandbox-young123",
+        container_name="vassilflow-sandbox-young123",
         created_at=now - 60,  # 1 minute old, < 600s idle_timeout
     )
     provider._backend.list_running.return_value = [young_info]
@@ -409,13 +409,13 @@ def test_reconcile_mixed_containers_all_adopted():
     old_info = SandboxInfo(
         sandbox_id="old_one",
         sandbox_url="http://localhost:8081",
-        container_name="deer-flow-sandbox-old_one",
+        container_name="vassilflow-sandbox-old_one",
         created_at=now - 1200,
     )
     young_info = SandboxInfo(
         sandbox_id="young_one",
         sandbox_url="http://localhost:8082",
-        container_name="deer-flow-sandbox-young_one",
+        container_name="vassilflow-sandbox-young_one",
         created_at=now - 60,
     )
     provider._backend.list_running.return_value = [old_info, young_info]
@@ -435,7 +435,7 @@ def test_reconcile_skips_already_tracked_containers():
     existing_info = SandboxInfo(
         sandbox_id="existing1",
         sandbox_url="http://localhost:8081",
-        container_name="deer-flow-sandbox-existing1",
+        container_name="vassilflow-sandbox-existing1",
         created_at=now - 1200,
     )
     # Pre-populate _sandboxes to simulate already-tracked container

@@ -1,4 +1,4 @@
-# DeerFlow Production Environment
+# VassilFlow Production Environment
 # Usage: make up
 #
 # Services:
@@ -29,7 +29,7 @@ services:
   # ── Reverse Proxy ──────────────────────────────────────────────────────────
   nginx:
     image: nginx:alpine
-    container_name: deer-flow-nginx
+    container_name: vassilflow-nginx
     ports:
       - "${PORT:-2026}:2026"
     volumes:
@@ -41,7 +41,7 @@ services:
       - frontend
       - gateway
     networks:
-      - deer-flow
+      - vassilflow
     restart: unless-stopped
 
   # ── Frontend: Next.js Production ───────────────────────────────────────────
@@ -53,7 +53,7 @@ services:
       args:
         PNPM_STORE_PATH: ${PNPM_STORE_PATH:-/root/.local/share/pnpm/store}
         NPM_REGISTRY: ${NPM_REGISTRY:-}
-    container_name: deer-flow-frontend
+    container_name: vassilflow-frontend
     environment:
       - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
       - DEER_FLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
@@ -61,7 +61,7 @@ services:
     env_file:
       - ../frontend/.env
     networks:
-      - deer-flow
+      - vassilflow
     restart: unless-stopped
 
   # ── Gateway API ────────────────────────────────────────────────────────────
@@ -74,7 +74,7 @@ services:
         UV_IMAGE: ${UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
         UV_INDEX_URL: ${UV_INDEX_URL:-https://pypi.org/simple}
         UV_EXTRAS: ${UV_EXTRAS:-}
-    container_name: deer-flow-gateway
+    container_name: vassilflow-gateway
     # Gateway hosts the agent runtime with in-process RunManager + StreamBridge
     # singletons -- run state lives in this worker's memory. Default to a single
     # worker: with >1 worker and no nginx sticky sessions, run cancel, SSE
@@ -131,7 +131,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - deer-flow
+      - vassilflow
     restart: unless-stopped
 
   # ── Sandbox Provisioner (optional, Kubernetes mode) ────────────────────────
@@ -142,11 +142,14 @@ services:
       args:
         APT_MIRROR: ${APT_MIRROR:-}
         PIP_INDEX_URL: ${PIP_INDEX_URL:-}
-    container_name: deer-flow-provisioner
+    container_name: vassilflow-provisioner
     volumes:
       - ~/.kube/config:/root/.kube/config:ro
     environment:
-      - K8S_NAMESPACE=deer-flow
+      - K8S_NAMESPACE=${VASSILFLOW_K8S_NAMESPACE:-${DEER_FLOW_K8S_NAMESPACE:-vassilflow}}
+      - SANDBOX_APP_LABEL=${VASSILFLOW_SANDBOX_APP_LABEL:-${DEER_FLOW_SANDBOX_APP_LABEL:-vassilflow-sandbox}}
+      - SANDBOX_APP_NAME_LABEL=${VASSILFLOW_SANDBOX_APP_NAME_LABEL:-${DEER_FLOW_SANDBOX_APP_NAME_LABEL:-vassilflow}}
+      - USERDATA_PVC_SUBPATH_ROOT=${VASSILFLOW_USERDATA_PVC_SUBPATH_ROOT:-${DEER_FLOW_USERDATA_PVC_SUBPATH_ROOT:-vassilflow}}
       - SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
       - SKILLS_HOST_PATH=${VASSILFLOW_REPO_ROOT:-${DEER_FLOW_REPO_ROOT:-..}}/skills
       - THREADS_HOST_PATH=${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.deer-flow}}/threads
@@ -158,7 +161,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - deer-flow
+      - vassilflow
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
@@ -166,5 +169,5 @@ services:
       timeout: 5s
       retries: 6
 networks:
-  deer-flow:
+  vassilflow:
     driver: bridge

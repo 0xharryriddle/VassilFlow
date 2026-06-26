@@ -11,7 +11,7 @@ class VolumeMountConfig(BaseModel):
             "``LocalSandboxProvider`` checks this path from the gateway process — in "
             "``make dev`` that is the host machine, but in Docker deployments "
             "(``make up`` / docker-compose) it is the path *inside* the "
-            "``deer-flow-gateway`` container, so the host directory must also be "
+            "``vassilflow-gateway`` container, so the host directory must also be "
             "bind-mounted into the gateway service for the mount to take effect. "
             "``AioSandboxProvider`` (DooD) passes this value straight to ``docker -v`` "
             "for the sandbox container, where it is resolved by the host Docker daemon "
@@ -34,7 +34,7 @@ class SandboxConfig(BaseModel):
         image: Docker image to use (default: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest)
         port: Base port for sandbox containers (default: 8080)
         replicas: Maximum number of concurrent sandbox containers (default: 3). When the limit is reached the least-recently-used sandbox is evicted to make room.
-        container_prefix: Prefix for container names (default: deer-flow-sandbox)
+        container_prefix: Prefix for container names (default: vassilflow-sandbox)
         idle_timeout: Idle timeout in seconds before sandbox is released (default: 600 = 10 minutes). Set to 0 to disable.
         mounts: List of volume mounts to share directories with the container
         environment: Environment variables to inject into the container (values starting with $ are resolved from host env)

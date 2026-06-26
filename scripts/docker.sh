@@ -12,8 +12,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DOCKER_DIR="$PROJECT_ROOT/docker"
 
-# Docker Compose command with project name
-COMPOSE_CMD="docker compose -p deer-flow-dev -f docker-compose-dev.yaml"
+# Docker Compose command with project name. The legacy project name is retained
+# only for cleanup so older legacy-named dev stacks do not keep port 2026 busy
+# after the default VassilFlow rename.
+COMPOSE_PROJECT_NAME="${VASSILFLOW_DOCKER_DEV_PROJECT:-${DEER_FLOW_DOCKER_DEV_PROJECT:-vassilflow-dev}}"
+LEGACY_COMPOSE_PROJECT_NAME="deer-flow-dev"
+COMPOSE_FILE="$DOCKER_DIR/docker-compose-dev.yaml"
+COMPOSE_CMD="docker compose -p $COMPOSE_PROJECT_NAME -f docker-compose-dev.yaml"
+SANDBOX_CONTAINER_PREFIX="${VASSILFLOW_SANDBOX_CONTAINER_PREFIX:-${DEER_FLOW_SANDBOX_CONTAINER_PREFIX:-vassilflow-sandbox}}"
+LEGACY_SANDBOX_CONTAINER_PREFIX="deer-flow-sandbox"
 
 vassilflow_alias_for() {
     case "$1" in
@@ -38,10 +45,34 @@ sync_vassilflow_env() {
 
 sync_vassilflow_envs() {
     sync_vassilflow_env DEER_FLOW_ROOT
+    sync_vassilflow_env DEER_FLOW_DOCKER_DEV_PROJECT
+    sync_vassilflow_env DEER_FLOW_SANDBOX_CONTAINER_PREFIX
     sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
     sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
     sync_vassilflow_env DEER_FLOW_CHANNELS_LANGGRAPH_URL
     sync_vassilflow_env DEER_FLOW_CHANNELS_GATEWAY_URL
+}
+
+compose_project_has_containers() {
+    local project_name="$1"
+    docker compose -p "$project_name" -f "$COMPOSE_FILE" ps -q 2>/dev/null | grep -q .
+}
+
+down_compose_project() {
+    local project_name="$1"
+    docker compose -p "$project_name" -f "$COMPOSE_FILE" down --remove-orphans >/dev/null 2>&1 || true
+}
+
+stop_legacy_stack_if_running() {
+    if [ "$COMPOSE_PROJECT_NAME" = "$LEGACY_COMPOSE_PROJECT_NAME" ]; then
+        return 0
+    fi
+
+    if compose_project_has_containers "$LEGACY_COMPOSE_PROJECT_NAME"; then
+        echo -e "${YELLOW}Stopping legacy Docker project '$LEGACY_COMPOSE_PROJECT_NAME' before starting '$COMPOSE_PROJECT_NAME'.${NC}"
+        down_compose_project "$LEGACY_COMPOSE_PROJECT_NAME"
+        echo ""
+    fi
 }
 
 load_proxy_env_from_dotenv() {
@@ -297,6 +328,7 @@ start() {
     fi
 
     load_proxy_env_from_dotenv
+    stop_legacy_stack_if_running
 
     echo "Building and starting containers..."
     cd "$DOCKER_DIR" && $COMPOSE_CMD up --build -d --remove-orphans $services
@@ -359,9 +391,15 @@ stop() {
     fi
     sync_vassilflow_env DEER_FLOW_ROOT
     echo "Stopping Docker development services..."
-    cd "$DOCKER_DIR" && $COMPOSE_CMD down
+    cd "$DOCKER_DIR" && $COMPOSE_CMD down --remove-orphans
+    if [ "$COMPOSE_PROJECT_NAME" != "$LEGACY_COMPOSE_PROJECT_NAME" ]; then
+        down_compose_project "$LEGACY_COMPOSE_PROJECT_NAME"
+    fi
     echo "Cleaning up sandbox containers..."
-    "$SCRIPT_DIR/cleanup-containers.sh" deer-flow-sandbox 2>/dev/null || true
+    "$SCRIPT_DIR/cleanup-containers.sh" "$SANDBOX_CONTAINER_PREFIX" 2>/dev/null || true
+    if [ "$SANDBOX_CONTAINER_PREFIX" != "$LEGACY_SANDBOX_CONTAINER_PREFIX" ]; then
+        "$SCRIPT_DIR/cleanup-containers.sh" "$LEGACY_SANDBOX_CONTAINER_PREFIX" 2>/dev/null || true
+    fi
     echo -e "${GREEN}✓ Docker services stopped${NC}"
 }
 

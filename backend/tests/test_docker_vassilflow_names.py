@@ -1,0 +1,81 @@
+"""Regression tests for VassilFlow Docker naming defaults."""
+
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+from shutil import which
+
+import pytest
+import yaml
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DOCKER_DIR = REPO_ROOT / "docker"
+DOCKER_SCRIPT = REPO_ROOT / "scripts" / "docker.sh"
+BASH_CANDIDATES = [
+    Path(r"C:\Program Files\Git\bin\bash.exe"),
+    Path(which("bash")) if which("bash") else None,
+]
+BASH_EXECUTABLE = next(
+    (str(path) for path in BASH_CANDIDATES if path is not None and path.exists() and "WindowsApps" not in str(path)),
+    None,
+)
+
+
+def _load_compose(name: str) -> dict:
+    return yaml.safe_load((DOCKER_DIR / name).read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    ("compose_file", "expected_network"),
+    [
+        ("docker-compose-dev.yaml", "vassilflow-dev"),
+        ("docker-compose.yaml", "vassilflow"),
+    ],
+)
+def test_compose_container_and_network_names_use_vassilflow(compose_file: str, expected_network: str):
+    compose = _load_compose(compose_file)
+
+    assert expected_network in compose["networks"]
+    assert all("deer-flow" not in network for network in compose["networks"])
+
+    for service in compose["services"].values():
+        container_name = service.get("container_name")
+        if container_name:
+            assert container_name.startswith("vassilflow-")
+            assert "deer-flow" not in container_name
+        assert service.get("networks") in ([expected_network], None)
+
+
+@pytest.mark.parametrize("compose_file", ["docker-compose-dev.yaml", "docker-compose.yaml"])
+def test_compose_provisioner_defaults_use_vassilflow_labels(compose_file: str):
+    compose = _load_compose(compose_file)
+    environment = compose["services"]["provisioner"]["environment"]
+
+    assert "K8S_NAMESPACE=${VASSILFLOW_K8S_NAMESPACE:-${DEER_FLOW_K8S_NAMESPACE:-vassilflow}}" in environment
+    assert "SANDBOX_APP_LABEL=${VASSILFLOW_SANDBOX_APP_LABEL:-${DEER_FLOW_SANDBOX_APP_LABEL:-vassilflow-sandbox}}" in environment
+    assert "USERDATA_PVC_SUBPATH_ROOT=${VASSILFLOW_USERDATA_PVC_SUBPATH_ROOT:-${DEER_FLOW_USERDATA_PVC_SUBPATH_ROOT:-vassilflow}}" in environment
+
+
+@pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for docker.sh naming tests")
+def test_docker_script_defaults_to_vassilflow_project_and_sandbox_prefix():
+    command = f'source \'{DOCKER_SCRIPT}\' >/dev/null && printf \'%s\\n%s\\n%s\\n\' "$COMPOSE_PROJECT_NAME" "$COMPOSE_CMD" "$SANDBOX_CONTAINER_PREFIX"'
+
+    output = subprocess.check_output(
+        [BASH_EXECUTABLE, "-lc", command],
+        text=True,
+        encoding="utf-8",
+    ).splitlines()
+
+    assert output[0] == "vassilflow-dev"
+    assert "docker compose -p vassilflow-dev" in output[1]
+    assert output[2] == "vassilflow-sandbox"
+
+
+def test_scripts_keep_legacy_docker_names_only_for_cleanup():
+    docker_script = (REPO_ROOT / "scripts" / "docker.sh").read_text(encoding="utf-8")
+    deploy_script = (REPO_ROOT / "scripts" / "deploy.sh").read_text(encoding="utf-8")
+
+    assert 'LEGACY_COMPOSE_PROJECT_NAME="deer-flow-dev"' in docker_script
+    assert 'LEGACY_SANDBOX_CONTAINER_PREFIX="deer-flow-sandbox"' in docker_script
+    assert 'LEGACY_COMPOSE_PROJECT_NAME="deer-flow"' in deploy_script

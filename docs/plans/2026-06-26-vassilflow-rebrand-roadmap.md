@@ -67,6 +67,9 @@ Add VassilFlow-owned facade modules over existing DeerFlow internals.
 
 Rename files, package names, Docker names, and module paths only after alias tests exist.
 
+- Status: Docker Compose project/container/network names and sandbox container
+  prefixes now default to `vassilflow-*`; scripts still clean up legacy
+  `deer-flow-*` stacks and sandbox containers during the transition.
 - Rename one ownership boundary at a time.
 - Leave deprecation shims for at least one migration window.
 - Update docs and examples in the same commit as each supported alias.

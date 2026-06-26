@@ -17,8 +17,8 @@ from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-DEFAULT_NAMESPACE = "deer-flow"
-DEFAULT_SELECTOR = "app=deer-flow-sandbox"
+DEFAULT_NAMESPACE = "vassilflow"
+DEFAULT_SELECTOR = "app=vassilflow-sandbox"
 DEFAULT_KUBECTL_TIMEOUT = 30
 
 

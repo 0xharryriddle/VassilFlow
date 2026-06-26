@@ -101,17 +101,17 @@ def test_get_thread_mounts_uses_explicit_user_id(tmp_path, monkeypatch):
 
 
 def test_join_host_path_preserves_windows_drive_letter_style():
-    base = r"C:\Users\demo\deer-flow\backend\.deer-flow"
+    base = r"C:\Users\demo\VassilFlow\backend\.deer-flow"
 
     joined = join_host_path(base, "threads", "thread-9", "user-data", "outputs")
 
-    assert joined == r"C:\Users\demo\deer-flow\backend\.deer-flow\threads\thread-9\user-data\outputs"
+    assert joined == r"C:\Users\demo\VassilFlow\backend\.deer-flow\threads\thread-9\user-data\outputs"
 
 
 def test_get_thread_mounts_preserves_windows_host_path_style(tmp_path, monkeypatch):
     """Docker bind mount sources must keep Windows-style paths intact."""
     aio_mod = importlib.import_module("deerflow.community.aio_sandbox.aio_sandbox_provider")
-    monkeypatch.setenv("DEER_FLOW_HOST_BASE_DIR", r"C:\Users\demo\deer-flow\backend\.deer-flow")
+    monkeypatch.setenv("DEER_FLOW_HOST_BASE_DIR", r"C:\Users\demo\VassilFlow\backend\.deer-flow")
     monkeypatch.setattr(aio_mod, "get_paths", lambda: Paths(base_dir=tmp_path))
     monkeypatch.setattr(aio_mod, "get_effective_user_id", lambda: None)
 
@@ -119,10 +119,10 @@ def test_get_thread_mounts_preserves_windows_host_path_style(tmp_path, monkeypat
 
     container_paths = {container_path: host_path for host_path, container_path, _ in mounts}
 
-    assert container_paths["/mnt/user-data/workspace"] == r"C:\Users\demo\deer-flow\backend\.deer-flow\threads\thread-10\user-data\workspace"
-    assert container_paths["/mnt/user-data/uploads"] == r"C:\Users\demo\deer-flow\backend\.deer-flow\threads\thread-10\user-data\uploads"
-    assert container_paths["/mnt/user-data/outputs"] == r"C:\Users\demo\deer-flow\backend\.deer-flow\threads\thread-10\user-data\outputs"
-    assert container_paths["/mnt/acp-workspace"] == r"C:\Users\demo\deer-flow\backend\.deer-flow\threads\thread-10\acp-workspace"
+    assert container_paths["/mnt/user-data/workspace"] == r"C:\Users\demo\VassilFlow\backend\.deer-flow\threads\thread-10\user-data\workspace"
+    assert container_paths["/mnt/user-data/uploads"] == r"C:\Users\demo\VassilFlow\backend\.deer-flow\threads\thread-10\user-data\uploads"
+    assert container_paths["/mnt/user-data/outputs"] == r"C:\Users\demo\VassilFlow\backend\.deer-flow\threads\thread-10\user-data\outputs"
+    assert container_paths["/mnt/acp-workspace"] == r"C:\Users\demo\VassilFlow\backend\.deer-flow\threads\thread-10\acp-workspace"
 
 
 def test_discover_or_create_only_unlocks_when_lock_succeeds(tmp_path, monkeypatch):
@@ -507,7 +507,7 @@ def test_acquire_drops_dead_cached_sandbox(tmp_path, monkeypatch):
         return_value=aio_mod.SandboxInfo(
             sandbox_id="sandbox-dead",
             sandbox_url="http://fresh-sandbox",
-            container_name="deer-flow-sandbox-sandbox-dead",
+            container_name="vassilflow-sandbox-sandbox-dead",
         )
     )
 
@@ -581,7 +581,7 @@ def test_acquire_skips_dead_warm_pool_sandbox(tmp_path, monkeypatch):
             aio_mod.SandboxInfo(
                 sandbox_id="sandbox-warm-dead",
                 sandbox_url="http://stale-sandbox",
-                container_name="deer-flow-sandbox-sandbox-warm-dead",
+                container_name="vassilflow-sandbox-sandbox-warm-dead",
             ),
             0.0,
         )
@@ -595,7 +595,7 @@ def test_acquire_skips_dead_warm_pool_sandbox(tmp_path, monkeypatch):
             return_value=aio_mod.SandboxInfo(
                 sandbox_id="sandbox-warm-dead",
                 sandbox_url="http://fresh-sandbox",
-                container_name="deer-flow-sandbox-sandbox-warm-dead",
+                container_name="vassilflow-sandbox-sandbox-warm-dead",
             )
         ),
     )

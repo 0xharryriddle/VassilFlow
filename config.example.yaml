@@ -923,7 +923,7 @@ sandbox:
   # Optional: Mount additional host directories into the sandbox.
   # Each mount maps a host path to a virtual container path accessible by the agent.
   # Note: with LocalSandboxProvider under `make up` (docker-compose), host_path is
-  # checked from inside the deer-flow-gateway container — you must also bind-mount
+  # checked from inside the vassilflow-gateway container — you must also bind-mount
   # the same directory into services.gateway.volumes in docker/docker-compose.yaml
   # for this mount to take effect (see issue #3244).
   # mounts:
@@ -962,8 +962,8 @@ sandbox:
 #   # make room for new ones. Use a positive integer here; omit this field to use the default.
 #   # replicas: 3
 #
-#   # Optional: Prefix for container names (default: deer-flow-sandbox)
-#   # container_prefix: deer-flow-sandbox
+#   # Optional: Prefix for container names (default: vassilflow-sandbox)
+#   # container_prefix: vassilflow-sandbox
 #
 #   # Optional: Additional mount directories from host to container
 #   # NOTE: Skills directory is automatically mounted from skills.path to skills.container_path
