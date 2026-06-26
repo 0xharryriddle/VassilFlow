@@ -30,7 +30,9 @@ def _module(name: str, **attrs):
     return module
 
 
-def _make_app_config(*, supports_vision: bool = False) -> AppConfig:
+def _make_app_config(
+    *, supports_vision: bool = False, guardrails: GuardrailsConfig | None = None
+) -> AppConfig:
     return AppConfig(
         models=[
             ModelConfig(
@@ -43,7 +45,7 @@ def _make_app_config(*, supports_vision: bool = False) -> AppConfig:
             )
         ],
         sandbox=SandboxConfig(use="test"),
-        guardrails=GuardrailsConfig(enabled=False),
+        guardrails=guardrails or GuardrailsConfig(enabled=False),
         circuit_breaker=CircuitBreakerConfig(failure_threshold=7, recovery_timeout_sec=11),
     )
 
@@ -301,3 +303,80 @@ def test_subagent_runtime_middlewares_skip_deferred_filter_without_names(monkeyp
     for setup in (None, DeferredToolSetup(None, frozenset(), None)):
         middlewares = build_subagent_runtime_middlewares(app_config=app_config, deferred_setup=setup)
         assert not any(isinstance(m, DeferredToolFilterMiddleware) for m in middlewares)
+
+
+def test_guardrail_provider_framework_hint_defaults_to_vassilflow(monkeypatch):
+    from deerflow.guardrails.provider import GuardrailDecision
+
+    captured: dict[str, object] = {}
+
+    class FakeGuardrailProvider:
+        name = "fake"
+
+        def __init__(self, *, framework: str):
+            captured["framework"] = framework
+
+        def evaluate(self, request):
+            return GuardrailDecision(allow=True)
+
+        async def aevaluate(self, request):
+            return GuardrailDecision(allow=True)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "test_guardrails_provider",
+        _module("test_guardrails_provider", FakeGuardrailProvider=FakeGuardrailProvider),
+    )
+    _stub_runtime_middleware_imports(monkeypatch)
+    app_config = _make_app_config(
+        guardrails=GuardrailsConfig.model_validate(
+            {
+                "enabled": True,
+                "provider": {"use": "test_guardrails_provider:FakeGuardrailProvider"},
+            }
+        )
+    )
+
+    build_subagent_runtime_middlewares(app_config=app_config)
+
+    assert captured["framework"] == "vassilflow"
+
+
+def test_guardrail_provider_framework_hint_can_be_overridden(monkeypatch):
+    from deerflow.guardrails.provider import GuardrailDecision
+
+    captured: dict[str, object] = {}
+
+    class FakeGuardrailProvider:
+        name = "fake"
+
+        def __init__(self, *, framework: str):
+            captured["framework"] = framework
+
+        def evaluate(self, request):
+            return GuardrailDecision(allow=True)
+
+        async def aevaluate(self, request):
+            return GuardrailDecision(allow=True)
+
+    monkeypatch.setitem(
+        sys.modules,
+        "test_guardrails_provider",
+        _module("test_guardrails_provider", FakeGuardrailProvider=FakeGuardrailProvider),
+    )
+    _stub_runtime_middleware_imports(monkeypatch)
+    app_config = _make_app_config(
+        guardrails=GuardrailsConfig.model_validate(
+            {
+                "enabled": True,
+                "provider": {
+                    "use": "test_guardrails_provider:FakeGuardrailProvider",
+                    "config": {"framework": "deerflow"},
+                },
+            }
+        )
+    )
+
+    build_subagent_runtime_middlewares(app_config=app_config)
+
+    assert captured["framework"] == "deerflow"

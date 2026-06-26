@@ -179,7 +179,7 @@ def _build_runtime_middlewares(
             try:
                 sig = inspect.signature(provider_cls.__init__)
                 if "framework" in sig.parameters or any(p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()):
-                    provider_kwargs["framework"] = "deerflow"
+                    provider_kwargs["framework"] = "vassilflow"
             except (ValueError, TypeError):
                 pass
         provider = provider_cls(**provider_kwargs)

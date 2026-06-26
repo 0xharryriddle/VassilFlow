@@ -884,7 +884,7 @@ safety_finish_reason:
   #
   # Example — add a custom detector for an in-house provider:
   # detectors:
-  #   - use: my_company.deerflow_ext:WenxinSafetyDetector
+  #   - use: my_company.vassilflow_ext:WenxinSafetyDetector
   #     config:
   #       error_codes: [336003, 17, 18]
 
@@ -1495,7 +1495,7 @@ run_events:
 # --- Option 2: OAP passport provider (open standard, any implementation) ---
 #   The Open Agent Passport (OAP) spec defines passport format and decision codes.
 #   Any OAP-compliant provider works. Example using APort (reference implementation):
-#     pip install aport-agent-guardrails && aport setup --framework deerflow
+#     pip install aport-agent-guardrails && aport setup --framework vassilflow
 # guardrails:
 #   enabled: true
 #   provider:
