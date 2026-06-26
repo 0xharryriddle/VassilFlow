@@ -42,7 +42,9 @@ Add VassilFlow aliases before renaming anything relied on by users or deployment
   record/replay helper env aliases, bundled skill endpoint env aliases,
   internal gateway header aliases, and precedence documentation are
   implemented. New internal calls emit `X-VassilFlow-*` headers while
-  `X-DeerFlow-*` remains accepted as a migration fallback.
+  `X-DeerFlow-*` remains accepted as a migration fallback. Local `make dev`
+  and Docker dev entrypoints now use `VASSILFLOW_HOME` as the canonical runtime
+  directory variable while still exporting `DEER_FLOW_HOME` for legacy code.
 - Support `VASSILFLOW_*` env vars alongside `DEER_FLOW_*`.
 - Add VassilFlow-named config aliases where the old names are user-facing.
 - Add tests proving old and new names resolve to the same runtime behavior.
@@ -56,7 +58,9 @@ Add VassilFlow-owned facade modules over existing DeerFlow internals.
   boundary dataclasses/enums mirrored from
   `contracts/vassilflow_boundary_contract.json`; dynamic config class paths now
   accept `vassilflow.*` and the setup wizard/config examples prefer those names.
-  Deeper internal import renames remain deferred.
+  The facade now exposes `VassilFlowClient`, `create_vassilflow_agent`, and
+  `vassilflow.config.load_config` for new embedded integrations. Deeper
+  internal import renames remain deferred.
 - Keep existing `deerflow` imports working.
 - Introduce stable VassilFlow names for session, run, trace, tool, policy, approval, memory, and completion evidence contracts.
 - Add tests around `contracts/vassilflow_boundary_contract.json`.
@@ -73,7 +77,9 @@ Rename files, package names, Docker names, and module paths only after alias tes
   existing `.deer-flow` directories as an automatic fallback. Channel platform
   identifiers emitted to WeChat/Discord now use `vassilflow` prefixes. Fresh
   SQLite runtime databases now default to `vassilflow.db` while preserving
-  existing `deerflow.db` files when present.
+  existing `deerflow.db` files when present. Frontend deployment, operations,
+  memory, and thread docs now describe `.vassilflow` paths and VassilFlow-owned
+  Docker/root environment variables.
 - Rename one ownership boundary at a time.
 - Leave deprecation shims for at least one migration window.
 - Update docs and examples in the same commit as each supported alias.
