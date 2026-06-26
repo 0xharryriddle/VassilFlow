@@ -46,6 +46,11 @@ def _call_setup_agent(tmp_path: Path, soul: str, description: str, agent_name: s
 # --- Agent name validation tests ---
 
 
+def test_setup_agent_tool_description_uses_vassilflow_name():
+    assert "custom VassilFlow agent" in setup_agent.description
+    assert "custom DeerFlow agent" not in setup_agent.description
+
+
 def test_setup_agent_rejects_invalid_agent_name_before_writing(tmp_path, monkeypatch):
     monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
     outside_dir = tmp_path.parent / "outside-target"
