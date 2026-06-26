@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,12 @@ def default_source(repo_root: Path) -> Path:
 
 
 def default_target(repo_root: Path) -> Path:
+    explicit_home = os.environ.get("VASSILFLOW_HOME") or os.environ.get(
+        "DEER_FLOW_HOME"
+    )
+    if explicit_home:
+        return Path(explicit_home).expanduser() / "memory.json"
+
     current_home = repo_root / "backend" / ".vassilflow"
     legacy_home = repo_root / "backend" / ".deer-flow"
     if not current_home.exists() and legacy_home.exists():
