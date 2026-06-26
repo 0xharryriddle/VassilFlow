@@ -37,9 +37,9 @@ from langchain_openai.chat_models.base import _create_usage_metadata
 
 
 def _normalize_vllm_chat_template_kwargs(payload: dict[str, Any]) -> None:
-    """Map DeerFlow's legacy ``thinking`` toggle to vLLM/Qwen's ``enable_thinking``.
+    """Map VassilFlow's legacy ``thinking`` toggle to vLLM/Qwen's ``enable_thinking``.
 
-    DeerFlow originally documented ``extra_body.chat_template_kwargs.thinking``
+    VassilFlow originally documented ``extra_body.chat_template_kwargs.thinking``
     for vLLM, but vLLM 0.19.0's Qwen reasoning parser reads
     ``chat_template_kwargs.enable_thinking``. Normalize the payload just before
     it is sent so existing configs keep working and flash mode can truly

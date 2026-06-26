@@ -1,7 +1,8 @@
-"""Pure-argument factory for DeerFlow agents.
+"""Pure-argument factory for VassilFlow agents.
 
-``create_deerflow_agent`` accepts plain Python arguments — no YAML files, no
-global singletons.  It is the SDK-level entry point sitting between the raw
+``create_deerflow_agent`` is the implementation entry point behind the
+``create_vassilflow_agent`` facade. It accepts plain Python arguments — no YAML
+files, no global singletons. It sits between the raw
 ``langchain.agents.create_agent`` primitive and the config-driven
 ``make_lead_agent`` application factory.
 
@@ -71,7 +72,7 @@ def create_deerflow_agent(
     checkpointer: BaseCheckpointSaver | None = None,
     name: str = "default",
 ) -> CompiledStateGraph:
-    """Create a DeerFlow agent from plain Python arguments.
+    """Create a VassilFlow agent from plain Python arguments.
 
     The factory assembly itself reads no config files.  Some injected runtime
     components (e.g. ``task_tool``) may still depend on global config at

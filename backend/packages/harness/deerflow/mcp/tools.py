@@ -96,7 +96,7 @@ def _local_uri_to_virtual_path(
     Stdio MCP servers run with their cwd and temp dir pinned inside the thread's
     mounted user-data tree (see :func:`_make_session_pool_tool`), so the files
     they produce already live somewhere the sandbox/artifact API can serve — the
-    only thing missing is the virtual prefix the rest of DeerFlow addresses them
+    only thing missing is the virtual prefix the rest of VassilFlow addresses them
     by. This performs that purely deterministic host→virtual mapping: no copy, no
     trusted-root list, and no exposure of files outside the thread's own tree.
 
