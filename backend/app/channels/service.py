@@ -6,18 +6,19 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
+from vassilflow.config.env_aliases import env_value
+
 from app.channels.base import Channel
 from app.channels.manager import DEFAULT_GATEWAY_URL, DEFAULT_LANGGRAPH_URL, ChannelManager
 from app.channels.message_bus import MessageBus
 from app.channels.runtime_config_store import merge_runtime_channel_configs
 from app.channels.store import ChannelStore
-from deerflow.config.env_aliases import env_value
 
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from deerflow.config.app_config import AppConfig
-    from deerflow.config.channel_connections_config import ChannelConnectionsConfig
+    from vassilflow.config.app_config import AppConfig
+    from vassilflow.config.channel_connections_config import ChannelConnectionsConfig
 
 # Channel name → import path for lazy loading
 _CHANNEL_REGISTRY: dict[str, str] = {
@@ -70,8 +71,8 @@ def _make_connection_repo(connection_config: ChannelConnectionsConfig | None):
         return None
 
     try:
-        from deerflow.persistence.channel_connections import ChannelConnectionRepository
-        from deerflow.persistence.engine import get_session_factory
+        from vassilflow.persistence.channel_connections import ChannelConnectionRepository
+        from vassilflow.persistence.engine import get_session_factory
     except Exception:
         logger.exception("Failed to import channel connection repository")
         return None
@@ -124,7 +125,7 @@ class ChannelService:
     def from_app_config(cls, app_config: AppConfig | None = None) -> ChannelService:
         """Create a ChannelService from the application config."""
         if app_config is None:
-            from deerflow.config.app_config import get_app_config
+            from vassilflow.config.app_config import get_app_config
 
             app_config = get_app_config()
         channels_config = {}
@@ -243,7 +244,7 @@ class ChannelService:
         Falls back to the cached ``self._config`` when config loading fails.
         """
         try:
-            from deerflow.config.app_config import get_app_config
+            from vassilflow.config.app_config import get_app_config
 
             app_config = get_app_config()
             extra = app_config.model_extra or {}
@@ -315,7 +316,7 @@ class ChannelService:
             return False
 
         try:
-            from deerflow.reflection import resolve_class
+            from vassilflow.reflection import resolve_class
 
             channel_cls = resolve_class(import_path, base_class=None)
         except Exception:

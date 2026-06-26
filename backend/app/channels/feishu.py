@@ -10,6 +10,10 @@ import threading
 import time
 from typing import Any, Literal
 
+from vassilflow.config.paths import VIRTUAL_PATH_PREFIX, get_paths
+from vassilflow.runtime.user_context import get_effective_user_id
+from vassilflow.sandbox.sandbox_provider import get_sandbox_provider
+
 from app.channels.base import Channel
 from app.channels.commands import is_known_channel_command
 from app.channels.connection_identity import attach_connection_identity
@@ -22,9 +26,6 @@ from app.channels.message_bus import (
     OutboundMessage,
     ResolvedAttachment,
 )
-from deerflow.config.paths import VIRTUAL_PATH_PREFIX, get_paths
-from deerflow.runtime.user_context import get_effective_user_id
-from deerflow.sandbox.sandbox_provider import get_sandbox_provider
 
 logger = logging.getLogger(__name__)
 PENDING_CLARIFICATION_TTL_SECONDS = 30 * 60
