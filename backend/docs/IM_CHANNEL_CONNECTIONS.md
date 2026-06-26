@@ -115,7 +115,7 @@ For providers with an `allowed_users` allowlist (Telegram, Slack, DingTalk, WeCh
 
 ## Runtime Model
 
-Connection records live in SQL tables under `deerflow.persistence.channel_connections`:
+Connection records live in SQL tables under `vassilflow.persistence.channel_connections`:
 
 - `channel_connections`: owner user, provider identity, workspace/guild/team, status, metadata.
 - `channel_oauth_states`: one-time connect codes and Telegram deep-link state.

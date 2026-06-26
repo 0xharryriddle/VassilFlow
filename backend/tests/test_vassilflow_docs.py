@@ -93,9 +93,11 @@ def test_im_channel_docs_use_vassilflow_identity():
     assert "connect the channel from VassilFlow Settings" in content
     assert "Send /connect <code> to the VassilFlow Slack bot." in content
     assert "VassilFlow run user id" in content
+    assert "`vassilflow.persistence.channel_connections`" in content
     assert "DeerFlow supports user-owned IM channel bindings" not in content
     assert "connect the channel from DeerFlow Settings" not in content
     assert "Send /connect <code> to the DeerFlow Slack bot." not in content
+    assert "`deerflow.persistence.channel_connections`" not in content
 
 
 def test_api_docs_use_vassilflow_identity_and_runtime_paths():
