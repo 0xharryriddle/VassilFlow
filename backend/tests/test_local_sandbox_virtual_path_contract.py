@@ -47,7 +47,7 @@ def isolated_paths(monkeypatch, tmp_path):
     real runtime state tree.
     """
     monkeypatch.setenv("DEER_FLOW_HOME", str(tmp_path))
-    from deerflow.config import paths as paths_module
+    from vassilflow.config import paths as paths_module
 
     monkeypatch.setattr(paths_module, "_paths", None)
     yield tmp_path
