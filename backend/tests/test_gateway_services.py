@@ -624,9 +624,9 @@ async def _capture_start_run_graph_input(body):
     from langgraph.store.memory import InMemoryStore
 
     from app.gateway.services import start_run
-    from deerflow.persistence.thread_meta.memory import MemoryThreadMetaStore
-    from deerflow.runtime import RunManager
-    from deerflow.runtime.runs.store.memory import MemoryRunStore
+    from vassilflow.persistence.thread_meta.memory import MemoryThreadMetaStore
+    from vassilflow.runtime import RunManager
+    from vassilflow.runtime.runs.store.memory import MemoryRunStore
 
     run_manager = RunManager(store=MemoryRunStore())
     state = SimpleNamespace(
@@ -709,9 +709,9 @@ def test_start_run_uses_internal_owner_header_for_persistence(_stub_app_config):
 
     from app.gateway.internal_auth import INTERNAL_OWNER_USER_ID_HEADER_NAME, INTERNAL_SYSTEM_ROLE
     from app.gateway.services import start_run
-    from deerflow.persistence.thread_meta.memory import MemoryThreadMetaStore
-    from deerflow.runtime import RunManager
-    from deerflow.runtime.runs.store.memory import MemoryRunStore
+    from vassilflow.persistence.thread_meta.memory import MemoryThreadMetaStore
+    from vassilflow.runtime import RunManager
+    from vassilflow.runtime.runs.store.memory import MemoryRunStore
     from vassilflow.runtime.user_context import get_effective_user_id
 
     async def _scenario():

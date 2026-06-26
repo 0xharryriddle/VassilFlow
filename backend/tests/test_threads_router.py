@@ -11,8 +11,8 @@ from langgraph.store.memory import InMemoryStore
 
 from app.gateway.routers import threads
 from deerflow.config.paths import Paths
-from deerflow.persistence.thread_meta import InvalidMetadataFilterError
-from deerflow.persistence.thread_meta.memory import THREADS_NS, MemoryThreadMetaStore
+from vassilflow.persistence.thread_meta import InvalidMetadataFilterError
+from vassilflow.persistence.thread_meta.memory import THREADS_NS, MemoryThreadMetaStore
 
 _ISO_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
