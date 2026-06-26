@@ -42,7 +42,7 @@ VassilFlow uses a YAML configuration file that should be placed in the **project
 - **Git**: `config.yaml` is automatically ignored by git (contains secrets)
 - **Runtime aliases**: Prefer `VASSILFLOW_*` variables. Legacy `DEER_FLOW_*` variables still work as fallbacks; if both are set, `VASSILFLOW_*` wins.
 - **Runtime root**: Set `VASSILFLOW_PROJECT_ROOT` if VassilFlow may start from outside the project root
-- **Runtime data**: State defaults to `.deer-flow` under the project root; set `VASSILFLOW_HOME` to move it
+- **Runtime data**: State defaults to `.vassilflow` under the project root; existing `.deer-flow` state is used as a transition fallback when `.vassilflow` does not exist. Set `VASSILFLOW_HOME` to move it
 - **Skills**: Skills default to `skills/` under the project root; set `VASSILFLOW_SKILLS_PATH` or `skills.path` to move them
 
 ## Configuration File Locations

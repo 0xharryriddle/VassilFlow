@@ -36,6 +36,24 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from deerflow.config.runtime_paths import DEFAULT_RUNTIME_HOME_NAME, LEGACY_RUNTIME_HOME_NAME, project_root
+
+DEFAULT_SQLITE_DIR = f"{DEFAULT_RUNTIME_HOME_NAME}/data"
+LEGACY_SQLITE_DIR = f"{LEGACY_RUNTIME_HOME_NAME}/data"
+
+
+def default_sqlite_dir() -> str:
+    """Return the default SQLite directory, preserving existing legacy state."""
+    root = project_root()
+    current_home = root / DEFAULT_RUNTIME_HOME_NAME
+    legacy_home = root / LEGACY_RUNTIME_HOME_NAME
+
+    if current_home.exists():
+        return DEFAULT_SQLITE_DIR
+    if legacy_home.exists():
+        return LEGACY_SQLITE_DIR
+    return DEFAULT_SQLITE_DIR
+
 
 class DatabaseConfig(BaseModel):
     backend: Literal["memory", "sqlite", "postgres"] = Field(
@@ -43,7 +61,7 @@ class DatabaseConfig(BaseModel):
         description=("Storage backend for both checkpointer and application data. 'memory' for development (no persistence across restarts), 'sqlite' for single-node deployment, 'postgres' for production multi-node deployment."),
     )
     sqlite_dir: str = Field(
-        default=".deer-flow/data",
+        default_factory=default_sqlite_dir,
         description=("Directory for the SQLite database file. Both checkpointer and application data share {sqlite_dir}/deerflow.db."),
     )
     postgres_url: str = Field(

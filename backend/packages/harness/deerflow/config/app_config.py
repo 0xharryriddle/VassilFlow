@@ -14,7 +14,7 @@ from deerflow.config.agents_api_config import AgentsApiConfig, load_agents_api_c
 from deerflow.config.auth_config import AuthAppConfig
 from deerflow.config.channel_connections_config import ChannelConnectionsConfig
 from deerflow.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
-from deerflow.config.database_config import DatabaseConfig
+from deerflow.config.database_config import DatabaseConfig, default_sqlite_dir
 from deerflow.config.env_aliases import env_value
 from deerflow.config.extensions_config import ExtensionsConfig
 from deerflow.config.guardrails_config import GuardrailsConfig, load_guardrails_config_from_dict
@@ -46,7 +46,6 @@ logger = logging.getLogger(__name__)
 
 CONFIG_FILE_DATABASE_DEFAULTS = {
     "backend": "sqlite",
-    "sqlite_dir": ".deer-flow/data",
 }
 
 
@@ -312,6 +311,7 @@ class AppConfig(BaseModel):
             return
         for key, value in CONFIG_FILE_DATABASE_DEFAULTS.items():
             database_config.setdefault(key, value)
+        database_config.setdefault("sqlite_dir", default_sqlite_dir())
 
     @classmethod
     def _check_config_version(cls, config_data: dict, config_path: Path) -> None:

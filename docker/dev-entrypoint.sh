@@ -68,16 +68,19 @@ fi
 # must exist before uvicorn starts so watchfiles treats it as an excluded
 # directory, not as a plain glob pattern — on Python 3.12, globbing an absolute
 # pattern raises NotImplementedError and crashes startup (#3459 / #3454). That
-# means `sandbox` must be created here too, not just `.deer-flow`.
+# means `sandbox` must be created here too, not just the runtime home.
 if [ -n "${VASSILFLOW_HOME:-}" ]; then
     DEER_FLOW_HOME="$VASSILFLOW_HOME"
 elif [ -n "${DEER_FLOW_HOME:-}" ]; then
     VASSILFLOW_HOME="$DEER_FLOW_HOME"
+elif [ ! -e /app/backend/.vassilflow ] && [ -e /app/backend/.deer-flow ]; then
+    DEER_FLOW_HOME=/app/backend/.deer-flow
+    VASSILFLOW_HOME="$DEER_FLOW_HOME"
 fi
-: "${DEER_FLOW_HOME:=/app/backend/.deer-flow}"
+: "${DEER_FLOW_HOME:=/app/backend/.vassilflow}"
 : "${VASSILFLOW_HOME:=$DEER_FLOW_HOME}"
 export DEER_FLOW_HOME VASSILFLOW_HOME
-mkdir -p "$DEER_FLOW_HOME" /app/backend/.deer-flow /app/backend/sandbox
+mkdir -p "$DEER_FLOW_HOME" /app/backend/sandbox
 
 # ── Sync dependencies (with self-heal) ──────────────────────────────────────
 
@@ -101,5 +104,4 @@ PYTHONPATH=. exec uv run uvicorn app.gateway.app:app \
     --reload-include='*.yaml' \
     --reload-include='.env' \
     --reload-exclude=/app/backend/sandbox \
-    --reload-exclude="$DEER_FLOW_HOME" \
-    --reload-exclude=/app/backend/.deer-flow
+    --reload-exclude="$DEER_FLOW_HOME"

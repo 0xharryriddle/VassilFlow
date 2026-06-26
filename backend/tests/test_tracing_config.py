@@ -97,7 +97,7 @@ def test_defaults_when_project_not_set(monkeypatch):
     _reset_tracing_cache()
     cfg = tracing_module.get_tracing_config()
 
-    assert cfg.langsmith.project == "deer-flow"
+    assert cfg.langsmith.project == "vassilflow"
 
 
 def test_langfuse_config_is_loaded(monkeypatch):

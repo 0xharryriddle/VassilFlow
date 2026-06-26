@@ -6,9 +6,10 @@
 #   You can set `VASSILFLOW_PROJECT_ROOT` (legacy: `DEER_FLOW_PROJECT_ROOT`) to
 #   define that root explicitly, or use `VASSILFLOW_CONFIG_PATH` (legacy:
 #   `DEER_FLOW_CONFIG_PATH`) to point at a specific config file.
-# - Runtime state defaults to `.deer-flow` under the project root. Override it
-#   with `VASSILFLOW_HOME` (legacy: `DEER_FLOW_HOME`) when you need a different
-#   writable data directory.
+# - Runtime state defaults to `.vassilflow` under the project root. Existing
+#   `.deer-flow` directories are still used as a transition fallback when
+#   `.vassilflow` does not exist. Override this with `VASSILFLOW_HOME` (legacy:
+#   `DEER_FLOW_HOME`) when you need a different writable data directory.
 # - Environment variables are available for all field values. Example: `api_key: $OPENAI_API_KEY`
 # - The `use` path is a string that looks like "package_name.sub_package_name.module_name:class_name/variable_name".
 
@@ -1255,7 +1256,7 @@ skill_evolution:
 #
 # If this section is omitted or empty in config.yaml, VassilFlow uses:
 #   backend: sqlite
-#   sqlite_dir: .deer-flow/data
+#   sqlite_dir: .vassilflow/data
 #
 # SQLite mode uses a single deerflow.db file with WAL journal mode
 # for both checkpointer and application data.
@@ -1287,14 +1288,14 @@ skill_evolution:
 # If you use `database`, you can remove the `checkpointer` section.
 # database:
 #   backend: sqlite
-#   sqlite_dir: .deer-flow/data
+#   sqlite_dir: .vassilflow/data
 #
 # database:
 #   backend: postgres
 #   postgres_url: $DATABASE_URL
 database:
   backend: sqlite
-  sqlite_dir: .deer-flow/data
+  sqlite_dir: .vassilflow/data
 
 # ============================================================================
 # Run Events Configuration
@@ -1425,7 +1426,7 @@ run_events:
 #     # Optional: QR bootstrap timeout in seconds
 #     qrcode_poll_timeout: 180
 #     # Optional: persist getupdates cursor under the gateway container volume
-#     state_dir: ./.deer-flow/wechat/state
+#     state_dir: ./.vassilflow/wechat/state
 #     # Optional: max inbound image size in bytes before skipping download
 #     max_inbound_image_bytes: 20971520
 #     # Optional: max outbound image size in bytes before skipping upload

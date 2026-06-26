@@ -5,6 +5,9 @@ from pathlib import Path
 
 from deerflow.config.env_aliases import env_value
 
+DEFAULT_RUNTIME_HOME_NAME = ".vassilflow"
+LEGACY_RUNTIME_HOME_NAME = ".deer-flow"
+
 
 def project_root() -> Path:
     """Return the caller project root for runtime-owned files."""
@@ -18,11 +21,30 @@ def project_root() -> Path:
     return Path.cwd().resolve()
 
 
+def default_runtime_home(root: Path | None = None) -> Path:
+    """Return the default runtime home, preserving existing legacy state.
+
+    Fresh VassilFlow workspaces use ``.vassilflow``. During the transition,
+    workspaces that already have ``.deer-flow`` and no ``.vassilflow`` keep using
+    the legacy directory so persisted DB/session/thread data is not orphaned by a
+    default-name upgrade.
+    """
+    base = (root or project_root()).resolve()
+    current = base / DEFAULT_RUNTIME_HOME_NAME
+    legacy = base / LEGACY_RUNTIME_HOME_NAME
+
+    if current.exists():
+        return current
+    if legacy.exists():
+        return legacy
+    return current
+
+
 def runtime_home() -> Path:
-    """Return the writable DeerFlow state directory."""
+    """Return the writable VassilFlow state directory."""
     if env_home := env_value("DEER_FLOW_HOME"):
         return Path(env_home).resolve()
-    return project_root() / ".deer-flow"
+    return default_runtime_home()
 
 
 def resolve_path(value: str | os.PathLike[str], *, base: Path | None = None) -> Path:

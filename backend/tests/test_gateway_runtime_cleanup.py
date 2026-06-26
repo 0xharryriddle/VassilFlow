@@ -49,14 +49,15 @@ def test_local_dev_gateway_reload_excludes_runtime_state_with_absolute_dirs():
     assert "sync_vassilflow_env DEER_FLOW_PROJECT_ROOT" in serve_sh
     assert "sync_vassilflow_env DEER_FLOW_HOME" in serve_sh
     assert 'export DEER_FLOW_PROJECT_ROOT="$REPO_ROOT"' in serve_sh
-    assert 'BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"' in serve_sh
+    assert 'BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.vassilflow"' in serve_sh
+    assert 'LEGACY_BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"' in serve_sh
+    assert 'export DEER_FLOW_HOME="$LEGACY_BACKEND_RUNTIME_HOME"' in serve_sh
     assert 'export DEER_FLOW_HOME="$BACKEND_RUNTIME_HOME"' in serve_sh
     assert "export VASSILFLOW_HOME" in serve_sh
     # Every absolute reload-exclude must be pre-created, including backend/sandbox
     # (#3459 / #3454) — see test_uvicorn_reload_exclude.py for the mechanism.
-    assert 'mkdir -p "$DEER_FLOW_HOME" "$BACKEND_RUNTIME_HOME" "$REPO_ROOT/backend/sandbox"' in serve_sh
+    assert 'mkdir -p "$DEER_FLOW_HOME" "$REPO_ROOT/backend/sandbox"' in serve_sh
     assert "--reload-exclude='$DEER_FLOW_HOME'" in serve_sh
-    assert "--reload-exclude='$BACKEND_RUNTIME_HOME'" in serve_sh
     assert "--reload-exclude='sandbox/'" not in serve_sh
     assert "--reload-exclude='.deer-flow/'" not in serve_sh
 
@@ -90,18 +91,19 @@ def test_compose_files_expose_vassilflow_runtime_aliases():
 
     assert "${VASSILFLOW_CONFIG_PATH:-${DEER_FLOW_CONFIG_PATH:-../config.yaml}}" in prod
     assert "${VASSILFLOW_EXTENSIONS_CONFIG_PATH:-${DEER_FLOW_EXTENSIONS_CONFIG_PATH:-../extensions_config.json}}" in prod
-    assert "${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.deer-flow}}" in prod
+    assert "${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.vassilflow}}" in prod
+    assert ":/app/backend/.vassilflow" in prod
     assert "VASSILFLOW_PROJECT_ROOT=/app" in prod
-    assert "VASSILFLOW_HOME=/app/backend/.deer-flow" in prod
+    assert "VASSILFLOW_HOME=/app/backend/.vassilflow" in prod
     assert "VASSILFLOW_INTERNAL_AUTH_TOKEN=${VASSILFLOW_INTERNAL_AUTH_TOKEN:-${DEER_FLOW_INTERNAL_AUTH_TOKEN:-}}" in prod
-    assert "VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.deer-flow}}" in prod
+    assert "VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_HOME:-${DEER_FLOW_HOME:-../backend/.vassilflow}}" in prod
     assert "VASSILFLOW_HOST_SKILLS_PATH=${VASSILFLOW_REPO_ROOT:-${DEER_FLOW_REPO_ROOT:-..}}/skills" in prod
 
     assert "${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/skills" in dev
     assert "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001" in dev
     assert "VASSILFLOW_PROJECT_ROOT=/app" in dev
-    assert "VASSILFLOW_HOME=/app/backend/.deer-flow" in dev
-    assert "VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/backend/.deer-flow" in dev
+    assert "VASSILFLOW_HOME=${VASSILFLOW_CONTAINER_HOME:-${DEER_FLOW_CONTAINER_HOME:-/app/backend/.vassilflow}}" in dev
+    assert "VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_RUNTIME_HOME:-${DEER_FLOW_RUNTIME_HOME:-${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/backend/.vassilflow}}" in dev
 
     assert "${VASSILFLOW_DOCKER_SOCKET:-${DEER_FLOW_DOCKER_SOCKET:-/var/run/docker.sock}}" in dood
 

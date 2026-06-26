@@ -216,11 +216,11 @@ class LocalSandbox(Sandbox):
             Container path if mapping exists, otherwise original path
         """
         normalized_path = path.replace("\\", "/")
-        path_str = str(Path(normalized_path).resolve())
+        path_str = str(Path(normalized_path).resolve()).replace("\\", "/")
 
         # Try each mapping (longest local path first for more specific matches)
         for mapping in self._mappings_by_local_specificity:
-            local_path_resolved = self._resolved_local_paths[mapping]
+            local_path_resolved = self._resolved_local_paths[mapping].replace("\\", "/")
             if path_str == local_path_resolved or path_str.startswith(local_path_resolved + "/"):
                 # Replace the local path prefix with container path
                 relative = path_str[len(local_path_resolved) :].lstrip("/")

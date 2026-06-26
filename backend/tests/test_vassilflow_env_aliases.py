@@ -72,6 +72,25 @@ def test_vassilflow_project_root_and_home_aliases(tmp_path: Path, monkeypatch):
     assert runtime_home() == home.resolve()
 
 
+def test_vassilflow_runtime_home_defaults_to_current_name_with_legacy_fallback(tmp_path: Path, monkeypatch):
+    project = tmp_path / "project"
+    project.mkdir()
+    legacy_home = project / ".deer-flow"
+    legacy_home.mkdir()
+
+    monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(project))
+    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
+    monkeypatch.delenv("VASSILFLOW_HOME", raising=False)
+    monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
+
+    assert runtime_home() == legacy_home.resolve()
+
+    current_home = project / ".vassilflow"
+    current_home.mkdir()
+
+    assert runtime_home() == current_home.resolve()
+
+
 def test_vassilflow_config_path_alias(tmp_path: Path, monkeypatch):
     config_path = tmp_path / "config.yaml"
     config_path.write_text("sandbox:\n  use: deerflow.sandbox.local:LocalSandboxProvider\n", encoding="utf-8")

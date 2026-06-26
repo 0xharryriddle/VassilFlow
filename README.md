@@ -14,7 +14,7 @@ VassilFlow is an open-source **super agent harness** that orchestrates **sub-age
 https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
 > [!NOTE]
-> VassilFlow is being migrated from the upstream DeerFlow 2.0 codebase. During the transition, compatibility shims intentionally keep existing `deerflow.*`, `DEER_FLOW_*`, and `.deer-flow` surfaces working while VassilFlow-owned aliases are introduced.
+> VassilFlow is being migrated from the upstream DeerFlow 2.0 codebase. During the transition, compatibility shims intentionally keep existing `deerflow.*`, `DEER_FLOW_*`, and legacy `.deer-flow` state directories working while VassilFlow-owned aliases are introduced.
 
 ## Upstream Website
 
@@ -252,7 +252,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed Docker development guide.
 
 If you prefer running services locally:
 
-Prerequisite: complete the "Configuration" steps above first (`make setup`). `make dev` requires a valid `config.yaml` in the project root. Set `VASSILFLOW_PROJECT_ROOT` to define that root explicitly, or `VASSILFLOW_CONFIG_PATH` to point at a specific config file. Runtime state defaults to `.deer-flow` under the project root and can be moved with `VASSILFLOW_HOME`; skills default to `skills/` under the project root and can be moved with `VASSILFLOW_SKILLS_PATH`. Legacy `DEER_FLOW_*` variables still work as fallbacks; when both names are set, `VASSILFLOW_*` wins. Run `make doctor` to verify your setup before starting.
+Prerequisite: complete the "Configuration" steps above first (`make setup`). `make dev` requires a valid `config.yaml` in the project root. Set `VASSILFLOW_PROJECT_ROOT` to define that root explicitly, or `VASSILFLOW_CONFIG_PATH` to point at a specific config file. Runtime state defaults to `.vassilflow` under the project root; an existing `.deer-flow` directory is still used as a transition fallback when `.vassilflow` does not exist. You can override the location with `VASSILFLOW_HOME`; skills default to `skills/` under the project root and can be moved with `VASSILFLOW_SKILLS_PATH`. Legacy `DEER_FLOW_*` variables still work as fallbacks; when both names are set, `VASSILFLOW_*` wins. Run `make doctor` to verify your setup before starting.
 On Windows, run the local development flow from Git Bash. Native `cmd.exe` and PowerShell shells are not supported for the bash-based service scripts, and WSL is not guaranteed because some scripts rely on Git for Windows utilities such as `cygpath`.
 
 1. **Check prerequisites**:
@@ -399,7 +399,7 @@ channels:
     qrcode_login_enabled: true      # optional: allow first-time QR bootstrap when bot_token is absent
     allowed_users: []               # empty = allow all
     polling_timeout: 35
-    state_dir: ./.deer-flow/wechat/state
+    state_dir: ./.vassilflow/wechat/state
     max_inbound_image_bytes: 20971520
     max_outbound_image_bytes: 20971520
     max_inbound_file_bytes: 52428800
@@ -746,7 +746,7 @@ Regression coverage includes Docker sandbox mode detection and provisioner kubec
 Backend blocking-IO diagnostics are available from the repository root with
 `make detect-blocking-io`: it statically scans backend business code for
 blocking IO that may run on the backend event loop, prints a concise summary,
-and writes complete JSON findings to `.deer-flow/blocking-io-findings.json`.
+and writes complete JSON findings to `.vassilflow/blocking-io-findings.json`.
 The JSON includes compact review records with `priority`, `location`,
 `blocking_call`, `event_loop_exposure`, `reason`, and `code`.
 Gateway artifact serving now forces active web content types (`text/html`, `application/xhtml+xml`, `image/svg+xml`) to download as attachments instead of inline rendering, reducing XSS risk for generated artifacts.

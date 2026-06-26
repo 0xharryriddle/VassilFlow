@@ -15,7 +15,11 @@ def default_source(repo_root: Path) -> Path:
 
 
 def default_target(repo_root: Path) -> Path:
-    return repo_root / "backend" / ".deer-flow" / "memory.json"
+    current_home = repo_root / "backend" / ".vassilflow"
+    legacy_home = repo_root / "backend" / ".deer-flow"
+    if not current_home.exists() and legacy_home.exists():
+        return legacy_home / "memory.json"
+    return current_home / "memory.json"
 
 
 def parse_args(repo_root: Path) -> argparse.Namespace:

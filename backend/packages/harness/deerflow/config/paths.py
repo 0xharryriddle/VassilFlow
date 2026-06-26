@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def _default_local_base_dir() -> Path:
-    """Return the caller project's writable DeerFlow state directory."""
+    """Return the caller project's writable VassilFlow state directory."""
     return runtime_home()
 
 
@@ -64,7 +64,7 @@ def _join_host_path(base: str, *parts: str) -> str:
     """Join host filesystem path segments while preserving native style.
 
     Docker Desktop on Windows expects bind mount sources to stay in Windows
-    path form (for example ``C:\\repo\\backend\\.deer-flow``).  Using
+    path form (for example ``C:\\repo\\backend\\.vassilflow``).  Using
     ``Path(base) / ...`` on a POSIX host can accidentally rewrite those paths
     with mixed separators, so this helper preserves the original style.
     """
@@ -90,7 +90,7 @@ def join_host_path(base: str, *parts: str) -> str:
 
 class Paths:
     """
-    Centralized path configuration for DeerFlow application data.
+    Centralized path configuration for VassilFlow application data.
 
     Directory layout (host side):
         {base_dir}/
@@ -111,7 +111,8 @@ class Paths:
     BaseDir resolution (in priority order):
         1. Constructor argument `base_dir`
         2. VASSILFLOW_HOME/DEER_FLOW_HOME environment variable
-        3. Caller project fallback: `{project_root}/.deer-flow`
+        3. Caller project fallback: `{project_root}/.vassilflow`
+        4. Existing legacy fallback: `{project_root}/.deer-flow`
     """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:

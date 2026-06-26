@@ -111,11 +111,13 @@ def test_app_config_defaults_missing_database_to_sqlite(tmp_path, monkeypatch):
     _write_config(config_path, model_name="first-model", supports_thinking=False)
 
     monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
+    monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
 
     config = AppConfig.from_file(str(config_path))
 
     assert config.database.backend == "sqlite"
-    assert config.database.sqlite_dir == ".deer-flow/data"
+    assert config.database.sqlite_dir == ".vassilflow/data"
 
 
 def test_app_config_defaults_empty_database_to_sqlite(tmp_path, monkeypatch):
@@ -133,6 +135,25 @@ def test_app_config_defaults_empty_database_to_sqlite(tmp_path, monkeypatch):
     )
 
     monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
+    monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
+
+    config = AppConfig.from_file(str(config_path))
+
+    assert config.database.backend == "sqlite"
+    assert config.database.sqlite_dir == ".vassilflow/data"
+
+
+def test_app_config_database_default_preserves_existing_legacy_state(tmp_path, monkeypatch):
+    config_path = tmp_path / "config.yaml"
+    extensions_path = tmp_path / "extensions_config.json"
+    _write_extensions_config(extensions_path)
+    _write_config(config_path, model_name="first-model", supports_thinking=False)
+    (tmp_path / ".deer-flow").mkdir()
+
+    monkeypatch.setenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
+    monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
 
     config = AppConfig.from_file(str(config_path))
 

@@ -21,6 +21,8 @@ COMPOSE_FILE="$DOCKER_DIR/docker-compose-dev.yaml"
 COMPOSE_CMD="docker compose -p $COMPOSE_PROJECT_NAME -f docker-compose-dev.yaml"
 SANDBOX_CONTAINER_PREFIX="${VASSILFLOW_SANDBOX_CONTAINER_PREFIX:-${DEER_FLOW_SANDBOX_CONTAINER_PREFIX:-vassilflow-sandbox}}"
 LEGACY_SANDBOX_CONTAINER_PREFIX="deer-flow-sandbox"
+DEFAULT_RUNTIME_HOME="$PROJECT_ROOT/backend/.vassilflow"
+LEGACY_RUNTIME_HOME="$PROJECT_ROOT/backend/.deer-flow"
 
 vassilflow_alias_for() {
     case "$1" in
@@ -45,6 +47,9 @@ sync_vassilflow_env() {
 
 sync_vassilflow_envs() {
     sync_vassilflow_env DEER_FLOW_ROOT
+    sync_vassilflow_env DEER_FLOW_HOME
+    sync_vassilflow_env DEER_FLOW_RUNTIME_HOME
+    sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
     sync_vassilflow_env DEER_FLOW_DOCKER_DEV_PROJECT
     sync_vassilflow_env DEER_FLOW_SANDBOX_CONTAINER_PREFIX
     sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
@@ -73,6 +78,21 @@ stop_legacy_stack_if_running() {
         down_compose_project "$LEGACY_COMPOSE_PROJECT_NAME"
         echo ""
     fi
+}
+
+default_runtime_home() {
+    if [ ! -e "$DEFAULT_RUNTIME_HOME" ] && [ -e "$LEGACY_RUNTIME_HOME" ]; then
+        printf '%s\n' "$LEGACY_RUNTIME_HOME"
+    else
+        printf '%s\n' "$DEFAULT_RUNTIME_HOME"
+    fi
+}
+
+container_runtime_home_for() {
+    case "$1" in
+        */.deer-flow|*/.deer-flow/) printf '%s\n' "/app/backend/.deer-flow" ;;
+        *) printf '%s\n' "/app/backend/.vassilflow" ;;
+    esac
 }
 
 load_proxy_env_from_dotenv() {
@@ -284,6 +304,18 @@ start() {
     
     sync_vassilflow_envs
 
+    if [ -z "$DEER_FLOW_RUNTIME_HOME" ]; then
+        export DEER_FLOW_RUNTIME_HOME
+        DEER_FLOW_RUNTIME_HOME="$(default_runtime_home)"
+    fi
+    sync_vassilflow_env DEER_FLOW_RUNTIME_HOME
+
+    if [ -z "$DEER_FLOW_CONTAINER_HOME" ]; then
+        export DEER_FLOW_CONTAINER_HOME
+        DEER_FLOW_CONTAINER_HOME="$(container_runtime_home_for "$DEER_FLOW_RUNTIME_HOME")"
+    fi
+    sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
+
     # Set repo root for provisioner if not already set
     if [ -z "$DEER_FLOW_ROOT" ]; then
         export DEER_FLOW_ROOT="$PROJECT_ROOT"
@@ -390,6 +422,16 @@ stop() {
         export DEER_FLOW_ROOT="$PROJECT_ROOT"
     fi
     sync_vassilflow_env DEER_FLOW_ROOT
+    if [ -z "$DEER_FLOW_RUNTIME_HOME" ]; then
+        export DEER_FLOW_RUNTIME_HOME
+        DEER_FLOW_RUNTIME_HOME="$(default_runtime_home)"
+    fi
+    sync_vassilflow_env DEER_FLOW_RUNTIME_HOME
+    if [ -z "$DEER_FLOW_CONTAINER_HOME" ]; then
+        export DEER_FLOW_CONTAINER_HOME
+        DEER_FLOW_CONTAINER_HOME="$(container_runtime_home_for "$DEER_FLOW_RUNTIME_HOME")"
+    fi
+    sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
     echo "Stopping Docker development services..."
     cd "$DOCKER_DIR" && $COMPOSE_CMD down --remove-orphans
     if [ "$COMPOSE_PROJECT_NAME" != "$LEGACY_COMPOSE_PROJECT_NAME" ]; then

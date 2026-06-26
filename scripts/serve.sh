@@ -336,9 +336,14 @@ if [ -z "$DEER_FLOW_PROJECT_ROOT" ]; then
 fi
 sync_vassilflow_env DEER_FLOW_PROJECT_ROOT
 
-BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"
+BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.vassilflow"
+LEGACY_BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"
 if [ -z "$DEER_FLOW_HOME" ]; then
-    export DEER_FLOW_HOME="$BACKEND_RUNTIME_HOME"
+    if [ ! -e "$BACKEND_RUNTIME_HOME" ] && [ -e "$LEGACY_BACKEND_RUNTIME_HOME" ]; then
+        export DEER_FLOW_HOME="$LEGACY_BACKEND_RUNTIME_HOME"
+    else
+        export DEER_FLOW_HOME="$BACKEND_RUNTIME_HOME"
+    fi
 fi
 sync_vassilflow_env DEER_FLOW_HOME
 
@@ -347,15 +352,16 @@ sync_vassilflow_env DEER_FLOW_HOME
 # otherwise it globs the pattern, and Python 3.12's pathlib rejects absolute glob
 # patterns with NotImplementedError, crashing `make dev` on a fresh checkout
 # (#3459 / #3454). Creating it here keeps every absolute exclude on the is_dir path.
-mkdir -p "$DEER_FLOW_HOME" "$BACKEND_RUNTIME_HOME" "$REPO_ROOT/backend/sandbox"
+mkdir -p "$DEER_FLOW_HOME" "$REPO_ROOT/backend/sandbox"
 DEER_FLOW_HOME="$(cd "$DEER_FLOW_HOME" && pwd -P)"
-BACKEND_RUNTIME_HOME="$(cd "$BACKEND_RUNTIME_HOME" && pwd -P)"
+BACKEND_RUNTIME_HOME="$DEER_FLOW_HOME"
+VASSILFLOW_HOME="$DEER_FLOW_HOME"
 export DEER_FLOW_HOME
 export VASSILFLOW_HOME
 
 # Extra flags for uvicorn
 if $DEV_MODE && ! $DAEMON_MODE; then
-    GATEWAY_EXTRA_FLAGS="--reload --reload-include='*.yaml' --reload-include='.env' --reload-exclude='*.pyc' --reload-exclude='__pycache__' --reload-exclude='$REPO_ROOT/backend/sandbox' --reload-exclude='$DEER_FLOW_HOME' --reload-exclude='$BACKEND_RUNTIME_HOME'"
+    GATEWAY_EXTRA_FLAGS="--reload --reload-include='*.yaml' --reload-include='.env' --reload-exclude='*.pyc' --reload-exclude='__pycache__' --reload-exclude='$REPO_ROOT/backend/sandbox' --reload-exclude='$DEER_FLOW_HOME'"
 else
     GATEWAY_EXTRA_FLAGS=""
 fi

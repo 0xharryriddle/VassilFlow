@@ -11,7 +11,7 @@ from deerflow.config import skills_config as skills_config_module
 from deerflow.config.app_config import AppConfig
 from deerflow.config.extensions_config import ExtensionsConfig
 from deerflow.config.paths import Paths
-from deerflow.config.runtime_paths import project_root
+from deerflow.config.runtime_paths import project_root, runtime_home
 from deerflow.config.skills_config import SkillsConfig
 from deerflow.skills.storage import get_or_new_skill_storage
 
@@ -45,7 +45,8 @@ def test_default_runtime_paths_resolve_from_current_project(tmp_path: Path, monk
 
     assert AppConfig.resolve_config_path() == tmp_path / "config.yaml"
     assert ExtensionsConfig.resolve_config_path() == tmp_path / "extensions_config.json"
-    assert Paths().base_dir == tmp_path / ".deer-flow"
+    assert runtime_home() == tmp_path / ".vassilflow"
+    assert Paths().base_dir == tmp_path / ".vassilflow"
     assert SkillsConfig().get_skills_path() == tmp_path / "skills"
     assert get_or_new_skill_storage(skills_path=SkillsConfig().get_skills_path()).get_skills_root_path() == tmp_path / "skills"
 
@@ -67,8 +68,34 @@ def test_deer_flow_project_root_overrides_current_directory(tmp_path: Path, monk
 
     assert AppConfig.resolve_config_path() == project_root / "config.yaml"
     assert ExtensionsConfig.resolve_config_path() == project_root / "mcp_config.json"
-    assert Paths().base_dir == project_root / ".deer-flow"
+    assert Paths().base_dir == project_root / ".vassilflow"
     assert SkillsConfig(path="custom-skills").get_skills_path() == project_root / "custom-skills"
+
+
+def test_runtime_home_uses_existing_legacy_state_when_vassilflow_home_missing(tmp_path: Path, monkeypatch):
+    _clear_path_env(monkeypatch)
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    legacy_home = project_root / ".deer-flow"
+    legacy_home.mkdir()
+    monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(project_root))
+
+    assert runtime_home() == legacy_home.resolve()
+    assert Paths().base_dir == legacy_home.resolve()
+
+
+def test_runtime_home_prefers_vassilflow_state_when_both_exist(tmp_path: Path, monkeypatch):
+    _clear_path_env(monkeypatch)
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    legacy_home = project_root / ".deer-flow"
+    current_home = project_root / ".vassilflow"
+    legacy_home.mkdir()
+    current_home.mkdir()
+    monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(project_root))
+
+    assert runtime_home() == current_home.resolve()
+    assert Paths().base_dir == current_home.resolve()
 
 
 def test_deer_flow_skills_path_overrides_project_default(tmp_path: Path, monkeypatch):

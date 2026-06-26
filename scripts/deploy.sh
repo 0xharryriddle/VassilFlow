@@ -46,6 +46,8 @@ DOCKER_DIR="$REPO_ROOT/docker"
 COMPOSE_PROJECT_NAME="${VASSILFLOW_DOCKER_PROJECT:-${DEER_FLOW_DOCKER_PROJECT:-vassilflow}}"
 LEGACY_COMPOSE_PROJECT_NAME="deer-flow"
 COMPOSE_CMD=(docker compose -p "$COMPOSE_PROJECT_NAME" -f "$DOCKER_DIR/docker-compose.yaml")
+DEFAULT_RUNTIME_HOME="$REPO_ROOT/backend/.vassilflow"
+LEGACY_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 
@@ -110,12 +112,21 @@ stop_legacy_stack_if_running() {
     fi
 }
 
+default_runtime_home() {
+    if [ ! -e "$DEFAULT_RUNTIME_HOME" ] && [ -e "$LEGACY_RUNTIME_HOME" ]; then
+        printf '%s\n' "$LEGACY_RUNTIME_HOME"
+    else
+        printf '%s\n' "$DEFAULT_RUNTIME_HOME"
+    fi
+}
+
 sync_vassilflow_envs
 
-# ── DEER_FLOW_HOME ────────────────────────────────────────────────────────────
+# ── VASSILFLOW_HOME / DEER_FLOW_HOME ─────────────────────────────────────────
 
 if [ -z "$DEER_FLOW_HOME" ]; then
-    export DEER_FLOW_HOME="$REPO_ROOT/backend/.deer-flow"
+    export DEER_FLOW_HOME
+    DEER_FLOW_HOME="$(default_runtime_home)"
 fi
 sync_vassilflow_env DEER_FLOW_HOME
 echo -e "${BLUE}VASSILFLOW_HOME=$VASSILFLOW_HOME${NC}"
@@ -281,7 +292,7 @@ if [ "$CMD" = "down" ]; then
     # Set minimal env var defaults so docker compose can parse the file without
     # warning about unset variables that appear in volume specs.
     sync_vassilflow_envs
-    export DEER_FLOW_HOME="${DEER_FLOW_HOME:-$REPO_ROOT/backend/.deer-flow}"
+    export DEER_FLOW_HOME="${DEER_FLOW_HOME:-$(default_runtime_home)}"
     export DEER_FLOW_CONFIG_PATH="${DEER_FLOW_CONFIG_PATH:-$DEER_FLOW_HOME/config.yaml}"
     export DEER_FLOW_EXTENSIONS_CONFIG_PATH="${DEER_FLOW_EXTENSIONS_CONFIG_PATH:-$DEER_FLOW_HOME/extensions_config.json}"
     export DEER_FLOW_REPO_ROOT="${DEER_FLOW_REPO_ROOT:-$REPO_ROOT}"

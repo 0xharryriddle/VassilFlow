@@ -291,7 +291,7 @@ sandbox:
   use: vassilflow.community.aio_sandbox:AioSandboxProvider
   port: 8080
   auto_start: true
-  container_prefix: deer-flow-sandbox
+  container_prefix: vassilflow-sandbox
 
   # Optional: Additional mounts
   mounts:
@@ -367,7 +367,7 @@ skills:
 ```
 
 **How Skills Work**:
-- Skills are stored in `deer-flow/skills/{public,custom}/`
+- Skills are stored in `VassilFlow/skills/{public,custom}/`
 - Each skill has a `SKILL.md` file with metadata
 - Skills are automatically discovered and loaded
 - Available in both local and Docker sandbox via path mapping
@@ -425,7 +425,7 @@ are set, `VASSILFLOW_*` takes precedence.
 - `VASSILFLOW_PROJECT_ROOT` (`DEER_FLOW_PROJECT_ROOT`) - Project root for relative runtime paths
 - `VASSILFLOW_CONFIG_PATH` (`DEER_FLOW_CONFIG_PATH`) - Custom config file path
 - `VASSILFLOW_EXTENSIONS_CONFIG_PATH` (`DEER_FLOW_EXTENSIONS_CONFIG_PATH`) - Custom extensions config file path
-- `VASSILFLOW_HOME` (`DEER_FLOW_HOME`) - Runtime state directory (defaults to `.deer-flow` under the project root)
+- `VASSILFLOW_HOME` (`DEER_FLOW_HOME`) - Runtime state directory (defaults to `.vassilflow` under the project root; existing `.deer-flow` state remains a transition fallback when `.vassilflow` does not exist)
 - `VASSILFLOW_SKILLS_PATH` (`DEER_FLOW_SKILLS_PATH`) - Skills directory when `skills.path` is omitted
 - `GATEWAY_ENABLE_DOCS` - Set to `false` to disable Swagger UI (`/docs`), ReDoc (`/redoc`), and OpenAPI schema (`/openapi.json`) endpoints (default: `true`)
 
@@ -524,18 +524,18 @@ genuinely reads the full CLI config directory.
 ## Troubleshooting
 
 ### "Config file not found"
-- Ensure `config.yaml` exists in the **project root** directory (`deer-flow/config.yaml`)
-- If the runtime starts outside the project root, set `DEER_FLOW_PROJECT_ROOT`
-- Alternatively, set `DEER_FLOW_CONFIG_PATH` environment variable to custom location
+- Ensure `config.yaml` exists in the **project root** directory (`VassilFlow/config.yaml`)
+- If the runtime starts outside the project root, set `VASSILFLOW_PROJECT_ROOT` (legacy: `DEER_FLOW_PROJECT_ROOT`)
+- Alternatively, set `VASSILFLOW_CONFIG_PATH` (legacy: `DEER_FLOW_CONFIG_PATH`) environment variable to custom location
 
 ### "Invalid API key"
 - Verify environment variables are set correctly
 - Check that `$` prefix is used for env var references
 
 ### "Skills not loading"
-- Check that `deer-flow/skills/` directory exists
+- Check that `VassilFlow/skills/` directory exists
 - Verify skills have valid `SKILL.md` files
-- Check `skills.path` or `DEER_FLOW_SKILLS_PATH` if using a custom path
+- Check `skills.path` or `VASSILFLOW_SKILLS_PATH` (legacy: `DEER_FLOW_SKILLS_PATH`) if using a custom path
 
 ### "Docker sandbox fails to start"
 - Ensure Docker is running

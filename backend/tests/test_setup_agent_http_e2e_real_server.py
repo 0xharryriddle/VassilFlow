@@ -58,7 +58,7 @@ def isolated_deer_flow_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     """Stand up an isolated DeerFlow data root + config under tmp_path.
 
     - Sets ``DEER_FLOW_HOME`` so paths land under tmp_path, not the real
-      ``.deer-flow`` directory.
+      runtime state directory.
     - Stages a copy of the project's ``config.yaml`` (or ``config.example.yaml``
       on a fresh CI checkout where ``config.yaml`` is gitignored) and pins
       ``DEER_FLOW_CONFIG_PATH`` to it, so lifespan boot doesn't depend on the
