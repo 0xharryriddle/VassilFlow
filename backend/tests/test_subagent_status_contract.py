@@ -1,4 +1,4 @@
-"""Contract tests for ``deerflow.subagents.status_contract``.
+"""Contract tests for ``vassilflow.subagents.status_contract``.
 
 Bytedance/deer-flow issue #3146: the backend stamps
 ``ToolMessage.additional_kwargs.subagent_status`` so the frontend can read
@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from deerflow.subagents.status_contract import (
+from vassilflow.subagents.status_contract import (
     SUBAGENT_ERROR_KEY,
     SUBAGENT_STATUS_KEY,
     SUBAGENT_STATUS_VALUES,

@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from deerflow.subagents.config import SubagentConfig
+from vassilflow.subagents.config import SubagentConfig
 
 # Use module import so tests can patch the exact symbols referenced inside task_tool().
 task_tool_module = importlib.import_module("deerflow.tools.builtins.task_tool")
