@@ -83,6 +83,7 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
     from vassilflow.models import create_chat_model as facade_create_chat_model
     from vassilflow.models import factory as facade_model_factory
     from vassilflow.runtime import RunManager as VassilFlowRunManager
+    from vassilflow.runtime import RunStatus as VassilFlowRunStatus
     from vassilflow.runtime import RuntimeRunStatus
 
     from deerflow.agents import create_deerflow_agent
@@ -94,6 +95,7 @@ def test_vassilflow_facade_reexports_current_runtime_without_renaming_deerflow()
     assert issubclass(VassilFlowClient, DeerFlowClient)
     assert VassilFlowClient.__name__ == "VassilFlowClient"
     assert VassilFlowRunManager is RunManager
+    assert VassilFlowRunStatus is DeerFlowRunStatus
     assert RuntimeRunStatus is DeerFlowRunStatus
     assert create_vassilflow_agent.__name__ == "create_vassilflow_agent"
     assert facade_create_vassilflow_agent.__name__ == "create_vassilflow_agent"

@@ -24,6 +24,7 @@ from deerflow.runtime import (
 )
 
 RuntimeRunStatus = DeerFlowRunStatus
+RunStatus = DeerFlowRunStatus
 
 __all__ = [
     "ConflictError",
@@ -35,6 +36,7 @@ __all__ = [
     "RunContext",
     "RunManager",
     "RunRecord",
+    "RunStatus",
     "RuntimeRunStatus",
     "StreamBridge",
     "StreamEvent",

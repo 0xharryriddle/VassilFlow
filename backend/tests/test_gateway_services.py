@@ -5,14 +5,13 @@ from __future__ import annotations
 import json
 
 import pytest
-
-from deerflow.config.app_config import AppConfig, reset_app_config, set_app_config
+from vassilflow.config.app_config import AppConfig, reset_app_config, set_app_config
 
 
 @pytest.fixture
 def _stub_app_config():
     """Keep run-context tests independent from a developer-local config.yaml."""
-    set_app_config(AppConfig.model_validate({"sandbox": {"use": "deerflow.sandbox.local:LocalSandboxProvider"}}))
+    set_app_config(AppConfig.model_validate({"sandbox": {"use": "vassilflow.sandbox.local:LocalSandboxProvider"}}))
     yield
     reset_app_config()
 
