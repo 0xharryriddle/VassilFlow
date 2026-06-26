@@ -21,9 +21,11 @@ from vassilflow.models.credential_loader import CodexCliCredential
 def _make_model(**kwargs):
     from vassilflow.models.openai_codex_provider import CodexChatModel
 
+    model_name = kwargs.pop("model", "gpt-5.4")
+    reasoning_effort = kwargs.pop("reasoning_effort", "medium")
     cred = CodexCliCredential(access_token="tok-test", account_id="acc-test")
     with patch("vassilflow.models.openai_codex_provider.load_codex_cli_credential", return_value=cred):
-        return CodexChatModel(model="gpt-5.4", reasoning_effort="medium", **kwargs)
+        return CodexChatModel(model=model_name, reasoning_effort=reasoning_effort, **kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -49,6 +51,7 @@ def test_to_json_contains_model_and_reasoning_effort():
     result = model.to_json()
     assert result["kwargs"]["model"] == "gpt-5.4"
     assert result["kwargs"]["reasoning_effort"] == "medium"
+    assert result["kwargs"]["reasoning_summary"] == "detailed"
 
 
 def test_to_json_does_not_leak_access_token():
@@ -209,6 +212,32 @@ def test_convert_messages_tool_message():
     assert items[0]["type"] == "function_call_output"
     assert items[0]["call_id"] == "tc1"
     assert items[0]["output"] == "result data"
+
+
+# ---------------------------------------------------------------------------
+# reasoning payload
+# ---------------------------------------------------------------------------
+
+
+def test_reasoning_payload_includes_summary_by_default():
+    model = _make_model()
+
+    assert model._build_reasoning_payload() == {
+        "effort": "medium",
+        "summary": "detailed",
+    }
+
+
+def test_reasoning_payload_omits_summary_when_disabled():
+    model = _make_model(model="gpt-5.3-codex-spark", reasoning_summary="none")
+
+    assert model._build_reasoning_payload() == {"effort": "medium"}
+
+
+def test_reasoning_payload_omits_summary_when_reasoning_disabled():
+    model = _make_model(reasoning_effort="none", reasoning_summary="detailed")
+
+    assert model._build_reasoning_payload() == {"effort": "none"}
 
 
 # ---------------------------------------------------------------------------

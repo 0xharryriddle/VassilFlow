@@ -70,6 +70,7 @@ class CodexChatModel(BaseChatModel):
 
     model: str = "gpt-5.4"
     reasoning_effort: str = "medium"
+    reasoning_summary: str | None = "detailed"
     retry_max_attempts: int = MAX_RETRIES
     _access_token: str = ""
     _account_id: str = ""
@@ -202,6 +203,16 @@ class CodexChatModel(BaseChatModel):
                 )
         return responses_tools
 
+    def _build_reasoning_payload(self) -> dict[str, str]:
+        """Build the Codex reasoning payload, omitting unsupported summary opt-outs."""
+        if self.reasoning_effort == "none":
+            return {"effort": "none"}
+
+        reasoning = {"effort": self.reasoning_effort}
+        if self.reasoning_summary and self.reasoning_summary != "none":
+            reasoning["summary"] = self.reasoning_summary
+        return reasoning
+
     def _call_codex_api(self, messages: list[BaseMessage], tools: list[dict] | None = None) -> dict:
         """Call the Codex Responses API and return the completed response."""
         instructions, input_items = self._convert_messages(messages)
@@ -212,7 +223,7 @@ class CodexChatModel(BaseChatModel):
             "input": input_items,
             "store": False,
             "stream": True,
-            "reasoning": {"effort": self.reasoning_effort, "summary": "detailed"} if self.reasoning_effort != "none" else {"effort": "none"},
+            "reasoning": self._build_reasoning_payload(),
         }
 
         if tools:

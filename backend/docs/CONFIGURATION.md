@@ -52,6 +52,14 @@ models:
     supports_thinking: true
     supports_reasoning_effort: true
 
+  - name: gpt-5-3-codex-spark
+    display_name: GPT-5.3-Codex-Spark
+    use: vassilflow.models.openai_codex_provider:CodexChatModel
+    model: gpt-5.3-codex-spark
+    reasoning_summary: none
+    supports_thinking: true
+    supports_reasoning_effort: true
+
   - name: claude-sonnet-4.6
     display_name: Claude Sonnet 4.6 (Claude Code OAuth)
     use: vassilflow.models.claude_provider:ClaudeChatModel
@@ -63,6 +71,7 @@ models:
 **Auth behavior for CLI-backed providers**:
 - `CodexChatModel` loads Codex CLI auth from `~/.codex/auth.json`
 - The Codex Responses endpoint currently rejects `max_tokens` and `max_output_tokens`, so `CodexChatModel` does not expose a request-level token cap
+- Some Codex models reject reasoning summaries. Set `reasoning_summary: none` for those models while keeping `reasoning_effort` enabled
 - `ClaudeChatModel` accepts `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_AUTH_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR`, `CLAUDE_CODE_CREDENTIALS_PATH`, or plaintext `~/.claude/.credentials.json`
 - On macOS, VassilFlow does not probe Keychain automatically. Use `scripts/export_claude_code_oauth.py` to export Claude Code auth explicitly when needed
 
