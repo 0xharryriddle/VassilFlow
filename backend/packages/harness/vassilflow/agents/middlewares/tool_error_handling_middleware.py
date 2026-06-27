@@ -29,7 +29,7 @@ _TASK_TOOL_NAME = "task"
 def _stamp_task_subagent_status(message: ToolMessage, *, tool_name: str, error: str | None = None) -> ToolMessage:
     """Centralised stamping of ``additional_kwargs.subagent_status``.
 
-    Bytedance/deer-flow issue #3146: the frontend now reads the subagent
+    upstream issue #3146: the frontend now reads the subagent
     status from a structured field instead of parsing the leading text of
     the task tool's return string. That contract is enforced here, in the
     one place every task tool result flows through, rather than at the 5

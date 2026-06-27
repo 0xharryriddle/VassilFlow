@@ -1,6 +1,6 @@
 """Backend↔frontend contract for the structured subagent status.
 
-Bytedance/deer-flow issue #3146: the frontend used to derive the
+upstream issue #3146: the frontend used to derive the
 subtask card state by string-matching the leading text of the
 ``task`` tool's result. That contract was fragile — any rewording on
 the backend silently broke the card lifecycle, and the issue history

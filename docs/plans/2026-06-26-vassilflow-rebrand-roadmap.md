@@ -2,7 +2,7 @@
 
 ## Scope
 
-This roadmap separates product identity work from runtime compatibility work. It started while the code still used the upstream DeerFlow package namespace. The current baseline uses `vassilflow.*` as the canonical package namespace; remaining compatibility work is limited to user-facing migration surfaces such as environment variables, runtime directories, persisted data files, and config-upgrade rules.
+This roadmap separates product identity work from runtime compatibility work. It started while the code still used the upstream package namespace. The current baseline uses `vassilflow.*` as the canonical package namespace; remaining compatibility work is limited to user-facing migration surfaces such as environment variables, runtime directories, persisted data files, and config-upgrade rules.
 
 The migration should therefore happen in small commits that each keep the application runnable.
 
@@ -19,7 +19,7 @@ Change user-visible product identity to VassilFlow while preserving runtime comp
 
 Allowed:
 
-- `DeerFlow` text in visible UI and i18n strings.
+- Legacy product text in visible UI and i18n strings.
 - Landing/auth/workspace branding.
 - GitHub links that point users at the project repository.
 - OpenAPI app title, description, and health service name.
@@ -49,7 +49,7 @@ Add VassilFlow aliases before renaming anything relied on by users or deployment
   exporting legacy `DEER_FLOW_*` names. Setup, config upgrade, setup detection,
   and doctor tooling now resolve the config file through
   `VASSILFLOW_CONFIG_PATH` first. Frontend browser-local namespaces now prefer
-  VassilFlow event and storage keys while reading legacy DeerFlow keys where
+  VassilFlow event and storage keys while reading legacy keys where
   state migration matters. Runtime helper scripts now prefer `VASSILFLOW_HOME`
   before legacy runtime directories, and the runtime migration helper honors
   custom `VASSILFLOW_HOME` / `DEER_FLOW_HOME` paths. Local launcher
@@ -62,7 +62,7 @@ Add VassilFlow aliases before renaming anything relied on by users or deployment
 
 ## Phase 3 - Facade Modules
 
-Add VassilFlow-owned facade modules over existing DeerFlow internals.
+Add VassilFlow-owned facade modules over existing internals.
 
 - Status: superseded by the physical package rename. The implementation now
   lives under `backend/packages/harness/vassilflow`, embedded integrations use
@@ -101,12 +101,12 @@ Rewrite inherited README/docs after runtime aliases and facade modules are stabl
 Status: README and frontend English/Chinese product docs now use VassilFlow for
 standalone product references. `VassilFlowClient` and
 `create_vassilflow_agent` are now the documented embedded SDK entrypoints while
-legacy `deerflow.*`, `DeerFlowClient`, and `create_deerflow_agent` imports have
-been removed from the active baseline. Project-owned maintainer-orchestrator
+legacy `deerflow.*` imports have been removed from the active baseline.
+Project-owned maintainer-orchestrator
 agent docs and skill metadata now use VassilFlow naming. The public Claude Code
 bridge skill is now named `claude-to-vassilflow`. The repository smoke-test
 skill, reports, and troubleshooting references now use VassilFlow naming while
-still detecting legacy DeerFlow container/env aliases where migration support
+still detecting legacy container/env aliases where migration support
 matters.
 
 Historical upstream references should remain where they explain provenance, fixes, or compatibility decisions. Product docs should use VassilFlow.

@@ -1,6 +1,6 @@
 """Suppress tool execution when the provider safety-terminated the response.
 
-Background — see issue bytedance/deer-flow#3028.
+Background — see issue upstream issue #3028.
 
 Some providers (OpenAI ``finish_reason='content_filter'``, Anthropic
 ``stop_reason='refusal'``, Gemini ``finish_reason='SAFETY'`` ...) can stop

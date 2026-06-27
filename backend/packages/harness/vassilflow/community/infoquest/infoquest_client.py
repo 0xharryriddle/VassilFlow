@@ -18,7 +18,7 @@ class InfoQuestClient:
     """Client for interacting with the InfoQuest web search and fetch API."""
 
     def __init__(self, fetch_time: int = -1, fetch_timeout: int = -1, fetch_navigation_timeout: int = -1, search_time_range: int = -1, image_search_time_range: int = -1, image_size: str = "i"):
-        logger.info("\n============================================\n🚀 BytePlus InfoQuest Client Initialization 🚀\n============================================")
+        logger.info("\n============================================\n🚀 InfoQuest Client Initialization 🚀\n============================================")
 
         self.fetch_time = fetch_time
         self.fetch_timeout = fetch_timeout

@@ -11,36 +11,11 @@ VassilFlow is an open-source **super agent harness** that orchestrates **sub-age
 https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
 > [!NOTE]
-> VassilFlow is migrating from the upstream DeerFlow 2.0 codebase. The primary package namespace and config provider paths are now `vassilflow.*`; legacy `DEER_FLOW_*`, `.deer-flow`, and `deerflow.db` fallbacks are kept only to help existing checkouts migrate.
-
-## Upstream Reference
-
-Reference inherited upstream demos and historical material in the [**DeerFlow repository**](https://github.com/bytedance/deer-flow) while VassilFlow-owned docs are being stabilized.
-
-## Coding Plan from ByteDance Volcengine
-
-- We strongly recommend using Doubao-Seed-2.0-Code, DeepSeek v3.2 and Kimi 2.5 to run VassilFlow
-- [Learn more](https://www.byteplus.com/en/activity/codingplan?utm_campaign=deer_flow&utm_content=deer_flow&utm_medium=devrel&utm_source=OWO&utm_term=deer_flow)
-- [中国大陆地区的开发者请点击这里](https://www.volcengine.com/activity/codingplan?utm_campaign=deer_flow&utm_content=deer_flow&utm_medium=devrel&utm_source=OWO&utm_term=deer_flow)
-
-## InfoQuest
-
-VassilFlow has newly integrated the intelligent search and crawling toolset independently developed by BytePlus--[InfoQuest (supports free online experience)](https://docs.byteplus.com/en/docs/InfoQuest/What_is_Info_Quest)
-
-<a href="https://docs.byteplus.com/en/docs/InfoQuest/What_is_Info_Quest" target="_blank">
-  <img
-    src="https://sf16-sg.tiktokcdn.com/obj/eden-sg/hubseh7bsbps/20251208-160108.png"   alt="InfoQuest_banner"
-  />
-</a>
-
----
+> VassilFlow is now the canonical product and runtime identity. Legacy environment names, runtime directories, and SQLite database names are retained only as migration fallbacks for existing checkouts.
 
 ## Table of Contents
 
 - [🦌 VassilFlow - 2.0](#-vassilflow---20)
-  - [Upstream Reference](#upstream-reference)
-  - [Coding Plan from ByteDance Volcengine](#coding-plan-from-bytedance-volcengine)
-  - [InfoQuest](#infoquest)
   - [Table of Contents](#table-of-contents)
   - [One-Line Agent Setup](#one-line-agent-setup)
   - [Quick Start](#quick-start)
@@ -73,8 +48,6 @@ VassilFlow has newly integrated the intelligent search and crawling toolset inde
   - [Contributing](#contributing)
   - [License](#license)
   - [Acknowledgments](#acknowledgments)
-    - [Key Contributors](#key-contributors)
-  - [Upstream Star History](#upstream-star-history)
 
 ## One-Line Agent Setup
 
@@ -758,26 +731,11 @@ This project is open source and available under the [MIT License](./LICENSE).
 
 ## Acknowledgments
 
-VassilFlow builds on the upstream DeerFlow project and the broader open-source community. We are deeply grateful to the projects and contributors whose efforts made this foundation possible.
+VassilFlow builds on the broader open-source community. We are grateful to the projects and contributors whose efforts make this harness possible.
 
-We would like to extend our sincere appreciation to the following projects for their invaluable contributions:
+We would like to extend our sincere appreciation to the following projects:
 
 - **[LangChain](https://github.com/langchain-ai/langchain)**: Their exceptional framework powers our LLM interactions and chains, enabling seamless integration and functionality.
 - **[LangGraph](https://github.com/langchain-ai/langgraph)**: Their innovative approach to multi-agent orchestration has been instrumental in enabling VassilFlow's sophisticated workflows.
 
-These projects exemplify the transformative power of open-source collaboration, and we are proud to build upon their foundations.
-
-### Key Contributors
-
-A heartfelt thank you goes out to the core authors of upstream `DeerFlow`, whose vision, passion, and dedication brought the original project to life:
-
-- **[Daniel Walnut](https://github.com/hetaoBackend/)**
-- **[Henry Li](https://github.com/magiccube/)**
-
-VassilFlow carries that foundation forward while adding its own migration path, aliases, and harness direction.
-
-## Upstream Star History
-
-This chart belongs to the upstream DeerFlow repository and is retained for attribution/history only.
-
-[![Star History Chart](https://api.star-history.com/svg?repos=bytedance/deer-flow&type=Date)](https://star-history.com/#bytedance/deer-flow&Date)
+See [UPSTREAM.md](./UPSTREAM.md) for provenance notes.

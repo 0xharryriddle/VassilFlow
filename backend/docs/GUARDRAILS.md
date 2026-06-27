@@ -1,6 +1,6 @@
 # Guardrails: Pre-Tool-Call Authorization
 
-> **Context:** [Issue #1213](https://github.com/bytedance/deer-flow/issues/1213) — VassilFlow inherits Docker sandboxing and human approval via `ask_clarification` from DeerFlow, but still needs a deterministic, policy-driven authorization layer for tool calls. An agent running autonomous multi-step tasks can execute any loaded tool with any arguments. Guardrails add a middleware that evaluates every tool call against a policy **before** execution.
+> **Context:** [Issue #1213](upstream issue #1213) — VassilFlow keeps Docker sandboxing and human approval via `ask_clarification`, but still needs a deterministic, policy-driven authorization layer for tool calls. An agent running autonomous multi-step tasks can execute any loaded tool with any arguments. Guardrails add a middleware that evaluates every tool call against a policy **before** execution.
 
 ## Why Guardrails
 

@@ -16,7 +16,6 @@ export const DEMO_THREAD_IDS = [
   "c02bb4d5-4202-490e-ae8f-ff4864fc0d2e",
   "d3e5adaf-084c-4dd5-9d29-94f1d6bccd98",
   "f4125791-0128-402a-8ca9-50e0947557e4",
-  "fe3f7974-1bcb-4a01-a950-79673baafefd",
 ] as const;
 
 export type ThreadSearchParams = NonNullable<

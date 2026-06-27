@@ -13,8 +13,8 @@
 | 操作 | 文件 | 职责 |
 |------|------|------|
 | Modify | `backend/app/gateway/services.py` | 注入 authenticated user context |
-| Modify | `backend/packages/harness/deerflow/guardrails/provider.py` | `GuardrailRequest` 扩字段 |
-| Modify | `backend/packages/harness/deerflow/guardrails/middleware.py` | 从 runtime context 填充字段 |
+| Modify | `backend/packages/harness/vassilflow/guardrails/provider.py` | `GuardrailRequest` 扩字段 |
+| Modify | `backend/packages/harness/vassilflow/guardrails/middleware.py` | 从 runtime context 填充字段 |
 | Modify | `backend/tests/test_setup_agent_e2e_user_isolation.py` | 覆盖 Gateway → runtime context |
 | Modify | `backend/tests/test_guardrail_middleware.py` | 覆盖 runtime context → GuardrailRequest |
 | Modify | `backend/docs/GUARDRAILS.md` | 更新 custom provider 示例 |
@@ -53,7 +53,7 @@ runtime_context["oauth_id"] = getattr(user, "oauth_id", None)
 ## Task 2: GuardrailRequest 扩展字段
 
 **Files:**
-- Modify: `backend/packages/harness/deerflow/guardrails/provider.py`
+- Modify: `backend/packages/harness/vassilflow/guardrails/provider.py`
 
 - [x] **Step 1: 在 `GuardrailRequest` 末尾新增 optional 字段**
 
@@ -76,7 +76,7 @@ tool_call_id: str | None = None
 ## Task 3: GuardrailMiddleware 从 runtime context 填充
 
 **Files:**
-- Modify: `backend/packages/harness/deerflow/guardrails/middleware.py`
+- Modify: `backend/packages/harness/vassilflow/guardrails/middleware.py`
 
 - [x] **Step 1: 安全读取 `ToolCallRequest.runtime.context`**
 
@@ -142,7 +142,7 @@ value: admin:bash
 ```
 
 **文案约束：**
-- 不声称 DeerFlow 内置该 YAML schema。
+- 不声称 VassilFlow 内置该 YAML schema。
 - 不写成对标 AGT。
 - AGT/OPA/Cedar 只作为可选 policy engine 示例。
 

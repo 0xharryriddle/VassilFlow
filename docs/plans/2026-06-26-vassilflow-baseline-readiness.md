@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Before the first clean VassilFlow baseline commit, the DeerFlow-derived foundation should be proven runnable as-is. Rebranding should happen after this point, in separate commits, so a broken rename can be distinguished from an upstream foundation issue.
+Before the first clean VassilFlow baseline commit, the upstream-derived foundation should be proven runnable as-is. Rebranding should happen after this point, in separate commits, so a broken rename can be distinguished from an upstream foundation issue.
 
 ## Local Setup Completed
 
@@ -19,13 +19,13 @@ The following local-only files were generated for runtime verification and must 
 
 The active local `config.yaml` was reduced from the full example into a minimal working configuration:
 
-- LLM provider: `deerflow.models.openai_codex_provider:CodexChatModel`
+- LLM provider: `vassilflow.models.openai_codex_provider:CodexChatModel`
 - Model: `gpt-5.4`
 - Auth source: local Codex CLI auth (`~/.codex/auth.json`)
 - Web search: DuckDuckGo, no API key
 - Web fetch: Jina AI Reader, no API key
 - Image search: DuckDuckGo Images, no API key
-- Sandbox: `deerflow.sandbox.local:LocalSandboxProvider`
+- Sandbox: `vassilflow.sandbox.local:LocalSandboxProvider`
 - Host bash: disabled
 
 This proves the gateway can load a real model provider without committing secret material.
@@ -143,7 +143,7 @@ $env:PYTHONIOENCODING='utf-8'
 uv run python -c "from app.gateway.app import app; print(app.title); print(len(app.routes))"
 ```
 
-Result: gateway app imported; title was `DeerFlow API Gateway`; route count was `99`.
+Result: gateway app imported; title used the legacy API Gateway label; route count was `99`.
 
 Gateway health smoke:
 
@@ -283,8 +283,8 @@ Backend-only has already been verified through `http://127.0.0.1:8001/health`.
 
 Do not rename everything at once. The safe order is:
 
-1. Commit the runnable DeerFlow-derived foundation with VassilFlow research, plans, and contracts.
-2. Add `vassilflow` facade modules and contract tests while leaving DeerFlow internals intact.
+1. Commit the runnable upstream-derived foundation with VassilFlow research, plans, and contracts.
+2. Add `vassilflow` facade modules and contract tests while leaving inherited internals intact.
 3. Add environment/config aliases such as `VASSILFLOW_*` while keeping `DEER_FLOW_*` backward-compatible.
 4. Rename visible product strings in docs/UI.
 5. Rename internal Python package/module paths only after compatibility tests cover imports, config loading, tools, sandbox providers, and gateway startup.

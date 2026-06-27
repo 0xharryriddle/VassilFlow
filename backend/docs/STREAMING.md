@@ -291,7 +291,7 @@ sequenceDiagram
 
 ## 为什么这个设计容易出 bug，以及测试策略
 
-本文档的直接起因是 upstream bytedance/deer-flow#1969：嵌入式 client 的 `stream()` 原本只订阅 `["values", "custom"]`，**漏了 `"messages"`**。结果 `client.stream("hello")` 等价于一次性返回，视觉上和 `chat()` 没区别。
+本文档的直接起因是 upstream upstream issue #1969：嵌入式 client 的 `stream()` 原本只订阅 `["values", "custom"]`，**漏了 `"messages"`**。结果 `client.stream("hello")` 等价于一次性返回，视觉上和 `chat()` 没区别。
 
 这类 bug 有三个结构性原因：
 

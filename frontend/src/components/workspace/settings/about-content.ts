@@ -39,13 +39,10 @@ VassilFlow is open source and distributed under the **MIT License**.
 
 ## Acknowledgments
 
-VassilFlow stands on a working open-source foundation and keeps clear attribution for inherited design and implementation choices while evolving its own harness contracts.
+VassilFlow stands on a working open-source foundation while evolving its own harness contracts.
 
 ### Core Frameworks
 - **[LangChain](https://github.com/langchain-ai/langchain)**: Framework support for LLM interactions and chains.
 - **[LangGraph](https://github.com/langchain-ai/langgraph)**: Stateful multi-agent orchestration.
 - **[Next.js](https://nextjs.org/)**: Web application framework for the product surface.
-
-### Upstream Foundation
-- **[DeerFlow](https://github.com/bytedance/deer-flow)**: The upstream project that provided the initial runnable runtime foundation.
 `;

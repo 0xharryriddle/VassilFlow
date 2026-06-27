@@ -15,7 +15,7 @@ Display a "summarization happened here" marker in the conversation history UI wh
 
 ### 2.1 Today's state: zero middleware records
 
-Full scan of `backend/.deer-flow/data/deerflow.db` `run_events`:
+Full scan of `backend/.vassilflow/data/vassilflow.db` `run_events`:
 
 | category | rows |
 |---|---:|
@@ -105,7 +105,7 @@ All five predictions held:
 
 ### 6.1 Backend
 
-**New wrapper middleware** in `backend/packages/harness/deerflow/agents/lead_agent/agent.py`:
+**New wrapper middleware** in `backend/packages/harness/vassilflow/agents/lead_agent/agent.py`:
 
 ```python
 from langchain.agents.middleware.summarization import SummarizationMiddleware

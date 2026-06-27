@@ -2,7 +2,7 @@
 
 ## Context
 
-VassilFlow starts from the current DeerFlow-shaped repository as a working v0 foundation. The goal is not to rewrite DeerFlow immediately. The goal is to preserve the runnable vertical slice, then add VassilFlow-owned boundaries around policy, ledger, sandbox, tool permission, memory, evaluation, and repair.
+VassilFlow starts from the current upstream-shaped repository as a working v0 foundation. The goal is not to rewrite the inherited runtime immediately. The goal is to preserve the runnable vertical slice, then add VassilFlow-owned boundaries around policy, ledger, sandbox, tool permission, memory, evaluation, and repair.
 
 Primary research inputs:
 
@@ -12,10 +12,10 @@ Primary research inputs:
 
 ## Architecture Decision
 
-Use DeerFlow as the foundation runtime for v0.
+Use the upstream-derived runtime as the foundation runtime for v0.
 
 ```text
-VassilFlow v0 = DeerFlow runtime/gateway/sandbox/skills/frontend
+VassilFlow v0 = inherited runtime/gateway/sandbox/skills/frontend
              + VassilFlow boundary contracts
              + policy and ledger adapters
              + evaluation and memory gates
@@ -25,7 +25,7 @@ Do not start with broad package renames or internal rewrites. The repository sti
 
 ## Non-Negotiable Boundaries
 
-VassilFlow owns these product and safety boundaries even while DeerFlow remains the implementation substrate:
+VassilFlow owns these product and safety boundaries even while the inherited runtime remains the implementation substrate:
 
 - Session identity and ownership.
 - Run lifecycle and completion evidence.
@@ -39,9 +39,9 @@ VassilFlow owns these product and safety boundaries even while DeerFlow remains 
 
 ## Phase 0 - Baseline And Architecture Lock
 
-1. Commit the current DeerFlow-derived snapshot as the VassilFlow foundation baseline.
-2. Record the upstream DeerFlow source, branch, and commit hash in project docs.
-3. Run DeerFlow unchanged and document exact setup commands, env requirements, smoke commands, and known failures.
+1. Commit the current upstream-derived snapshot as the VassilFlow foundation baseline.
+2. Record the upstream source, branch, and commit hash in project docs.
+3. Run the inherited foundation unchanged and document exact setup commands, env requirements, smoke commands, and known failures.
 4. Keep runtime behavior untouched while adding VassilFlow docs and contracts.
 5. Validate `contracts/vassilflow_boundary_contract.json` and use it as the shared vocabulary for backend, frontend, CLI, and tests.
 
@@ -54,14 +54,14 @@ Success criteria:
 ## Phase 1 - Facade And Contracts
 
 1. Add a VassilFlow facade module over existing gateway/run APIs.
-2. Map DeerFlow thread/run/sandbox state to VassilFlow `Session`, `Run`, `TraceStep`, `ToolSpec`, `PolicyDecision`, `ApprovalRequest`, and `CompletionEvidence`.
+2. Map inherited thread/run/sandbox state to VassilFlow `Session`, `Run`, `TraceStep`, `ToolSpec`, `PolicyDecision`, `ApprovalRequest`, and `CompletionEvidence`.
 3. Add contract tests that load `contracts/vassilflow_boundary_contract.json`.
-4. Export run ledger data without changing the current DeerFlow stream behavior.
+4. Export run ledger data without changing the current stream behavior.
 5. Add policy adapter hooks around tool execution in audit-only mode.
 
 Success criteria:
 
-- One existing DeerFlow task path still works end to end.
+- One existing task path still works end to end.
 - VassilFlow can export a stable run trace.
 - Tool policy decisions are recorded even when they only allow.
 

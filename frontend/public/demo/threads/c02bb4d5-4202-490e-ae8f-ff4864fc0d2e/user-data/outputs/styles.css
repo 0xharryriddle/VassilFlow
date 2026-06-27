@@ -841,8 +841,8 @@ body {
   font-style: italic;
 }
 
-/* Deerflow Signature */
-.deerflow-signature {
+/* VassilFlow Signature */
+.vassilflow-signature {
   position: fixed;
   bottom: 1.5rem;
   right: 1.5rem;
@@ -862,7 +862,7 @@ body {
   z-index: 999;
 }
 
-.deerflow-signature:hover {
+.vassilflow-signature:hover {
   color: var(--color-burgundy);
   border-color: var(--color-gold);
   box-shadow: 0 4px 15px rgba(201, 169, 98, 0.2);
@@ -925,7 +925,7 @@ body {
     align-items: flex-start;
   }
 
-  .deerflow-signature {
+  .vassilflow-signature {
     bottom: 1rem;
     right: 1rem;
     padding: 0.4rem 0.75rem;

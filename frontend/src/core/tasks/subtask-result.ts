@@ -67,7 +67,7 @@ export const ERROR_WRAPPER_PATTERN = /^Error\b/i;
 /**
  * Map a `task` tool result to a {@link SubtaskStatus}.
  *
- * Bytedance/deer-flow issue #3146: prefers the structured
+ * upstream issue #3146: prefers the structured
  * ``additional_kwargs.subagent_status`` field the backend now stamps via
  * ``ToolErrorHandlingMiddleware``. Falls back to the legacy prefix
  * matching for messages that pre-date the stamping commit (historical
