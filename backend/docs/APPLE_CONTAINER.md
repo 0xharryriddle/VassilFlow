@@ -80,7 +80,7 @@ docker stop <id>     # Auto-removes due to --rm
 
 ### Implementation Details
 
-The VassilFlow facade import is `vassilflow.community.aio_sandbox:AioSandboxProvider`; the current implementation lives in `backend/packages/harness/deerflow/community/aio_sandbox/aio_sandbox_provider.py` during the migration:
+The public VassilFlow import is `vassilflow.community.aio_sandbox:AioSandboxProvider`; the implementation lives in `backend/packages/harness/vassilflow/community/aio_sandbox/aio_sandbox_provider.py`:
 
 - `_detect_container_runtime()`: Detects available runtime at startup
 - `_start_container()`: Uses detected runtime, skips Docker-specific options for Apple Container
@@ -93,14 +93,14 @@ No configuration changes are needed! The system works automatically.
 However, you can verify the runtime in use by checking the logs:
 
 ```
-INFO:deerflow.community.aio_sandbox.aio_sandbox_provider:Detected Apple Container: container version 0.1.0
-INFO:deerflow.community.aio_sandbox.aio_sandbox_provider:Starting sandbox container using container: ...
+INFO:vassilflow.community.aio_sandbox.aio_sandbox_provider:Detected Apple Container: container version 0.1.0
+INFO:vassilflow.community.aio_sandbox.aio_sandbox_provider:Starting sandbox container using container: ...
 ```
 
 Or for Docker:
 ```
-INFO:deerflow.community.aio_sandbox.aio_sandbox_provider:Apple Container not available, falling back to Docker
-INFO:deerflow.community.aio_sandbox.aio_sandbox_provider:Starting sandbox container using docker: ...
+INFO:vassilflow.community.aio_sandbox.aio_sandbox_provider:Apple Container not available, falling back to Docker
+INFO:vassilflow.community.aio_sandbox.aio_sandbox_provider:Starting sandbox container using docker: ...
 ```
 
 ## Container Images

@@ -72,8 +72,7 @@ backend/
 │   └── channels/                # Slack, Telegram, Discord, DingTalk, WeChat...
 ├── packages/
 │   └── harness/                 # vassilflow-harness package
-│       ├── vassilflow/          # Public facade imports for new integrations
-│       └── deerflow/            # Current implementation package during migration
+│       ├── vassilflow/          # Agent harness implementation package
 │           ├── agents/          # Lead agent, state, middleware, memory
 │           ├── sandbox/         # Sandbox providers and shell/file tools
 │           ├── tools/           # Built-in tools and tool registry
@@ -89,7 +88,7 @@ backend/
 └── docs/                        # Backend documentation
 ```
 
-Use `packages/harness/vassilflow/` for public facade examples and `packages/harness/deerflow/` for current implementation edits during the migration.
+Use `packages/harness/vassilflow/` for harness implementation edits and public `vassilflow.*` examples.
 
 ## Code Style
 
@@ -232,17 +231,16 @@ Include in your PR description:
 
 ## Architecture Guidelines
 
-The current harness implementation still lives under `packages/harness/deerflow/`
-during the VassilFlow migration. When adding public examples, config `use:`
-paths, or integration docs, prefer the `vassilflow.*` facade path and mention
-legacy `deerflow.*` only as a compatibility fallback.
+The harness implementation lives under `packages/harness/vassilflow/`. When
+adding public examples, config `use:` paths, or integration docs, prefer the
+public `vassilflow.*` import path.
 
 ### Adding New Tools
 
-1. Create the implementation under the current harness package, for example `packages/harness/deerflow/tools/builtins/` or `packages/harness/deerflow/community/`. New config examples should still use the public `vassilflow.*` facade path.
+1. Create the implementation under the current harness package, for example `packages/harness/vassilflow/tools/builtins/` or `packages/harness/vassilflow/community/`. New config examples should use the public `vassilflow.*` import path.
 
 ```python
-# packages/harness/deerflow/tools/builtins/my_tool.py
+# packages/harness/vassilflow/tools/builtins/my_tool.py
 from langchain_core.tools import tool
 
 @tool
@@ -258,7 +256,7 @@ def my_tool(param: str) -> str:
     return f"Result: {param}"
 ```
 
-2. Register in `config.yaml` with the VassilFlow facade path:
+2. Register in `config.yaml` with the VassilFlow public import path:
 
 ```yaml
 tools:
@@ -269,10 +267,10 @@ tools:
 
 ### Adding New Middleware
 
-1. Create the implementation in `packages/harness/deerflow/agents/middlewares/` while documenting public imports through `vassilflow.agents.middlewares.*`:
+1. Create the implementation in `packages/harness/vassilflow/agents/middlewares/` while documenting public imports through `vassilflow.agents.middlewares.*`:
 
 ```python
-# packages/harness/deerflow/agents/middlewares/my_middleware.py
+# packages/harness/vassilflow/agents/middlewares/my_middleware.py
 from langchain.agents.middleware import BaseMiddleware
 from langchain_core.runnables import RunnableConfig
 
@@ -285,7 +283,7 @@ class MyMiddleware(BaseMiddleware):
         return state
 ```
 
-2. Register in the current implementation factory, `packages/harness/deerflow/agents/lead_agent/agent.py`:
+2. Register in the current implementation factory, `packages/harness/vassilflow/agents/lead_agent/agent.py`:
 
 ```python
 middlewares = [
@@ -330,7 +328,7 @@ app.include_router(my_router.router)
 
 When adding new configuration options:
 
-1. Update `packages/harness/deerflow/config/app_config.py` with new fields and expose public examples through `vassilflow.config`
+1. Update `packages/harness/vassilflow/config/app_config.py` with new fields and expose public examples through `vassilflow.config`
 2. Add default values in `config.example.yaml`
 3. Document in `docs/CONFIGURATION.md`
 

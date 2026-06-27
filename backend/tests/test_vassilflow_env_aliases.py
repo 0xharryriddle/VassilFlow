@@ -108,7 +108,7 @@ def test_vassilflow_runtime_home_defaults_to_current_name_with_legacy_fallback(t
 
 def test_vassilflow_config_path_alias(tmp_path: Path, monkeypatch):
     config_path = tmp_path / "config.yaml"
-    config_path.write_text("sandbox:\n  use: deerflow.sandbox.local:LocalSandboxProvider\n", encoding="utf-8")
+    config_path.write_text("sandbox:\n  use: vassilflow.sandbox.local:LocalSandboxProvider\n", encoding="utf-8")
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
     monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)

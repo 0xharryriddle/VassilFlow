@@ -16,7 +16,7 @@ This directory contains detailed documentation for the VassilFlow backend.
 
 | Document | Description |
 |----------|-------------|
-| [STREAMING.md](STREAMING.md) | Token-level streaming design: Gateway vs VassilFlowClient / legacy DeerFlowClient paths, `stream_mode` semantics, per-id dedup |
+| [STREAMING.md](STREAMING.md) | Token-level streaming design: Gateway vs VassilFlowClient path, `stream_mode` semantics, per-id dedup |
 | [FILE_UPLOAD.md](FILE_UPLOAD.md) | File upload functionality |
 | [PATH_EXAMPLES.md](PATH_EXAMPLES.md) | Path types and usage examples |
 | [SANDBOX_MEMORY_PROFILING.md](SANDBOX_MEMORY_PROFILING.md) | Sandbox memory baseline and runtime comparison guide |
@@ -39,20 +39,20 @@ This directory contains detailed documentation for the VassilFlow backend.
 
 ## Document Organization
 
-```
+```text
 docs/
-├── README.md                  # This file
-├── ARCHITECTURE.md            # System architecture
-├── API.md                     # API reference
-├── AUTH_DESIGN.md             # User authentication and isolation design
-├── CONFIGURATION.md           # Configuration guide
-├── SETUP.md                   # Setup instructions
-├── FILE_UPLOAD.md             # File upload feature
-├── PATH_EXAMPLES.md           # Path usage examples
-├── summarization.md           # Summarization feature
-├── plan_mode_usage.md         # Plan mode feature
-├── STREAMING.md               # Token-level streaming design
-├── AUTO_TITLE_GENERATION.md   # Title generation
-├── TITLE_GENERATION_IMPLEMENTATION.md  # Title implementation details
-└── TODO.md                    # Roadmap and issues
+|-- README.md                  # This file
+|-- ARCHITECTURE.md            # System architecture
+|-- API.md                     # API reference
+|-- AUTH_DESIGN.md             # User authentication and isolation design
+|-- CONFIGURATION.md           # Configuration guide
+|-- SETUP.md                   # Setup instructions
+|-- FILE_UPLOAD.md             # File upload feature
+|-- PATH_EXAMPLES.md           # Path usage examples
+|-- summarization.md           # Summarization feature
+|-- plan_mode_usage.md         # Plan mode feature
+|-- STREAMING.md               # Token-level streaming design
+|-- AUTO_TITLE_GENERATION.md   # Title generation
+|-- TITLE_GENERATION_IMPLEMENTATION.md  # Title implementation details
+`-- TODO.md                    # Roadmap and issues
 ```

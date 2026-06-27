@@ -405,8 +405,8 @@ class TestMemoryFilePath:
         from vassilflow.config.memory_config import MemoryConfig
 
         with (
-            patch("deerflow.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
-            patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("vassilflow.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
+            patch("vassilflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
             storage = FileMemoryStorage()
             path = storage._get_memory_file_path(None)
@@ -418,8 +418,8 @@ class TestMemoryFilePath:
         from vassilflow.config.memory_config import MemoryConfig
 
         with (
-            patch("deerflow.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
-            patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("vassilflow.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
+            patch("vassilflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
             storage = FileMemoryStorage()
             path = storage._get_memory_file_path("code-reviewer")
@@ -430,8 +430,8 @@ class TestMemoryFilePath:
         from vassilflow.config.memory_config import MemoryConfig
 
         with (
-            patch("deerflow.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
-            patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
+            patch("vassilflow.agents.memory.storage.get_paths", return_value=_make_paths(tmp_path)),
+            patch("vassilflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")),
         ):
             storage = FileMemoryStorage()
             path_global = storage._get_memory_file_path(None)

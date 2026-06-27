@@ -97,7 +97,7 @@ def test_fail_closed_when_mcp_survives_without_setup(monkeypatch):
     module global, so patch it in ``tool_search`` (its home module).
     """
     monkeypatch.setattr(
-        "deerflow.tools.builtins.tool_search.build_deferred_tool_setup",
+        "vassilflow.tools.builtins.tool_search.build_deferred_tool_setup",
         lambda tools, *, enabled: DeferredToolSetup(None, frozenset(), None),
     )
     with pytest.raises(RuntimeError, match="fail-closed"):

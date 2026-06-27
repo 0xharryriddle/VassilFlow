@@ -134,8 +134,8 @@ def _run_two_turns() -> tuple[dict, _RecordModelInput]:
     cfg = {"configurable": {"thread_id": "stream-invariants-1"}}
 
     with (
-        mock.patch("deerflow.agents.lead_agent.prompt._get_memory_context", return_value=_MEMORY),
-        mock.patch("deerflow.agents.middlewares.dynamic_context_middleware.datetime") as mock_dt,
+        mock.patch("vassilflow.agents.lead_agent.prompt._get_memory_context", return_value=_MEMORY),
+        mock.patch("vassilflow.agents.middlewares.dynamic_context_middleware.datetime") as mock_dt,
     ):
         mock_dt.now.return_value.strftime.return_value = _FIXED_DATE
         agent.invoke({"messages": [HumanMessage(content=_TURN_1, id="u1")]}, cfg)

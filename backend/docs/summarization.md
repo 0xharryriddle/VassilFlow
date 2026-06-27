@@ -301,7 +301,7 @@ The middleware intelligently preserves message context:
 - **Configuration import**: `vassilflow.config.summarization_config`
 - **Integration import**: `vassilflow.agents.lead_agent.agent`
 - **Middleware**: `VassilFlowSummarizationMiddleware` wraps `langchain.agents.middleware.SummarizationMiddleware`
-- **Current implementation**: `packages/harness/deerflow/` during the migration
+- **Implementation**: `packages/harness/vassilflow/`
 
 ### Middleware Order
 

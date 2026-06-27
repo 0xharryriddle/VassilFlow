@@ -57,75 +57,73 @@ def test_resolve_variable_invalid_path_format():
 
 
 @pytest.mark.parametrize(
-    ("vassilflow_path", "deerflow_path"),
+    ("vassilflow_path", "implementation_path"),
     [
         (
             "vassilflow.models.openai_codex_provider:CodexChatModel",
-            "deerflow.models.openai_codex_provider:CodexChatModel",
+            "vassilflow.models.openai_codex_provider:CodexChatModel",
         ),
         (
             "vassilflow.community.ddg_search.tools:web_search_tool",
-            "deerflow.community.ddg_search.tools:web_search_tool",
+            "vassilflow.community.ddg_search.tools:web_search_tool",
         ),
         (
             "vassilflow.sandbox.tools:read_file_tool",
-            "deerflow.sandbox.tools:read_file_tool",
+            "vassilflow.sandbox.tools:read_file_tool",
         ),
         (
             "vassilflow.sandbox.local:LocalSandboxProvider",
-            "deerflow.sandbox.local:LocalSandboxProvider",
+            "vassilflow.sandbox.local:LocalSandboxProvider",
         ),
         (
             "vassilflow.guardrails.builtin:AllowlistProvider",
-            "deerflow.guardrails.builtin:AllowlistProvider",
+            "vassilflow.guardrails.builtin:AllowlistProvider",
         ),
     ],
 )
-def test_resolve_variable_bridges_vassilflow_internal_class_paths(vassilflow_path, deerflow_path):
-    assert resolve_variable(vassilflow_path) is resolve_variable(deerflow_path)
+def test_resolve_variable_loads_vassilflow_internal_class_paths(vassilflow_path, implementation_path):
+    assert resolve_variable(vassilflow_path) is resolve_variable(implementation_path)
 
 
-def test_resolve_variable_exposes_vassilflow_agent_factory_wrapper():
-    facade_factory = resolve_variable("vassilflow.agents:create_vassilflow_agent")
+def test_resolve_variable_exposes_vassilflow_agent_factory():
+    package_factory = resolve_variable("vassilflow.agents:create_vassilflow_agent")
     module_factory = resolve_variable("vassilflow.agents.factory:create_vassilflow_agent")
-    deerflow_factory = resolve_variable("deerflow.agents:create_deerflow_agent")
 
-    assert facade_factory.__name__ == "create_vassilflow_agent"
-    assert getattr(facade_factory, "__wrapped__", None) is deerflow_factory
-    assert module_factory is facade_factory
+    assert package_factory.__name__ == "create_vassilflow_agent"
+    assert module_factory is package_factory
 
 
 @pytest.mark.parametrize(
-    ("vassilflow_path", "deerflow_path"),
+    ("vassilflow_path", "implementation_path"),
     [
         (
             "vassilflow.models.openai_codex_provider:CodexChatModel",
-            "deerflow.models.openai_codex_provider:CodexChatModel",
+            "vassilflow.models.openai_codex_provider:CodexChatModel",
         ),
         (
             "vassilflow.community.ddg_search.tools:web_search_tool",
-            "deerflow.community.ddg_search.tools:web_search_tool",
+            "vassilflow.community.ddg_search.tools:web_search_tool",
         ),
         (
             "vassilflow.sandbox.tools:read_file_tool",
-            "deerflow.sandbox.tools:read_file_tool",
+            "vassilflow.sandbox.tools:read_file_tool",
         ),
         (
             "vassilflow.sandbox.local:LocalSandboxProvider",
-            "deerflow.sandbox.local:LocalSandboxProvider",
+            "vassilflow.sandbox.local:LocalSandboxProvider",
         ),
         (
             "vassilflow.guardrails.builtin:AllowlistProvider",
-            "deerflow.guardrails.builtin:AllowlistProvider",
+            "vassilflow.guardrails.builtin:AllowlistProvider",
         ),
         (
             "vassilflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector",
-            "deerflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector",
+            "vassilflow.agents.middlewares.safety_termination_detectors:OpenAICompatibleContentFilterDetector",
         ),
     ],
 )
-def test_direct_vassilflow_internal_imports_alias_to_deerflow_modules(vassilflow_path, deerflow_path):
-    assert _import_variable(vassilflow_path) is _import_variable(deerflow_path)
+def test_direct_vassilflow_internal_imports_load_package_modules(vassilflow_path, implementation_path):
+    assert _import_variable(vassilflow_path) is _import_variable(implementation_path)
 
 
 def test_config_example_prefers_vassilflow_dynamic_paths():

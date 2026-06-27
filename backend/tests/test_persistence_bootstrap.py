@@ -264,7 +264,7 @@ async def test_legacy_with_manual_workaround_column_warns_on_drift(
         async with engine.begin() as conn:
             await conn.execute(sa.text("ALTER TABLE runs ADD COLUMN token_usage_by_model JSON"))
 
-        with caplog.at_level("WARNING", logger="deerflow.persistence.migrations._helpers"):
+        with caplog.at_level("WARNING", logger="vassilflow.persistence.migrations._helpers"):
             await bootstrap_schema(engine, backend="sqlite")
 
         # Bootstrap still completes -- the helper does not block on drift.
@@ -273,7 +273,7 @@ async def test_legacy_with_manual_workaround_column_warns_on_drift(
         col = await _runs_column_meta(engine, "token_usage_by_model")
         assert col["nullable"] is True
 
-        drift_warnings = [r for r in caplog.records if r.levelname == "WARNING" and r.name == "deerflow.persistence.migrations._helpers" and "safe_add_column" in r.getMessage() and "token_usage_by_model" in r.getMessage()]
+        drift_warnings = [r for r in caplog.records if r.levelname == "WARNING" and r.name == "vassilflow.persistence.migrations._helpers" and "safe_add_column" in r.getMessage() and "token_usage_by_model" in r.getMessage()]
         assert drift_warnings, "expected safe_add_column to warn about the drifted column"
         msg = drift_warnings[0].getMessage()
         assert "nullable" in msg
@@ -304,7 +304,7 @@ async def test_legacy_with_wrong_type_workaround_warns_on_type_drift(
         async with engine.begin() as conn:
             await conn.execute(sa.text("ALTER TABLE runs ADD COLUMN token_usage_by_model TEXT NOT NULL DEFAULT '{}'"))
 
-        with caplog.at_level("WARNING", logger="deerflow.persistence.migrations._helpers"):
+        with caplog.at_level("WARNING", logger="vassilflow.persistence.migrations._helpers"):
             await bootstrap_schema(engine, backend="sqlite")
 
         assert await _alembic_version(engine) == HEAD
@@ -313,7 +313,7 @@ async def test_legacy_with_wrong_type_workaround_warns_on_type_drift(
         col = await _runs_column_meta(engine, "token_usage_by_model")
         assert col["nullable"] is False
 
-        drift_warnings = [r for r in caplog.records if r.levelname == "WARNING" and r.name == "deerflow.persistence.migrations._helpers" and "safe_add_column" in r.getMessage() and "token_usage_by_model" in r.getMessage()]
+        drift_warnings = [r for r in caplog.records if r.levelname == "WARNING" and r.name == "vassilflow.persistence.migrations._helpers" and "safe_add_column" in r.getMessage() and "token_usage_by_model" in r.getMessage()]
         assert drift_warnings, "expected safe_add_column to warn about pure type drift (was silent before the family check)"
         msg = drift_warnings[0].getMessage()
         # The drift entry must explicitly name the type mismatch -- this is
@@ -628,7 +628,7 @@ def test_baseline_revision_id_is_known() -> None:
     from alembic.config import Config  # noqa: PLC0415
     from alembic.script import ScriptDirectory  # noqa: PLC0415
 
-    migrations_dir = Path(__file__).resolve().parents[1] / "packages/harness/deerflow/persistence/migrations"
+    migrations_dir = Path(__file__).resolve().parents[1] / "packages/harness/vassilflow/persistence/migrations"
     cfg = Config()
     cfg.set_main_option("script_location", str(migrations_dir))
     script = ScriptDirectory.from_config(cfg)

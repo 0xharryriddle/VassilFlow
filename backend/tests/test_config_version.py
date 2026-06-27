@@ -40,7 +40,7 @@ def test_missing_version_treated_as_zero(caplog):
             user_config={},  # no config_version
             example_config={"config_version": 1},
         )
-        with caplog.at_level(logging.WARNING, logger="deerflow.config.app_config"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.config.app_config"):
             AppConfig._check_config_version(
                 {"sandbox": {"use": "vassilflow.sandbox.local:LocalSandboxProvider"}},
                 config_path,
@@ -58,7 +58,7 @@ def test_matching_version_no_warning(caplog):
             user_config={"config_version": 1},
             example_config={"config_version": 1},
         )
-        with caplog.at_level(logging.WARNING, logger="deerflow.config.app_config"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.config.app_config"):
             AppConfig._check_config_version(
                 {"config_version": 1},
                 config_path,
@@ -74,7 +74,7 @@ def test_outdated_version_emits_warning(caplog):
             user_config={"config_version": 1},
             example_config={"config_version": 2},
         )
-        with caplog.at_level(logging.WARNING, logger="deerflow.config.app_config"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.config.app_config"):
             AppConfig._check_config_version(
                 {"config_version": 1},
                 config_path,
@@ -92,7 +92,7 @@ def test_no_example_file_no_warning(caplog):
             yaml.dump({"sandbox": {"use": "test"}}, f)
         # No config.example.yaml created
 
-        with caplog.at_level(logging.WARNING, logger="deerflow.config.app_config"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.config.app_config"):
             AppConfig._check_config_version({}, config_path)
         assert "outdated" not in caplog.text
 
@@ -117,7 +117,7 @@ def test_newer_user_version_no_warning(caplog):
             user_config={"config_version": 3},
             example_config={"config_version": 2},
         )
-        with caplog.at_level(logging.WARNING, logger="deerflow.config.app_config"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.config.app_config"):
             AppConfig._check_config_version(
                 {"config_version": 3},
                 config_path,

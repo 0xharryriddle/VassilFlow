@@ -113,7 +113,7 @@ def test_start_container_logs_redacted_env_values(monkeypatch, caplog):
 
     monkeypatch.setattr("subprocess.run", fake_run)
 
-    with caplog.at_level(logging.INFO, logger="deerflow.community.aio_sandbox.local_backend"):
+    with caplog.at_level(logging.INFO, logger="vassilflow.community.aio_sandbox.local_backend"):
         backend._start_container("sandbox-test", 18080)
 
     joined_cmd = " ".join(captured_cmd)
@@ -177,7 +177,7 @@ def test_resolve_docker_bind_host_uses_ipv6_loopback_for_ipv6_sandbox_host(monke
 
 
 def test_resolve_docker_bind_host_logs_selected_bind_reason(caplog):
-    with caplog.at_level(logging.DEBUG, logger="deerflow.community.aio_sandbox.local_backend"):
+    with caplog.at_level(logging.DEBUG, logger="vassilflow.community.aio_sandbox.local_backend"):
         assert _resolve_docker_bind_host(sandbox_host="localhost", bind_host="") == "127.0.0.1"
 
     messages = "\n".join(record.getMessage() for record in caplog.records)

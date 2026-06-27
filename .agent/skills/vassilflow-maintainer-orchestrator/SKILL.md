@@ -214,7 +214,7 @@ In these cases, return a compact failure report with the attempted command path 
 
 Treat these as high-signal areas for issue comments and PR findings:
 
-- Current implementation package `backend/packages/harness/deerflow/` must not import `app.*`; facade package `backend/packages/harness/vassilflow/` should stay thin and app-agnostic.
+- Current implementation package `backend/packages/harness/vassilflow/` must not import `app.*`; facade package `backend/packages/harness/vassilflow/` should stay thin and app-agnostic.
 - App may depend on harness; harness must stay publishable and app-agnostic.
 - Frontend thread/message behavior and Gateway/LangGraph-compatible SSE are contract surfaces.
 - Sandbox permissions, bash/file-write tools, skill installation, and remote execution are security-sensitive.

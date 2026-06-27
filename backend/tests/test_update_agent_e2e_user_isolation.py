@@ -80,11 +80,11 @@ def _patch_update_agent_dependencies(tmp_path: Path):
 
     return [
         patch(
-            "deerflow.tools.builtins.update_agent_tool.get_paths",
+            "vassilflow.tools.builtins.update_agent_tool.get_paths",
             return_value=_make_paths_mock(tmp_path),
         ),
         patch(
-            "deerflow.tools.builtins.update_agent_tool.get_app_config",
+            "vassilflow.tools.builtins.update_agent_tool.get_app_config",
             return_value=fake_app_cfg,
         ),
         # load_agent_config (used by update_agent to read existing config) also

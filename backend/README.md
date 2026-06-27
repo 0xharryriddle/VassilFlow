@@ -378,7 +378,7 @@ across processes; per-engine `asyncio.Lock` inside one SQLite process) and
 idempotent against pre-existing schemas (empty / legacy / versioned).
 
 When you add or change an ORM model, ship the change as a new revision under
-`packages/harness/deerflow/persistence/migrations/versions/`:
+`packages/harness/vassilflow/persistence/migrations/versions/`:
 
 ```bash
 make migrate-rev MSG="add foo column to runs"

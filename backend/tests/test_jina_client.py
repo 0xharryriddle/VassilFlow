@@ -94,10 +94,10 @@ async def test_crawl_transient_failure_logs_without_traceback(jina_client, monke
 
     monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
 
-    with caplog.at_level(logging.DEBUG, logger="deerflow.community.jina_ai.jina_client"):
+    with caplog.at_level(logging.DEBUG, logger="vassilflow.community.jina_ai.jina_client"):
         result = await jina_client.crawl("https://example.com")
 
-    jina_records = [r for r in caplog.records if r.name == "deerflow.community.jina_ai.jina_client"]
+    jina_records = [r for r in caplog.records if r.name == "vassilflow.community.jina_ai.jina_client"]
     assert len(jina_records) == 1, f"expected exactly one log record, got {len(jina_records)}"
     record = jina_records[0]
     assert record.levelno == logging.WARNING, f"expected WARNING, got {record.levelname}"
@@ -201,7 +201,7 @@ async def test_crawl_warns_once_when_api_key_missing(jina_client, monkeypatch, c
     monkeypatch.setattr(httpx.AsyncClient, "post", mock_post)
     monkeypatch.delenv("JINA_API_KEY", raising=False)
 
-    with caplog.at_level(logging.WARNING, logger="deerflow.community.jina_ai.jina_client"):
+    with caplog.at_level(logging.WARNING, logger="vassilflow.community.jina_ai.jina_client"):
         await jina_client.crawl("https://example.com")
         await jina_client.crawl("https://example.com")
 

@@ -83,7 +83,7 @@ def test_env_module_wires_busy_timeout_for_sqlite() -> None:
     """
     from pathlib import Path  # noqa: PLC0415
 
-    env_path = Path(__file__).resolve().parents[1] / "packages/harness/deerflow/persistence/migrations/env.py"
+    env_path = Path(__file__).resolve().parents[1] / "packages/harness/vassilflow/persistence/migrations/env.py"
     src = env_path.read_text(encoding="utf-8")
     assert "PRAGMA busy_timeout=30000" in src or "PRAGMA busy_timeout = 30000" in src, (
         "env.py must set busy_timeout on its alembic-spawned engine; without it, cross-process bootstrap on SQLite fails fast instead of waiting for the file lock"

@@ -122,7 +122,7 @@ async def test_run_agent_marks_llm_error_fallback_as_error_status():
                     AIMessage(
                         content="The configured LLM provider is temporarily unavailable after multiple retries.",
                         additional_kwargs={
-                            "deerflow_error_fallback": True,
+                            "vassilflow_error_fallback": True,
                             "error_type": "APIConnectionError",
                             "error_reason": "transient",
                             "error_detail": "Connection error.",
@@ -553,7 +553,7 @@ def test_try_extract_from_message_finds_fallback_on_message_object():
     msg = AIMessage(
         content="fallback",
         additional_kwargs={
-            "deerflow_error_fallback": True,
+            "vassilflow_error_fallback": True,
             "error_detail": "Connection error.",
             "error_reason": "transient",
         },
@@ -565,7 +565,7 @@ def test_try_extract_from_message_finds_fallback_on_dict():
     msg = {
         "content": "fallback",
         "additional_kwargs": {
-            "deerflow_error_fallback": True,
+            "vassilflow_error_fallback": True,
             "error_detail": "Quota exceeded.",
         },
     }
@@ -598,7 +598,7 @@ def test_extract_llm_error_fallback_message_finds_fallback_in_messages_list():
             AIMessage(
                 content="Unavailable.",
                 additional_kwargs={
-                    "deerflow_error_fallback": True,
+                    "vassilflow_error_fallback": True,
                     "error_detail": "Connection error.",
                 },
             ),
@@ -612,7 +612,7 @@ def test_extract_llm_error_fallback_message_finds_fallback_in_raw_message():
     msg = AIMessage(
         content="Unavailable.",
         additional_kwargs={
-            "deerflow_error_fallback": True,
+            "vassilflow_error_fallback": True,
             "error_reason": "quota",
         },
     )
@@ -625,7 +625,7 @@ def test_extract_llm_error_fallback_message_finds_fallback_in_tuple():
         AIMessage(
             content="Unavailable.",
             additional_kwargs={
-                "deerflow_error_fallback": True,
+                "vassilflow_error_fallback": True,
                 "error_detail": "Circuit open.",
             },
         ),
@@ -649,7 +649,7 @@ def test_extract_llm_error_fallback_message_finds_fallback_in_updates_mode():
                 AIMessage(
                     content="Unavailable.",
                     additional_kwargs={
-                        "deerflow_error_fallback": True,
+                        "vassilflow_error_fallback": True,
                         "error_detail": "Connection error.",
                     },
                 )

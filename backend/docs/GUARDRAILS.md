@@ -570,4 +570,4 @@ tests/test_guardrail_middleware.py  # 25 tests
 docs/GUARDRAILS.md           # This file
 ```
 
-The current implementation files remain under `packages/harness/deerflow/` during the migration; new integrations should use the `vassilflow.*` imports above.
+The implementation files live under `packages/harness/vassilflow/`; new integrations should use the `vassilflow.*` imports above.

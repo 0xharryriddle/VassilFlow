@@ -497,8 +497,8 @@ class TestMultipleMounts:
                 captured["command"] = args[0]
             return SimpleNamespace(stdout="hello", stderr="", returncode=0)
 
-        monkeypatch.setattr("deerflow.sandbox.local.local_sandbox.subprocess.run", mock_run)
-        monkeypatch.setattr("deerflow.sandbox.local.local_sandbox.LocalSandbox._get_shell", lambda self: "/bin/sh")
+        monkeypatch.setattr("vassilflow.sandbox.local.local_sandbox.subprocess.run", mock_run)
+        monkeypatch.setattr("vassilflow.sandbox.local.local_sandbox.LocalSandbox._get_shell", lambda self: "/bin/sh")
 
         sandbox.execute_command("cat /mnt/data/test.txt")
         # Verify the command received the resolved local path
@@ -551,17 +551,17 @@ class TestLocalSandboxProviderMounts:
         from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="vassilflow.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path=str(custom_dir), container_path="/custom-skills/nested", read_only=False),
             ],
         )
         config = SimpleNamespace(
-            skills=SimpleNamespace(container_path="/custom-skills", get_skills_path=lambda: skills_dir, use="deerflow.skills.storage.local_skill_storage:LocalSkillStorage"),
+            skills=SimpleNamespace(container_path="/custom-skills", get_skills_path=lambda: skills_dir, use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
             sandbox=sandbox_config,
         )
 
-        with patch("deerflow.config.get_app_config", return_value=config):
+        with patch("vassilflow.config.get_app_config", return_value=config):
             provider = LocalSandboxProvider()
 
         assert [m.container_path for m in provider._path_mappings] == ["/custom-skills"]
@@ -573,17 +573,17 @@ class TestLocalSandboxProviderMounts:
         from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="vassilflow.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path="relative/path", container_path="/mnt/data", read_only=False),
             ],
         )
         config = SimpleNamespace(
-            skills=SimpleNamespace(container_path="/mnt/skills", get_skills_path=lambda: skills_dir, use="deerflow.skills.storage.local_skill_storage:LocalSkillStorage"),
+            skills=SimpleNamespace(container_path="/mnt/skills", get_skills_path=lambda: skills_dir, use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
             sandbox=sandbox_config,
         )
 
-        with patch("deerflow.config.get_app_config", return_value=config):
+        with patch("vassilflow.config.get_app_config", return_value=config):
             provider = LocalSandboxProvider()
 
         assert [m.container_path for m in provider._path_mappings] == ["/mnt/skills"]
@@ -597,17 +597,17 @@ class TestLocalSandboxProviderMounts:
         from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="vassilflow.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path=str(custom_dir), container_path="mnt/data", read_only=False),
             ],
         )
         config = SimpleNamespace(
-            skills=SimpleNamespace(container_path="/mnt/skills", get_skills_path=lambda: skills_dir, use="deerflow.skills.storage.local_skill_storage:LocalSkillStorage"),
+            skills=SimpleNamespace(container_path="/mnt/skills", get_skills_path=lambda: skills_dir, use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
             sandbox=sandbox_config,
         )
 
-        with patch("deerflow.config.get_app_config", return_value=config):
+        with patch("vassilflow.config.get_app_config", return_value=config):
             provider = LocalSandboxProvider()
 
         assert [m.container_path for m in provider._path_mappings] == ["/mnt/skills"]
@@ -629,18 +629,18 @@ class TestLocalSandboxProviderMounts:
         from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="vassilflow.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path=str(missing_host_path), container_path="/mnt/knowledge", read_only=True),
             ],
         )
         config = SimpleNamespace(
-            skills=SimpleNamespace(container_path="/mnt/skills", get_skills_path=lambda: skills_dir, use="deerflow.skills.storage.local_skill_storage:LocalSkillStorage"),
+            skills=SimpleNamespace(container_path="/mnt/skills", get_skills_path=lambda: skills_dir, use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
             sandbox=sandbox_config,
         )
 
-        with caplog.at_level("ERROR", logger="deerflow.sandbox.local.local_sandbox_provider"):
-            with patch("deerflow.config.get_app_config", return_value=config):
+        with caplog.at_level("ERROR", logger="vassilflow.sandbox.local.local_sandbox_provider"):
+            with patch("vassilflow.config.get_app_config", return_value=config):
                 provider = LocalSandboxProvider()
 
         # Silent-skip behaviour is preserved (no breaking change for existing deployments).
@@ -761,17 +761,17 @@ class TestLocalSandboxProviderMounts:
         from vassilflow.config.sandbox_config import SandboxConfig, VolumeMountConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="vassilflow.sandbox.local:LocalSandboxProvider",
             mounts=[
                 VolumeMountConfig(host_path=str(custom_dir), container_path="/mnt/data/", read_only=False),
             ],
         )
         config = SimpleNamespace(
-            skills=SimpleNamespace(container_path="/mnt/skills", get_skills_path=lambda: skills_dir, use="deerflow.skills.storage.local_skill_storage:LocalSkillStorage"),
+            skills=SimpleNamespace(container_path="/mnt/skills", get_skills_path=lambda: skills_dir, use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
             sandbox=sandbox_config,
         )
 
-        with patch("deerflow.config.get_app_config", return_value=config):
+        with patch("vassilflow.config.get_app_config", return_value=config):
             provider = LocalSandboxProvider()
 
         assert [m.container_path for m in provider._path_mappings] == ["/mnt/skills", "/mnt/data"]
@@ -789,14 +789,14 @@ class TestLocalSandboxProviderResetClearsSingleton:
         from vassilflow.config.sandbox_config import SandboxConfig
 
         sandbox_config = SandboxConfig(
-            use="deerflow.sandbox.local:LocalSandboxProvider",
+            use="vassilflow.sandbox.local:LocalSandboxProvider",
             mounts=mounts,
         )
         return SimpleNamespace(
             skills=SimpleNamespace(
                 container_path="/mnt/skills",
                 get_skills_path=lambda: skills_dir,
-                use="deerflow.skills.storage.local_skill_storage:LocalSkillStorage",
+                use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage",
             ),
             sandbox=sandbox_config,
         )
@@ -831,7 +831,7 @@ class TestLocalSandboxProviderResetClearsSingleton:
         reset_sandbox_provider()
 
         try:
-            with patch("deerflow.sandbox.sandbox_provider.get_app_config", return_value=first_cfg), patch("deerflow.config.get_app_config", return_value=first_cfg):
+            with patch("vassilflow.sandbox.sandbox_provider.get_app_config", return_value=first_cfg), patch("vassilflow.config.get_app_config", return_value=first_cfg):
                 provider = get_sandbox_provider()
                 provider.acquire()
 
@@ -844,7 +844,7 @@ class TestLocalSandboxProviderResetClearsSingleton:
             # The whole point of the regression: reset must drop the cached LocalSandbox.
             assert lsp_module._singleton is None
 
-            with patch("deerflow.sandbox.sandbox_provider.get_app_config", return_value=second_cfg), patch("deerflow.config.get_app_config", return_value=second_cfg):
+            with patch("vassilflow.sandbox.sandbox_provider.get_app_config", return_value=second_cfg), patch("vassilflow.config.get_app_config", return_value=second_cfg):
                 provider2 = get_sandbox_provider()
                 provider2.acquire()
 
@@ -883,7 +883,7 @@ class TestLocalSandboxProviderResetClearsSingleton:
         reset_sandbox_provider()
 
         try:
-            with patch("deerflow.sandbox.sandbox_provider.get_app_config", return_value=cfg), patch("deerflow.config.get_app_config", return_value=cfg):
+            with patch("vassilflow.sandbox.sandbox_provider.get_app_config", return_value=cfg), patch("vassilflow.config.get_app_config", return_value=cfg):
                 provider = get_sandbox_provider()
                 provider.acquire()
 
@@ -907,7 +907,7 @@ class TestLocalSandboxProviderResetClearsSingleton:
         lsp_module._singleton = None
 
         try:
-            with patch("deerflow.config.get_app_config", return_value=cfg):
+            with patch("vassilflow.config.get_app_config", return_value=cfg):
                 provider = LocalSandboxProvider()
                 provider.acquire()
             assert lsp_module._singleton is not None

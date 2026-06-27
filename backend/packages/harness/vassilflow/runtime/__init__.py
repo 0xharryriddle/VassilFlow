@@ -1,57 +1,48 @@
-"""Runtime facade for VassilFlow integrations.
+"""LangGraph-compatible runtime — runs, streaming, and lifecycle management.
 
-These names bridge to the current implementation modules. Boundary-level
-statuses and entities live in :mod:`vassilflow.boundary`.
+Re-exports the public API of :mod:`~vassilflow.runtime.runs` and
+:mod:`~vassilflow.runtime.stream_bridge` so that consumers can import
+directly from ``vassilflow.runtime``.
 """
 
-from importlib import import_module
+from .checkpointer import checkpointer_context, get_checkpointer, make_checkpointer, reset_checkpointer
+from .runs import ConflictError, DisconnectMode, RunContext, RunManager, RunRecord, RunStatus, UnsupportedStrategyError, run_agent
+from .serialization import serialize, serialize_channel_values, serialize_channel_values_for_api, serialize_lc_object, serialize_messages_tuple, strip_data_url_image_blocks
+from .store import get_store, make_store, reset_store, store_context
+from .stream_bridge import END_SENTINEL, HEARTBEAT_SENTINEL, MemoryStreamBridge, StreamBridge, StreamEvent, make_stream_bridge
 
-_runtime_impl = import_module("deerflow.runtime")
-
-_IMPLEMENTATION_EXPORTS = [
+__all__ = [
+    # checkpointer
+    "checkpointer_context",
+    "get_checkpointer",
+    "make_checkpointer",
+    "reset_checkpointer",
+    # runs
     "ConflictError",
     "DisconnectMode",
-    "END_SENTINEL",
-    "HEARTBEAT_SENTINEL",
-    "MemoryStreamBridge",
     "RunContext",
     "RunManager",
     "RunRecord",
     "RunStatus",
-    "StreamBridge",
-    "StreamEvent",
     "UnsupportedStrategyError",
-    "checkpointer_context",
-    "get_checkpointer",
-    "get_store",
-    "make_checkpointer",
-    "make_store",
-    "make_stream_bridge",
-    "reset_checkpointer",
-    "reset_store",
     "run_agent",
+    # serialization
     "serialize",
     "serialize_channel_values",
     "serialize_channel_values_for_api",
     "serialize_lc_object",
     "serialize_messages_tuple",
-    "store_context",
     "strip_data_url_image_blocks",
+    # store
+    "get_store",
+    "make_store",
+    "reset_store",
+    "store_context",
+    # stream_bridge
+    "END_SENTINEL",
+    "HEARTBEAT_SENTINEL",
+    "MemoryStreamBridge",
+    "StreamBridge",
+    "StreamEvent",
+    "make_stream_bridge",
 ]
-
-globals().update({name: getattr(_runtime_impl, name) for name in _IMPLEMENTATION_EXPORTS})
-
-DeerFlowRunStatus = _runtime_impl.RunStatus
-RuntimeRunStatus = _runtime_impl.RunStatus
-RunStatus = _runtime_impl.RunStatus
-VassilFlowRunStatus = _runtime_impl.RunStatus
-
-__all__ = sorted(
-    [
-        *_IMPLEMENTATION_EXPORTS,
-        "DeerFlowRunStatus",
-        "RunStatus",
-        "RuntimeRunStatus",
-        "VassilFlowRunStatus",
-    ]
-)

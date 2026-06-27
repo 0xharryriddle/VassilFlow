@@ -18,7 +18,7 @@ def test_guardrails_docs_use_vassilflow_framework_identity():
     assert "Start DeerFlow" not in content
     assert "~/.aport/deerflow" not in content
     assert 'framework="deerflow"' not in content
-    assert "packages/harness/deerflow/guardrails/" not in content
+    assert "packages/harness/vassilflow/guardrails/" not in content
 
 
 def test_backend_claude_uses_vassilflow_project_identity():
@@ -35,12 +35,12 @@ def test_backend_claude_uses_vassilflow_project_identity():
     assert "vassilflow.models.vllm_provider:VllmChatModel" in content
     assert "VassilFlowClient.stream" in content
     assert "why Gateway and VassilFlowClient are parallel paths" in content
-    assert "vassilflow/          # Public facade imports" in content
+    assert "vassilflow/          # Agent harness implementation package" in content
     assert "VASSILFLOW_CHANNELS_LANGGRAPH_URL" in content
     assert "VASSILFLOW_CHANNELS_GATEWAY_URL" in content
     assert "VassilFlowSummarizationMiddleware" in content
     assert "parses `app/`, `packages/harness/vassilflow/`" in content
-    assert "context scoped to `app.*`, `vassilflow.*`, and legacy `deerflow.*`" in content
+    assert "context scoped to `app.*` and `vassilflow.*`" in content
     assert "DeerFlow is a LangGraph-based AI super agent system" not in content
     assert "DeerFlow's application tables" not in content
     assert "from deerflow.agents import make_lead_agent" not in content
@@ -96,7 +96,7 @@ def test_architecture_docs_use_vassilflow_runtime_identity():
     assert "overview of the DeerFlow backend architecture" not in content
     assert "Local DeerFlow thread data cleanup" not in content
     assert (
-        "**Entry Point**: `packages/harness/deerflow/agents/lead_agent/agent.py:make_lead_agent`"
+        "**Entry Point**: `packages/harness/vassilflow/agents/lead_agent/agent.py:make_lead_agent`"
         not in content
     )
     assert '"path": "deerflow.agents:make_lead_agent"' not in content
@@ -138,7 +138,7 @@ def test_setup_docs_use_vassilflow_config_facade_examples():
     assert "from vassilflow.config import get_app_config" in content
     assert "from vassilflow.config import AppConfig" in content
     assert "from deerflow.config import get_app_config" not in content
-    assert "from deerflow.config.app_config import AppConfig" not in content
+    assert "from vassilflow.config.app_config import AppConfig" not in content
 
 
 def test_sso_docs_use_vassilflow_realm_and_product_identity():
@@ -210,7 +210,7 @@ def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
     assert "packages/harness/deerflow/config/auth_config.py" not in auth_design
     assert "DeerFlow 内置了认证模块" not in auth_upgrade
     assert "docker logs deer-flow-gateway" not in auth_test_plan
-    assert "sqlite3 backend/.deer-flow/data/deerflow.db" not in auth_test_plan
+    assert "sqlite3 backend/.deer-flow/data/vassilflow.db" not in auth_test_plan
     assert "`deerflow.db` volume persistence" not in auth_docker_gap
     assert "DEER_FLOW_HOME=$HOME/deer-flow-data" not in auth_docker_gap
 
@@ -249,11 +249,11 @@ def test_memory_docs_use_vassilflow_identity_and_runtime_home():
     assert "DeerFlow includes automatic conversation summarization" not in summarization
     assert "DeerFlowSummarizationMiddleware.before_model" not in summarization
     assert (
-        "**Configuration**: `packages/harness/deerflow/config/summarization_config.py`"
+        "**Configuration**: `packages/harness/vassilflow/config/summarization_config.py`"
         not in summarization
     )
     assert (
-        "**Integration**: `packages/harness/deerflow/agents/lead_agent/agent.py`"
+        "**Integration**: `packages/harness/vassilflow/agents/lead_agent/agent.py`"
         not in summarization
     )
     assert "Start DeerFlow locally" not in memory_review
@@ -292,17 +292,17 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
     assert "from deerflow.agents.lead_agent.agent import make_lead_agent" not in plan_mode
     assert "        ├─> SummarizationMiddleware (if enabled via global config)" not in plan_mode
     assert "/Users/hetao/workspace/deer-flow" not in plan_mode
-    assert '"lead_agent": "deerflow.agents:lead_agent"' not in auto_title
-    assert "from deerflow.config.title_config import TitleConfig" not in auto_title
-    assert "from deerflow.agents.title_middleware import TitleMiddleware" not in auto_title
-    assert "packages/harness/deerflow/config/title_config.py" not in auto_title
-    assert "packages/harness/deerflow/config/title_config.py" not in title_implementation
+    assert '"lead_agent": "vassilflow.agents:lead_agent"' not in auto_title
+    assert "from vassilflow.config.title_config import TitleConfig" not in auto_title
+    assert "from vassilflow.agents.title_middleware import TitleMiddleware" not in auto_title
+    assert "packages/harness/vassilflow/config/title_config.py" not in auto_title
+    assert "packages/harness/vassilflow/config/title_config.py" not in title_implementation
     assert (
-        "- **Location**: `packages/harness/deerflow/agents/lead_agent/agent.py`"
+        "- **Location**: `packages/harness/vassilflow/agents/lead_agent/agent.py`"
         not in plan_mode
     )
     assert 'SqliteSaver.from_conn_string("deerflow.db")' not in title_implementation
-    assert '"lead_agent": "deerflow.agents:lead_agent"' not in title_implementation
+    assert '"lead_agent": "vassilflow.agents:lead_agent"' not in title_implementation
 
 
 def test_streaming_docs_use_vassilflow_client_vocabulary():
@@ -330,11 +330,11 @@ def test_task_tool_docs_use_vassilflow_public_imports():
     assert "Public import: `vassilflow.tools.builtins.task_tool`" in content
     assert "**Configuration import**: `vassilflow.subagents.config`" in content
     assert (
-        "Located in `packages/harness/deerflow/tools/builtins/task_tool.py`"
+        "Located in `packages/harness/vassilflow/tools/builtins/task_tool.py`"
         not in content
     )
     assert (
-        "**Configuration** (`packages/harness/deerflow/subagents/config.py`)"
+        "**Configuration** (`packages/harness/vassilflow/subagents/config.py`)"
         not in content
     )
 
@@ -374,7 +374,7 @@ def test_sandbox_memory_profiling_docs_use_vassilflow_defaults():
     assert "--selector app=deer-flow-sandbox" not in content
 
 
-def test_rfc_docs_use_vassilflow_public_facades():
+def test_rfc_docs_use_vassilflow_public_package_imports():
     sdk_rfc = (
         REPO_ROOT / "backend" / "docs" / "rfc-create-vassilflow-agent.md"
     ).read_text(encoding="utf-8")

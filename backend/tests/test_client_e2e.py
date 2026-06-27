@@ -121,7 +121,7 @@ def e2e_env(tmp_path, monkeypatch):
     config = _make_e2e_config()
     monkeypatch.setattr("vassilflow.config.app_config._app_config", config)
     monkeypatch.setattr("vassilflow.config.app_config._app_config_is_custom", True)
-    monkeypatch.setattr("deerflow.client.get_app_config", lambda: config)
+    monkeypatch.setattr("vassilflow.client.get_app_config", lambda: config)
 
     # 3. Disable title generation (extra LLM call, non-deterministic)
     from vassilflow.config.title_config import TitleConfig
@@ -153,7 +153,7 @@ def e2e_env(tmp_path, monkeypatch):
         mws = _original_build_middlewares(*args, **kwargs)
         return [m for m in mws if not isinstance(m, TitleMiddleware)]
 
-    monkeypatch.setattr("deerflow.client.build_middlewares", _sync_safe_build_middlewares)
+    monkeypatch.setattr("vassilflow.client.build_middlewares", _sync_safe_build_middlewares)
 
     return {"tmp_path": tmp_path}
 

@@ -285,7 +285,7 @@ def test_resolve_agent_factory_returns_make_lead_agent():
         make_lead_agent as facade_make_lead_agent,
     )
 
-    make_lead_agent = import_module("deerflow.agents.lead_agent.agent").make_lead_agent
+    make_lead_agent = import_module("vassilflow.agents.lead_agent.agent").make_lead_agent
 
     assert facade_make_lead_agent is make_lead_agent
     assert resolve_agent_factory(None) is make_lead_agent

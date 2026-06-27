@@ -62,31 +62,31 @@ def _stub_runtime_middleware_imports(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.llm_error_handling_middleware",
+        "vassilflow.agents.middlewares.llm_error_handling_middleware",
         _module(
-            "deerflow.agents.middlewares.llm_error_handling_middleware",
+            "vassilflow.agents.middlewares.llm_error_handling_middleware",
             LLMErrorHandlingMiddleware=FakeLLMErrorHandlingMiddleware,
         ),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.thread_data_middleware",
-        _module("deerflow.agents.middlewares.thread_data_middleware", ThreadDataMiddleware=FakeMiddleware),
+        "vassilflow.agents.middlewares.thread_data_middleware",
+        _module("vassilflow.agents.middlewares.thread_data_middleware", ThreadDataMiddleware=FakeMiddleware),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.sandbox.middleware",
-        _module("deerflow.sandbox.middleware", SandboxMiddleware=FakeMiddleware),
+        "vassilflow.sandbox.middleware",
+        _module("vassilflow.sandbox.middleware", SandboxMiddleware=FakeMiddleware),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.dangling_tool_call_middleware",
-        _module("deerflow.agents.middlewares.dangling_tool_call_middleware", DanglingToolCallMiddleware=FakeMiddleware),
+        "vassilflow.agents.middlewares.dangling_tool_call_middleware",
+        _module("vassilflow.agents.middlewares.dangling_tool_call_middleware", DanglingToolCallMiddleware=FakeMiddleware),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.sandbox_audit_middleware",
-        _module("deerflow.agents.middlewares.sandbox_audit_middleware", SandboxAuditMiddleware=FakeMiddleware),
+        "vassilflow.agents.middlewares.sandbox_audit_middleware",
+        _module("vassilflow.agents.middlewares.sandbox_audit_middleware", SandboxAuditMiddleware=FakeMiddleware),
     )
 
 
@@ -106,36 +106,36 @@ def test_build_subagent_runtime_middlewares_threads_app_config_to_llm_middleware
 
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.llm_error_handling_middleware",
+        "vassilflow.agents.middlewares.llm_error_handling_middleware",
         _module(
-            "deerflow.agents.middlewares.llm_error_handling_middleware",
+            "vassilflow.agents.middlewares.llm_error_handling_middleware",
             LLMErrorHandlingMiddleware=FakeLLMErrorHandlingMiddleware,
         ),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.thread_data_middleware",
-        _module("deerflow.agents.middlewares.thread_data_middleware", ThreadDataMiddleware=FakeMiddleware),
+        "vassilflow.agents.middlewares.thread_data_middleware",
+        _module("vassilflow.agents.middlewares.thread_data_middleware", ThreadDataMiddleware=FakeMiddleware),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.sandbox.middleware",
-        _module("deerflow.sandbox.middleware", SandboxMiddleware=FakeMiddleware),
+        "vassilflow.sandbox.middleware",
+        _module("vassilflow.sandbox.middleware", SandboxMiddleware=FakeMiddleware),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.dangling_tool_call_middleware",
-        _module("deerflow.agents.middlewares.dangling_tool_call_middleware", DanglingToolCallMiddleware=FakeMiddleware),
+        "vassilflow.agents.middlewares.dangling_tool_call_middleware",
+        _module("vassilflow.agents.middlewares.dangling_tool_call_middleware", DanglingToolCallMiddleware=FakeMiddleware),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.sandbox_audit_middleware",
-        _module("deerflow.agents.middlewares.sandbox_audit_middleware", SandboxAuditMiddleware=FakeMiddleware),
+        "vassilflow.agents.middlewares.sandbox_audit_middleware",
+        _module("vassilflow.agents.middlewares.sandbox_audit_middleware", SandboxAuditMiddleware=FakeMiddleware),
     )
     monkeypatch.setitem(
         sys.modules,
-        "deerflow.agents.middlewares.input_sanitization_middleware",
-        _module("deerflow.agents.middlewares.input_sanitization_middleware", InputSanitizationMiddleware=FakeMiddleware),
+        "vassilflow.agents.middlewares.input_sanitization_middleware",
+        _module("vassilflow.agents.middlewares.input_sanitization_middleware", InputSanitizationMiddleware=FakeMiddleware),
     )
 
     middlewares = build_subagent_runtime_middlewares(app_config=app_config, lazy_init=False)

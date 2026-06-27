@@ -155,7 +155,7 @@ make_lead_agent(config)
 
 ### Agent Module
 - **Public import**: `vassilflow.agents.lead_agent.agent`
-- **Current implementation**: `packages/harness/deerflow/agents/lead_agent/agent.py`
+- **Current implementation**: `packages/harness/vassilflow/agents/lead_agent/agent.py`
 - **Function**: `_create_todo_list_middleware(is_plan_mode: bool)` - Creates TodoListMiddleware if plan mode is enabled
 - **Function**: `build_middlewares(config: RunnableConfig)` - Builds middleware chain based on runtime config
 - **Function**: `make_lead_agent(config: RunnableConfig)` - Creates agent with appropriate middlewares
@@ -195,7 +195,7 @@ VassilFlow uses custom `system_prompt` and `tool_description` for the TodoListMi
 - Comprehensive best practices section
 - Task completion requirements to prevent premature marking
 
-The custom prompts are defined in `_create_todo_list_middleware()` via the `vassilflow.agents.lead_agent.agent` facade; the current implementation file remains under `packages/harness/deerflow/agents/lead_agent/agent.py` during the migration.
+The custom prompts are defined in `_create_todo_list_middleware()` via the public `vassilflow.agents.lead_agent.agent` import. The implementation file lives under `packages/harness/vassilflow/agents/lead_agent/agent.py`.
 
 ## Notes
 

@@ -1,10 +1,10 @@
 """Strict Blockbuster runtime context scoped to VassilFlow business code.
 
-Creates a `BlockBuster` instance with app, VassilFlow facade, and legacy
-implementation modules in scope so that test infrastructure (pytest,
+Creates a `BlockBuster` instance with app and VassilFlow modules in scope so
+that test infrastructure (pytest,
 langchain, importlib, third-party libs) is out of scope and does not produce
 false positives. Only loop-blocking sync IO whose caller stack passes through
-`app.*`, `vassilflow.*`, or legacy `deerflow.*` raises `BlockingError`.
+`app.*` or `vassilflow.*` raises `BlockingError`.
 
 Used by `backend/tests/blocking_io/conftest.py` to gate the regression suite.
 """
@@ -16,7 +16,7 @@ from contextlib import contextmanager
 
 from blockbuster import BlockBuster, BlockBusterFunction, BlockingError
 
-_SCANNED_MODULES: tuple[str, ...] = ("app", "deerflow", "vassilflow")
+_SCANNED_MODULES: tuple[str, ...] = ("app", "vassilflow")
 
 # Add VassilFlow-local rules here only when Blockbuster's default rule set
 # misses a generic blocking primitive used by production code. If a path is
@@ -32,7 +32,7 @@ def _install_project_rules(bb: BlockBuster) -> None:
 
 @contextmanager
 def detect_blocking_io_strict() -> Iterator[BlockBuster]:
-    """Activate Blockbuster scoped to app.*, vassilflow.*, and legacy implementation callers."""
+    """Activate Blockbuster scoped to app.* and vassilflow.* callers."""
     bb = BlockBuster(scanned_modules=list(_SCANNED_MODULES))
     _install_project_rules(bb)
     try:

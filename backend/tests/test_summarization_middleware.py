@@ -14,7 +14,6 @@ from langgraph.constants import TAG_NOSTREAM
 from vassilflow.agents.memory.summarization_hook import memory_flush_hook
 from vassilflow.agents.middlewares.dynamic_context_middleware import _DYNAMIC_CONTEXT_REMINDER_KEY, DynamicContextMiddleware, is_dynamic_context_reminder
 from vassilflow.agents.middlewares.summarization_middleware import (
-    DeerFlowSummarizationMiddleware,
     SummarizationEvent,
     VassilFlowSummarizationMiddleware,
 )
@@ -139,10 +138,6 @@ def test_before_summarization_hook_receives_messages_before_compression() -> Non
     assert captured[0].agent_name is None
     assert isinstance(result["messages"][0], RemoveMessage)
     assert result["messages"][1].content.startswith("Here is a summary")
-
-
-def test_legacy_summarization_middleware_alias_remains_available() -> None:
-    assert DeerFlowSummarizationMiddleware is VassilFlowSummarizationMiddleware
 
 
 def test_summarization_middleware_emits_frontend_update_key_in_agent_stream() -> None:
@@ -312,7 +307,7 @@ def test_dynamic_context_reminder_is_preserved_across_summarization() -> None:
     assert emitted[2] is reminder
 
     followup_state = {"messages": [*emitted[1:], HumanMessage(content="Follow-up", id="msg-2")]}
-    with mock.patch("deerflow.agents.middlewares.dynamic_context_middleware.datetime") as mock_dt:
+    with mock.patch("vassilflow.agents.middlewares.dynamic_context_middleware.datetime") as mock_dt:
         mock_dt.now.return_value.strftime.return_value = "2026-05-08, Friday"
         assert DynamicContextMiddleware().before_agent(followup_state, _runtime()) is None
 
@@ -366,8 +361,8 @@ async def test_abefore_model_calls_hooks_same_as_sync() -> None:
 
 def test_memory_flush_hook_skips_when_memory_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     queue = MagicMock()
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=False))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=False))
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(
@@ -384,8 +379,8 @@ def test_memory_flush_hook_skips_when_memory_disabled(monkeypatch: pytest.Monkey
 
 def test_memory_flush_hook_skips_when_thread_id_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     queue = MagicMock()
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(
@@ -407,8 +402,8 @@ def test_memory_flush_hook_enqueues_filtered_messages_and_flushes(monkeypatch: p
         AIMessage(content="Calling tool", tool_calls=[{"name": "search", "id": "tool-1", "args": {}}]),
         AIMessage(content="Final answer"),
     ]
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(
@@ -796,8 +791,8 @@ def test_skill_rescue_only_preserves_skill_calls_with_matched_tool_results() -> 
 
 def test_memory_flush_hook_preserves_agent_scoped_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     queue = MagicMock()
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(
@@ -815,8 +810,8 @@ def test_memory_flush_hook_preserves_agent_scoped_memory(monkeypatch: pytest.Mon
 
 def test_memory_flush_hook_passes_runtime_user_id(monkeypatch: pytest.MonkeyPatch) -> None:
     queue = MagicMock()
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
-    monkeypatch.setattr("deerflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_config", lambda: MemoryConfig(enabled=True))
+    monkeypatch.setattr("vassilflow.agents.memory.summarization_hook.get_memory_queue", lambda: queue)
 
     memory_flush_hook(
         SummarizationEvent(

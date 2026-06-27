@@ -293,7 +293,7 @@ async def test_session_pool_tool_pins_cwd_and_temp_env(tmp_path):
     mock_runtime.config = {}
 
     with (
-        patch("deerflow.mcp.tools.get_paths", return_value=paths),
+        patch("vassilflow.mcp.tools.get_paths", return_value=paths),
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm) as create_session,
     ):
         wrapped = _make_session_pool_tool(original_tool, "playwright", connection)
@@ -346,7 +346,7 @@ async def test_session_pool_tool_does_not_override_explicit_tmpdir(tmp_path):
     mock_runtime.config = {}
 
     with (
-        patch("deerflow.mcp.tools.get_paths", return_value=paths),
+        patch("vassilflow.mcp.tools.get_paths", return_value=paths),
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm) as create_session,
     ):
         wrapped = _make_session_pool_tool(original_tool, "playwright", connection)
@@ -392,7 +392,7 @@ async def test_session_pool_tool_does_not_override_explicit_cwd(tmp_path):
     mock_runtime.config = {}
 
     with (
-        patch("deerflow.mcp.tools.get_paths", return_value=paths),
+        patch("vassilflow.mcp.tools.get_paths", return_value=paths),
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm) as create_session,
     ):
         wrapped = _make_session_pool_tool(original_tool, "playwright", connection)
@@ -439,7 +439,7 @@ async def test_session_pool_tool_skips_fs_work_for_non_stdio_transport(tmp_path)
     mock_runtime.config = {}
 
     with (
-        patch("deerflow.mcp.tools.get_paths", return_value=paths) as get_paths,
+        patch("vassilflow.mcp.tools.get_paths", return_value=paths) as get_paths,
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm) as create_session,
     ):
         wrapped = _make_session_pool_tool(original_tool, "srv", connection)
@@ -492,9 +492,9 @@ async def test_session_pool_tool_skips_after_walk_when_no_text_content(tmp_path)
     mock_runtime.config = {}
 
     with (
-        patch("deerflow.mcp.tools.get_paths", return_value=paths),
+        patch("vassilflow.mcp.tools.get_paths", return_value=paths),
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm),
-        patch("deerflow.mcp.tools._changed_workspace_files") as changed_files,
+        patch("vassilflow.mcp.tools._changed_workspace_files") as changed_files,
     ):
         wrapped = _make_session_pool_tool(original_tool, "playwright", connection)
         await wrapped.coroutine(runtime=mock_runtime, url="https://example.com")
@@ -538,9 +538,9 @@ async def test_session_pool_tool_runs_after_walk_when_text_content_present(tmp_p
     mock_runtime.config = {}
 
     with (
-        patch("deerflow.mcp.tools.get_paths", return_value=paths),
+        patch("vassilflow.mcp.tools.get_paths", return_value=paths),
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm),
-        patch("deerflow.mcp.tools._changed_workspace_files", return_value=[]) as changed_files,
+        patch("vassilflow.mcp.tools._changed_workspace_files", return_value=[]) as changed_files,
     ):
         wrapped = _make_session_pool_tool(original_tool, "playwright", connection)
         await wrapped.coroutine(runtime=mock_runtime, url="https://example.com")
@@ -783,7 +783,7 @@ async def test_session_pool_tool_get_config_fallback():
 
     with (
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm),
-        patch("deerflow.mcp.tools.get_config", return_value=fake_config),
+        patch("vassilflow.mcp.tools.get_config", return_value=fake_config),
     ):
         wrapped = _make_session_pool_tool(original_tool, "server", {"transport": "stdio", "command": "x", "args": []})
 
@@ -883,10 +883,10 @@ async def test_http_transport_tools_not_pooled():
     }
 
     with (
-        patch("deerflow.mcp.tools.ExtensionsConfig.from_file", return_value=extensions_config),
-        patch("deerflow.mcp.tools.build_servers_config", return_value=servers_config),
-        patch("deerflow.mcp.tools.get_initial_oauth_headers", return_value={}),
-        patch("deerflow.mcp.tools.build_oauth_tool_interceptor", return_value=None),
+        patch("vassilflow.mcp.tools.ExtensionsConfig.from_file", return_value=extensions_config),
+        patch("vassilflow.mcp.tools.build_servers_config", return_value=servers_config),
+        patch("vassilflow.mcp.tools.get_initial_oauth_headers", return_value={}),
+        patch("vassilflow.mcp.tools.build_oauth_tool_interceptor", return_value=None),
         patch("langchain_mcp_adapters.client.MultiServerMCPClient") as MockClient,
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm),
     ):

@@ -41,7 +41,7 @@ def test_format_memory_sorts_facts_by_confidence_desc() -> None:
 
 def test_format_memory_respects_budget_when_adding_facts(monkeypatch) -> None:
     # Make token counting deterministic for this test by counting characters.
-    monkeypatch.setattr("deerflow.agents.memory.prompt._count_tokens", lambda text, encoding_name="cl100k_base", *, use_tiktoken=True: len(text))
+    monkeypatch.setattr("vassilflow.agents.memory.prompt._count_tokens", lambda text, encoding_name="cl100k_base", *, use_tiktoken=True: len(text))
 
     memory_data = {
         "user": {},
@@ -186,7 +186,7 @@ def test_guaranteed_correction_injected_when_budget_tight(monkeypatch) -> None:
     """Correction facts must be injected even when the regular budget is exhausted."""
     # Deterministic char-based counting.
     monkeypatch.setattr(
-        "deerflow.agents.memory.prompt._count_tokens",
+        "vassilflow.agents.memory.prompt._count_tokens",
         lambda text, encoding_name="cl100k_base", *, use_tiktoken=True: len(text),
     )
 
@@ -326,7 +326,7 @@ def test_fallback_on_ranking_error(monkeypatch) -> None:
         return original_select(*args, **kwargs)
 
     monkeypatch.setattr(
-        "deerflow.agents.memory.prompt._select_fact_lines",
+        "vassilflow.agents.memory.prompt._select_fact_lines",
         flaky_select,
     )
 
@@ -345,7 +345,7 @@ def test_fallback_on_ranking_error(monkeypatch) -> None:
 def test_guaranteed_respects_its_own_budget_limit(monkeypatch) -> None:
     """Even guaranteed facts are capped by guaranteed_token_budget."""
     monkeypatch.setattr(
-        "deerflow.agents.memory.prompt._count_tokens",
+        "vassilflow.agents.memory.prompt._count_tokens",
         lambda text, encoding_name="cl100k_base", *, use_tiktoken=True: len(text),
     )
 
@@ -438,7 +438,7 @@ def test_strict_confidence_order_when_high_confidence_fact_overflows(monkeypatch
     This locks in the strict confidence-ordered selection semantics.
     """
     monkeypatch.setattr(
-        "deerflow.agents.memory.prompt._count_tokens",
+        "vassilflow.agents.memory.prompt._count_tokens",
         lambda text, encoding_name="cl100k_base", *, use_tiktoken=True: len(text),
     )
 
@@ -474,7 +474,7 @@ def test_structure_aware_truncation_preserves_guaranteed_on_overflow(monkeypatch
     Locks in the fix for willem-bd's P1 finding on PR #3592.
     """
     monkeypatch.setattr(
-        "deerflow.agents.memory.prompt._count_tokens",
+        "vassilflow.agents.memory.prompt._count_tokens",
         lambda text, encoding_name="cl100k_base", *, use_tiktoken=True: len(text),
     )
 
@@ -573,7 +573,7 @@ def test_categoryless_fact_not_promoted_into_guaranteed_context_pool(monkeypatch
     Locks in the fix for willem-bd's P2 category-less finding on PR #3592.
     """
     monkeypatch.setattr(
-        "deerflow.agents.memory.prompt._count_tokens",
+        "vassilflow.agents.memory.prompt._count_tokens",
         lambda text, encoding_name="cl100k_base", *, use_tiktoken=True: len(text),
     )
 
@@ -615,7 +615,7 @@ def test_fallback_uses_prefiltered_valid_facts(monkeypatch) -> None:
     PR #3592.
     """
     monkeypatch.setattr(
-        "deerflow.agents.memory.prompt._count_tokens",
+        "vassilflow.agents.memory.prompt._count_tokens",
         lambda text, encoding_name="cl100k_base", *, use_tiktoken=True: len(text),
     )
 
@@ -628,7 +628,7 @@ def test_fallback_uses_prefiltered_valid_facts(monkeypatch) -> None:
             raise RuntimeError("primary path failure")
         return original_select(*args, **kwargs)
 
-    monkeypatch.setattr("deerflow.agents.memory.prompt._select_fact_lines", raising_select)
+    monkeypatch.setattr("vassilflow.agents.memory.prompt._select_fact_lines", raising_select)
 
     memory_data = {
         "facts": [

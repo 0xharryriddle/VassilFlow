@@ -49,7 +49,7 @@ def client(mock_app_config, tmp_path):
     from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
     _storage_mod._default_skill_storage = LocalSkillStorage(host_path=str(tmp_path))
-    with patch("deerflow.client.get_app_config", return_value=mock_app_config):
+    with patch("vassilflow.client.get_app_config", return_value=mock_app_config):
         return VassilFlowClient()
 
 
@@ -60,7 +60,7 @@ def allow_skill_security_scan():
 
         return ScanResult(decision="allow", reason="ok")
 
-    with patch("deerflow.skills.installer.scan_skill_content", _scan):
+    with patch("vassilflow.skills.installer.scan_skill_content", _scan):
         yield
 
 
@@ -82,7 +82,7 @@ class TestClientInit:
 
     def test_custom_params(self, mock_app_config):
         mock_middleware = MagicMock()
-        with patch("deerflow.client.get_app_config", return_value=mock_app_config):
+        with patch("vassilflow.client.get_app_config", return_value=mock_app_config):
             c = VassilFlowClient(model_name="gpt-4", thinking_enabled=False, subagent_enabled=True, plan_mode=True, agent_name="test-agent", available_skills={"skill1", "skill2"}, middlewares=[mock_middleware])
         assert c._model_name == "gpt-4"
         assert c._thinking_enabled is False
@@ -93,7 +93,7 @@ class TestClientInit:
         assert c._middlewares == [mock_middleware]
 
     def test_invalid_agent_name(self, mock_app_config):
-        with patch("deerflow.client.get_app_config", return_value=mock_app_config):
+        with patch("vassilflow.client.get_app_config", return_value=mock_app_config):
             with pytest.raises(ValueError, match="Invalid agent name"):
                 VassilFlowClient(agent_name="invalid name with spaces!")
             with pytest.raises(ValueError, match="Invalid agent name"):
@@ -101,15 +101,15 @@ class TestClientInit:
 
     def test_custom_config_path(self, mock_app_config):
         with (
-            patch("deerflow.client.reload_app_config") as mock_reload,
-            patch("deerflow.client.get_app_config", return_value=mock_app_config),
+            patch("vassilflow.client.reload_app_config") as mock_reload,
+            patch("vassilflow.client.get_app_config", return_value=mock_app_config),
         ):
             VassilFlowClient(config_path="/tmp/custom.yaml")
             mock_reload.assert_called_once_with("/tmp/custom.yaml")
 
     def test_checkpointer_stored(self, mock_app_config):
         cp = MagicMock()
-        with patch("deerflow.client.get_app_config", return_value=mock_app_config):
+        with patch("vassilflow.client.get_app_config", return_value=mock_app_config):
             c = VassilFlowClient(checkpointer=cp)
         assert c._checkpointer is cp
 
@@ -139,7 +139,7 @@ class TestConfigQueries:
         skill.category = "public"
         skill.enabled = True
 
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]) as mock_load:
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]) as mock_load:
             result = client.list_skills()
             mock_load.assert_called_once_with(enabled_only=False)
 
@@ -154,20 +154,20 @@ class TestConfigQueries:
         }
 
     def test_list_skills_enabled_only(self, client):
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[]) as mock_load:
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[]) as mock_load:
             client.list_skills(enabled_only=True)
             mock_load.assert_called_once_with(enabled_only=True)
 
     def test_get_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.get_memory_data", return_value=memory) as mock_mem:
+        with patch("vassilflow.agents.memory.updater.get_memory_data", return_value=memory) as mock_mem:
             result = client.get_memory()
             mock_mem.assert_called_once()
         assert result == memory
 
     def test_export_memory(self, client):
         memory = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.get_memory_data", return_value=memory) as mock_mem:
+        with patch("vassilflow.agents.memory.updater.get_memory_data", return_value=memory) as mock_mem:
             result = client.export_memory()
             mock_mem.assert_called_once()
         assert result == memory
@@ -908,10 +908,10 @@ class TestEnsureAgent:
         config = client._get_runnable_config("t1")
 
         with (
-            patch("deerflow.client.create_chat_model"),
-            patch("deerflow.client.create_agent", return_value=mock_agent),
-            patch("deerflow.client.build_middlewares", return_value=[]) as mock_build_middlewares,
-            patch("deerflow.client.apply_prompt_template", return_value="prompt") as mock_apply_prompt,
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=mock_agent),
+            patch("vassilflow.client.build_middlewares", return_value=[]) as mock_build_middlewares,
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt") as mock_apply_prompt,
             patch.object(client, "_get_tools", return_value=[]),
             patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=MagicMock()),
         ):
@@ -933,10 +933,10 @@ class TestEnsureAgent:
         config = client._get_runnable_config("t1")
 
         with (
-            patch("deerflow.client.create_chat_model"),
-            patch("deerflow.client.create_agent", return_value=mock_agent) as mock_create_agent,
-            patch("deerflow.client.build_middlewares", return_value=[]),
-            patch("deerflow.client.apply_prompt_template", return_value="prompt"),
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=mock_agent) as mock_create_agent,
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt"),
             patch.object(client, "_get_tools", return_value=[]),
             patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=mock_checkpointer),
         ):
@@ -958,10 +958,10 @@ class TestEnsureAgent:
             return [MagicMock()] + custom + [mock_clarification]
 
         with (
-            patch("deerflow.client.create_chat_model"),
-            patch("deerflow.client.create_agent", return_value=mock_agent) as mock_create_agent,
-            patch("deerflow.client.build_middlewares", side_effect=fake_build_middlewares),
-            patch("deerflow.client.apply_prompt_template", return_value="prompt"),
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=mock_agent) as mock_create_agent,
+            patch("vassilflow.client.build_middlewares", side_effect=fake_build_middlewares),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt"),
             patch.object(client, "_get_tools", return_value=[]),
             patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=MagicMock()),
         ):
@@ -977,10 +977,10 @@ class TestEnsureAgent:
         config = client._get_runnable_config("t1")
 
         with (
-            patch("deerflow.client.create_chat_model"),
-            patch("deerflow.client.create_agent", return_value=mock_agent) as mock_create_agent,
-            patch("deerflow.client.build_middlewares", return_value=[]),
-            patch("deerflow.client.apply_prompt_template", return_value="prompt"),
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=mock_agent) as mock_create_agent,
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt"),
             patch.object(client, "_get_tools", return_value=[]),
             patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=None),
         ):
@@ -1185,7 +1185,7 @@ class TestMcpConfig:
         ext_config = MagicMock()
         ext_config.mcp_servers = {"github": server}
 
-        with patch("deerflow.client.get_extensions_config", return_value=ext_config):
+        with patch("vassilflow.client.get_extensions_config", return_value=ext_config):
             result = client.get_mcp_config()
 
         assert "mcp_servers" in result
@@ -1211,9 +1211,9 @@ class TestMcpConfig:
             client._agent = MagicMock()
 
             with (
-                patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=tmp_path),
-                patch("deerflow.client.get_extensions_config", return_value=current_config),
-                patch("deerflow.client.reload_extensions_config", return_value=reloaded_config),
+                patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=tmp_path),
+                patch("vassilflow.client.get_extensions_config", return_value=current_config),
+                patch("vassilflow.client.reload_extensions_config", return_value=reloaded_config),
             ):
                 result = client.update_mcp_config({"new-server": {"enabled": True, "type": "sse"}})
 
@@ -1246,13 +1246,13 @@ class TestSkillsManagement:
 
     def test_get_skill_found(self, client):
         skill = self._make_skill()
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
             result = client.get_skill("test-skill")
         assert result is not None
         assert result["name"] == "test-skill"
 
     def test_get_skill_not_found(self, client):
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[]):
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[]):
             result = client.get_skill("nonexistent")
         assert result is None
 
@@ -1273,10 +1273,10 @@ class TestSkillsManagement:
             client._agent = MagicMock()
 
             with (
-                patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[skill], [updated_skill]]),
-                patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=tmp_path),
-                patch("deerflow.client.get_extensions_config", return_value=ext_config),
-                patch("deerflow.client.reload_extensions_config"),
+                patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[skill], [updated_skill]]),
+                patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=tmp_path),
+                patch("vassilflow.client.get_extensions_config", return_value=ext_config),
+                patch("vassilflow.client.reload_extensions_config"),
             ):
                 result = client.update_skill("test-skill", enabled=False)
             assert result["enabled"] is False
@@ -1285,7 +1285,7 @@ class TestSkillsManagement:
             tmp_path.unlink()
 
     def test_update_skill_not_found(self, client):
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[]):
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[]):
             with pytest.raises(ValueError, match="not found"):
                 client.update_skill("nonexistent", enabled=True)
 
@@ -1307,7 +1307,7 @@ class TestSkillsManagement:
 
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
-            with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
+            with patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 result = client.install_skill(archive_path)
 
             assert result["success"] is True
@@ -1336,7 +1336,7 @@ class TestSkillsManagement:
 class TestMemoryManagement:
     def test_import_memory(self, client):
         imported = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.import_memory_data", return_value=imported) as mock_import:
+        with patch("vassilflow.agents.memory.updater.import_memory_data", return_value=imported) as mock_import:
             result = client.import_memory(imported)
 
         assert mock_import.call_count == 1
@@ -1347,19 +1347,19 @@ class TestMemoryManagement:
 
     def test_reload_memory(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.reload_memory_data", return_value=data):
+        with patch("vassilflow.agents.memory.updater.reload_memory_data", return_value=data):
             result = client.reload_memory()
         assert result == data
 
     def test_clear_memory(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.clear_memory_data", return_value=data):
+        with patch("vassilflow.agents.memory.updater.clear_memory_data", return_value=data):
             result = client.clear_memory()
         assert result == data
 
     def test_create_memory_fact(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.create_memory_fact", return_value=data) as create_fact:
+        with patch("vassilflow.agents.memory.updater.create_memory_fact", return_value=data) as create_fact:
             result = client.create_memory_fact(
                 "User prefers concise code reviews.",
                 category="preference",
@@ -1374,14 +1374,14 @@ class TestMemoryManagement:
 
     def test_delete_memory_fact(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.delete_memory_fact", return_value=data) as delete_fact:
+        with patch("vassilflow.agents.memory.updater.delete_memory_fact", return_value=data) as delete_fact:
             result = client.delete_memory_fact("fact_123")
             delete_fact.assert_called_once_with("fact_123")
         assert result == data
 
     def test_update_memory_fact(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.update_memory_fact", return_value=data) as update_fact:
+        with patch("vassilflow.agents.memory.updater.update_memory_fact", return_value=data) as update_fact:
             result = client.update_memory_fact(
                 "fact_123",
                 "User prefers spaces",
@@ -1398,7 +1398,7 @@ class TestMemoryManagement:
 
     def test_update_memory_fact_preserves_omitted_fields(self, client):
         data = {"version": "1.0", "facts": []}
-        with patch("deerflow.agents.memory.updater.update_memory_fact", return_value=data) as update_fact:
+        with patch("vassilflow.agents.memory.updater.update_memory_fact", return_value=data) as update_fact:
             result = client.update_memory_fact(
                 "fact_123",
                 "User prefers spaces",
@@ -1441,7 +1441,7 @@ class TestMemoryManagement:
 
         with (
             patch("vassilflow.config.memory_config.get_memory_config", return_value=config),
-            patch("deerflow.agents.memory.updater.get_memory_data", return_value=data),
+            patch("vassilflow.agents.memory.updater.get_memory_data", return_value=data),
         ):
             result = client.get_memory_status()
 
@@ -1466,7 +1466,7 @@ class TestUploads:
             uploads_dir = tmp_path / "uploads"
             uploads_dir.mkdir()
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 result = client.upload_files("thread-1", [src_file])
 
             assert result["success"] is True
@@ -1523,8 +1523,8 @@ class TestUploads:
                 return client.upload_files("thread-async", [first, second])
 
             with (
-                patch("deerflow.client.get_uploads_dir", return_value=uploads_dir),
-                patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir),
+                patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir),
+                patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir),
                 patch("vassilflow.utils.file_conversion.CONVERTIBLE_EXTENSIONS", {".pdf"}),
                 patch("vassilflow.utils.file_conversion.convert_file_to_markdown", side_effect=fake_convert),
                 patch("concurrent.futures.ThreadPoolExecutor", FakeExecutor),
@@ -1545,7 +1545,7 @@ class TestUploads:
             (uploads_dir / "a.txt").write_text("a")
             (uploads_dir / "b.txt").write_text("bb")
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 result = client.list_uploads("thread-1")
 
             assert result["count"] == 2
@@ -1563,7 +1563,7 @@ class TestUploads:
             uploads_dir = Path(tmp)
             (uploads_dir / "delete-me.txt").write_text("gone")
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 result = client.delete_upload("thread-1", "delete-me.txt")
 
             assert result["success"] is True
@@ -1572,14 +1572,14 @@ class TestUploads:
 
     def test_delete_upload_not_found(self, client):
         with tempfile.TemporaryDirectory() as tmp:
-            with patch("deerflow.client.get_uploads_dir", return_value=Path(tmp)):
+            with patch("vassilflow.client.get_uploads_dir", return_value=Path(tmp)):
                 with pytest.raises(FileNotFoundError):
                     client.delete_upload("thread-1", "nope.txt")
 
     def test_delete_upload_path_traversal(self, client):
         with tempfile.TemporaryDirectory() as tmp:
             uploads_dir = Path(tmp)
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 with pytest.raises(PathTraversalError):
                     client.delete_upload("thread-1", "../../etc/passwd")
 
@@ -1600,7 +1600,7 @@ class TestArtifacts:
             outputs.mkdir(parents=True)
             (outputs / "result.txt").write_text("artifact content")
 
-            with patch("deerflow.client.get_paths", return_value=paths):
+            with patch("vassilflow.client.get_paths", return_value=paths):
                 content, mime = client.get_artifact("t1", "mnt/user-data/outputs/result.txt")
 
             assert content == b"artifact content"
@@ -1614,7 +1614,7 @@ class TestArtifacts:
             user_id = get_effective_user_id()
             paths.sandbox_outputs_dir("t1", user_id=user_id).mkdir(parents=True)
 
-            with patch("deerflow.client.get_paths", return_value=paths):
+            with patch("vassilflow.client.get_paths", return_value=paths):
                 with pytest.raises(FileNotFoundError):
                     client.get_artifact("t1", "mnt/user-data/outputs/nope.txt")
 
@@ -1630,7 +1630,7 @@ class TestArtifacts:
             user_id = get_effective_user_id()
             paths.sandbox_outputs_dir("t1", user_id=user_id).mkdir(parents=True)
 
-            with patch("deerflow.client.get_paths", return_value=paths):
+            with patch("vassilflow.client.get_paths", return_value=paths):
                 with pytest.raises(PathTraversalError):
                     client.get_artifact("t1", "mnt/user-data/../../../etc/passwd")
 
@@ -1783,7 +1783,7 @@ class TestScenarioFileLifecycle:
             (tmp_path / "report.txt").write_text("quarterly report data")
             (tmp_path / "data.csv").write_text("a,b,c\n1,2,3")
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 # Step 1: Upload
                 result = client.upload_files(
                     "t-lifecycle",
@@ -1828,7 +1828,7 @@ class TestScenarioFileLifecycle:
             src_file = tmp_path / "input.txt"
             src_file.write_text("raw data to process")
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 uploaded = client.upload_files("t-artifact", [src_file])
                 assert len(uploaded["files"]) == 1
 
@@ -1836,7 +1836,7 @@ class TestScenarioFileLifecycle:
             (outputs_dir / "analysis.json").write_text('{"result": "processed"}')
 
             # Retrieve artifact
-            with patch("deerflow.client.get_paths", return_value=paths):
+            with patch("vassilflow.client.get_paths", return_value=paths):
                 content, mime = client.get_artifact("t-artifact", "mnt/user-data/outputs/analysis.json")
 
             assert json.loads(content) == {"result": "processed"}
@@ -1873,12 +1873,12 @@ class TestScenarioConfigManagement:
         skill.category = "public"
         skill.enabled = True
 
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
             skills_result = client.list_skills()
         assert len(skills_result["skills"]) == 1
 
         # Get specific skill
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
             detail = client.get_skill("web-search")
         assert detail is not None
         assert detail["enabled"] is True
@@ -1900,9 +1900,9 @@ class TestScenarioConfigManagement:
 
             client._agent = MagicMock()  # Simulate existing agent
             with (
-                patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
-                patch("deerflow.client.get_extensions_config", return_value=current_config),
-                patch("deerflow.client.reload_extensions_config", return_value=reloaded_config),
+                patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
+                patch("vassilflow.client.get_extensions_config", return_value=current_config),
+                patch("vassilflow.client.reload_extensions_config", return_value=reloaded_config),
             ):
                 mcp_result = client.update_mcp_config({"my-mcp": {"enabled": True}})
             assert "my-mcp" in mcp_result["mcp_servers"]
@@ -1929,10 +1929,10 @@ class TestScenarioConfigManagement:
 
             client._agent = MagicMock()  # Simulate re-created agent
             with (
-                patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[skill], [toggled]]),
-                patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
-                patch("deerflow.client.get_extensions_config", return_value=ext_config),
-                patch("deerflow.client.reload_extensions_config"),
+                patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[skill], [toggled]]),
+                patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
+                patch("vassilflow.client.get_extensions_config", return_value=ext_config),
+                patch("vassilflow.client.reload_extensions_config"),
             ):
                 skill_result = client.update_skill("code-gen", enabled=False)
             assert skill_result["enabled"] is False
@@ -1955,10 +1955,10 @@ class TestScenarioAgentRecreation:
         config_b = client._get_runnable_config("t1", model_name="claude-3")
 
         with (
-            patch("deerflow.client.create_chat_model"),
-            patch("deerflow.client.create_agent", side_effect=fake_create_agent),
-            patch("deerflow.client.build_middlewares", return_value=[]),
-            patch("deerflow.client.apply_prompt_template", return_value="prompt"),
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", side_effect=fake_create_agent),
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt"),
             patch.object(client, "_get_tools", return_value=[]),
             patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=MagicMock()),
         ):
@@ -1983,10 +1983,10 @@ class TestScenarioAgentRecreation:
         config = client._get_runnable_config("t1", model_name="gpt-4")
 
         with (
-            patch("deerflow.client.create_chat_model"),
-            patch("deerflow.client.create_agent", side_effect=fake_create_agent),
-            patch("deerflow.client.build_middlewares", return_value=[]),
-            patch("deerflow.client.apply_prompt_template", return_value="prompt"),
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", side_effect=fake_create_agent),
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt"),
             patch.object(client, "_get_tools", return_value=[]),
             patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=MagicMock()),
         ):
@@ -2008,10 +2008,10 @@ class TestScenarioAgentRecreation:
         config = client._get_runnable_config("t1")
 
         with (
-            patch("deerflow.client.create_chat_model"),
-            patch("deerflow.client.create_agent", side_effect=fake_create_agent),
-            patch("deerflow.client.build_middlewares", return_value=[]),
-            patch("deerflow.client.apply_prompt_template", return_value="prompt"),
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", side_effect=fake_create_agent),
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt"),
             patch.object(client, "_get_tools", return_value=[]),
             patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=MagicMock()),
         ):
@@ -2060,7 +2060,7 @@ class TestScenarioThreadIsolation:
             def get_dir(thread_id):
                 return uploads_a if thread_id == "thread-a" else uploads_b
 
-            with patch("deerflow.client.get_uploads_dir", side_effect=get_dir), patch("deerflow.client.ensure_uploads_dir", side_effect=get_dir):
+            with patch("vassilflow.client.get_uploads_dir", side_effect=get_dir), patch("vassilflow.client.ensure_uploads_dir", side_effect=get_dir):
                 client.upload_files("thread-a", [src_file])
 
                 files_a = client.list_uploads("thread-a")
@@ -2081,7 +2081,7 @@ class TestScenarioThreadIsolation:
             paths.sandbox_outputs_dir("thread-b", user_id=user_id).mkdir(parents=True)
             (outputs_a / "result.txt").write_text("thread-a artifact")
 
-            with patch("deerflow.client.get_paths", return_value=paths):
+            with patch("vassilflow.client.get_paths", return_value=paths):
                 content, _ = client.get_artifact("thread-a", "mnt/user-data/outputs/result.txt")
                 assert content == b"thread-a artifact"
 
@@ -2112,17 +2112,17 @@ class TestScenarioMemoryWorkflow:
         config.injection_enabled = True
         config.max_injection_tokens = 2000
 
-        with patch("deerflow.agents.memory.updater.get_memory_data", return_value=initial_data):
+        with patch("vassilflow.agents.memory.updater.get_memory_data", return_value=initial_data):
             mem = client.get_memory()
         assert len(mem["facts"]) == 1
 
-        with patch("deerflow.agents.memory.updater.reload_memory_data", return_value=updated_data):
+        with patch("vassilflow.agents.memory.updater.reload_memory_data", return_value=updated_data):
             refreshed = client.reload_memory()
         assert len(refreshed["facts"]) == 2
 
         with (
             patch("vassilflow.config.memory_config.get_memory_config", return_value=config),
-            patch("deerflow.agents.memory.updater.get_memory_data", return_value=updated_data),
+            patch("vassilflow.agents.memory.updater.get_memory_data", return_value=updated_data),
         ):
             status = client.get_memory_status()
         assert status["config"]["enabled"] is True
@@ -2151,7 +2151,7 @@ class TestScenarioSkillInstallAndUse:
             # Step 1: Install
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
-            with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
+            with patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 result = client.install_skill(archive)
             assert result["success"] is True
             assert (skills_root / "custom" / "my-analyzer" / "SKILL.md").exists()
@@ -2164,7 +2164,7 @@ class TestScenarioSkillInstallAndUse:
             installed_skill.category = "custom"
             installed_skill.enabled = True
 
-            with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[installed_skill]):
+            with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[installed_skill]):
                 skills_result = client.list_skills()
             assert any(s["name"] == "my-analyzer" for s in skills_result["skills"])
 
@@ -2184,10 +2184,10 @@ class TestScenarioSkillInstallAndUse:
             config_file.write_text("{}")
 
             with (
-                patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[installed_skill], [disabled_skill]]),
-                patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
-                patch("deerflow.client.get_extensions_config", return_value=ext_config),
-                patch("deerflow.client.reload_extensions_config"),
+                patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[installed_skill], [disabled_skill]]),
+                patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
+                patch("vassilflow.client.get_extensions_config", return_value=ext_config),
+                patch("vassilflow.client.reload_extensions_config"),
             ):
                 toggled = client.update_skill("my-analyzer", enabled=False)
             assert toggled["enabled"] is False
@@ -2283,8 +2283,8 @@ class TestScenarioEdgeCases:
             pdf_file.write_bytes(b"%PDF-1.4 fake content")
 
             with (
-                patch("deerflow.client.get_uploads_dir", return_value=uploads_dir),
-                patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir),
+                patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir),
+                patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir),
                 patch("vassilflow.utils.file_conversion.CONVERTIBLE_EXTENSIONS", {".pdf"}),
                 patch("vassilflow.utils.file_conversion.convert_file_to_markdown", side_effect=Exception("conversion failed")),
             ):
@@ -2321,7 +2321,7 @@ class TestGatewayConformance:
         mock_app_config.models = [model]
         mock_app_config.token_usage.enabled = True
 
-        with patch("deerflow.client.get_app_config", return_value=mock_app_config):
+        with patch("vassilflow.client.get_app_config", return_value=mock_app_config):
             client = VassilFlowClient()
 
         result = client.list_models()
@@ -2341,7 +2341,7 @@ class TestGatewayConformance:
         mock_app_config.models = [model]
         mock_app_config.get_model_config.return_value = model
 
-        with patch("deerflow.client.get_app_config", return_value=mock_app_config):
+        with patch("vassilflow.client.get_app_config", return_value=mock_app_config):
             client = VassilFlowClient()
 
         result = client.get_model("test-model")
@@ -2358,7 +2358,7 @@ class TestGatewayConformance:
         skill.category = "public"
         skill.enabled = True
 
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
             result = client.list_skills()
 
         parsed = SkillsListResponse(**result)
@@ -2373,7 +2373,7 @@ class TestGatewayConformance:
         skill.category = "public"
         skill.enabled = True
 
-        with patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
+        with patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]):
             result = client.get_skill("web-search")
 
         assert result is not None
@@ -2391,7 +2391,7 @@ class TestGatewayConformance:
 
         from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
-        with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(tmp_path))):
+        with patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(tmp_path))):
             result = client.install_skill(archive)
 
         parsed = SkillInstallResponse(**result)
@@ -2413,7 +2413,7 @@ class TestGatewayConformance:
         ext_config = MagicMock()
         ext_config.mcp_servers = {"test": server}
 
-        with patch("deerflow.client.get_extensions_config", return_value=ext_config):
+        with patch("vassilflow.client.get_extensions_config", return_value=ext_config):
             result = client.get_mcp_config()
 
         parsed = McpConfigResponse(**result)
@@ -2439,9 +2439,9 @@ class TestGatewayConformance:
         config_file.write_text("{}")
 
         with (
-            patch("deerflow.client.get_extensions_config", return_value=ext_config),
-            patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
-            patch("deerflow.client.reload_extensions_config", return_value=ext_config),
+            patch("vassilflow.client.get_extensions_config", return_value=ext_config),
+            patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
+            patch("vassilflow.client.reload_extensions_config", return_value=ext_config),
         ):
             result = client.update_mcp_config({"srv": server.model_dump.return_value})
 
@@ -2455,7 +2455,7 @@ class TestGatewayConformance:
         src_file = tmp_path / "hello.txt"
         src_file.write_text("hello")
 
-        with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+        with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
             result = client.upload_files("t-conform", [src_file])
 
         parsed = UploadResponse(**result)
@@ -2511,7 +2511,7 @@ class TestGatewayConformance:
 
         with (
             patch("vassilflow.config.memory_config.get_memory_config", return_value=mem_cfg),
-            patch("deerflow.agents.memory.updater.get_memory_data", return_value=memory_data),
+            patch("vassilflow.agents.memory.updater.get_memory_data", return_value=memory_data),
         ):
             result = client.get_memory_status()
 
@@ -2553,8 +2553,8 @@ class TestInstallSkillSecurity:
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with (
-                patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
-                patch("deerflow.skills.installer.safe_extract_skill_archive", side_effect=patched_extract),
+                patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
+                patch("vassilflow.skills.installer.safe_extract_skill_archive", side_effect=patched_extract),
             ):
                 with pytest.raises(ValueError, match="too large"):
                     client.install_skill(archive)
@@ -2571,7 +2571,7 @@ class TestInstallSkillSecurity:
 
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
-            with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
+            with patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 with pytest.raises(ValueError, match="unsafe"):
                     client.install_skill(archive)
 
@@ -2587,7 +2587,7 @@ class TestInstallSkillSecurity:
 
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
-            with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
+            with patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 with pytest.raises(ValueError, match="unsafe"):
                     client.install_skill(archive)
 
@@ -2611,7 +2611,7 @@ class TestInstallSkillSecurity:
 
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
-            with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
+            with patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 result = client.install_skill(archive)
 
             assert result["success"] is True
@@ -2638,8 +2638,8 @@ class TestInstallSkillSecurity:
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with (
-                patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
-                patch("deerflow.skills.validation._validate_skill_frontmatter", return_value=(True, "OK", "../evil")),
+                patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
+                patch("vassilflow.skills.validation._validate_skill_frontmatter", return_value=(True, "OK", "../evil")),
             ):
                 with pytest.raises(ValueError, match="Invalid skill name"):
                     client.install_skill(archive)
@@ -2663,8 +2663,8 @@ class TestInstallSkillSecurity:
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with (
-                patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
-                patch("deerflow.skills.validation._validate_skill_frontmatter", return_value=(True, "OK", "dupe-skill")),
+                patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
+                patch("vassilflow.skills.validation._validate_skill_frontmatter", return_value=(True, "OK", "dupe-skill")),
             ):
                 with pytest.raises(ValueError, match="already exists"):
                     client.install_skill(archive)
@@ -2681,7 +2681,7 @@ class TestInstallSkillSecurity:
 
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
-            with patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
+            with patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))):
                 with pytest.raises(ValueError, match="empty"):
                     client.install_skill(archive)
 
@@ -2703,8 +2703,8 @@ class TestInstallSkillSecurity:
             from vassilflow.skills.storage.local_skill_storage import LocalSkillStorage
 
             with (
-                patch("deerflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
-                patch("deerflow.skills.validation._validate_skill_frontmatter", return_value=(False, "Missing name field", "")),
+                patch("vassilflow.skills.storage._default_skill_storage", LocalSkillStorage(host_path=str(skills_root))),
+                patch("vassilflow.skills.validation._validate_skill_frontmatter", return_value=(False, "Missing name field", "")),
             ):
                 with pytest.raises(ValueError, match="Invalid skill"):
                     client.install_skill(archive)
@@ -2786,7 +2786,7 @@ class TestAtomicWriteJson:
 class TestConfigUpdateErrors:
     def test_update_mcp_config_no_config_file(self, client):
         """FileNotFoundError when extensions_config.json cannot be located."""
-        with patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=None):
+        with patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=None):
             with pytest.raises(FileNotFoundError, match="Cannot locate"):
                 client.update_mcp_config({"server": {}})
 
@@ -2796,8 +2796,8 @@ class TestConfigUpdateErrors:
         skill.name = "some-skill"
 
         with (
-            patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]),
-            patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=None),
+            patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", return_value=[skill]),
+            patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=None),
         ):
             with pytest.raises(FileNotFoundError, match="Cannot locate"):
                 client.update_skill("some-skill", enabled=False)
@@ -2816,10 +2816,10 @@ class TestConfigUpdateErrors:
             config_file.write_text("{}")
 
             with (
-                patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[skill], []]),
-                patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
-                patch("deerflow.client.get_extensions_config", return_value=ext_config),
-                patch("deerflow.client.reload_extensions_config"),
+                patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[skill], []]),
+                patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
+                patch("vassilflow.client.get_extensions_config", return_value=ext_config),
+                patch("vassilflow.client.reload_extensions_config"),
             ):
                 with pytest.raises(RuntimeError, match="disappeared"):
                     client.update_skill("ghost-skill", enabled=False)
@@ -2975,7 +2975,7 @@ class TestUploadDeleteSymlink:
                     pytest.skip("symlink creation requires Developer Mode or elevated privileges on Windows")
                 raise
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 # The resolved path of the symlink escapes uploads_dir,
                 # so path traversal check should catch it.
                 with pytest.raises(PathTraversalError):
@@ -2995,7 +2995,7 @@ class TestUploadDeleteSymlink:
             src_file = tmp_path / weird_name
             src_file.write_text("data")
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 result = client.upload_files("thread-1", [src_file])
 
             assert result["success"] is True
@@ -3019,7 +3019,7 @@ class TestArtifactHardening:
             subdir = paths.sandbox_outputs_dir("t1", user_id=user_id) / "subdir"
             subdir.mkdir(parents=True)
 
-            with patch("deerflow.client.get_paths", return_value=paths):
+            with patch("vassilflow.client.get_paths", return_value=paths):
                 with pytest.raises(ValueError, match="not a file"):
                     client.get_artifact("t1", "mnt/user-data/outputs/subdir")
 
@@ -3034,7 +3034,7 @@ class TestArtifactHardening:
             outputs.mkdir(parents=True)
             (outputs / "file.txt").write_text("content")
 
-            with patch("deerflow.client.get_paths", return_value=paths):
+            with patch("vassilflow.client.get_paths", return_value=paths):
                 content, _mime = client.get_artifact("t1", "/mnt/user-data/outputs/file.txt")
 
             assert content == b"content"
@@ -3068,7 +3068,7 @@ class TestUploadDuplicateFilenames:
             (dir_a / "data.txt").write_text("version A")
             (dir_b / "data.txt").write_text("version B")
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 result = client.upload_files("t-dup", [dir_a / "data.txt", dir_b / "data.txt"])
 
             assert result["success"] is True
@@ -3101,7 +3101,7 @@ class TestUploadDuplicateFilenames:
                 d.mkdir()
                 (d / "report.csv").write_text(f"from {name}")
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 result = client.upload_files(
                     "t-triple",
                     [tmp_path / "x" / "report.csv", tmp_path / "y" / "report.csv", tmp_path / "z" / "report.csv"],
@@ -3121,7 +3121,7 @@ class TestUploadDuplicateFilenames:
             (tmp_path / "a.txt").write_text("aaa")
             (tmp_path / "b.txt").write_text("bbb")
 
-            with patch("deerflow.client.get_uploads_dir", return_value=uploads_dir), patch("deerflow.client.ensure_uploads_dir", return_value=uploads_dir):
+            with patch("vassilflow.client.get_uploads_dir", return_value=uploads_dir), patch("vassilflow.client.ensure_uploads_dir", return_value=uploads_dir):
                 result = client.upload_files("t-ok", [tmp_path / "a.txt", tmp_path / "b.txt"])
 
             assert result["success"] is True
@@ -3151,7 +3151,7 @@ class TestBugArtifactPrefixMatchTooLoose:
             user_id = get_effective_user_id()
             paths.sandbox_outputs_dir("t1", user_id=user_id).mkdir(parents=True)
 
-            with patch("deerflow.client.get_paths", return_value=paths):
+            with patch("vassilflow.client.get_paths", return_value=paths):
                 # Accepted at prefix check, but fails because it's a directory.
                 with pytest.raises(ValueError, match="not a file"):
                     client.get_artifact("t1", "mnt/user-data")
@@ -3199,9 +3199,9 @@ class TestBugAgentInvalidationInconsistency:
             config_file.write_text("{}")
 
             with (
-                patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
-                patch("deerflow.client.get_extensions_config", return_value=current_config),
-                patch("deerflow.client.reload_extensions_config", return_value=reloaded),
+                patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
+                patch("vassilflow.client.get_extensions_config", return_value=current_config),
+                patch("vassilflow.client.reload_extensions_config", return_value=reloaded),
             ):
                 client.update_mcp_config({})
 
@@ -3231,10 +3231,10 @@ class TestBugAgentInvalidationInconsistency:
             config_file.write_text("{}")
 
             with (
-                patch("deerflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[skill], [updated]]),
-                patch("deerflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
-                patch("deerflow.client.get_extensions_config", return_value=ext_config),
-                patch("deerflow.client.reload_extensions_config"),
+                patch("vassilflow.skills.storage.local_skill_storage.LocalSkillStorage.load_skills", side_effect=[[skill], [updated]]),
+                patch("vassilflow.client.ExtensionsConfig.resolve_config_path", return_value=config_file),
+                patch("vassilflow.client.get_extensions_config", return_value=ext_config),
+                patch("vassilflow.client.reload_extensions_config"),
             ):
                 client.update_skill("s1", enabled=False)
 

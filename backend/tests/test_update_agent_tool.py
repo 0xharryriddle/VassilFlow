@@ -81,7 +81,7 @@ def _seed_agent(
 @pytest.fixture()
 def patched_paths(tmp_path: Path):
     paths_mock = _make_paths_mock(tmp_path)
-    with patch("deerflow.tools.builtins.update_agent_tool.get_paths", return_value=paths_mock):
+    with patch("vassilflow.tools.builtins.update_agent_tool.get_paths", return_value=paths_mock):
         # load_agent_config also calls get_paths(); patch the same target it uses.
         with patch("vassilflow.config.agents_config.get_paths", return_value=paths_mock):
             yield paths_mock
@@ -92,7 +92,7 @@ def stub_app_config():
     """Stub get_app_config so model validation accepts only known names."""
     fake = MagicMock()
     fake.get_model_config.side_effect = lambda name: object() if name in {"gpt-known", "m1"} else None
-    with patch("deerflow.tools.builtins.update_agent_tool.get_app_config", return_value=fake):
+    with patch("vassilflow.tools.builtins.update_agent_tool.get_app_config", return_value=fake):
         yield fake
 
 
@@ -320,7 +320,7 @@ def test_update_agent_soul_failure_does_not_replace_config(tmp_path, patched_pat
             raise OSError("disk full while staging SOUL.md")
         return real_named_temp_file(*args, **kwargs)
 
-    with patch("deerflow.tools.builtins.update_agent_tool.tempfile.NamedTemporaryFile", side_effect=_explode_on_soul):
+    with patch("vassilflow.tools.builtins.update_agent_tool.tempfile.NamedTemporaryFile", side_effect=_explode_on_soul):
         result = update_agent.func(runtime=_runtime(), description="new-desc", soul="new soul")
 
     cfg = yaml.safe_load((agent_dir / "config.yaml").read_text())
@@ -372,8 +372,8 @@ def test_update_agent_round_trips_known_fields(tmp_path, patched_paths):
     fake_cfg = AgentConfig(name="test-agent", description="legacy", skills=["s1"], tool_groups=["g1"], model="m1")
     fake_app_config = MagicMock()
     fake_app_config.get_model_config.return_value = object()
-    with patch("deerflow.tools.builtins.update_agent_tool.load_agent_config", return_value=fake_cfg):
-        with patch("deerflow.tools.builtins.update_agent_tool.get_app_config", return_value=fake_app_config):
+    with patch("vassilflow.tools.builtins.update_agent_tool.load_agent_config", return_value=fake_cfg):
+        with patch("vassilflow.tools.builtins.update_agent_tool.get_app_config", return_value=fake_app_config):
             update_agent.func(runtime=_runtime(), description="bumped")
 
     cfg = yaml.safe_load((_user_agent_dir(tmp_path) / "config.yaml").read_text())

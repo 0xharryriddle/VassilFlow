@@ -461,7 +461,7 @@ class TestGuardrailsConfig:
                 "fail_closed": False,
                 "passport": "./guardrails/passport.json",
                 "provider": {
-                    "use": "deerflow.guardrails.builtin:AllowlistProvider",
+                    "use": "vassilflow.guardrails.builtin:AllowlistProvider",
                     "config": {"denied_tools": ["bash"]},
                 },
             }
@@ -469,7 +469,7 @@ class TestGuardrailsConfig:
         assert config.enabled is True
         assert config.fail_closed is False
         assert config.passport == "./guardrails/passport.json"
-        assert config.provider.use == "deerflow.guardrails.builtin:AllowlistProvider"
+        assert config.provider.use == "vassilflow.guardrails.builtin:AllowlistProvider"
         assert config.provider.config == {"denied_tools": ["bash"]}
 
     def test_singleton_load_and_get(self):

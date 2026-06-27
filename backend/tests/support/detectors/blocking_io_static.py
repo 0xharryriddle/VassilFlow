@@ -24,7 +24,6 @@ from support.detectors.repo_root import resolve_repo_root
 REPO_ROOT = resolve_repo_root(Path(__file__))
 DEFAULT_SCAN_PATHS = (
     REPO_ROOT / "backend" / "app",
-    REPO_ROOT / "backend" / "packages" / "harness" / "deerflow",
     REPO_ROOT / "backend" / "packages" / "harness" / "vassilflow",
     REPO_ROOT / "backend" / "scripts",
 )
@@ -790,8 +789,6 @@ def write_json_report(findings: Sequence[BlockingIOStaticFinding], output_path: 
 
 def _scan_root(path: str) -> str:
     parts = path.split("/")
-    if parts[:4] == ["backend", "packages", "harness", "deerflow"]:
-        return "backend/packages/harness/deerflow"
     if parts[:4] == ["backend", "packages", "harness", "vassilflow"]:
         return "backend/packages/harness/vassilflow"
     if len(parts) >= 2 and parts[0] == "backend":

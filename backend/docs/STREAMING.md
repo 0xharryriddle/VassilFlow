@@ -6,7 +6,7 @@
 
 ## TL;DR
 
-- VassilFlow 有**两条并行**的流式路径：**Gateway 路径**（async / HTTP SSE / JSON 序列化）服务浏览器和 IM 渠道；**VassilFlowClient 路径**（sync / in-process / 原生 LangChain 对象，legacy `DeerFlowClient` 仍支持）服务 Jupyter、脚本、测试。它们**无法合并**——消费者模型不同。
+- VassilFlow 有**两条并行**的流式路径：**Gateway 路径**（async / HTTP SSE / JSON 序列化）服务浏览器和 IM 渠道；**VassilFlowClient 路径**（sync / in-process / 原生 LangChain 对象）服务 Jupyter、脚本、测试。它们**无法合并**——消费者模型不同。
 - 两条路径都从 `create_agent()` 工厂出发，核心都是订阅 LangGraph 的 `stream_mode=["values", "messages", "custom"]`。`values` 是节点级 state 快照，`messages` 是 LLM token 级 delta，`custom` 是显式 `StreamWriter` 事件。**这三种模式不是详细程度的梯度，是三个独立的事件源**，要 token 流就必须显式订阅 `messages`。
 - 嵌入式 client 为每个 `stream()` 调用维护三个 `set[str]`：`seen_ids` / `streamed_ids` / `counted_usage_ids`。三者看起来相似但管理**三个独立的不变式**，不能合并。
 
@@ -19,7 +19,7 @@
 | 维度 | Gateway 路径 | VassilFlowClient 路径 |
 |---|---|---|
 | 入口 | FastAPI `/runs/stream` endpoint | `VassilFlowClient.stream(message)` |
-| 触发层 | `runtime/runs/worker.py::run_agent` | `packages/harness/vassilflow/client.py::VassilFlowClient.stream` facade |
+| 触发层 | `runtime/runs/worker.py::run_agent` | `packages/harness/vassilflow/client.py::VassilFlowClient.stream` entrypoint |
 | 执行模型 | `async def` + `agent.astream()` | sync generator + `agent.stream()` |
 | 事件传输 | `StreamBridge`（asyncio Queue）+ `sse_consumer` | 直接 `yield` |
 | 序列化 | `serialize(chunk)` → 纯 JSON dict，匹配 LangGraph Platform wire 格式 | `StreamEvent.data`，携带原生 LangChain 对象 |
@@ -339,12 +339,12 @@ assert "messages" in agent.stream.call_args.kwargs["stream_mode"]
 
 | 关心什么 | 看这里 |
 |---|---|
-| VassilFlowClient 嵌入式流 | `packages/harness/vassilflow/client.py::VassilFlowClient` facade over `packages/harness/deerflow/client.py::DeerFlowClient.stream` |
-| `chat()` 的 delta 累加器 | `packages/harness/vassilflow/client.py::VassilFlowClient` facade over `packages/harness/deerflow/client.py::DeerFlowClient.chat` |
-| Gateway async 流 | `packages/harness/deerflow/runtime/runs/worker.py::run_agent` |
+| VassilFlowClient 嵌入式流 | `packages/harness/vassilflow/client.py::VassilFlowClient.stream` |
+| `chat()` 的 delta 累加器 | `packages/harness/vassilflow/client.py::VassilFlowClient.chat` |
+| Gateway async 流 | `packages/harness/vassilflow/runtime/runs/worker.py::run_agent` |
 | HTTP SSE 帧输出 | `app/gateway/services.py::sse_consumer` / `format_sse` |
-| 序列化到 wire 格式 | `packages/harness/deerflow/runtime/serialization.py` |
-| LangGraph mode 命名翻译 | `packages/harness/deerflow/runtime/runs/worker.py:117-121` |
+| 序列化到 wire 格式 | `packages/harness/vassilflow/runtime/serialization.py` |
+| LangGraph mode 命名翻译 | `packages/harness/vassilflow/runtime/runs/worker.py:117-121` |
 | 飞书渠道的增量卡片更新 | `app/channels/manager.py::_handle_streaming_chat` |
 | Channels 自带的 delta/cumulative 防御性累加 | `app/channels/manager.py::_merge_stream_text` |
 | Frontend useStream 支持的 mode 集合 | `frontend/src/core/api/stream-mode.ts` |

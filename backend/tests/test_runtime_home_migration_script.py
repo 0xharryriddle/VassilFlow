@@ -79,15 +79,15 @@ def test_runtime_home_migration_copies_legacy_data_without_removing_source(tmp_p
     source = tmp_path / ".deer-flow"
     target = tmp_path / ".vassilflow"
     (source / "data").mkdir(parents=True)
-    (source / "data" / "deerflow.db").write_text("sqlite-placeholder", encoding="utf-8")
+    (source / "data" / "vassilflow.db").write_text("sqlite-placeholder", encoding="utf-8")
     (source / "threads" / "t1").mkdir(parents=True)
     (source / "threads" / "t1" / "note.txt").write_text("hello", encoding="utf-8")
 
     result = _run_migration(source, target)
 
     assert "Copied legacy runtime home" in result.stdout
-    assert (source / "data" / "deerflow.db").read_text(encoding="utf-8") == "sqlite-placeholder"
-    assert (target / "data" / "deerflow.db").read_text(encoding="utf-8") == "sqlite-placeholder"
+    assert (source / "data" / "vassilflow.db").read_text(encoding="utf-8") == "sqlite-placeholder"
+    assert (target / "data" / "vassilflow.db").read_text(encoding="utf-8") == "sqlite-placeholder"
     assert (target / "threads" / "t1" / "note.txt").read_text(encoding="utf-8") == "hello"
 
 

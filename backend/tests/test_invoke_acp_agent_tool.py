@@ -512,7 +512,7 @@ async def test_invoke_acp_agent_skips_invalid_mcp_servers(monkeypatch, tmp_path,
 
     monkeypatch.setattr(paths_module, "get_paths", lambda: paths_module.Paths(base_dir=tmp_path))
     monkeypatch.setattr(
-        "deerflow.tools.builtins.invoke_acp_agent_tool._build_acp_mcp_servers",
+        "vassilflow.tools.builtins.invoke_acp_agent_tool._build_acp_mcp_servers",
         lambda: (_ for _ in ()).throw(ValueError("missing command")),
     )
 
@@ -696,7 +696,7 @@ def test_get_available_tools_includes_invoke_acp_agent_when_agents_configured(mo
         tool_search=SimpleNamespace(enabled=False),
         get_model_config=lambda name: None,
     )
-    monkeypatch.setattr("deerflow.tools.tools.get_app_config", lambda: fake_config)
+    monkeypatch.setattr("vassilflow.tools.tools.get_app_config", lambda: fake_config)
     monkeypatch.setattr(
         "vassilflow.config.extensions_config.ExtensionsConfig.from_file",
         classmethod(lambda cls: ExtensionsConfig(mcp_servers={}, skills={})),
@@ -718,7 +718,7 @@ def test_get_available_tools_sync_invoke_acp_agent_preserves_thread_workspace(mo
         "vassilflow.config.extensions_config.ExtensionsConfig.from_file",
         classmethod(lambda cls: ExtensionsConfig(mcp_servers={}, skills={})),
     )
-    monkeypatch.setattr("deerflow.tools.tools.is_host_bash_allowed", lambda config=None: True)
+    monkeypatch.setattr("vassilflow.tools.tools.is_host_bash_allowed", lambda config=None: True)
 
     captured: dict[str, object] = {}
 
@@ -814,9 +814,9 @@ def test_get_available_tools_uses_explicit_app_config_for_acp_agents(monkeypatch
         captured["agents"] = agents
         return sentinel_tool
 
-    monkeypatch.setattr("deerflow.tools.tools.is_host_bash_allowed", lambda config=None: True)
+    monkeypatch.setattr("vassilflow.tools.tools.is_host_bash_allowed", lambda config=None: True)
     monkeypatch.setattr("vassilflow.config.acp_config.get_acp_agents", fail_get_acp_agents)
-    monkeypatch.setattr("deerflow.tools.builtins.invoke_acp_agent_tool.build_invoke_acp_agent_tool", fake_build_invoke_acp_agent_tool)
+    monkeypatch.setattr("vassilflow.tools.builtins.invoke_acp_agent_tool.build_invoke_acp_agent_tool", fake_build_invoke_acp_agent_tool)
 
     tools = get_available_tools(include_mcp=False, subagent_enabled=False, app_config=explicit_config)
 

@@ -28,26 +28,26 @@ def test_runtime_config_docstrings_use_vassilflow_primary_name() -> None:
 
     assert "VassilFlow" in app_resolver_doc
     assert "VassilFlow" in extensions_resolver_doc
-    assert "legacy DeerFlow aliases" in app_resolver_doc
-    assert "legacy DeerFlow aliases" in extensions_resolver_doc
+    assert "legacy upstream aliases" in app_resolver_doc
+    assert "legacy upstream aliases" in extensions_resolver_doc
     assert "Get the VassilFlow config instance" in (get_app_config.__doc__ or "")
     assert "Get the DeerFlow config instance" not in (get_app_config.__doc__ or "")
 
 
-def test_persistence_docstrings_use_vassilflow_facade() -> None:
+def test_persistence_docstrings_use_vassilflow_package() -> None:
     assert "VassilFlow ORM models" in (Base.__doc__ or "")
     assert "from vassilflow.persistence import" in (persistence_module.__doc__ or "")
     assert "from deerflow.persistence import" not in (persistence_module.__doc__ or "")
 
 
-def test_memory_storage_default_uses_vassilflow_facade() -> None:
+def test_memory_storage_default_uses_vassilflow_package() -> None:
     assert (
         MemoryConfig.model_fields["storage_class"].default
         == "vassilflow.agents.memory.storage.FileMemoryStorage"
     )
 
 
-def test_safety_config_docstring_uses_vassilflow_reflection_facade() -> None:
+def test_safety_config_docstring_uses_vassilflow_reflection_package() -> None:
     doc = safety_config_module.__doc__ or ""
 
     assert "vassilflow.reflection.resolve_variable" in doc

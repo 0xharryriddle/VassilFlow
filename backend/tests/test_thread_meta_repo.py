@@ -251,7 +251,7 @@ class TestThreadMetaRepository:
         await repo.create("t1", metadata={"env": "prod"})
         await repo.create("t2", metadata={"env": "staging"})
 
-        with caplog.at_level(logging.WARNING, logger="deerflow.persistence.thread_meta.sql"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.persistence.thread_meta.sql"):
             with pytest.raises(InvalidMetadataFilterError, match="rejected") as exc_info:
                 await repo.search(metadata={"bad;key": "x"})
         assert any("bad;key" in r.message for r in caplog.records)
@@ -264,7 +264,7 @@ class TestThreadMetaRepository:
         await repo.create("t1", metadata={"env": "prod"})
         await repo.create("t2", metadata={"env": "staging"})
 
-        with caplog.at_level(logging.WARNING, logger="deerflow.persistence.thread_meta.sql"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.persistence.thread_meta.sql"):
             results = await repo.search(metadata={"env": "prod", "bad;key": "x"})
         ids = {r["thread_id"] for r in results}
         assert ids == {"t1"}
@@ -299,7 +299,7 @@ class TestThreadMetaRepository:
         await repo.create("t1", metadata={"env": "prod"})
         await repo.create("t2", metadata={"env": "staging"})
 
-        with caplog.at_level(logging.WARNING, logger="deerflow.persistence.thread_meta.sql"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.persistence.thread_meta.sql"):
             with pytest.raises(InvalidMetadataFilterError, match="rejected"):
                 await repo.search(metadata={1: "x"})
         assert any("1" in r.message for r in caplog.records)
@@ -310,7 +310,7 @@ class TestThreadMetaRepository:
         await repo.create("t1", metadata={"env": "prod"})
         await repo.create("t2", metadata={"env": "staging"})
 
-        with caplog.at_level(logging.WARNING, logger="deerflow.persistence.thread_meta.sql"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.persistence.thread_meta.sql"):
             with pytest.raises(InvalidMetadataFilterError, match="rejected"):
                 await repo.search(metadata={"env": ["prod", "staging"]})
 
@@ -320,7 +320,7 @@ class TestThreadMetaRepository:
         await repo.create("t1", metadata={"env": "prod"})
         await repo.create("t2", metadata={"env": "staging"})
 
-        with caplog.at_level(logging.WARNING, logger="deerflow.persistence.thread_meta.sql"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.persistence.thread_meta.sql"):
             with pytest.raises(InvalidMetadataFilterError, match="rejected"):
                 await repo.search(metadata={"a.b": "anything"})
         assert any("a.b" in r.message for r in caplog.records)

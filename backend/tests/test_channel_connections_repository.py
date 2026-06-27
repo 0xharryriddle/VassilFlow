@@ -250,7 +250,7 @@ class TestChannelConnectionRepository:
             cipher=ChannelCredentialCipher.from_key("wrong-encryption-key"),
         )
 
-        with caplog.at_level(logging.WARNING, logger="deerflow.persistence.channel_connections.sql"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.persistence.channel_connections.sql"):
             credentials = await wrong_key_repo.get_credentials(connection["id"])
 
         assert credentials is None

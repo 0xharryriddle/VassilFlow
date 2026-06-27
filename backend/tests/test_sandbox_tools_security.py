@@ -105,8 +105,8 @@ def test_mask_local_paths_in_output_hides_host_paths() -> None:
 def test_mask_local_paths_in_output_hides_skills_host_paths() -> None:
     """Skills host paths in bash output should be masked to virtual paths."""
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
     ):
         output = "Reading: /home/user/vassilflow/skills/public/bootstrap/SKILL.md"
         masked = mask_local_paths_in_output(output, _THREAD_DATA)
@@ -141,8 +141,8 @@ def test_mask_local_paths_stable_across_repeated_and_batched_calls() -> None:
 def test_mask_local_paths_no_thread_data_still_masks_skills() -> None:
     """With thread_data=None, skills host paths are still masked (user-data skipped)."""
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
     ):
         masked = mask_local_paths_in_output("Reading: /home/user/vassilflow/skills/a/b.md", None)
         assert "/home/user/vassilflow/skills" not in masked
@@ -193,10 +193,10 @@ def test_validate_local_tool_path_prioritizes_user_data_before_custom_mounts() -
     mounts = [
         VolumeMountConfig(host_path="/tmp/host-user-data", container_path=VIRTUAL_PATH_PREFIX, read_only=False),
     ]
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=mounts):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=mounts):
         validate_local_tool_path(f"{VIRTUAL_PATH_PREFIX}/workspace/file.txt", _THREAD_DATA, read_only=True)
 
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=mounts):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=mounts):
         with pytest.raises(PermissionError, match="path traversal"):
             validate_local_tool_path(f"{VIRTUAL_PATH_PREFIX}/workspace/../../etc/passwd", _THREAD_DATA, read_only=True)
 
@@ -227,7 +227,7 @@ def test_validate_local_tool_path_rejects_traversal_in_user_data() -> None:
 
 def test_validate_local_tool_path_rejects_traversal_in_skills() -> None:
     """Path traversal via .. in skills paths must be rejected."""
-    with patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+    with patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
         with pytest.raises(PermissionError, match="path traversal"):
             validate_local_tool_path("/mnt/skills/../../etc/passwd", _THREAD_DATA, read_only=True)
 
@@ -246,8 +246,8 @@ def test_validate_local_tool_path_rejects_none_thread_data() -> None:
 def test_resolve_skills_path_resolves_correctly() -> None:
     """Skills virtual path should resolve to host path."""
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
     ):
         resolved = _resolve_skills_path("/mnt/skills/public/bootstrap/SKILL.md")
         assert resolved == "/home/user/vassilflow/skills/public/bootstrap/SKILL.md"
@@ -256,8 +256,8 @@ def test_resolve_skills_path_resolves_correctly() -> None:
 def test_resolve_skills_path_resolves_root() -> None:
     """Skills container root should resolve to host skills directory."""
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
     ):
         resolved = _resolve_skills_path("/mnt/skills")
         assert resolved == "/home/user/vassilflow/skills"
@@ -266,8 +266,8 @@ def test_resolve_skills_path_resolves_root() -> None:
 def test_resolve_skills_path_raises_when_not_configured() -> None:
     """Should raise FileNotFoundError when skills directory is not available."""
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value=None),
+        patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_host_path", return_value=None),
     ):
         with pytest.raises(FileNotFoundError, match="Skills directory not available"):
             _resolve_skills_path("/mnt/skills/public/bootstrap/SKILL.md")
@@ -309,8 +309,8 @@ def test_resolve_and_validate_user_data_path_blocks_traversal(tmp_path: Path) ->
 def test_replace_virtual_paths_in_command_replaces_skills_paths() -> None:
     """Skills virtual paths in commands should be resolved to host paths."""
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_host_path", return_value="/home/user/vassilflow/skills"),
     ):
         cmd = "cat /mnt/skills/public/bootstrap/SKILL.md"
         result = replace_virtual_paths_in_command(cmd, _THREAD_DATA)
@@ -321,8 +321,8 @@ def test_replace_virtual_paths_in_command_replaces_skills_paths() -> None:
 def test_replace_virtual_paths_in_command_replaces_both() -> None:
     """Both user-data and skills paths should be replaced in the same command."""
     with (
-        patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
-        patch("deerflow.sandbox.tools._get_skills_host_path", return_value="/home/user/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_host_path", return_value="/home/user/skills"),
     ):
         cmd = "cat /mnt/skills/public/SKILL.md > /mnt/user-data/workspace/out.txt"
         result = replace_virtual_paths_in_command(cmd, _THREAD_DATA)
@@ -374,7 +374,7 @@ def test_validate_local_bash_command_paths_blocks_traversal_in_user_data() -> No
 
 def test_validate_local_bash_command_paths_blocks_traversal_in_skills() -> None:
     """Bash commands with traversal in skills paths should be blocked."""
-    with patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+    with patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
         with pytest.raises(PermissionError, match="path traversal"):
             validate_local_bash_command_paths(
                 "cat /mnt/skills/../../etc/passwd",
@@ -535,10 +535,10 @@ def test_bash_tool_rejects_host_bash_when_local_sandbox_default(monkeypatch) -> 
     )
 
     monkeypatch.setattr(
-        "deerflow.sandbox.tools.ensure_sandbox_initialized",
+        "vassilflow.sandbox.tools.ensure_sandbox_initialized",
         lambda runtime: SimpleNamespace(execute_command=lambda command: pytest.fail("host bash should not execute")),
     )
-    monkeypatch.setattr("deerflow.sandbox.tools.is_host_bash_allowed", lambda: False)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_host_bash_allowed", lambda: False)
 
     result = bash_tool.func(
         runtime=runtime,
@@ -556,11 +556,11 @@ def test_bash_tool_blocks_relative_traversal_before_host_execution(monkeypatch) 
     )
 
     monkeypatch.setattr(
-        "deerflow.sandbox.tools.ensure_sandbox_initialized",
+        "vassilflow.sandbox.tools.ensure_sandbox_initialized",
         lambda runtime: SimpleNamespace(execute_command=lambda command: pytest.fail("unsafe command should not execute")),
     )
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_host_bash_allowed", lambda: True)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_host_bash_allowed", lambda: True)
 
     result = bash_tool.func(
         runtime=runtime,
@@ -575,7 +575,7 @@ def test_bash_tool_blocks_relative_traversal_before_host_execution(monkeypatch) 
 
 
 def test_is_skills_path_recognises_default_prefix() -> None:
-    with patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+    with patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
         assert _is_skills_path("/mnt/skills") is True
         assert _is_skills_path("/mnt/skills/public/bootstrap/SKILL.md") is True
         assert _is_skills_path("/mnt/skills-extra/foo") is False
@@ -584,7 +584,7 @@ def test_is_skills_path_recognises_default_prefix() -> None:
 
 def test_validate_local_tool_path_allows_skills_read_only() -> None:
     """read_file / ls should be able to access /mnt/skills paths."""
-    with patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+    with patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
         # Should not raise
         validate_local_tool_path(
             "/mnt/skills/public/bootstrap/SKILL.md",
@@ -595,7 +595,7 @@ def test_validate_local_tool_path_allows_skills_read_only() -> None:
 
 def test_validate_local_tool_path_blocks_skills_write() -> None:
     """write_file / str_replace must NOT write to skills paths."""
-    with patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+    with patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
         with pytest.raises(PermissionError, match="Write access to skills path is not allowed"):
             validate_local_tool_path(
                 "/mnt/skills/public/bootstrap/SKILL.md",
@@ -606,7 +606,7 @@ def test_validate_local_tool_path_blocks_skills_write() -> None:
 
 def test_validate_local_bash_command_paths_allows_skills_path() -> None:
     """bash commands referencing /mnt/skills should be allowed."""
-    with patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+    with patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
         validate_local_bash_command_paths(
             "cat /mnt/skills/public/bootstrap/SKILL.md",
             _THREAD_DATA,
@@ -665,14 +665,14 @@ def test_validate_local_bash_command_paths_blocks_file_urls_mixed_with_valid() -
 
 def test_validate_local_bash_command_paths_still_blocks_other_paths() -> None:
     """Paths outside virtual and system prefixes must still be blocked."""
-    with patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
+    with patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"):
         with pytest.raises(PermissionError, match="Unsafe absolute paths"):
             validate_local_bash_command_paths("cat /etc/shadow", _THREAD_DATA)
 
 
 def test_validate_local_tool_path_skills_custom_container_path() -> None:
     """Skills with a custom container_path in config should also work."""
-    with patch("deerflow.sandbox.tools._get_skills_container_path", return_value="/custom/skills"):
+    with patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/custom/skills"):
         # Should not raise
         validate_local_tool_path(
             "/custom/skills/public/my-skill/SKILL.md",
@@ -739,7 +739,7 @@ def test_resolve_acp_workspace_path_resolves_correctly(tmp_path: Path) -> None:
     """ACP workspace virtual path should resolve to host path."""
     acp_dir = tmp_path / "acp-workspace"
     acp_dir.mkdir()
-    with patch("deerflow.sandbox.tools._get_acp_workspace_host_path", return_value=str(acp_dir)):
+    with patch("vassilflow.sandbox.tools._get_acp_workspace_host_path", return_value=str(acp_dir)):
         resolved = _resolve_acp_workspace_path("/mnt/acp-workspace/hello.py")
         assert resolved == str(acp_dir / "hello.py")
 
@@ -748,14 +748,14 @@ def test_resolve_acp_workspace_path_resolves_root(tmp_path: Path) -> None:
     """ACP workspace root should resolve to host directory."""
     acp_dir = tmp_path / "acp-workspace"
     acp_dir.mkdir()
-    with patch("deerflow.sandbox.tools._get_acp_workspace_host_path", return_value=str(acp_dir)):
+    with patch("vassilflow.sandbox.tools._get_acp_workspace_host_path", return_value=str(acp_dir)):
         resolved = _resolve_acp_workspace_path("/mnt/acp-workspace")
         assert resolved == str(acp_dir)
 
 
 def test_resolve_acp_workspace_path_raises_when_not_available() -> None:
     """Should raise FileNotFoundError when ACP workspace does not exist."""
-    with patch("deerflow.sandbox.tools._get_acp_workspace_host_path", return_value=None):
+    with patch("vassilflow.sandbox.tools._get_acp_workspace_host_path", return_value=None):
         with pytest.raises(FileNotFoundError, match="ACP workspace directory not available"):
             _resolve_acp_workspace_path("/mnt/acp-workspace/hello.py")
 
@@ -764,7 +764,7 @@ def test_resolve_acp_workspace_path_blocks_traversal(tmp_path: Path) -> None:
     """Path traversal in ACP workspace paths must be rejected."""
     acp_dir = tmp_path / "acp-workspace"
     acp_dir.mkdir()
-    with patch("deerflow.sandbox.tools._get_acp_workspace_host_path", return_value=str(acp_dir)):
+    with patch("vassilflow.sandbox.tools._get_acp_workspace_host_path", return_value=str(acp_dir)):
         with pytest.raises(PermissionError, match="path traversal"):
             _resolve_acp_workspace_path("/mnt/acp-workspace/../../etc/passwd")
 
@@ -772,7 +772,7 @@ def test_resolve_acp_workspace_path_blocks_traversal(tmp_path: Path) -> None:
 def test_replace_virtual_paths_in_command_replaces_acp_workspace() -> None:
     """ACP workspace virtual paths in commands should be resolved to host paths."""
     acp_host = "/home/user/.vassilflow/acp-workspace"
-    with patch("deerflow.sandbox.tools._get_acp_workspace_host_path", return_value=acp_host):
+    with patch("vassilflow.sandbox.tools._get_acp_workspace_host_path", return_value=acp_host):
         cmd = "cp /mnt/acp-workspace/hello.py /mnt/user-data/outputs/hello.py"
         result = replace_virtual_paths_in_command(cmd, _THREAD_DATA)
         assert "/mnt/acp-workspace" not in result
@@ -783,7 +783,7 @@ def test_replace_virtual_paths_in_command_replaces_acp_workspace() -> None:
 def test_mask_local_paths_in_output_hides_acp_workspace_host_paths() -> None:
     """ACP workspace host paths in bash output should be masked to virtual paths."""
     acp_host = "/home/user/.vassilflow/acp-workspace"
-    with patch("deerflow.sandbox.tools._get_acp_workspace_host_path", return_value=acp_host):
+    with patch("vassilflow.sandbox.tools._get_acp_workspace_host_path", return_value=acp_host):
         output = f"Copied: {acp_host}/hello.py"
         masked = mask_local_paths_in_output(output, _THREAD_DATA)
 
@@ -870,7 +870,7 @@ def _mock_custom_mounts():
 
 
 def test_is_custom_mount_path_recognises_configured_mounts() -> None:
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         assert _is_custom_mount_path("/mnt/code-read") is True
         assert _is_custom_mount_path("/mnt/code-read/src/main.py") is True
         assert _is_custom_mount_path("/mnt/data") is True
@@ -886,7 +886,7 @@ def test_get_custom_mount_for_path_returns_longest_prefix() -> None:
         VolumeMountConfig(host_path="/var/mnt", container_path="/mnt", read_only=False),
         VolumeMountConfig(host_path="/home/user/code", container_path="/mnt/code", read_only=True),
     ]
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=mounts):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=mounts):
         mount = _get_custom_mount_for_path("/mnt/code/file.py")
         assert mount is not None
         assert mount.container_path == "/mnt/code"
@@ -894,48 +894,48 @@ def test_get_custom_mount_for_path_returns_longest_prefix() -> None:
 
 def test_validate_local_tool_path_allows_custom_mount_read() -> None:
     """read_file / ls should be able to access custom mount paths."""
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         validate_local_tool_path("/mnt/code-read/src/main.py", _THREAD_DATA, read_only=True)
         validate_local_tool_path("/mnt/data/file.txt", _THREAD_DATA, read_only=True)
 
 
 def test_validate_local_tool_path_blocks_read_only_mount_write() -> None:
     """write_file / str_replace must NOT write to read-only custom mounts."""
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         with pytest.raises(PermissionError, match="Write access to read-only mount is not allowed"):
             validate_local_tool_path("/mnt/code-read/src/main.py", _THREAD_DATA, read_only=False)
 
 
 def test_validate_local_tool_path_allows_writable_mount_write() -> None:
     """write_file / str_replace should succeed on writable custom mounts."""
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         validate_local_tool_path("/mnt/data/file.txt", _THREAD_DATA, read_only=False)
 
 
 def test_validate_local_tool_path_blocks_traversal_in_custom_mount() -> None:
     """Path traversal via .. in custom mount paths must be rejected."""
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         with pytest.raises(PermissionError, match="path traversal"):
             validate_local_tool_path("/mnt/code-read/../../etc/passwd", _THREAD_DATA, read_only=True)
 
 
 def test_validate_local_bash_command_paths_allows_custom_mount() -> None:
     """bash commands referencing custom mount paths should be allowed."""
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         validate_local_bash_command_paths("cat /mnt/code-read/src/main.py", _THREAD_DATA)
         validate_local_bash_command_paths("ls /mnt/data", _THREAD_DATA)
 
 
 def test_validate_local_bash_command_paths_blocks_traversal_in_custom_mount() -> None:
     """Bash commands with traversal in custom mount paths should be blocked."""
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         with pytest.raises(PermissionError, match="path traversal"):
             validate_local_bash_command_paths("cat /mnt/code-read/../../etc/passwd", _THREAD_DATA)
 
 
 def test_validate_local_bash_command_paths_still_blocks_non_mount_paths() -> None:
     """Paths not matching any custom mount should still be blocked."""
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         with pytest.raises(PermissionError, match="Unsafe absolute paths"):
             validate_local_bash_command_paths("cat /etc/shadow", _THREAD_DATA)
 
@@ -958,10 +958,10 @@ def test_get_custom_mounts_caching(monkeypatch, tmp_path) -> None:
         VolumeMountConfig(host_path=str(dir_a), container_path="/mnt/code-read", read_only=True),
         VolumeMountConfig(host_path=str(dir_b), container_path="/mnt/data", read_only=False),
     ]
-    mock_sandbox = SandboxConfig(use="deerflow.sandbox.local:LocalSandboxProvider", mounts=mounts)
+    mock_sandbox = SandboxConfig(use="vassilflow.sandbox.local:LocalSandboxProvider", mounts=mounts)
     mock_config = SimpleNamespace(sandbox=mock_sandbox)
 
-    with patch("deerflow.config.get_app_config", return_value=mock_config):
+    with patch("vassilflow.config.get_app_config", return_value=mock_config):
         result = _get_custom_mounts()
         assert len(result) == 2
 
@@ -987,10 +987,10 @@ def test_get_custom_mounts_filters_nonexistent_host_path(monkeypatch, tmp_path) 
         VolumeMountConfig(host_path=str(existing_dir), container_path="/mnt/existing", read_only=True),
         VolumeMountConfig(host_path="/nonexistent/path/12345", container_path="/mnt/ghost", read_only=False),
     ]
-    mock_sandbox = SandboxConfig(use="deerflow.sandbox.local:LocalSandboxProvider", mounts=mounts)
+    mock_sandbox = SandboxConfig(use="vassilflow.sandbox.local:LocalSandboxProvider", mounts=mounts)
     mock_config = SimpleNamespace(sandbox=mock_sandbox)
 
-    with patch("deerflow.config.get_app_config", return_value=mock_config):
+    with patch("vassilflow.config.get_app_config", return_value=mock_config):
         result = _get_custom_mounts()
         assert len(result) == 1
         assert result[0].container_path == "/mnt/existing"
@@ -1001,7 +1001,7 @@ def test_get_custom_mounts_filters_nonexistent_host_path(monkeypatch, tmp_path) 
 
 def test_get_custom_mount_for_path_boundary_no_false_prefix_match() -> None:
     """_get_custom_mount_for_path must not match /mnt/code-read-extra for /mnt/code-read."""
-    with patch("deerflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
+    with patch("vassilflow.sandbox.tools._get_custom_mounts", return_value=_mock_custom_mounts()):
         mount = _get_custom_mount_for_path("/mnt/code-read-extra/foo")
         assert mount is None
 
@@ -1038,9 +1038,9 @@ def test_str_replace_parallel_updates_should_preserve_both_edits(monkeypatch) ->
     ]
     failures: list[BaseException] = []
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
 
     def worker(runtime: SimpleNamespace, old_str: str, new_str: str) -> None:
         try:
@@ -1115,11 +1115,11 @@ def test_str_replace_parallel_updates_in_isolated_sandboxes_should_not_share_pat
     failures: list[BaseException] = []
 
     monkeypatch.setattr(
-        "deerflow.sandbox.tools.ensure_sandbox_initialized",
+        "vassilflow.sandbox.tools.ensure_sandbox_initialized",
         lambda runtime: sandboxes[runtime.context["sandbox_key"]],
     )
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
 
     def worker(runtime: SimpleNamespace, old_str: str, new_str: str) -> None:
         try:
@@ -1181,9 +1181,9 @@ def test_str_replace_and_append_on_same_path_should_preserve_both_updates(monkey
     ]
     failures: list[BaseException] = []
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
 
     def replace_worker() -> None:
         try:
@@ -1235,13 +1235,13 @@ def test_write_file_tool_bounds_large_oserror_and_masks_local_paths(monkeypatch)
     runtime = SimpleNamespace(state={}, context={"thread_id": "thread-1"}, config={})
     sandbox = FailingSandbox()
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_local_sandbox", lambda runtime: True)
-    monkeypatch.setattr("deerflow.sandbox.tools.get_thread_data", lambda runtime: _THREAD_DATA)
-    monkeypatch.setattr("deerflow.sandbox.tools.validate_local_tool_path", lambda path, thread_data: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_local_sandbox", lambda runtime: True)
+    monkeypatch.setattr("vassilflow.sandbox.tools.get_thread_data", lambda runtime: _THREAD_DATA)
+    monkeypatch.setattr("vassilflow.sandbox.tools.validate_local_tool_path", lambda path, thread_data: None)
     monkeypatch.setattr(
-        "deerflow.sandbox.tools._resolve_and_validate_user_data_path",
+        "vassilflow.sandbox.tools._resolve_and_validate_user_data_path",
         lambda path, thread_data: f"{_THREAD_DATA['workspace_path']}/output.txt",
     )
 
@@ -1270,9 +1270,9 @@ def test_write_file_tool_preserves_short_oserror_without_truncation(monkeypatch)
     runtime = SimpleNamespace(state={}, context={"thread_id": "thread-1"}, config={})
     sandbox = FailingSandbox()
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
 
     result = write_file_tool.func(
         runtime=runtime,
@@ -1295,9 +1295,9 @@ def test_write_file_tool_bounds_large_sandbox_error(monkeypatch) -> None:
     runtime = SimpleNamespace(state={}, context={"thread_id": "thread-1"}, config={})
     sandbox = FailingSandbox()
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
 
     result = write_file_tool.func(
         runtime=runtime,
@@ -1347,9 +1347,9 @@ def test_write_file_tool_formats_all_other_failure_branches(
     runtime = SimpleNamespace(state={}, context={"thread_id": "thread-1"}, config={})
     sandbox = FailingSandbox()
 
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: sandbox)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
 
     result = write_file_tool.func(
         runtime=runtime,
@@ -1373,8 +1373,8 @@ def test_write_file_tool_handles_sandbox_init_failure(monkeypatch) -> None:
         raise SandboxError("sandbox missing")
 
     runtime = SimpleNamespace(state={}, context={"thread_id": "thread-1"}, config={})
-    monkeypatch.setattr("deerflow.sandbox.tools.ensure_sandbox_initialized", raise_sandbox_error)
-    monkeypatch.setattr("deerflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_sandbox_initialized", raise_sandbox_error)
+    monkeypatch.setattr("vassilflow.sandbox.tools.is_local_sandbox", lambda runtime: False)
 
     result = write_file_tool.func(
         runtime=runtime,

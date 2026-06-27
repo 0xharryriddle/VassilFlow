@@ -16,7 +16,7 @@ that. The temp DB must be built from migration history -- not from
 a revision remain visible to autogenerate as a real diff.
 
 The generated file lands in
-``packages/harness/deerflow/persistence/migrations/versions/`` -- exactly
+``packages/harness/vassilflow/persistence/migrations/versions/`` -- exactly
 where alembic puts it by default -- and the temp directory is left for the OS
 to GC. Review the generated revision and switch raw ``op.add_column`` /
 ``op.drop_column`` calls to the idempotent helpers in ``migrations/_helpers.py``
@@ -42,7 +42,7 @@ import vassilflow.persistence.models  # noqa: F401  -- registers ORM models with
 from vassilflow.persistence.bootstrap import _escape_url_for_alembic
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-MIGRATIONS_DIR = BACKEND_DIR / "packages/harness/deerflow/persistence/migrations"
+MIGRATIONS_DIR = BACKEND_DIR / "packages/harness/vassilflow/persistence/migrations"
 
 
 def _alembic_config(url: str) -> Config:

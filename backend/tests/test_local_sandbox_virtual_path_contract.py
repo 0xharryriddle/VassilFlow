@@ -3,7 +3,7 @@
 
 Today AIO sandbox already accepts /mnt/user-data/... paths directly because the
 container has those paths bind-mounted per-thread. LocalSandbox, however,
-externalises that translation to ``deerflow.sandbox.tools`` via ``thread_data``,
+externalises that translation to ``vassilflow.sandbox.tools`` via ``thread_data``,
 so any caller that bypasses tools.py (e.g. ``uploads.py`` syncing files into a
 remote sandbox via ``sandbox.update_file(virtual_path, ...)``) sees inconsistent
 behaviour.
@@ -33,9 +33,9 @@ def _build_config(skills_dir: Path) -> SimpleNamespace:
         skills=SimpleNamespace(
             container_path="/mnt/skills",
             get_skills_path=lambda: skills_dir,
-            use="deerflow.skills.storage.local_skill_storage:LocalSkillStorage",
+            use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage",
         ),
-        sandbox=SandboxConfig(use="deerflow.sandbox.local:LocalSandboxProvider", mounts=[]),
+        sandbox=SandboxConfig(use="vassilflow.sandbox.local:LocalSandboxProvider", mounts=[]),
     )
 
 
@@ -60,7 +60,7 @@ def provider(isolated_paths, tmp_path):
     skills_dir = tmp_path / "skills"
     skills_dir.mkdir()
     cfg = _build_config(skills_dir)
-    with patch("deerflow.config.get_app_config", return_value=cfg):
+    with patch("vassilflow.config.get_app_config", return_value=cfg):
         yield LocalSandboxProvider()
 
 
@@ -351,7 +351,7 @@ def test_thread_sandbox_cache_is_bounded(isolated_paths, tmp_path):
     skills_dir.mkdir()
     cfg = _build_config(skills_dir)
 
-    with patch("deerflow.config.get_app_config", return_value=cfg):
+    with patch("vassilflow.config.get_app_config", return_value=cfg):
         provider = LocalSandboxProvider(max_cached_threads=3)
 
     for i in range(5):
@@ -370,7 +370,7 @@ def test_lru_promotes_recently_used_thread(isolated_paths, tmp_path):
     skills_dir.mkdir()
     cfg = _build_config(skills_dir)
 
-    with patch("deerflow.config.get_app_config", return_value=cfg):
+    with patch("vassilflow.config.get_app_config", return_value=cfg):
         provider = LocalSandboxProvider(max_cached_threads=3)
 
     for name in ["a", "b", "c"]:

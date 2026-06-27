@@ -33,7 +33,7 @@ def test_auth_post_rejects_cross_origin_browser_request():
     so a hostile cross-site form POST must be rejected to avoid login CSRF /
     session fixation.
     """
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post(
         "/api/v1/auth/login/local",
@@ -45,11 +45,11 @@ def test_auth_post_rejects_cross_origin_browser_request():
 
 
 def test_auth_post_allows_same_origin_browser_request():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post(
         "/api/v1/auth/login/local",
-        headers={"Origin": "https://deerflow.example"},
+        headers={"Origin": "https://vassilflow.example"},
     )
 
     assert response.status_code == 200
@@ -57,11 +57,11 @@ def test_auth_post_allows_same_origin_browser_request():
 
 
 def test_auth_post_rejects_malformed_origin_with_path():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post(
         "/api/v1/auth/login/local",
-        headers={"Origin": "https://deerflow.example/path"},
+        headers={"Origin": "https://vassilflow.example/path"},
     )
 
     assert response.status_code == 403
@@ -70,11 +70,11 @@ def test_auth_post_rejects_malformed_origin_with_path():
 
 
 def test_auth_post_rejects_malformed_origin_with_invalid_port():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post(
         "/api/v1/auth/login/local",
-        headers={"Origin": "https://deerflow.example:bad"},
+        headers={"Origin": "https://vassilflow.example:bad"},
     )
 
     assert response.status_code == 403
@@ -83,11 +83,11 @@ def test_auth_post_rejects_malformed_origin_with_invalid_port():
 
 
 def test_auth_post_allows_same_origin_default_port_equivalence():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post(
         "/api/v1/auth/login/local",
-        headers={"Origin": "https://deerflow.example:443"},
+        headers={"Origin": "https://vassilflow.example:443"},
     )
 
     assert response.status_code == 200
@@ -100,9 +100,9 @@ def test_auth_post_allows_forwarded_same_origin():
     response = client.post(
         "/api/v1/auth/login/local",
         headers={
-            "Origin": "https://deerflow.example",
+            "Origin": "https://vassilflow.example",
             "X-Forwarded-Proto": "https",
-            "X-Forwarded-Host": "deerflow.example, internal:8000",
+            "X-Forwarded-Host": "vassilflow.example, internal:8000",
         },
     )
 
@@ -132,8 +132,8 @@ def test_auth_post_allows_rfc_forwarded_same_origin():
     response = client.post(
         "/api/v1/auth/login/local",
         headers={
-            "Origin": "https://deerflow.example",
-            "Forwarded": "proto=https;host=deerflow.example",
+            "Origin": "https://vassilflow.example",
+            "Forwarded": "proto=https;host=vassilflow.example",
         },
     )
 
@@ -169,11 +169,11 @@ def test_auth_post_does_not_treat_wildcard_cors_as_allowed_origin(monkeypatch):
 
 
 def test_auth_post_sets_strict_samesite_csrf_cookie():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post(
         "/api/v1/auth/login/local",
-        headers={"Origin": "https://deerflow.example"},
+        headers={"Origin": "https://vassilflow.example"},
     )
 
     assert response.status_code == 200
@@ -184,7 +184,7 @@ def test_auth_post_sets_strict_samesite_csrf_cookie():
 
 
 def test_auth_post_without_origin_still_allows_non_browser_clients():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post("/api/v1/auth/login/local")
 
@@ -193,11 +193,11 @@ def test_auth_post_without_origin_still_allows_non_browser_clients():
 
 
 def test_non_auth_mutation_still_requires_double_submit_token():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post(
         "/api/threads/abc/runs/stream",
-        headers={"Origin": "https://deerflow.example"},
+        headers={"Origin": "https://vassilflow.example"},
     )
 
     assert response.status_code == 403
@@ -205,13 +205,13 @@ def test_non_auth_mutation_still_requires_double_submit_token():
 
 
 def test_non_auth_mutation_allows_valid_double_submit_token():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
     client.cookies.set("csrf_token", "known-token")
 
     response = client.post(
         "/api/threads/abc/runs/stream",
         headers={
-            "Origin": "https://deerflow.example",
+            "Origin": "https://vassilflow.example",
             "X-CSRF-Token": "known-token",
         },
     )
@@ -220,13 +220,13 @@ def test_non_auth_mutation_allows_valid_double_submit_token():
 
 
 def test_non_auth_mutation_rejects_mismatched_double_submit_token():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
     client.cookies.set("csrf_token", "cookie-token")
 
     response = client.post(
         "/api/threads/abc/runs/stream",
         headers={
-            "Origin": "https://deerflow.example",
+            "Origin": "https://vassilflow.example",
             "X-CSRF-Token": "header-token",
         },
     )
@@ -236,11 +236,11 @@ def test_non_auth_mutation_rejects_mismatched_double_submit_token():
 
 
 def test_channel_posts_require_double_submit_csrf():
-    client = TestClient(_make_app(), base_url="https://deerflow.example")
+    client = TestClient(_make_app(), base_url="https://vassilflow.example")
 
     response = client.post(
         "/api/channels/slack/connect",
-        headers={"Origin": "https://deerflow.example"},
+        headers={"Origin": "https://vassilflow.example"},
     )
 
     assert response.status_code == 403

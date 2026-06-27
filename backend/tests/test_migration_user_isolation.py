@@ -146,7 +146,7 @@ class TestBuildOwnerMapFromDb:
     def test_reads_legacy_deerflow_database_when_current_absent(self, base_dir: Path, paths: Paths):
         from scripts.migrate_user_isolation import _build_owner_map_from_db
 
-        self._write_threads_meta(base_dir / "data" / "deerflow.db", [("t2", "bob")])
+        self._write_threads_meta(base_dir / "data" / "vassilflow.db", [("t2", "bob")])
 
         assert _build_owner_map_from_db(paths) == {"t2": "bob"}
 
@@ -154,7 +154,7 @@ class TestBuildOwnerMapFromDb:
         from scripts.migrate_user_isolation import _build_owner_map_from_db
 
         self._write_threads_meta(base_dir / "data" / "vassilflow.db", [("current", "alice")])
-        self._write_threads_meta(base_dir / "data" / "deerflow.db", [("legacy", "bob")])
+        self._write_threads_meta(base_dir / "data" / "vassilflow.db", [("legacy", "bob")])
 
         assert _build_owner_map_from_db(paths) == {"current": "alice"}
 

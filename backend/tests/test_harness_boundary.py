@@ -1,6 +1,6 @@
 """Boundary check: harness layer must not import from app layer.
 
-The harness packages (packages/harness/deerflow/ and the VassilFlow facade) are
+The harness packages (packages/harness/vassilflow/ and the VassilFlow facade) are
 standalone, publishable agent framework code. They must never depend on the app
 layer (app/).
 

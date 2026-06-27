@@ -4623,7 +4623,7 @@ class TestChannelService:
                 return None
 
         monkeypatch.setattr(
-            "deerflow.reflection.resolve_class",
+            "vassilflow.reflection.resolve_class",
             lambda import_path, base_class=None: FlakyReadyChannel,
         )
 

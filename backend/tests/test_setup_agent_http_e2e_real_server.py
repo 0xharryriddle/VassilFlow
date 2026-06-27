@@ -227,14 +227,14 @@ def test_real_http_create_agent_lands_in_authenticated_user_dir(
     # The implementation lead-agent module binds ``create_chat_model`` at module
     # load time, rebinding the symbol into its own namespace. So the only patch that
     # intercepts the call is the bound name on ``lead_agent.agent`` — patching
-    # ``deerflow.models.create_chat_model`` would be too late.
+    # ``vassilflow.models.create_chat_model`` would be too late.
     agent_name = "real-http-agent"
 
     from starlette.testclient import TestClient
 
     with (
         patch(
-            "deerflow.agents.lead_agent.agent.create_chat_model",
+            "vassilflow.agents.lead_agent.agent.create_chat_model",
             new=_build_fake_create_chat_model(agent_name),
         ),
         TestClient(isolated_app) as client,

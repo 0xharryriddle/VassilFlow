@@ -65,7 +65,7 @@ def test_autogen_builds_temp_db_at_head_without_data_dir(autogen_module, monkeyp
 def test_alembic_default_url_uses_vassilflow_sqlite_name() -> None:
     alembic_ini = (
         Path(__file__).resolve().parents[1]
-        / "packages/harness/deerflow/persistence/migrations/alembic.ini"
+        / "packages/harness/vassilflow/persistence/migrations/alembic.ini"
     )
     autogen_script = Path(__file__).resolve().parents[1] / "scripts/_autogen_revision.py"
     backend_makefile = Path(__file__).resolve().parents[1] / "Makefile"
@@ -74,11 +74,11 @@ def test_alembic_default_url_uses_vassilflow_sqlite_name() -> None:
     makefile_content = backend_makefile.read_text(encoding="utf-8")
 
     assert "sqlite+aiosqlite:///./data/vassilflow.db" in content
-    assert "./data/deerflow.db" not in content
+    assert "./data/vassilflow.db" not in content
     assert "sqlite:///./data/vassilflow.db" in script_content
-    assert "sqlite:///./data/deerflow.db" not in script_content
+    assert "sqlite:///./data/vassilflow.db" not in script_content
     assert "./data/vassilflow.db" in makefile_content
-    assert "./data/deerflow.db" not in makefile_content
+    assert "./data/vassilflow.db" not in makefile_content
 
 
 def test_autogen_temp_db_is_at_head(autogen_module) -> None:

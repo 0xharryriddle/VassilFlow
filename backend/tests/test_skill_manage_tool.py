@@ -23,7 +23,7 @@ def test_skill_manage_create_and_patch(monkeypatch, tmp_path):
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills", use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("vassilflow.config.get_app_config", lambda: config)
     monkeypatch.setattr("vassilflow.skills.security_scanner.get_app_config", lambda: config)
     refresh_calls = []
 
@@ -66,7 +66,7 @@ def test_skill_manage_patch_replaces_single_occurrence_by_default(monkeypatch, t
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills", use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("vassilflow.config.get_app_config", lambda: config)
     monkeypatch.setattr("vassilflow.skills.security_scanner.get_app_config", lambda: config)
 
     async def _refresh():
@@ -105,7 +105,7 @@ def test_skill_manage_rejects_public_skill_patch(monkeypatch, tmp_path):
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills", use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("vassilflow.config.get_app_config", lambda: config)
 
     runtime = SimpleNamespace(context={}, config={"configurable": {}})
 
@@ -128,7 +128,7 @@ def test_skill_manage_sync_wrapper_supported(monkeypatch, tmp_path):
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills", use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("vassilflow.config.get_app_config", lambda: config)
     refresh_calls = []
 
     async def _refresh():
@@ -155,7 +155,7 @@ def test_skill_manage_rejects_support_path_traversal(monkeypatch, tmp_path):
         skills=SimpleNamespace(get_skills_path=lambda: skills_root, container_path="/mnt/skills", use="vassilflow.skills.storage.local_skill_storage:LocalSkillStorage"),
         skill_evolution=SimpleNamespace(enabled=True, moderation_model_name=None),
     )
-    monkeypatch.setattr("deerflow.config.get_app_config", lambda: config)
+    monkeypatch.setattr("vassilflow.config.get_app_config", lambda: config)
     monkeypatch.setattr("vassilflow.skills.security_scanner.get_app_config", lambda: config)
 
     async def _refresh():

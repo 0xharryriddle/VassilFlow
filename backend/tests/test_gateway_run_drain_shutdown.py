@@ -343,7 +343,7 @@ async def test_shutdown_surfaces_failed_interrupted_persist(caplog):
     record.task = asyncio.create_task(worker())
     try:
         await asyncio.wait_for(started.wait(), timeout=1.0)
-        with caplog.at_level(logging.WARNING, logger="deerflow.runtime.runs.manager"):
+        with caplog.at_level(logging.WARNING, logger="vassilflow.runtime.runs.manager"):
             await rm.shutdown(timeout=5.0)
         assert "Could not persist interrupted status for run" in caplog.text, caplog.text
     finally:

@@ -489,7 +489,7 @@ def test_stream_run_executes_real_lead_agent_setup_agent_business_path(isolated_
 
     with (
         patch(
-            "deerflow.agents.lead_agent.agent.create_chat_model",
+            "vassilflow.agents.lead_agent.agent.create_chat_model",
             new=_build_fake_setup_agent_model(agent_name),
         ),
         TestClient(isolated_app) as client,

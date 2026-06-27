@@ -333,6 +333,6 @@ PYTHONPATH=. python scripts/migrate_user_isolation.py --user-id <target-user-id>
 | `vassilflow.config.agents_config` | per-user custom agents |
 | `app/channels/manager.py` | IM channel 内部认证调用 |
 | `scripts/migrate_user_isolation.py` | legacy 数据迁移到 per-user layout |
-| `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库，包含 users / threads_meta / runs / feedback 等表；已有 `{runtime_home}/data/deerflow.db` 会作为 legacy 文件继续使用 |
+| `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库，包含 users / threads_meta / runs / feedback 等表；已有 `{runtime_home}/data/vassilflow.db` 会作为 legacy 文件继续使用 |
 | `{runtime_home}/users/{user_id}/agents/{agent_name}/` | 用户自定义 agent 配置、SOUL 和 agent memory |
 | `{runtime_home}/admin_initial_credentials.txt` | `reset_admin` 生成的新凭据文件（0600，读完应删除） |

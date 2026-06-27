@@ -11,11 +11,11 @@ VassilFlow is an open-source **super agent harness** that orchestrates **sub-age
 https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
 > [!NOTE]
-> VassilFlow is being migrated from the upstream DeerFlow 2.0 codebase. During the transition, compatibility shims intentionally keep existing `deerflow.*`, `DEER_FLOW_*`, and legacy `.deer-flow` state directories working while VassilFlow-owned aliases are introduced.
+> VassilFlow is being migrated from the upstream DeerFlow 2.0 codebase. During the transition, compatibility shims intentionally keep existing `vassilflow.*`, `DEER_FLOW_*`, and legacy `.deer-flow` state directories working while VassilFlow-owned aliases are introduced.
 
 ## Upstream Reference
 
-Reference inherited upstream demos and historical material on the [**DeerFlow website**](https://deerflow.tech) while VassilFlow-owned docs are being stabilized.
+Reference inherited upstream demos and historical material on the [**DeerFlow website**](https://vassilflow.tech) while VassilFlow-owned docs are being stabilized.
 
 ## Coding Plan from ByteDance Volcengine
 
@@ -710,9 +710,9 @@ client.update_skill("web-search", enabled=True)
 client.upload_files("thread-1", ["./report.pdf"])  # {"success": True, "files": [...]}
 ```
 
-For direct LangGraph construction, use `from vassilflow.agents import create_vassilflow_agent`. Legacy `deerflow.client.DeerFlowClient` and `create_deerflow_agent` imports remain supported during the migration.
+For direct LangGraph construction, use `from vassilflow.agents import create_vassilflow_agent`.
 
-All dict-returning methods are validated against Gateway Pydantic response models in CI (`TestGatewayConformance`), ensuring the embedded client stays in sync with the HTTP API schemas. See `backend/packages/harness/vassilflow/client.py` for the facade entrypoint and `backend/packages/harness/deerflow/client.py` for the current implementation details.
+All dict-returning methods are validated against Gateway Pydantic response models in CI (`TestGatewayConformance`), ensuring the embedded client stays in sync with the HTTP API schemas. See `backend/packages/harness/vassilflow/client.py` for the embedded client implementation.
 
 ## Documentation
 

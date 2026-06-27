@@ -414,7 +414,7 @@ Phase 2（#1380）:
 
 Phase 3:
   - SDK 文档和示例
-  - vassilflow.client 稳定 API（legacy deerflow.client 兼容）
+  - vassilflow.client 稳定 API（legacy vassilflow.client 兼容）
 ```
 
 ## 8. 设计决议

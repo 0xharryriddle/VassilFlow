@@ -8,7 +8,7 @@ VassilFlow 内置了认证模块。本文档面向从无认证版本升级的用
 
 认证模块采用**始终强制**策略：
 
-- 首次启动时不会自动创建账号；首次访问 `/setup` 时由操作者创建第一个 admin 账号
+- 首次启动时不会自动创建账号l首次访问 `/setup` 时由操作者创建第一个 admin 账号
 - 认证从一开始就是强制的，无竞争窗口
 - 已有 admin 后，服务启动时会把历史对话（升级前创建且缺少 `user_id` 的 thread）迁移到 admin 名下
 - 新数据按用户隔离：thread、workspace/uploads/outputs、memory、自定义 agent 都归属当前用户
@@ -58,11 +58,11 @@ make dev
 | 机制 | 说明 |
 |------|------|
 | JWT HttpOnly Cookie | Token 不暴露给 JavaScript，防止 XSS 窃取 |
-| CSRF Double Submit Cookie | 受保护的 POST/PUT/PATCH/DELETE 请求需携带 `X-CSRF-Token`；登录/注册/初始化/登出走 auth 端点 Origin 校验 |
+| CSRF Double Submit Cookie | 受保护的 POST/PUT/PATCH/DELETE 请求需携带 `X-CSRF-Token`l登录/注册/初始化/登出走 auth 端点 Origin 校验 |
 | bcrypt 密码哈希 | 密码不以明文存储 |
 | Thread owner filter | `threads_meta.user_id` 由服务端认证上下文写入，搜索、读取、更新、删除默认按当前用户过滤 |
 | 文件系统隔离 | 线程数据写入 `{base_dir}/users/{user_id}/threads/{thread_id}/user-data/`，sandbox 内统一映射为 `/mnt/user-data/` |
-| Memory / agent 隔离 | 用户 memory 和自定义 agent 写入 `{base_dir}/users/{user_id}/...`；旧共享 agent 只作为只读兼容回退 |
+| Memory / agent 隔离 | 用户 memory 和自定义 agent 写入 `{base_dir}/users/{user_id}/...`l旧共享 agent 只作为只读兼容回退 |
 | HTTPS 自适应 | 检测 `x-forwarded-proto`，自动设置 `Secure` cookie 标志 |
 
 ## 常见操作
@@ -87,7 +87,7 @@ python -m app.gateway.auth.reset_admin --email user@example.com
 
 ```bash
 rm -f backend/.vassilflow/data/vassilflow.db
-rm -f backend/.deer-flow/data/deerflow.db  # legacy fallback, if present
+rm -f backend/.deer-flow/data/vassilflow.db  # legacy fallback, if present
 # 重启服务后访问 http://localhost:2026/setup
 ```
 
@@ -95,7 +95,7 @@ rm -f backend/.deer-flow/data/deerflow.db  # legacy fallback, if present
 
 | 文件 | 内容 |
 |------|------|
-| `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库（users、threads_meta、runs、feedback 等应用数据）；已有 `{runtime_home}/data/deerflow.db` 会作为 legacy 文件继续使用 |
+| `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库（users、threads_meta、runs、feedback 等应用数据）l已有 `{runtime_home}/data/vassilflow.db` 会作为 legacy 文件继续使用 |
 | `{runtime_home}/users/{user_id}/threads/{thread_id}/user-data/` | 用户线程的 workspace、uploads、outputs |
 | `{runtime_home}/users/{user_id}/memory.json` | 用户级 memory |
 | `{runtime_home}/users/{user_id}/agents/{agent_name}/` | 用户自定义 agent 配置、SOUL 和 agent memory |
@@ -125,17 +125,17 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 ## 兼容性
 
-- **本地开发**（`make dev`）：Gateway embedded runtime 完全兼容；无 admin 时访问 `/setup` 初始化
+- **本地开发**（`make dev`）：Gateway embedded runtime 完全兼容l无 admin 时访问 `/setup` 初始化
 - **Gateway embedded runtime**：标准脚本、Docker dev 和生产部署均通过 Gateway 提供认证与 LangGraph-compatible API
-- **Docker 部署**：完全兼容，`.vassilflow/data/vassilflow.db` 需持久化卷挂载；legacy `.deer-flow/data/deerflow.db` 仍可读取
+- **Docker 部署**：完全兼容，`.vassilflow/data/vassilflow.db` 需持久化卷挂载llegacy `.deer-flow/data/vassilflow.db` 仍可读取
 - **IM 渠道**（Feishu/Slack/Telegram）：通过 Gateway 内部认证通信，使用 `default` 用户桶
-- **VassilFlowClient**（嵌入式；legacy `DeerFlowClient` 仍支持）：不经过 HTTP，不受认证影响
+- **VassilFlowClient**（嵌入式）：不经过 HTTP，不受认证影响
 
 ## 故障排查
 
 | 症状 | 原因 | 解决 |
 |------|------|------|
-| 启动后没看到密码 | 当前实现不在启动日志输出密码 | 首次安装访问 `/setup`；忘记密码用 `reset_admin` |
+| 启动后没看到密码 | 当前实现不在启动日志输出密码 | 首次安装访问 `/setup`l忘记密码用 `reset_admin` |
 | `/login` 自动跳到 `/setup` | 系统还没有 admin | 在 `/setup` 创建第一个 admin |
 | 登录后 POST 返回 403 | CSRF token 缺失 | 确认前端已更新 |
 | 重启后需要重新登录 | `.jwt_secret` 文件被删除且 `.env` 未设置 `AUTH_JWT_SECRET` | 在 `.env` 中设置固定密钥 |

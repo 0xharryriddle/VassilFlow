@@ -24,7 +24,7 @@ from support.detectors.blocking_io_runtime import _SCANNED_MODULES, detect_block
 pytestmark = pytest.mark.asyncio
 
 
-async def test_gate_catches_unoffloaded_blocking_io_in_deerflow_module(tmp_path: Path) -> None:
+async def test_gate_catches_unoffloaded_blocking_io_in_vassilflow_module(tmp_path: Path) -> None:
     from vassilflow.runtime.store._sqlite_utils import ensure_sqlite_parent_dir
 
     db_file = tmp_path / "subdir" / "store.db"
@@ -33,8 +33,8 @@ async def test_gate_catches_unoffloaded_blocking_io_in_deerflow_module(tmp_path:
         ensure_sqlite_parent_dir(str(db_file))
 
 
-async def test_gate_scans_vassilflow_facade_and_current_implementation() -> None:
-    assert _SCANNED_MODULES == ("app", "deerflow", "vassilflow")
+async def test_gate_scans_vassilflow_package() -> None:
+    assert _SCANNED_MODULES == ("app", "vassilflow")
 
 
 async def test_gate_restores_blockbuster_patches_after_exceptions() -> None:

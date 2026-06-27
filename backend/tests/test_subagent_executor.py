@@ -9,7 +9,7 @@ Covers:
 - Cooperative cancellation via cancel_event
 
 Note: Due to circular import issues in the main codebase, conftest.py mocks
-deerflow.subagents.executor. This test file uses delayed import via fixture to test
+vassilflow.subagents.executor. This test file uses delayed import via fixture to test
 the real implementation in isolation.
 """
 
@@ -28,15 +28,15 @@ from vassilflow.skills.types import Skill
 
 # Module names that need to be mocked to break circular imports
 _MOCKED_MODULE_NAMES = [
-    "deerflow.agents",
-    "deerflow.agents.thread_state",
-    "deerflow.agents.middlewares",
-    "deerflow.agents.middlewares.thread_data_middleware",
-    "deerflow.sandbox",
-    "deerflow.sandbox.middleware",
-    "deerflow.sandbox.security",
-    "deerflow.models",
-    "deerflow.skills.storage",
+    "vassilflow.agents",
+    "vassilflow.agents.thread_state",
+    "vassilflow.agents.middlewares",
+    "vassilflow.agents.middlewares.thread_data_middleware",
+    "vassilflow.sandbox",
+    "vassilflow.sandbox.middleware",
+    "vassilflow.sandbox.security",
+    "vassilflow.models",
+    "vassilflow.skills.storage",
 ]
 
 
@@ -50,7 +50,7 @@ def _patch_default_get_app_config(executor_module):
 
 
 def _clear_stale_executor_package_attr() -> None:
-    subagents_pkg = sys.modules.get("deerflow.subagents")
+    subagents_pkg = sys.modules.get("vassilflow.subagents")
     if subagents_pkg is not None and hasattr(subagents_pkg, "executor"):
         delattr(subagents_pkg, "executor")
 
@@ -64,31 +64,31 @@ def _setup_executor_classes():
     """
     # Save original modules
     original_modules = {name: sys.modules.get(name) for name in _MOCKED_MODULE_NAMES}
-    original_executor = sys.modules.get("deerflow.subagents.executor")
+    original_executor = sys.modules.get("vassilflow.subagents.executor")
 
     # Remove mocked executor if exists (from conftest.py)
-    if "deerflow.subagents.executor" in sys.modules:
-        del sys.modules["deerflow.subagents.executor"]
+    if "vassilflow.subagents.executor" in sys.modules:
+        del sys.modules["vassilflow.subagents.executor"]
     _clear_stale_executor_package_attr()
 
     # Set up mocks
     for name in _MOCKED_MODULE_NAMES:
         sys.modules[name] = MagicMock()
-    storage_module = ModuleType("deerflow.skills.storage")
+    storage_module = ModuleType("vassilflow.skills.storage")
     storage_module.get_or_new_skill_storage = lambda **kwargs: SimpleNamespace(load_skills=lambda *, enabled_only: [])
-    sys.modules["deerflow.skills.storage"] = storage_module
+    sys.modules["vassilflow.skills.storage"] = storage_module
 
     # Import real classes inside fixture
     from langchain_core.messages import AIMessage, HumanMessage
 
-    subagent_config_module = importlib.import_module("deerflow.subagents.config")
-    executor_impl_module = importlib.import_module("deerflow.subagents.executor")
+    subagent_config_module = importlib.import_module("vassilflow.subagents.config")
+    executor_impl_module = importlib.import_module("vassilflow.subagents.executor")
     SubagentConfig = subagent_config_module.SubagentConfig
     SubagentExecutor = executor_impl_module.SubagentExecutor
     SubagentResult = executor_impl_module.SubagentResult
     SubagentStatus = executor_impl_module.SubagentStatus
 
-    executor_module = sys.modules["deerflow.subagents.executor"]
+    executor_module = sys.modules["vassilflow.subagents.executor"]
 
     # Most tests in this module patch _create_agent and exercise executor
     # control flow only. Keep those tests hermetic: CI checkouts do not include
@@ -117,9 +117,9 @@ def _setup_executor_classes():
 
     # Restore executor module (conftest.py mock)
     if original_executor is not None:
-        sys.modules["deerflow.subagents.executor"] = original_executor
-    elif "deerflow.subagents.executor" in sys.modules:
-        del sys.modules["deerflow.subagents.executor"]
+        sys.modules["vassilflow.subagents.executor"] = original_executor
+    elif "vassilflow.subagents.executor" in sys.modules:
+        del sys.modules["vassilflow.subagents.executor"]
 
 
 # Helper classes that wrap real classes for testing
@@ -251,7 +251,7 @@ class TestAgentConstruction:
         monkeypatch: pytest.MonkeyPatch,
     ):
         """Explicit app_config must flow into both model and middleware factories."""
-        config_module = importlib.import_module("deerflow.config")
+        config_module = importlib.import_module("vassilflow.config")
         from vassilflow.subagents import executor as executor_module
 
         SubagentExecutor = classes["SubagentExecutor"]
@@ -286,9 +286,9 @@ class TestAgentConstruction:
         monkeypatch.setattr(executor_module, "create_agent", fake_create_agent)
         monkeypatch.setitem(
             sys.modules,
-            "deerflow.agents.middlewares.tool_error_handling_middleware",
+            "vassilflow.agents.middlewares.tool_error_handling_middleware",
             _module(
-                "deerflow.agents.middlewares.tool_error_handling_middleware",
+                "vassilflow.agents.middlewares.tool_error_handling_middleware",
                 build_subagent_runtime_middlewares=fake_build_subagent_runtime_middlewares,
             ),
         )
@@ -346,7 +346,7 @@ class TestAgentConstruction:
             captured["app_config"] = app_config
             return SimpleNamespace(load_skills=lambda *, enabled_only: [SimpleNamespace(name="demo-skill", skill_file=skill_file)])
 
-        monkeypatch.setattr(sys.modules["deerflow.skills.storage"], "get_or_new_skill_storage", fake_get_or_new_skill_storage)
+        monkeypatch.setattr(sys.modules["vassilflow.skills.storage"], "get_or_new_skill_storage", fake_get_or_new_skill_storage)
 
         executor = SubagentExecutor(
             config=base_config,
@@ -379,7 +379,7 @@ class TestAgentConstruction:
         skill_file.write_text("Skill instructions here", encoding="utf-8")
 
         monkeypatch.setattr(
-            sys.modules["deerflow.skills.storage"],
+            sys.modules["vassilflow.skills.storage"],
             "get_or_new_skill_storage",
             lambda *, app_config=None: SimpleNamespace(load_skills=lambda *, enabled_only: [SimpleNamespace(name="my-skill", skill_file=skill_file, allowed_tools=None)]),
         )
@@ -417,7 +417,7 @@ class TestAgentConstruction:
         SubagentExecutor = classes["SubagentExecutor"]
 
         monkeypatch.setattr(
-            sys.modules["deerflow.skills.storage"],
+            sys.modules["vassilflow.skills.storage"],
             "get_or_new_skill_storage",
             lambda *, app_config=None: SimpleNamespace(load_skills=lambda *, enabled_only: []),
         )
@@ -462,7 +462,7 @@ class TestAgentConstruction:
         skill_file.write_text("Skill content", encoding="utf-8")
 
         monkeypatch.setattr(
-            sys.modules["deerflow.skills.storage"],
+            sys.modules["vassilflow.skills.storage"],
             "get_or_new_skill_storage",
             lambda *, app_config=None: SimpleNamespace(load_skills=lambda *, enabled_only: [SimpleNamespace(name="my-skill", skill_file=skill_file, allowed_tools=None)]),
         )
@@ -498,7 +498,7 @@ class TestAgentConstruction:
         SubagentExecutor = classes["SubagentExecutor"]
 
         monkeypatch.setattr(
-            sys.modules["deerflow.skills.storage"],
+            sys.modules["vassilflow.skills.storage"],
             "get_or_new_skill_storage",
             lambda *, app_config=None: SimpleNamespace(load_skills=lambda *, enabled_only: []),
         )
@@ -539,7 +539,7 @@ class TestAgentConstruction:
         SubagentExecutor = classes["SubagentExecutor"]
 
         monkeypatch.setattr(
-            sys.modules["deerflow.skills.storage"],
+            sys.modules["vassilflow.skills.storage"],
             "get_or_new_skill_storage",
             lambda *, app_config=None: SimpleNamespace(load_skills=lambda *, enabled_only: []),
         )
@@ -584,7 +584,7 @@ class TestAgentConstruction:
         SubagentExecutor = classes["SubagentExecutor"]
 
         monkeypatch.setattr(
-            sys.modules["deerflow.skills.storage"],
+            sys.modules["vassilflow.skills.storage"],
             "get_or_new_skill_storage",
             lambda *, app_config=None: SimpleNamespace(load_skills=lambda *, enabled_only: []),
         )
@@ -652,9 +652,9 @@ class TestAgentConstruction:
         monkeypatch.setattr(executor_module, "create_agent", lambda **kwargs: object())
         monkeypatch.setitem(
             sys.modules,
-            "deerflow.agents.middlewares.tool_error_handling_middleware",
+            "vassilflow.agents.middlewares.tool_error_handling_middleware",
             _module(
-                "deerflow.agents.middlewares.tool_error_handling_middleware",
+                "vassilflow.agents.middlewares.tool_error_handling_middleware",
                 build_subagent_runtime_middlewares=fake_build_subagent_runtime_middlewares,
             ),
         )
@@ -924,7 +924,7 @@ class TestAsyncExecutionPath:
         (skill_dir / "SKILL.md").write_text("Skill instruction text", encoding="utf-8")
 
         monkeypatch.setattr(
-            sys.modules["deerflow.skills.storage"],
+            sys.modules["vassilflow.skills.storage"],
             "get_or_new_skill_storage",
             lambda *, app_config=None: SimpleNamespace(load_skills=lambda *, enabled_only: [SimpleNamespace(name="regression-skill", skill_file=skill_dir / "SKILL.md", allowed_tools=None)]),
         )
@@ -1392,7 +1392,7 @@ class TestThreadSafety:
     @pytest.fixture
     def executor_module(self, _setup_executor_classes):
         """Import the executor module with real classes."""
-        executor = importlib.import_module("deerflow.subagents.executor")
+        executor = importlib.import_module("vassilflow.subagents.executor")
 
         return _patch_default_get_app_config(importlib.reload(executor))
 
@@ -1516,7 +1516,7 @@ class TestCleanupBackgroundTask:
     def executor_module(self, _setup_executor_classes):
         """Import the executor module with real classes."""
         # Re-import to get the real module with cleanup_background_task
-        executor = importlib.import_module("deerflow.subagents.executor")
+        executor = importlib.import_module("vassilflow.subagents.executor")
 
         return _patch_default_get_app_config(importlib.reload(executor))
 
@@ -1659,7 +1659,7 @@ class TestCooperativeCancellation:
     @pytest.fixture
     def executor_module(self, _setup_executor_classes):
         """Import the executor module with real classes."""
-        executor = importlib.import_module("deerflow.subagents.executor")
+        executor = importlib.import_module("vassilflow.subagents.executor")
 
         return _patch_default_get_app_config(importlib.reload(executor))
 
@@ -2058,7 +2058,7 @@ class TestSubagentTracingWiring:
 
     @pytest.fixture
     def executor_module(self, _setup_executor_classes):
-        executor = importlib.import_module("deerflow.subagents.executor")
+        executor = importlib.import_module("vassilflow.subagents.executor")
         return _patch_default_get_app_config(importlib.reload(executor))
 
     @pytest.fixture(autouse=True)
@@ -2309,7 +2309,7 @@ class TestSubagentGuardrailAttribution:
 
     @pytest.fixture
     def executor_module(self, _setup_executor_classes):
-        executor = importlib.import_module("deerflow.subagents.executor")
+        executor = importlib.import_module("vassilflow.subagents.executor")
         return _patch_default_get_app_config(importlib.reload(executor))
 
     def _make_executor(

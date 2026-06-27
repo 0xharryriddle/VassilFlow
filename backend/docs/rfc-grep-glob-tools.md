@@ -79,7 +79,7 @@
 
 推荐继续放在：
 
-- `backend/packages/harness/deerflow/sandbox/tools.py`
+- `backend/packages/harness/vassilflow/sandbox/tools.py`
 
 并在 `config.example.yaml` 中默认加入 `file:read` 组。
 

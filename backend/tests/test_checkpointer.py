@@ -821,11 +821,11 @@ class TestClientCheckpointerFallback:
         config_mock.checkpointer = None
 
         with (
-            patch("deerflow.client.get_app_config", return_value=config_mock),
-            patch("deerflow.client.create_agent", side_effect=fake_create_agent),
-            patch("deerflow.client.create_chat_model", return_value=MagicMock()),
-            patch("deerflow.client.build_middlewares", return_value=[]),
-            patch("deerflow.client.apply_prompt_template", return_value=""),
+            patch("vassilflow.client.get_app_config", return_value=config_mock),
+            patch("vassilflow.client.create_agent", side_effect=fake_create_agent),
+            patch("vassilflow.client.create_chat_model", return_value=MagicMock()),
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value=""),
             patch("vassilflow.client.VassilFlowClient._get_tools", return_value=[]),
         ):
             client = VassilFlowClient(checkpointer=None)
@@ -855,11 +855,11 @@ class TestClientCheckpointerFallback:
         config_mock.checkpointer = None
 
         with (
-            patch("deerflow.client.get_app_config", return_value=config_mock),
-            patch("deerflow.client.create_agent", side_effect=fake_create_agent),
-            patch("deerflow.client.create_chat_model", return_value=MagicMock()),
-            patch("deerflow.client.build_middlewares", return_value=[]),
-            patch("deerflow.client.apply_prompt_template", return_value=""),
+            patch("vassilflow.client.get_app_config", return_value=config_mock),
+            patch("vassilflow.client.create_agent", side_effect=fake_create_agent),
+            patch("vassilflow.client.create_chat_model", return_value=MagicMock()),
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value=""),
             patch("vassilflow.client.VassilFlowClient._get_tools", return_value=[]),
         ):
             client = VassilFlowClient(checkpointer=explicit_cp)

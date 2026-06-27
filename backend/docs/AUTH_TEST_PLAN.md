@@ -22,7 +22,7 @@
 ```bash
 # 清除已有数据
 rm -f backend/.vassilflow/data/vassilflow.db
-rm -f backend/.deer-flow/data/deerflow.db  # legacy fallback, if present
+rm -f backend/.deer-flow/data/vassilflow.db  # legacy fallback, if present
 
 # 启动标准模式（Gateway embedded runtime）
 make dev
@@ -831,7 +831,7 @@ make dev
 
 ```bash
 rm -f backend/.vassilflow/data/vassilflow.db
-rm -f backend/.deer-flow/data/deerflow.db  # legacy fallback, if present
+rm -f backend/.deer-flow/data/vassilflow.db  # legacy fallback, if present
 make dev
 make stop
 

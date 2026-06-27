@@ -497,7 +497,7 @@ class TestWebSearchTool:
 
             from vassilflow.community.serper.tools import web_search_tool
 
-            with caplog.at_level(logging.WARNING, logger="deerflow.community.serper.tools"):
+            with caplog.at_level(logging.WARNING, logger="vassilflow.community.serper.tools"):
                 web_search_tool.invoke({"query": "q1"})
                 web_search_tool.invoke({"query": "q2"})
 
@@ -997,7 +997,7 @@ class TestImageSearchTool:
 
             from vassilflow.community.serper.tools import image_search_tool
 
-            with caplog.at_level(logging.WARNING, logger="deerflow.community.serper.tools"):
+            with caplog.at_level(logging.WARNING, logger="vassilflow.community.serper.tools"):
                 image_search_tool.invoke({"query": "q1"})
                 image_search_tool.invoke({"query": "q2"})
 

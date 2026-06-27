@@ -13,7 +13,7 @@ VassilFlow is a LangGraph-based AI super agent system with a full-stack architec
 - **Provisioner** (port 8002, optional in Docker dev): Started only when sandbox is configured for provisioner/Kubernetes mode
 
 **Runtime**:
-- `make dev`, Docker dev, and production all run the agent runtime in Gateway via `RunManager` + `run_agent()` + `StreamBridge` (`packages/harness/deerflow/runtime/`). Nginx exposes that runtime at `/api/langgraph/*` and rewrites it to Gateway's native `/api/*` routers.
+- `make dev`, Docker dev, and production all run the agent runtime in Gateway via `RunManager` + `run_agent()` + `StreamBridge` (`packages/harness/vassilflow/runtime/`). Nginx exposes that runtime at `/api/langgraph/*` and rewrites it to Gateway's native `/api/*` routers.
 
 **Project Structure**:
 ```
@@ -25,10 +25,9 @@ VassilFlow/
 │   ├── Makefile               # Backend-only commands (dev, gateway, lint)
 │   ├── langgraph.json         # LangGraph Studio graph configuration
 │   ├── packages/
-│   │   └── harness/           # vassilflow-harness package (facade: vassilflow.*, legacy: deerflow.*)
+│   │   └── harness/           # vassilflow-harness package
 │   │       ├── pyproject.toml
-│   │       ├── vassilflow/          # Public facade imports
-│   │       └── deerflow/            # Current implementation package
+│   │       ├── vassilflow/          # Agent harness implementation package
 │   │           ├── agents/          # LangGraph agent system
 │   │           │   ├── lead_agent/    # Main agent (factory + system prompt)
 │   │           │   ├── middlewares/   # 11 middleware components
@@ -51,7 +50,7 @@ VassilFlow/
 │   │           ├── community/         # Community tools (tavily, jina_ai, firecrawl, image_search, aio_sandbox)
 │   │           ├── reflection/        # Dynamic module loading (resolve_variable, resolve_class)
 │   │           ├── utils/             # Utilities (network, readability)
-│   │           └── client.py          # Embedded Python client implementation (VassilFlowClient facade wraps it)
+│   │           └── client.py          # Embedded Python client implementation (VassilFlowClient)
 │   ├── app/                   # Application layer (import: app.*)
 │   │   ├── gateway/           # FastAPI Gateway API
 │   │   │   ├── app.py         # FastAPI application
@@ -100,7 +99,7 @@ make migrate-rev MSG="..."  # Autogenerate a new alembic revision (see Schema Mi
 ```
 
 The `detect-blocking-io` target parses `app/`, `packages/harness/vassilflow/`,
-`packages/harness/deerflow/`, and `scripts/` with AST. By default it reports
+`packages/harness/vassilflow/`, and `scripts/` with AST. By default it reports
 only blocking IO candidates that are inside async code, reachable from async code
 in the same file, or reachable from sync-only `AgentMiddleware` before/after
 hooks that LangGraph can execute on the async graph path. It prints a concise
@@ -129,7 +128,7 @@ Regression tests related to Docker/provisioner behavior:
 
 Blocking-IO runtime gate (`tests/blocking_io/`):
 - Wraps every item under `tests/blocking_io/` with a strict Blockbuster
-  context scoped to `app.*`, `vassilflow.*`, and legacy `deerflow.*`
+  context scoped to `app.*` and `vassilflow.*`
   implementation imports (see `tests/support/detectors/blocking_io_runtime.py`). Any sync blocking IO
   call whose stack passes through VassilFlow business code while running on
   the asyncio event loop raises `BlockingError` and fails the test.
@@ -151,7 +150,7 @@ Blocking-IO runtime gate (`tests/blocking_io/`):
   hard-fail.
 
 Boundary check (harness → app import firewall):
-- `tests/test_harness_boundary.py` — ensures `packages/harness/deerflow/` never imports from `app.*`
+- `tests/test_harness_boundary.py` — ensures `packages/harness/vassilflow/` never imports from `app.*`
 
 CI runs these regression tests for every pull request via [.github/workflows/backend-unit-tests.yml](../.github/workflows/backend-unit-tests.yml).
 
@@ -161,14 +160,14 @@ CI runs these regression tests for every pull request via [.github/workflows/bac
 
 The backend is split into two layers with a strict dependency direction:
 
-- **Harness** (`packages/harness/deerflow/`, facade in `packages/harness/vassilflow/`): Publishable agent framework package (`vassilflow-harness`). Preferred facade import prefix: `vassilflow.*`; legacy implementation import prefix: `deerflow.*`. Contains agent orchestration, tools, sandbox, models, MCP, skills, config — everything needed to build and run agents.
+- **Harness** (`packages/harness/vassilflow/`): Publishable agent framework package (`vassilflow-harness`). Public import prefix: `vassilflow.*`. Contains agent orchestration, tools, sandbox, models, MCP, skills, config — everything needed to build and run agents.
 - **App** (`app/`): Unpublished application code. Import prefix: `app.*`. Contains the FastAPI Gateway API and IM channel integrations (Feishu, Slack, Telegram, DingTalk).
 
-**Dependency rule**: App may import the VassilFlow facade or legacy harness implementation, but the harness never imports `app.*`. This boundary is enforced by `tests/test_harness_boundary.py` which runs in CI.
+**Dependency rule**: App may import the VassilFlow harness package, but the harness never imports `app.*`. This boundary is enforced by `tests/test_harness_boundary.py` which runs in CI.
 
 **Import conventions**:
 ```python
-# Harness facade
+# Harness package
 from vassilflow.agents import make_lead_agent
 from vassilflow.models import create_chat_model
 
@@ -185,13 +184,13 @@ from vassilflow.config import get_app_config
 
 ### Agent System
 
-**Lead Agent** (`packages/harness/deerflow/agents/lead_agent/agent.py`):
+**Lead Agent** (`packages/harness/vassilflow/agents/lead_agent/agent.py`):
 - Entry point: `make_lead_agent(config: RunnableConfig)` registered in `langgraph.json`
 - Dynamic model selection via `create_chat_model()` with thinking/vision support
 - Tools loaded via `get_available_tools()` - combines sandbox, built-in, MCP, community, and subagent tools
 - System prompt generated by `apply_prompt_template()` with skills, memory, and subagent instructions
 
-**ThreadState** (`packages/harness/deerflow/agents/thread_state.py`):
+**ThreadState** (`packages/harness/vassilflow/agents/thread_state.py`):
 - Extends `AgentState` with: `sandbox`, `thread_data`, `title`, `artifacts`, `todos`, `uploaded_files`, `viewed_images`
 - Uses custom reducers: `merge_artifacts` (deduplicate), `merge_viewed_images` (merge/clear)
 
@@ -203,7 +202,7 @@ from vassilflow.config import get_app_config
 
 ### Middleware Chain
 
-Lead-agent middlewares are assembled in strict append order across `packages/harness/deerflow/agents/middlewares/tool_error_handling_middleware.py` (`build_lead_runtime_middlewares`) and `packages/harness/deerflow/agents/lead_agent/agent.py` (`build_middlewares`):
+Lead-agent middlewares are assembled in strict append order across `packages/harness/vassilflow/agents/middlewares/tool_error_handling_middleware.py` (`build_lead_runtime_middlewares`) and `packages/harness/vassilflow/agents/lead_agent/agent.py` (`build_middlewares`):
 
 1. **ThreadDataMiddleware** - Creates per-thread directories under the user's isolation scope (`{runtime_home}/users/{user_id}/threads/{thread_id}/user-data/{workspace,uploads,outputs}`; `runtime_home` defaults to `.vassilflow` with `.deer-flow` as a transition fallback); resolves `user_id` via `get_effective_user_id()` (falls back to `"default"` in no-auth mode); Web UI thread deletion now follows LangGraph thread removal with Gateway cleanup of the local thread directory
 2. **UploadsMiddleware** - Tracks and injects newly uploaded files into conversation
@@ -238,7 +237,7 @@ Setup: Copy `config.example.yaml` to `config.yaml` in the **project root** direc
 
 **Config Hot-Reload Boundary**: Gateway dependencies route through `get_app_config()` on every request, so per-run fields like `models[*].max_tokens`, `summarization.*`, `title.*`, `memory.*`, `subagents.*`, `tools[*]`, and the agent system prompt pick up `config.yaml` edits on the next message. `AppConfig` is intentionally **not** cached on `app.state` — `lifespan()` keeps a local `startup_config` variable for one-shot bootstrap work and passes it to `langgraph_runtime(app, startup_config)`.
 
-Infrastructure fields are **restart-required**. The authoritative list lives in `packages/harness/deerflow/config/reload_boundary.py::STARTUP_ONLY_FIELDS` and is mirrored by the standardised `"startup-only:"` prefix on the corresponding `Field(description=...)` in `AppConfig`, so IDE hover on those fields surfaces the reason inline (no need to context-switch into this table). Currently registered: `database`, `checkpointer`, `run_events`, `stream_bridge`, `sandbox`, `log_level`, `channels`, `channel_connections`. Adding a new restart-required field requires updating the registry; drift is pinned by `tests/test_reload_boundary.py`.
+Infrastructure fields are **restart-required**. The authoritative list lives in `packages/harness/vassilflow/config/reload_boundary.py::STARTUP_ONLY_FIELDS` and is mirrored by the standardised `"startup-only:"` prefix on the corresponding `Field(description=...)` in `AppConfig`, so IDE hover on those fields surfaces the reason inline (no need to context-switch into this table). Currently registered: `database`, `checkpointer`, `run_events`, `stream_bridge`, `sandbox`, `log_level`, `channels`, `channel_connections`. Adding a new restart-required field requires updating the registry; drift is pinned by `tests/test_reload_boundary.py`.
 
 Configuration priority:
 1. Explicit `config_path` argument
@@ -291,13 +290,13 @@ CORS is same-origin by default when requests enter through nginx on port 2026. S
 
 Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runtime, all other `/api/*` → Gateway REST APIs.
 
-### Sandbox System (`packages/harness/deerflow/sandbox/`)
+### Sandbox System (`packages/harness/vassilflow/sandbox/`)
 
 **Interface**: Abstract `Sandbox` with `execute_command`, `read_file`, `write_file`, `list_dir`
 **Provider Pattern**: `SandboxProvider` with `acquire`, `acquire_async`, `get`, `release` lifecycle. Async agent/tool paths call async sandbox lifecycle hooks so Docker sandbox creation, discovery, cross-process locking, readiness polling, and release stay off the event loop.
 **Implementations**:
 - `LocalSandboxProvider` - Local filesystem execution. `acquire(thread_id)` returns a per-thread `LocalSandbox` (id `local:{thread_id}`) whose `path_mappings` resolve `/mnt/user-data/{workspace,uploads,outputs}` and `/mnt/acp-workspace` to that thread's host directories, so the public `Sandbox` API honours the `/mnt/user-data` contract uniformly with AIO. `acquire()` / `acquire(None)` keeps the legacy generic singleton (id `local`) for callers without a thread context. Per-thread sandboxes are held in an LRU cache (default 256 entries) guarded by a `threading.Lock`.
-- `AioSandboxProvider` (`packages/harness/deerflow/community/`) - Docker-based isolation. Active-cache and warm-pool entries are checked with the backend during acquire/reuse; definitively dead containers are dropped from all in-process maps so the thread can discover or create a fresh sandbox instead of reusing a stale client. Backend health-check failures are treated as unknown, not dead; local discovery likewise treats an unverifiable container as not adoptable and falls through to create rather than failing acquire. `get()` remains an in-memory lookup for event-loop-safe tool paths.
+- `AioSandboxProvider` (`packages/harness/vassilflow/community/`) - Docker-based isolation. Active-cache and warm-pool entries are checked with the backend during acquire/reuse; definitively dead containers are dropped from all in-process maps so the thread can discover or create a fresh sandbox instead of reusing a stale client. Backend health-check failures are treated as unknown, not dead; local discovery likewise treats an unverifiable container as not adoptable and falls through to create rather than failing acquire. `get()` remains an in-memory lookup for event-loop-safe tool paths.
 
 **Virtual Path System**:
 - Agent sees: `/mnt/user-data/{workspace,uploads,outputs}`, `/mnt/skills`
@@ -305,14 +304,14 @@ Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runti
 - Translation: `LocalSandboxProvider` builds per-thread `PathMapping`s for the user-data prefixes at acquire time; `tools.py` keeps `replace_virtual_path()` / `replace_virtual_paths_in_command()` as a defense-in-depth layer (and for path validation). AIO has the directories volume-mounted at the same virtual paths inside its container, so both implementations accept `/mnt/user-data/...` natively.
 - Detection: `is_local_sandbox()` accepts both `sandbox_id == "local"` (legacy / no-thread) and `sandbox_id.startswith("local:")` (per-thread)
 
-**Sandbox Tools** (in `packages/harness/deerflow/sandbox/tools.py`):
+**Sandbox Tools** (in `packages/harness/vassilflow/sandbox/tools.py`):
 - `bash` - Execute commands with path translation and error handling
 - `ls` - Directory listing (tree format, max 2 levels)
 - `read_file` - Read file contents with optional line range
 - `write_file` - Write/append to files, creates directories; overwrites by default and exposes the `append` argument in the model-facing schema for end-of-file writes
 - `str_replace` - Substring replacement (single or all occurrences); same-path serialization is scoped to `(sandbox.id, path)` so isolated sandboxes do not contend on identical virtual paths inside one process
 
-### Subagent System (`packages/harness/deerflow/subagents/`)
+### Subagent System (`packages/harness/vassilflow/subagents/`)
 
 **Built-in Agents**: `general-purpose` (all tools except `task`) and `bash` (command specialist)
 **Execution**: Dual thread pool - `_scheduler_pool` (3 workers) + `_execution_pool` (3 workers)
@@ -322,7 +321,7 @@ Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runti
 **Deferred MCP tools** (if `tool_search.enabled`): `SubagentExecutor._build_initial_state` assembles deferral after policy filtering via the shared `assemble_deferred_tools` (fail-closed), appends the `tool_search` tool, injects the `<available-deferred-tools>` section into the subagent's `SystemMessage`, and threads the setup to `_create_agent`, which attaches `DeferredToolFilterMiddleware` through `build_subagent_runtime_middlewares(deferred_setup=...)`. Subagents thus withhold full MCP schemas until promotion, same as the lead agent; each task run gets a fresh `ThreadState` so promotion is isolated per run
 **Checkpointer isolation**: Subagent graphs are compiled with `checkpointer=False` to avoid inheriting the parent run's checkpointer, since subagents are one-shot and never resume.
 
-### Tool System (`packages/harness/deerflow/tools/`)
+### Tool System (`packages/harness/vassilflow/tools/`)
 
 `get_available_tools(groups, include_mcp, model_name, subagent_enabled)` assembles:
 1. **Config-defined tools** - Resolved from `config.yaml` via `resolve_variable()`
@@ -336,7 +335,7 @@ Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runti
 4. **Subagent tool** (if enabled):
    - `task` - Delegate to subagent (description, prompt, subagent_type)
 
-**Community tools** (`packages/harness/deerflow/community/`):
+**Community tools** (`packages/harness/vassilflow/community/`):
 - `tavily/` - Web search (5 results default) and web fetch (4KB limit)
 - `jina_ai/` - Web fetch via Jina reader API with readability extraction
 - `firecrawl/` - Web scraping via Firecrawl API
@@ -348,7 +347,7 @@ Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runti
 - Each ACP agent uses a per-thread workspace at `{base_dir}/users/{user_id}/threads/{thread_id}/acp-workspace/`. The workspace is accessible to the lead agent via the virtual path `/mnt/acp-workspace/` (read-only). In docker sandbox mode, the directory is volume-mounted into the container at `/mnt/acp-workspace` (read-only); in local sandbox mode, path translation is handled by `tools.py`
 - `image_search/` - Image search via DuckDuckGo
 
-### MCP System (`packages/harness/deerflow/mcp/`)
+### MCP System (`packages/harness/vassilflow/mcp/`)
 
 - Uses `langchain-mcp-adapters` `MultiServerMCPClient` for multi-server management
 - **Lazy initialization**: Tools loaded on first use via `get_cached_mcp_tools()`
@@ -359,7 +358,7 @@ Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runti
 - **Stdio path translation**: MCP-returned local file references are not copied. If a `ResourceLink` or conservative free-text path resolves to an existing file inside the thread's mounted user-data tree, it is translated deterministically to `/mnt/user-data/...`; paths outside that tree remain unchanged.
 - **Runtime updates**: Gateway API saves to extensions_config.json; the Gateway-embedded runtime detects changes via mtime
 
-### Skills System (`packages/harness/deerflow/skills/`)
+### Skills System (`packages/harness/vassilflow/skills/`)
 
 - **Location**: `skills/{public,custom}/` under the project root by default
 - **Format**: Directory with `SKILL.md` (YAML frontmatter: name, description, license, allowed-tools)
@@ -368,7 +367,7 @@ Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runti
 - **Slash activation**: `/skill-name task` loads that enabled skill's `SKILL.md` for the current model call only. The resolver rejects leading whitespace, missing separators, reserved channel commands (`/new`, `/help`, `/bootstrap`, `/status`, `/models`, `/memory`), disabled skills, and skills outside a custom agent's whitelist.
 - **Installation**: `POST /api/skills/install` extracts .skill ZIP archive to custom/ directory
 
-### Model Factory (`packages/harness/deerflow/models/factory.py`)
+### Model Factory (`packages/harness/vassilflow/models/factory.py`)
 
 - `create_chat_model(name, thinking_enabled)` instantiates LLM from config via reflection
 - Supports `thinking_enabled` flag with per-model `when_thinking_enabled` overrides
@@ -377,7 +376,7 @@ Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runti
 - Config values starting with `$` resolved as environment variables
 - Missing provider modules surface actionable install hints from reflection resolvers (for example `uv add langchain-google-genai`)
 
-### vLLM Provider (`packages/harness/deerflow/models/vllm_provider.py`)
+### vLLM Provider (`packages/harness/vassilflow/models/vllm_provider.py`)
 
 - `VllmChatModel` subclasses `langchain_openai:ChatOpenAI` for vLLM 0.19.0 OpenAI-compatible endpoints
 - Preserves vLLM's non-standard assistant `reasoning` field on full responses, streaming deltas, and follow-up tool-call turns
@@ -397,7 +396,7 @@ Bridges external messaging platforms (Feishu, Slack, Telegram, Discord, DingTalk
 - `service.py` - Manages lifecycle of all configured channels from `config.yaml`
 - `slack.py` / `feishu.py` / `telegram.py` / `discord.py` / `dingtalk.py` - Platform-specific implementations (`feishu.py` tracks the running card `message_id` in memory and patches the same card in place; `telegram.py` registers the "Working on it..." placeholder as the stream target and edits it in place via `editMessageText`; `dingtalk.py` optionally uses AI Card streaming for in-place updates when `card_template_id` is configured)
 - `app/gateway/routers/channel_connections.py` - Browser-facing user connection and disconnect APIs
-- `vassilflow.persistence.channel_connections` - SQL-backed user-owned connection, optional credential, connect state, and conversation store; currently aliases the legacy implementation package
+- `vassilflow.persistence.channel_connections` - SQL-backed user-owned connection, optional credential, connect state, and conversation store; implemented in the VassilFlow harness package
 
 **Message Flow**:
 1. External platform -> Channel impl -> `MessageBus.publish_inbound()`
@@ -438,7 +437,7 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 - See `backend/docs/IM_CHANNEL_CONNECTIONS.md` for provider setup and operational notes.
 
 
-### Memory System (`packages/harness/deerflow/agents/memory/`)
+### Memory System (`packages/harness/vassilflow/agents/memory/`)
 
 **Components**:
 - `updater.py` - LLM-based memory updates with fact extraction, whitespace-normalized fact deduplication (trims leading/trailing whitespace before comparing), and atomic file I/O
@@ -468,7 +467,7 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 4. Applies updates atomically (temp file + rename) with cache invalidation, skipping duplicate fact content before append
 5. Next interaction injects top 15 facts + context into `<memory>` tags in system prompt
 
-**Token counting** (`packages/harness/deerflow/agents/memory/prompt.py`):
+**Token counting** (`packages/harness/vassilflow/agents/memory/prompt.py`):
 - `_count_tokens` budgets the injection. In default `tiktoken` mode, the encoding is loaded lazily and cached.
 - Failed tiktoken loads are cached with a timestamp. During the fixed cooldown (`_TIKTOKEN_RETRY_COOLDOWN_S`, 600s), callers fall back to char estimation immediately instead of re-triggering the blocking BPE download; after the cooldown, transient outages can self-heal without a restart.
 - In-flight loads are cached as a LOADING sentinel so concurrent callers fall back instead of spawning more blocking threads.
@@ -485,12 +484,12 @@ Focused regression coverage for the updater lives in `backend/tests/test_memory_
 - `max_injection_tokens` - Token limit for prompt injection (2000)
 - `token_counting` - Token counting strategy for the injection budget: `tiktoken` (default, accurate but may download BPE data from a public endpoint on first use — can block for a long time in network-restricted environments, see issues #3402/#3429) or `char` (network-free CJK-aware char estimate, never touches tiktoken)
 
-### Reflection System (`packages/harness/deerflow/reflection/`)
+### Reflection System (`packages/harness/vassilflow/reflection/`)
 
 - `resolve_variable(path)` - Import module and return variable (e.g., `module.path:variable_name`)
 - `resolve_class(path, base_class)` - Import and validate class against base class
 
-### Schema Migrations (`packages/harness/deerflow/persistence/migrations/`)
+### Schema Migrations (`packages/harness/vassilflow/persistence/migrations/`)
 
 VassilFlow's application tables (`runs`, `threads_meta`, `feedback`, `users`, `run_events`, plus the four `channel_*` tables) are owned by alembic via a **hybrid bootstrap** strategy. LangGraph's checkpointer tables (`checkpoints`, `checkpoint_blobs`, `checkpoint_writes`, `checkpoint_migrations`) live in the same database but are owned by LangGraph and excluded from alembic's view via `migrations/_env_filters.py::include_object`.
 
@@ -525,7 +524,7 @@ This invokes `alembic revision --autogenerate` against the live ORM models. Revi
 - `persistence/bootstrap.py` — `bootstrap_schema(engine, backend=...)`, the three-branch decision + locking
 - Tests: `tests/test_persistence_bootstrap.py` (branches), `tests/test_persistence_bootstrap_concurrency.py` (concurrency), `tests/test_persistence_bootstrap_regression.py` (issue #3682), `tests/test_persistence_migrations_env.py` (filter), `tests/blocking_io/test_persistence_bootstrap.py` (asyncio.to_thread anchor)
 
-### Tracing System (`packages/harness/deerflow/tracing/`)
+### Tracing System (`packages/harness/vassilflow/tracing/`)
 
 LangSmith and Langfuse are both supported. The wiring lives in two layers:
 
@@ -563,11 +562,11 @@ Returns `{}` when Langfuse is not in the enabled providers — LangSmith-only de
 
 Both can be modified at runtime via Gateway API endpoints or `VassilFlowClient` / legacy `DeerFlowClient` methods.
 
-### Embedded Client (`packages/harness/vassilflow/client.py` facade, `packages/harness/deerflow/client.py` implementation)
+### Embedded Client (`packages/harness/vassilflow/client.py`)
 
-`VassilFlowClient` provides direct in-process access to all VassilFlow capabilities without HTTP services. The legacy `DeerFlowClient` remains supported during the migration. All return types align with the Gateway API response schemas, so consumer code works identically in HTTP and embedded modes.
+`VassilFlowClient` provides direct in-process access to all VassilFlow capabilities without HTTP services. All return types align with the Gateway API response schemas, so consumer code works identically in HTTP and embedded modes.
 
-**Architecture**: Imports the same VassilFlow facade modules that Gateway API uses where available; the current implementation still lives under `deerflow` during migration. Shares the same config files and data directories. No FastAPI dependency.
+**Architecture**: Imports the same VassilFlow harness modules that Gateway API uses. Shares the same config files and data directories. No FastAPI dependency.
 
 **Agent Conversation**:
 - `chat(message, thread_id)` — synchronous, accumulates streaming deltas per message-id and returns the final AI text
@@ -608,7 +607,7 @@ Both can be modified at runtime via Gateway API endpoints or `VassilFlowClient` 
 - Run the full suite before and after your change: `make test`
 - Tests must pass before a feature is considered complete
 - For lightweight config/utility modules, prefer pure unit tests with no external dependencies
-- If a module causes circular import issues in tests, add a `sys.modules` mock in `tests/conftest.py` (see existing example for `deerflow.subagents.executor`)
+- If a module causes circular import issues in tests, add a `sys.modules` mock in `tests/conftest.py` (see existing example for `vassilflow.subagents.executor`)
 
 ```bash
 # Run all tests

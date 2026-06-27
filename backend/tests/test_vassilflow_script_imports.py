@@ -9,7 +9,7 @@ def _read(path: str) -> str:
     return (REPO_ROOT / path).read_text(encoding="utf-8")
 
 
-def test_tool_error_degradation_detector_uses_vassilflow_facade_imports():
+def test_tool_error_degradation_detector_uses_vassilflow_package_imports():
     content = _read("scripts/tool-error-degradation-detection.sh")
 
     assert "from vassilflow.agents.lead_agent.agent import build_middlewares" in content
@@ -28,7 +28,7 @@ def test_tool_error_degradation_detector_uses_vassilflow_facade_imports():
     assert "from deerflow.sandbox.middleware import" not in content
 
 
-def test_backend_debug_script_uses_vassilflow_facade_imports():
+def test_backend_debug_script_uses_vassilflow_package_imports():
     content = _read("backend/debug.py")
 
     assert "from vassilflow.config import get_app_config" in content
@@ -62,7 +62,7 @@ def test_backend_python_scripts_use_vassilflow_public_imports():
     assert "from deerflow.persistence.bootstrap import _escape_url_for_alembic" not in autogen
     assert "from deerflow.config.paths import Paths, get_paths" not in migration
     assert "import deerflow.models.factory as factory_mod" not in recorder
-    assert 'import_module("deerflow.client")' not in safety_demo
-    assert "import deerflow.client" not in safety_demo
-    assert "from deerflow.client import DeerFlowClient" not in safety_demo
+    assert 'import_module("vassilflow.client")' not in safety_demo
+    assert "import vassilflow.client" not in safety_demo
+    assert "from vassilflow.client import DeerFlowClient" not in safety_demo
     assert "client = DeerFlowClient()" not in safety_demo

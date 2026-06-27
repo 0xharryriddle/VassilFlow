@@ -56,7 +56,7 @@ if [ -n "$port_2026_usage" ]; then
 
         process_command="$(ps -p "$pid" -o command= 2>/dev/null || true)"
         case "$process_command" in
-            *[Vv]assil[Ff]low*|*[Vv]assilflow*|*[Nn]ginx*vassilflow*|*vassilflow/*[Nn]ginx*|*[Dd]eer[Ff]low*|*[Dd]eerflow*|*[Nn]ginx*deerflow*|*deerflow/*[Nn]ginx*)
+            *[Vv]assil[Ff]low*|*[Vv]assilflow*|*[Nn]ginx*vassilflow*|*vassilflow/*[Nn]ginx*|*[Dd]eer[Ff]low*|*[Dd]eerflow*|*[Nn]ginx*deerflow*|*vassilflow/*[Nn]ginx*)
                 vassilflow_process_found=1
                 ;;
         esac

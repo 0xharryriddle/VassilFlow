@@ -253,7 +253,7 @@ async def test_completion_persistence_warns_when_recreated_row_still_missing(cap
     manager = RunManager(store=store)
     record = await manager.create("thread-1")
     await manager.set_status(record.run_id, RunStatus.success)
-    caplog.set_level(logging.WARNING, logger="deerflow.runtime.runs.manager")
+    caplog.set_level(logging.WARNING, logger="vassilflow.runtime.runs.manager")
 
     await manager.update_run_completion(record.run_id, status="success", total_tokens=42)
 

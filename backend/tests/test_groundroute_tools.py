@@ -228,7 +228,7 @@ class TestWebSearchTool:
         with patch.dict("os.environ", {}, clear=True):
             from vassilflow.community.groundroute.tools import web_search_tool
 
-            with caplog.at_level(logging.WARNING, logger="deerflow.community.groundroute.tools"):
+            with caplog.at_level(logging.WARNING, logger="vassilflow.community.groundroute.tools"):
                 web_search_tool.invoke({"query": "q1"})
                 web_search_tool.invoke({"query": "q2"})
 

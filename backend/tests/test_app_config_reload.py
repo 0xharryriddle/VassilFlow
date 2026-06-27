@@ -266,7 +266,7 @@ def test_app_config_warns_when_no_models_configured(tmp_path, monkeypatch, caplo
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
     monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
-    with caplog.at_level("WARNING", logger="deerflow.config.app_config"):
+    with caplog.at_level("WARNING", logger="vassilflow.config.app_config"):
         AppConfig.from_file(str(config_path))
 
     assert "No models are configured" in caplog.text

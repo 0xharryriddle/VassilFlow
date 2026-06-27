@@ -8,7 +8,7 @@ import pytest
 
 from vassilflow.tools.builtins.view_image_tool import view_image_tool
 
-view_image_module = importlib.import_module("deerflow.tools.builtins.view_image_tool")
+view_image_module = importlib.import_module("vassilflow.tools.builtins.view_image_tool")
 
 PNG_BYTES = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
 

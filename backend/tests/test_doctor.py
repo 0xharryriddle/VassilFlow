@@ -51,7 +51,7 @@ class TestResolveConfigPath:
 
         assert doctor._resolve_config_path(tmp_path) == current_config
 
-    def test_loads_app_config_through_vassilflow_facade(self):
+    def test_loads_app_config_through_vassilflow_package(self):
         source = Path(doctor.__file__).read_text(encoding="utf-8")
 
         assert "from vassilflow.config import AppConfig" in source

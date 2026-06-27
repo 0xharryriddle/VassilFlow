@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 OWNER_DB_RELATIVE_PATHS = (
     "data/vassilflow.db",
-    "data/deerflow.db",
+    "data/vassilflow.db",
     "vassilflow.db",
-    "deerflow.db",
+    "vassilflow.db",
     "deer-flow.db",
 )
 

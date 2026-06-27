@@ -175,6 +175,6 @@ def test_format_report_empty_warns_about_cross_file_blind_spot() -> None:
     assert "defined in another file" in report
 
 
-def test_changed_line_scan_roots_include_vassilflow_facade_and_current_implementation() -> None:
-    assert "backend/packages/harness/deerflow" in changed.SCAN_ROOTS
+def test_changed_line_scan_roots_include_vassilflow_package() -> None:
     assert "backend/packages/harness/vassilflow" in changed.SCAN_ROOTS
+    assert "backend/packages/harness/deerflow" not in changed.SCAN_ROOTS

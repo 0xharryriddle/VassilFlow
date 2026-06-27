@@ -23,7 +23,7 @@ class TestUserIsolatedStorage:
         from vassilflow.config.paths import Paths
 
         paths = Paths(base_dir)
-        with patch("deerflow.agents.memory.storage.get_paths", return_value=paths):
+        with patch("vassilflow.agents.memory.storage.get_paths", return_value=paths):
             memory_a = create_empty_memory()
             memory_a["user"]["workContext"]["summary"] = "User A context"
             storage.save(memory_a, user_id="alice")
@@ -42,7 +42,7 @@ class TestUserIsolatedStorage:
         from vassilflow.config.paths import Paths
 
         paths = Paths(base_dir)
-        with patch("deerflow.agents.memory.storage.get_paths", return_value=paths):
+        with patch("vassilflow.agents.memory.storage.get_paths", return_value=paths):
             s = FileMemoryStorage()
             memory = create_empty_memory()
             s.save(memory, user_id="alice")
@@ -53,7 +53,7 @@ class TestUserIsolatedStorage:
         from vassilflow.config.paths import Paths
 
         paths = Paths(base_dir)
-        with patch("deerflow.agents.memory.storage.get_paths", return_value=paths):
+        with patch("vassilflow.agents.memory.storage.get_paths", return_value=paths):
             s = FileMemoryStorage()
             memory_a = create_empty_memory()
             memory_a["user"]["workContext"]["summary"] = "A"
@@ -71,8 +71,8 @@ class TestUserIsolatedStorage:
         from vassilflow.config.paths import Paths
 
         paths = Paths(base_dir)
-        with patch("deerflow.agents.memory.storage.get_paths", return_value=paths):
-            with patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")):
+        with patch("vassilflow.agents.memory.storage.get_paths", return_value=paths):
+            with patch("vassilflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")):
                 s = FileMemoryStorage()
                 memory = create_empty_memory()
                 s.save(memory, user_id=None)
@@ -85,8 +85,8 @@ class TestUserIsolatedStorage:
         from vassilflow.config.paths import Paths
 
         paths = Paths(base_dir)
-        with patch("deerflow.agents.memory.storage.get_paths", return_value=paths):
-            with patch("deerflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")):
+        with patch("vassilflow.agents.memory.storage.get_paths", return_value=paths):
+            with patch("vassilflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_path="")):
                 s = FileMemoryStorage()
 
                 legacy_mem = create_empty_memory()
@@ -105,7 +105,7 @@ class TestUserIsolatedStorage:
         from vassilflow.config.paths import Paths
 
         paths = Paths(base_dir)
-        with patch("deerflow.agents.memory.storage.get_paths", return_value=paths):
+        with patch("vassilflow.agents.memory.storage.get_paths", return_value=paths):
             s = FileMemoryStorage()
             memory = create_empty_memory()
             memory["user"]["workContext"]["summary"] = "agent scoped"
@@ -118,7 +118,7 @@ class TestUserIsolatedStorage:
         from vassilflow.config.paths import Paths
 
         paths = Paths(base_dir)
-        with patch("deerflow.agents.memory.storage.get_paths", return_value=paths):
+        with patch("vassilflow.agents.memory.storage.get_paths", return_value=paths):
             s = FileMemoryStorage()
             memory = create_empty_memory()
             s.save(memory, user_id="alice")
@@ -130,7 +130,7 @@ class TestUserIsolatedStorage:
         from vassilflow.config.paths import Paths
 
         paths = Paths(base_dir)
-        with patch("deerflow.agents.memory.storage.get_paths", return_value=paths):
+        with patch("vassilflow.agents.memory.storage.get_paths", return_value=paths):
             s = FileMemoryStorage()
             memory = create_empty_memory()
             memory["user"]["workContext"]["summary"] = "initial"

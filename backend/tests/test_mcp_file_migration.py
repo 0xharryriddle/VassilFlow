@@ -22,7 +22,7 @@ def paths(tmp_path: Path) -> Paths:
 
 
 def _patch_paths(paths: Paths):
-    return patch("deerflow.mcp.tools.get_paths", return_value=paths)
+    return patch("vassilflow.mcp.tools.get_paths", return_value=paths)
 
 
 def _workspace_file(paths: Paths, relative_path: str, *, content: bytes = b"data") -> Path:

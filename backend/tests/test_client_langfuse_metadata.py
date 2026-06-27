@@ -90,7 +90,7 @@ def test_stream_injects_langfuse_metadata_when_enabled(monkeypatch):
         pass
 
     sentinel = _SentinelHandler()
-    monkeypatch.setattr("deerflow.client.build_tracing_callbacks", lambda: [sentinel])
+    monkeypatch.setattr("vassilflow.client.build_tracing_callbacks", lambda: [sentinel])
 
     fake_agent = _FakeAgent()
     captured = _stub_agent_creation(monkeypatch, fake_agent)
@@ -109,7 +109,7 @@ def test_stream_injects_langfuse_metadata_when_enabled(monkeypatch):
 
 
 def test_stream_is_inert_when_langfuse_disabled(monkeypatch):
-    monkeypatch.setattr("deerflow.client.build_tracing_callbacks", lambda: [])
+    monkeypatch.setattr("vassilflow.client.build_tracing_callbacks", lambda: [])
 
     fake_agent = _FakeAgent()
     captured = _stub_agent_creation(monkeypatch, fake_agent)
@@ -133,7 +133,7 @@ def test_stream_uses_vassilflow_env_for_langfuse_tags(monkeypatch):
     from vassilflow.config.tracing_config import reset_tracing_config
 
     reset_tracing_config()
-    monkeypatch.setattr("deerflow.client.build_tracing_callbacks", lambda: [])
+    monkeypatch.setattr("vassilflow.client.build_tracing_callbacks", lambda: [])
 
     fake_agent = _FakeAgent()
     captured = _stub_agent_creation(monkeypatch, fake_agent)
@@ -152,7 +152,7 @@ def test_stream_preserves_caller_metadata_overrides(monkeypatch):
     from vassilflow.config.tracing_config import reset_tracing_config
 
     reset_tracing_config()
-    monkeypatch.setattr("deerflow.client.build_tracing_callbacks", lambda: [])
+    monkeypatch.setattr("vassilflow.client.build_tracing_callbacks", lambda: [])
 
     fake_agent = _FakeAgent()
     captured = _stub_agent_creation(monkeypatch, fake_agent)

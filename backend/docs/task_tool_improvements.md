@@ -67,7 +67,7 @@ The `task_status_tool` is no longer exposed to the LLM. It's kept in the codebas
 
 Public import: `vassilflow.tools.builtins.task_tool`
 
-Current implementation file during migration: `packages/harness/deerflow/tools/builtins/task_tool.py`
+Current implementation file during migration: `packages/harness/vassilflow/tools/builtins/task_tool.py`
 
 ```python
 # Start background execution

@@ -9,87 +9,87 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 WORDING_TARGETS = [
     (
-        "backend/packages/harness/deerflow/agents/memory/__init__.py",
+        "backend/packages/harness/vassilflow/agents/memory/__init__.py",
         "Memory module for DeerFlow.",
         "Memory module for VassilFlow.",
     ),
     (
-        "backend/packages/harness/deerflow/tools/types.py",
+        "backend/packages/harness/vassilflow/tools/types.py",
         "Concrete runtime type used by all DeerFlow tools.",
         "Concrete runtime type used by all VassilFlow tools.",
     ),
     (
-        "backend/packages/harness/deerflow/mcp/tools.py",
+        "backend/packages/harness/vassilflow/mcp/tools.py",
         "the rest of DeerFlow addresses them",
         "the rest of VassilFlow addresses them",
     ),
     (
-        "backend/packages/harness/deerflow/models/patched_minimax.py",
+        "backend/packages/harness/vassilflow/models/patched_minimax.py",
         "which DeerFlow already understands.",
         "which VassilFlow already understands.",
     ),
     (
-        "backend/packages/harness/deerflow/models/vllm_provider.py",
+        "backend/packages/harness/vassilflow/models/vllm_provider.py",
         "Map DeerFlow's legacy",
         "Map VassilFlow's legacy",
     ),
     (
-        "backend/packages/harness/deerflow/agents/middlewares/system_message_coalescing_middleware.py",
+        "backend/packages/harness/vassilflow/agents/middlewares/system_message_coalescing_middleware.py",
         "DeerFlow's lead agent",
         "VassilFlow's lead agent",
     ),
     (
-        "backend/packages/harness/deerflow/agents/middlewares/safety_termination_detectors.py",
+        "backend/packages/harness/vassilflow/agents/middlewares/safety_termination_detectors.py",
         "providers DeerFlow supports today",
         "providers VassilFlow supports today",
     ),
     (
-        "backend/packages/harness/deerflow/agents/factory.py",
+        "backend/packages/harness/vassilflow/agents/factory.py",
         "Pure-argument factory for DeerFlow agents.",
         "Pure-argument factory for VassilFlow agents.",
     ),
     (
-        "backend/packages/harness/deerflow/agents/features.py",
+        "backend/packages/harness/vassilflow/agents/features.py",
         "Declarative feature flags for ``create_deerflow_agent``.",
         "Declarative feature flags for ``create_vassilflow_agent``.",
     ),
     (
-        "backend/packages/harness/deerflow/agents/lead_agent/agent.py",
+        "backend/packages/harness/vassilflow/agents/lead_agent/agent.py",
         "embedded ``DeerFlowClient``",
         "embedded ``VassilFlowClient``",
     ),
     (
-        "backend/packages/harness/deerflow/client.py",
+        "backend/packages/harness/vassilflow/client.py",
         "Embedded Python client for DeerFlow agent system.",
         "VassilFlow embedded Python client implementation.",
     ),
     (
-        "backend/packages/harness/deerflow/client.py",
+        "backend/packages/harness/vassilflow/client.py",
         "Provides direct programmatic access to DeerFlow's agent capabilities",
         "Provides direct programmatic access to VassilFlow's agent capabilities",
     ),
     (
-        "backend/packages/harness/deerflow/client.py",
-        "from deerflow.client import DeerFlowClient",
+        "backend/packages/harness/vassilflow/client.py",
+        "from vassilflow.client import DeerFlowClient",
         "from vassilflow.client import VassilFlowClient",
     ),
     (
-        "backend/packages/harness/deerflow/client.py",
+        "backend/packages/harness/vassilflow/client.py",
         "So ``DeerFlowClient.stream()`` is",
         "So ``VassilFlowClient.stream()`` is",
     ),
     (
-        "backend/packages/harness/deerflow/runtime/runs/worker.py",
+        "backend/packages/harness/vassilflow/runtime/runs/worker.py",
         "Shared helper with ``DeerFlowClient.stream``",
         "Shared helper with ``VassilFlowClient.stream``",
     ),
     (
-        "backend/packages/harness/deerflow/agents/middlewares/input_sanitization_middleware.py",
+        "backend/packages/harness/vassilflow/agents/middlewares/input_sanitization_middleware.py",
         "I use DeerFlow's <think> tag?",
         "I use VassilFlow's <think> tag?",
     ),
     (
-        "backend/packages/harness/deerflow/tools/sync.py",
+        "backend/packages/harness/vassilflow/tools/sync.py",
         "DeerFlow's current config-sensitive tools",
         "VassilFlow's current config-sensitive tools",
     ),
@@ -126,12 +126,12 @@ WORDING_TARGETS = [
     (
         "backend/packages/harness/vassilflow/__init__.py",
         "VassilFlow facade over the current DeerFlow runtime.",
-        "VassilFlow facade over the current implementation package.",
+        "VassilFlow agent harness package.",
     ),
     (
         "backend/packages/harness/vassilflow/runtime/__init__.py",
         "current DeerFlow implementation",
-        "current implementation modules",
+        "LangGraph-compatible runtime",
     ),
     (
         "backend/packages/harness/vassilflow/boundary.py",
@@ -139,24 +139,24 @@ WORDING_TARGETS = [
         "the implementation runtime can keep",
     ),
     (
-        "backend/packages/harness/deerflow/reflection/resolvers.py",
+        "backend/packages/harness/vassilflow/reflection/resolvers.py",
         "current DeerFlow implementation",
         "current implementation modules",
     ),
     (
         "backend/docs/BLOCKING_IO_DETECTION.md",
-        "the current `deerflow.*`",
         "the `vassilflow.*` facade",
+        "code under `app.*` or `vassilflow.*`",
     ),
     (
         "backend/tests/support/detectors/blocking_io_runtime.py",
         "app, deerflow implementation, and\nvassilflow facade",
-        "app, VassilFlow facade, and legacy\nimplementation modules",
+        "app and VassilFlow modules",
     ),
     (
         "backend/tests/support/detectors/blocking_io_runtime.py",
-        "app.*, deerflow.*, and vassilflow.* callers",
-        "app.*, vassilflow.*, and legacy implementation callers",
+        "app.*, vassilflow.*, and vassilflow.* callers",
+        "app.* and vassilflow.* callers",
     ),
 ]
 

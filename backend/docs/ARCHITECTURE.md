@@ -56,7 +56,7 @@ The agent runtime is embedded in the FastAPI Gateway and built on LangGraph for 
 
 **Entry Point**: `vassilflow.agents:make_lead_agent`
 
-The current implementation is still hosted under `packages/harness/deerflow/agents/lead_agent/agent.py` during the migration, but new integrations should use the VassilFlow facade import above.
+The implementation lives under `packages/harness/vassilflow/agents/lead_agent/agent.py`, and new integrations should use the public VassilFlow import above.
 
 **Key Responsibilities**:
 - Agent creation and configuration
@@ -165,7 +165,7 @@ class ThreadState(AgentState):
               ▼                                         ▼
 ┌─────────────────────────┐              ┌─────────────────────────┐
 │  LocalSandboxProvider   │              │  AioSandboxProvider     │
-│  (packages/harness/deerflow/sandbox/local.py) │              │  (packages/harness/deerflow/community/)       │
+│  (packages/harness/vassilflow/sandbox/local.py) │              │  (packages/harness/vassilflow/community/)       │
 │                         │              │                         │
 │  - Singleton instance   │              │  - Docker-based         │
 │  - Direct execution     │              │  - Isolated containers  │
@@ -199,7 +199,7 @@ class ThreadState(AgentState):
 
 ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
 │   Built-in Tools    │  │  Configured Tools   │  │     MCP Tools       │
-│  (packages/harness/deerflow/tools/)       │  │  (config.yaml)      │  │  (extensions.json)  │
+│  (packages/harness/vassilflow/tools/)       │  │  (config.yaml)      │  │  (extensions.json)  │
 ├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
 │ - present_files     │  │ - web_search        │  │ - github            │
 │ - ask_clarification │  │ - web_fetch         │  │ - filesystem        │
@@ -215,7 +215,7 @@ class ThreadState(AgentState):
                                    ▼
                       ┌─────────────────────────┐
                       │   get_available_tools() │
-                      │   (packages/harness/deerflow/tools/__init__)  │
+                      │   (packages/harness/vassilflow/tools/__init__)  │
                       └─────────────────────────┘
 ```
 
@@ -224,7 +224,7 @@ class ThreadState(AgentState):
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          Model Factory                                   │
-│                     (packages/harness/deerflow/models/factory.py)                              │
+│                     (packages/harness/vassilflow/models/factory.py)                              │
 └─────────────────────────────────────────────────────────────────────────┘
 
 config.yaml:
@@ -271,7 +271,7 @@ config.yaml:
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          MCP Integration                                 │
-│                        (packages/harness/deerflow/mcp/manager.py)                              │
+│                        (packages/harness/vassilflow/mcp/manager.py)                              │
 └─────────────────────────────────────────────────────────────────────────┘
 
 extensions_config.json:
@@ -309,7 +309,7 @@ extensions_config.json:
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                          Skills System                                   │
-│                       (packages/harness/deerflow/skills/loader.py)                             │
+│                       (packages/harness/vassilflow/skills/loader.py)                             │
 └─────────────────────────────────────────────────────────────────────────┘
 
 Directory Structure:

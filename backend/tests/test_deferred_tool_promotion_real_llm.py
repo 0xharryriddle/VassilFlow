@@ -4,7 +4,7 @@ Drives a real ``langchain.agents.create_agent`` graph against a real OpenAI-
 compatible LLM (one-api gateway), bound through ``DeferredToolFilterMiddleware``
 and the production ``get_available_tools`` pipeline. The only thing we mock is
 the MCP tool source — we hand-roll two ``@tool``s and inject them through
-``deerflow.mcp.cache.get_cached_mcp_tools``.
+``vassilflow.mcp.cache.get_cached_mcp_tools``.
 
 The flow exercised:
   1. Turn 1: agent sees ``tool_search`` (plus a ``fake_subagent_trigger``
@@ -92,7 +92,7 @@ def _patch_mcp_pipeline(monkeypatch: pytest.MonkeyPatch, mcp_tools: list) -> Non
         "vassilflow.config.extensions_config.ExtensionsConfig.from_file",
         classmethod(lambda cls: real_ext),
     )
-    monkeypatch.setattr("deerflow.mcp.cache.get_cached_mcp_tools", lambda: list(mcp_tools))
+    monkeypatch.setattr("vassilflow.mcp.cache.get_cached_mcp_tools", lambda: list(mcp_tools))
 
 
 def _force_tool_search_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -110,7 +110,7 @@ def _force_tool_search_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
         sandbox=AppConfig.model_fields["sandbox"].annotation.model_construct(use="x"),
         tool_search=ToolSearchConfig(enabled=True),
     )
-    monkeypatch.setattr("deerflow.tools.tools.get_app_config", lambda: mock_cfg)
+    monkeypatch.setattr("vassilflow.tools.tools.get_app_config", lambda: mock_cfg)
 
 
 # ---------------------------------------------------------------------------
