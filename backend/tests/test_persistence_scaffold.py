@@ -34,6 +34,10 @@ class TestDatabaseConfig:
         assert c.checkpointer_sqlite_path == c.sqlite_path
         assert c.app_sqlite_path == c.sqlite_path
 
+    def test_sqlite_legacy_filename_is_deerflow_db(self):
+        assert DEFAULT_SQLITE_FILENAME == "vassilflow.db"
+        assert LEGACY_SQLITE_FILENAME == "deerflow.db"
+
     def test_sqlite_path_preserves_existing_legacy_file(self, tmp_path):
         legacy_db = tmp_path / LEGACY_SQLITE_FILENAME
         legacy_db.write_text("legacy", encoding="utf-8")

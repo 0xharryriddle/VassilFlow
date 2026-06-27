@@ -6,7 +6,7 @@ configures one backend; the system handles physical separation details.
 
 SQLite mode: checkpointer and app share a single .db file
 ({sqlite_dir}/vassilflow.db for new installs, preserving an existing
-{sqlite_dir}/vassilflow.db during migration) with WAL journal mode enabled on
+{sqlite_dir}/deerflow.db during migration) with WAL journal mode enabled on
 every connection. WAL allows concurrent readers and a single writer without
 blocking, making a unified file safe for both workloads. Writers
 that contend for the lock wait via the default 5-second sqlite3
@@ -42,7 +42,7 @@ from vassilflow.config.runtime_paths import DEFAULT_RUNTIME_HOME_NAME, LEGACY_RU
 DEFAULT_SQLITE_DIR = f"{DEFAULT_RUNTIME_HOME_NAME}/data"
 LEGACY_SQLITE_DIR = f"{LEGACY_RUNTIME_HOME_NAME}/data"
 DEFAULT_SQLITE_FILENAME = "vassilflow.db"
-LEGACY_SQLITE_FILENAME = "vassilflow.db"
+LEGACY_SQLITE_FILENAME = "deerflow.db"
 
 
 def default_sqlite_dir() -> str:
@@ -68,7 +68,8 @@ class DatabaseConfig(BaseModel):
         description=(
             "Directory for the SQLite database file. Both checkpointer and "
             "application data share {sqlite_dir}/vassilflow.db; an existing "
-            "{sqlite_dir}/vassilflow.db is preserved during migration."
+            "{sqlite_dir}/deerflow.db is preserved during migration when "
+            "vassilflow.db is absent."
         ),
     )
     postgres_url: str = Field(

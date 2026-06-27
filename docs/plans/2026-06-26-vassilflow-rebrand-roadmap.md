@@ -2,7 +2,7 @@
 
 ## Scope
 
-This roadmap separates product identity work from runtime compatibility work. The current baseline is runnable because the DeerFlow package namespace, environment variable names, Docker service names, and persisted state paths still match the code.
+This roadmap separates product identity work from runtime compatibility work. It started while the code still used the upstream DeerFlow package namespace. The current baseline uses `vassilflow.*` as the canonical package namespace; remaining compatibility work is limited to user-facing migration surfaces such as environment variables, runtime directories, persisted data files, and config-upgrade rules.
 
 The migration should therefore happen in small commits that each keep the application runnable.
 
@@ -64,19 +64,14 @@ Add VassilFlow aliases before renaming anything relied on by users or deployment
 
 Add VassilFlow-owned facade modules over existing DeerFlow internals.
 
-- Status: initial `vassilflow` Python facade package is implemented with
-  boundary dataclasses/enums mirrored from
-  `contracts/vassilflow_boundary_contract.json`; dynamic config class paths now
-  accept `vassilflow.*` and the setup wizard/config examples prefer those names.
-  The facade now exposes `VassilFlowClient`, `create_vassilflow_agent`, and
-  `vassilflow.config.load_config` for new embedded integrations. Direct
-  implementation-deep imports such as `vassilflow.models.*`,
-  `vassilflow.sandbox.*`, `vassilflow.community.*`, and
-  `vassilflow.guardrails.*` now lazy-alias to the current `deerflow.*`
-  modules so new config/provider paths are importable without duplicating
-  classes. Diagnostic scripts can now import implementation-deep modules through
-  `vassilflow.*`. Broad internal package renames remain deferred.
-- Keep existing `deerflow` imports working.
+- Status: superseded by the physical package rename. The implementation now
+  lives under `backend/packages/harness/vassilflow`, embedded integrations use
+  `VassilFlowClient` and `create_vassilflow_agent`, and dynamic config class
+  paths should use `vassilflow.*`. The old `deerflow.*` Python package shim was
+  intentionally retired after targeted import, runtime, and docs tests covered
+  the new namespace. Config-upgrade tooling still rewrites known legacy
+  `deerflow.*` provider paths to `vassilflow.*`.
+- Do not add new `deerflow` imports.
 - Introduce stable VassilFlow names for session, run, trace, tool, policy, approval, memory, and completion evidence contracts.
 - Add tests around `contracts/vassilflow_boundary_contract.json`.
 - Keep behavior unchanged until the facade is covered.
@@ -106,11 +101,12 @@ Rewrite inherited README/docs after runtime aliases and facade modules are stabl
 Status: README and frontend English/Chinese product docs now use VassilFlow for
 standalone product references. `VassilFlowClient` and
 `create_vassilflow_agent` are now the documented embedded SDK entrypoints while
-legacy `deerflow.*`, `DeerFlowClient`, and `create_deerflow_agent` imports
-remain supported as compatibility shims. Project-owned maintainer-orchestrator
+legacy `deerflow.*`, `DeerFlowClient`, and `create_deerflow_agent` imports have
+been removed from the active baseline. Project-owned maintainer-orchestrator
 agent docs and skill metadata now use VassilFlow naming. The public Claude Code
 bridge skill is now named `claude-to-vassilflow`. The repository smoke-test
 skill, reports, and troubleshooting references now use VassilFlow naming while
-still detecting legacy DeerFlow container/env aliases.
+still detecting legacy DeerFlow container/env aliases where migration support
+matters.
 
 Historical upstream references should remain where they explain provenance, fixes, or compatibility decisions. Product docs should use VassilFlow.

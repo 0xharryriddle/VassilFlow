@@ -11,11 +11,11 @@ VassilFlow is an open-source **super agent harness** that orchestrates **sub-age
 https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
 > [!NOTE]
-> VassilFlow is being migrated from the upstream DeerFlow 2.0 codebase. During the transition, compatibility shims intentionally keep existing `vassilflow.*`, `DEER_FLOW_*`, and legacy `.deer-flow` state directories working while VassilFlow-owned aliases are introduced.
+> VassilFlow is migrating from the upstream DeerFlow 2.0 codebase. The primary package namespace and config provider paths are now `vassilflow.*`; legacy `DEER_FLOW_*`, `.deer-flow`, and `deerflow.db` fallbacks are kept only to help existing checkouts migrate.
 
 ## Upstream Reference
 
-Reference inherited upstream demos and historical material on the [**DeerFlow website**](https://vassilflow.tech) while VassilFlow-owned docs are being stabilized.
+Reference inherited upstream demos and historical material in the [**DeerFlow repository**](https://github.com/bytedance/deer-flow) while VassilFlow-owned docs are being stabilized.
 
 ## Coding Plan from ByteDance Volcengine
 
