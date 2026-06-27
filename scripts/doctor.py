@@ -410,7 +410,6 @@ def check_llm_auth(config_path: Path) -> list[CheckResult]:
 
             if use in {
                 "vassilflow.models.openai_codex_provider:CodexChatModel",
-                "deerflow.models.openai_codex_provider:CodexChatModel",
             }:
                 auth_path = Path(os.environ.get("CODEX_AUTH_PATH", "~/.codex/auth.json")).expanduser()
                 if auth_path.exists():
@@ -427,7 +426,6 @@ def check_llm_auth(config_path: Path) -> list[CheckResult]:
 
             if use in {
                 "vassilflow.models.claude_provider:ClaudeChatModel",
-                "deerflow.models.claude_provider:ClaudeChatModel",
             }:
                 credential_paths = [Path(os.environ["CLAUDE_CODE_CREDENTIALS_PATH"]).expanduser() for env_name in ("CLAUDE_CODE_CREDENTIALS_PATH",) if os.environ.get(env_name)]
                 credential_paths.append(Path("~/.claude/.credentials.json").expanduser())
@@ -489,7 +487,6 @@ def check_web_tool(config_path: Path, *, tool_name: str, label: str) -> CheckRes
             "web_fetch": {"jina_ai": "Jina AI Reader (no key needed)"},
             "image_search": {
                 "vassilflow.community.image_search.tools": "DuckDuckGo Images (no key needed)",
-                "deerflow.community.image_search.tools": "DuckDuckGo Images (no key needed)",
             },
         }
         key_providers = {

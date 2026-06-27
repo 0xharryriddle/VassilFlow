@@ -24,7 +24,6 @@ CHANNEL_CONNECTION_PROVIDERS: tuple[str, ...] = (
 
 LOCAL_SANDBOX_USES: set[str] = {
     "vassilflow.sandbox.local:LocalSandboxProvider",
-    "deerflow.sandbox.local:LocalSandboxProvider",
 }
 
 

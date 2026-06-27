@@ -152,23 +152,6 @@ test("getSummarizationMiddlewareMessages matches VassilFlow summarization update
   ).toEqual([removeAll, summary]);
 });
 
-test("getSummarizationMiddlewareMessages accepts legacy DeerFlow summarization update keys", () => {
-  const summary = {
-    id: "summary-1",
-    type: "human",
-    name: "summary",
-    content: "summary",
-  } as Message;
-
-  expect(
-    getSummarizationMiddlewareMessages({
-      "DeerFlowSummarizationMiddleware.before_model": {
-        messages: [summary],
-      },
-    }),
-  ).toEqual([summary]);
-});
-
 test("getSummarizationMiddlewareMessages matches base LangChain summarization update keys", () => {
   const summary = {
     id: "summary-1",

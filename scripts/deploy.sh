@@ -275,7 +275,7 @@ detect_sandbox_mode() {
         }
     ' "$VASSILFLOW_CONFIG_PATH")
 
-    if [[ "$sandbox_use" == *"vassilflow.community.aio_sandbox:AioSandboxProvider"* || "$sandbox_use" == *"deerflow.community.aio_sandbox:AioSandboxProvider"* ]]; then
+    if [[ "$sandbox_use" == *"vassilflow.community.aio_sandbox:AioSandboxProvider"* ]]; then
         if [ -n "$provisioner_url" ]; then
             echo "provisioner"
         else

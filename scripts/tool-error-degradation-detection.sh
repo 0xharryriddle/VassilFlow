@@ -42,7 +42,6 @@ from vassilflow.sandbox.middleware import SandboxMiddleware
 from vassilflow.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
 
 HANDSHAKE_ERROR = "[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1000)"
-logging.getLogger("deerflow.agents.middlewares.tool_error_handling_middleware").setLevel(logging.CRITICAL)
 logging.getLogger("vassilflow.agents.middlewares.tool_error_handling_middleware").setLevel(logging.CRITICAL)
 
 
