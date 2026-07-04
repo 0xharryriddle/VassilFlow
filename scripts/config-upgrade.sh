@@ -93,32 +93,6 @@ MIGRATIONS = {
             ('src.tools.', 'vassilflow.tools.'),
         ],
     },
-    16: {
-        'description': 'Prefer VassilFlow facade module paths in config.yaml',
-        'replacements': [
-            ('deerflow.community.', 'vassilflow.community.'),
-            ('deerflow.sandbox.', 'vassilflow.sandbox.'),
-            ('deerflow.models.', 'vassilflow.models.'),
-            ('deerflow.guardrails.', 'vassilflow.guardrails.'),
-            (
-                'deerflow.agents.middlewares.safety_termination_detectors',
-                'vassilflow.agents.middlewares.safety_termination_detectors',
-            ),
-        ],
-    },
-    17: {
-        'description': 'Prefer VassilFlow runtime state paths in config.yaml',
-        'value_replacements': [
-            ('.deer-flow/data', '.vassilflow/data'),
-            ('./.deer-flow/data', './.vassilflow/data'),
-            ('.deer-flow/wechat/state', '.vassilflow/wechat/state'),
-            ('./.deer-flow/wechat/state', './.vassilflow/wechat/state'),
-            ('.deer-flow/memory.json', '.vassilflow/memory.json'),
-            ('./.deer-flow/memory.json', './.vassilflow/memory.json'),
-            ('.deer-flow/checkpoints.db', '.vassilflow/checkpoints.db'),
-            ('./.deer-flow/checkpoints.db', './.vassilflow/checkpoints.db'),
-        ],
-    },
     # Future migrations go here:
     # 2: {
     #     'description': '...',

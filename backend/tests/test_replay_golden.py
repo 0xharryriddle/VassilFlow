@@ -53,17 +53,12 @@ def test_replay_write_read_file_ultra_matches_golden(tmp_path: Path, monkeypatch
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("VASSILFLOW_HOME", str(home))
-    monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
     monkeypatch.setenv("VASSILFLOW_REPLAY_FIXTURE", str(fixture_path))
-    monkeypatch.delenv("DEER_FLOW_REPLAY_FIXTURE", raising=False)
-    monkeypatch.delenv("DEERFLOW_REPLAY_FIXTURE", raising=False)
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(build_config_yaml(model_block=REPLAY_MODEL_BLOCK, home=home), encoding="utf-8")
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(cfg_path))
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(prepare_hermetic_extras(home)))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
     _reset_process_singletons(monkeypatch)
     from vassilflow.config import app_config as app_config_module
@@ -91,7 +86,7 @@ def test_replay_write_read_file_ultra_matches_golden(tmp_path: Path, monkeypatch
 
     # Regenerate the committed golden after re-recording the fixture:
     #   VASSILFLOW_WRITE_GOLDEN=1 uv run pytest tests/test_replay_golden.py
-    if os.environ.get("VASSILFLOW_WRITE_GOLDEN") or os.environ.get("DEERFLOW_WRITE_GOLDEN"):
+    if os.environ.get("VASSILFLOW_WRITE_GOLDEN") or os.environ.get("VASSILFLOW_WRITE_GOLDEN"):
         events_path.write_text(json.dumps({"scenario": scenario, "mode": mode, "events": events}, ensure_ascii=False, indent=2), encoding="utf-8")
         return
 

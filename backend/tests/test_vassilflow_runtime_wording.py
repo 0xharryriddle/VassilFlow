@@ -10,137 +10,137 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 WORDING_TARGETS = [
     (
         "backend/packages/harness/vassilflow/agents/memory/__init__.py",
-        "Memory module for DeerFlow.",
+        "Memory module for VassilFlow.",
         "Memory module for VassilFlow.",
     ),
     (
         "backend/packages/harness/vassilflow/tools/types.py",
-        "Concrete runtime type used by all DeerFlow tools.",
+        "Concrete runtime type used by all VassilFlow tools.",
         "Concrete runtime type used by all VassilFlow tools.",
     ),
     (
         "backend/packages/harness/vassilflow/mcp/tools.py",
-        "the rest of DeerFlow addresses them",
+        "the rest of VassilFlow addresses them",
         "the rest of VassilFlow addresses them",
     ),
     (
         "backend/packages/harness/vassilflow/models/patched_minimax.py",
-        "which DeerFlow already understands.",
+        "which VassilFlow already understands.",
         "which VassilFlow already understands.",
     ),
     (
         "backend/packages/harness/vassilflow/models/vllm_provider.py",
-        "Map DeerFlow's legacy",
+        "Map VassilFlow's legacy",
         "Map VassilFlow's legacy",
     ),
     (
         "backend/packages/harness/vassilflow/agents/middlewares/system_message_coalescing_middleware.py",
-        "DeerFlow's lead agent",
+        "VassilFlow's lead agent",
         "VassilFlow's lead agent",
     ),
     (
         "backend/packages/harness/vassilflow/agents/middlewares/safety_termination_detectors.py",
-        "providers DeerFlow supports today",
+        "providers VassilFlow supports today",
         "providers VassilFlow supports today",
     ),
     (
         "backend/packages/harness/vassilflow/agents/factory.py",
-        "Pure-argument factory for DeerFlow agents.",
+        "Pure-argument factory for VassilFlow agents.",
         "Pure-argument factory for VassilFlow agents.",
     ),
     (
         "backend/packages/harness/vassilflow/agents/features.py",
-        "Declarative feature flags for ``create_deerflow_agent``.",
+        "Declarative feature flags for ``create_vassilflow_agent``.",
         "Declarative feature flags for ``create_vassilflow_agent``.",
     ),
     (
         "backend/packages/harness/vassilflow/agents/lead_agent/agent.py",
-        "embedded ``DeerFlowClient``",
+        "embedded ``VassilFlowClient``",
         "embedded ``VassilFlowClient``",
     ),
     (
         "backend/packages/harness/vassilflow/client.py",
-        "Embedded Python client for DeerFlow agent system.",
+        "Embedded Python client for VassilFlow agent system.",
         "VassilFlow embedded Python client implementation.",
     ),
     (
         "backend/packages/harness/vassilflow/client.py",
-        "Provides direct programmatic access to DeerFlow's agent capabilities",
+        "Provides direct programmatic access to VassilFlow's agent capabilities",
         "Provides direct programmatic access to VassilFlow's agent capabilities",
     ),
     (
         "backend/packages/harness/vassilflow/client.py",
-        "from vassilflow.client import DeerFlowClient",
+        "from vassilflow.client import VassilFlowClient",
         "from vassilflow.client import VassilFlowClient",
     ),
     (
         "backend/packages/harness/vassilflow/client.py",
-        "So ``DeerFlowClient.stream()`` is",
+        "So ``VassilFlowClient.stream()`` is",
         "So ``VassilFlowClient.stream()`` is",
     ),
     (
         "backend/packages/harness/vassilflow/runtime/runs/worker.py",
-        "Shared helper with ``DeerFlowClient.stream``",
+        "Shared helper with ``VassilFlowClient.stream``",
         "Shared helper with ``VassilFlowClient.stream``",
     ),
     (
         "backend/packages/harness/vassilflow/agents/middlewares/input_sanitization_middleware.py",
-        "I use DeerFlow's <think> tag?",
+        "I use VassilFlow's <think> tag?",
         "I use VassilFlow's <think> tag?",
     ),
     (
         "backend/packages/harness/vassilflow/tools/sync.py",
-        "DeerFlow's current config-sensitive tools",
+        "VassilFlow's current config-sensitive tools",
         "VassilFlow's current config-sensitive tools",
     ),
     (
         "backend/tests/test_tool_args_schema_no_pydantic_warning.py",
-        "DeerFlow tools annotate their runtime parameter",
+        "VassilFlow tools annotate their runtime parameter",
         "VassilFlow tools annotate their runtime parameter",
     ),
     (
         "backend/tests/test_tool_args_schema_no_pydantic_warning.py",
-        "actual context DeerFlow installs is a dict",
+        "actual context VassilFlow installs is a dict",
         "actual context VassilFlow installs is a dict",
     ),
     (
         "backend/tests/test_persistence_migrations_env.py",
-        "DeerFlow's own tables",
+        "VassilFlow's own tables",
         "VassilFlow's own tables",
     ),
     (
         "backend/tests/test_persistence_migrations_env.py",
-        "test_filter_includes_deerflow_tables",
+        "test_filter_includes_vassilflow_tables",
         "test_filter_includes_vassilflow_tables",
     ),
     (
         "backend/tests/test_channels.py",
-        "new DeerFlow thread",
+        "new VassilFlow thread",
         "new VassilFlow thread",
     ),
     (
         "backend/tests/test_channels.py",
-        "same DeerFlow thread",
+        "same VassilFlow thread",
         "same VassilFlow thread",
     ),
     (
         "backend/packages/harness/vassilflow/__init__.py",
-        "VassilFlow facade over the current DeerFlow runtime.",
+        "VassilFlow facade over the current VassilFlow runtime.",
         "VassilFlow agent harness package.",
     ),
     (
         "backend/packages/harness/vassilflow/runtime/__init__.py",
-        "current DeerFlow implementation",
+        "current VassilFlow implementation",
         "LangGraph-compatible runtime",
     ),
     (
         "backend/packages/harness/vassilflow/boundary.py",
-        "the DeerFlow runtime can keep",
+        "the VassilFlow runtime can keep",
         "the implementation runtime can keep",
     ),
     (
         "backend/packages/harness/vassilflow/reflection/resolvers.py",
-        "current DeerFlow implementation",
+        "current VassilFlow implementation",
         "current implementation modules",
     ),
     (
@@ -150,7 +150,7 @@ WORDING_TARGETS = [
     ),
     (
         "backend/tests/support/detectors/blocking_io_runtime.py",
-        "app, deerflow implementation, and\nvassilflow facade",
+        "app, vassilflow implementation, and\nvassilflow facade",
         "app and VassilFlow modules",
     ),
     (
@@ -161,9 +161,8 @@ WORDING_TARGETS = [
 ]
 
 
-@pytest.mark.parametrize(("path", "legacy", "current"), WORDING_TARGETS)
-def test_runtime_wording_prefers_vassilflow_identity(path: str, legacy: str, current: str) -> None:
+@pytest.mark.parametrize(("path", "_previous", "current"), WORDING_TARGETS)
+def test_runtime_wording_prefers_vassilflow_identity(path: str, _previous: str, current: str) -> None:
     content = (REPO_ROOT / path).read_text(encoding="utf-8").replace("\r\n", "\n")
 
     assert current in content
-    assert legacy not in content

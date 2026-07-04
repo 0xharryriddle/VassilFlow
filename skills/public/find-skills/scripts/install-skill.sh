@@ -26,7 +26,7 @@ fi
 find_project_root() {
   local dir="$PWD"
   while [[ "$dir" != "/" ]]; do
-    if [[ -f "$dir/vassilflow.code-workspace" || -f "$dir/deer-flow.code-workspace" ]]; then
+    if [[ -f "$dir/vassilflow.code-workspace" ]]; then
       echo "$dir"
       return 0
     fi
@@ -39,7 +39,7 @@ find_project_root() {
 PROJECT_ROOT=$(find_project_root)
 
 if [[ -z "$PROJECT_ROOT" ]]; then
-  echo "Error: Could not find project root (vassilflow.code-workspace or deer-flow.code-workspace not found)"
+  echo "Error: Could not find project root (vassilflow.code-workspace not found)"
   exit 1
 fi
 

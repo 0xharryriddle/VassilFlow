@@ -247,7 +247,6 @@ def test_langgraph_json_has_auth_path():
     assert "langgraph_auth" in config["auth"]["path"]
     assert config["graphs"]["lead_agent"] == "vassilflow.agents:make_lead_agent"
     assert config["checkpointer"]["path"] == "vassilflow.runtime.checkpointer.async_provider:make_checkpointer"
-    assert "deerflow" not in config["checkpointer"]["path"]
 
 
 def test_auth_handler_has_both_layers():

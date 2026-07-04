@@ -12,7 +12,7 @@ Run `make config-upgrade` to merge new fields into your config.
 ```
 
 - **Missing `config_version`** in your config is treated as version 0.
-- Run `make config-upgrade` to auto-merge missing fields and rewrite known legacy defaults such as `.deer-flow/data` to `.vassilflow/data` (your existing values are preserved where no migration rule matches, and a `.bak` backup is created).
+- Run `make config-upgrade` to auto-merge missing fields and rewrite known legacy defaults such as `.vassilflow/data` to `.vassilflow/data` (your existing values are preserved where no migration rule matches, and a `.bak` backup is created).
 - When changing the config schema, bump `config_version` in `config.example.yaml`.
 
 ## Configuration Sections
@@ -311,7 +311,7 @@ sandbox:
 
 When you configure `sandbox.mounts`, VassilFlow exposes those `container_path` values in the agent prompt so the agent can discover and operate on mounted directories directly instead of assuming everything must live under `/mnt/user-data`.
 
-For bare-metal Docker sandbox runs that use localhost, VassilFlow binds the sandbox HTTP port to `127.0.0.1` by default so it is not exposed on every host interface. Docker-outside-of-Docker deployments that connect through `host.docker.internal` keep the broad legacy bind for compatibility. Set `VASSILFLOW_SANDBOX_BIND_HOST` explicitly if your deployment needs a different bind address; legacy `DEER_FLOW_SANDBOX_BIND_HOST` is still accepted.
+For bare-metal Docker sandbox runs that use localhost, VassilFlow binds the sandbox HTTP port to `127.0.0.1` by default so it is not exposed on every host interface. Docker-outside-of-Docker deployments that connect through `host.docker.internal` keep a broader bind for container-to-host routing. Set `VASSILFLOW_SANDBOX_BIND_HOST` explicitly if your deployment needs a different bind address.
 
 ### Building a Custom AIO Sandbox Image
 
@@ -416,10 +416,7 @@ models:
   - api_key: $OPENAI_API_KEY  # Reads from environment
 ```
 
-During the VassilFlow transition, runtime variables should use the
-`VASSILFLOW_*` names below. Legacy `DEER_FLOW_*` names remain supported for
-compatibility, and scripts mirror the two forms where needed. When both names
-are set, `VASSILFLOW_*` takes precedence.
+Runtime variables use the `VASSILFLOW_*` names below.
 
 **Common Environment Variables**:
 - `OPENAI_API_KEY` - OpenAI API key
@@ -431,25 +428,25 @@ are set, `VASSILFLOW_*` takes precedence.
 - `BRAVE_SEARCH_API_KEY` - Brave Search API key
 - `SERPER_API_KEY` - Serper (Google Search/Images API) key for `web_search` and `image_search`
 - `GROUNDROUTE_API_KEY` - GroundRoute meta-search API key for `web_search` and `web_fetch` (routes across Serper, Brave, Exa, Tavily, Firecrawl, Perplexity with gain-share pricing)
-- `VASSILFLOW_PROJECT_ROOT` (`DEER_FLOW_PROJECT_ROOT`) - Project root for relative runtime paths
-- `VASSILFLOW_CONFIG_PATH` (`DEER_FLOW_CONFIG_PATH`) - Custom config file path
-- `VASSILFLOW_EXTENSIONS_CONFIG_PATH` (`DEER_FLOW_EXTENSIONS_CONFIG_PATH`) - Custom extensions config file path
-- `VASSILFLOW_HOME` (`DEER_FLOW_HOME`) - Runtime state directory (defaults to `.vassilflow` under the project root; existing `.deer-flow` state remains a transition fallback when `.vassilflow` does not exist)
-- `VASSILFLOW_SKILLS_PATH` (`DEER_FLOW_SKILLS_PATH`) - Skills directory when `skills.path` is omitted
+- `VASSILFLOW_PROJECT_ROOT` - Project root for relative runtime paths
+- `VASSILFLOW_CONFIG_PATH` - Custom config file path
+- `VASSILFLOW_EXTENSIONS_CONFIG_PATH` - Custom extensions config file path
+- `VASSILFLOW_HOME` - Runtime state directory (defaults to `.vassilflow` under the project root)
+- `VASSILFLOW_SKILLS_PATH` - Skills directory when `skills.path` is omitted
 - `GATEWAY_ENABLE_DOCS` - Set to `false` to disable Swagger UI (`/docs`), ReDoc (`/redoc`), and OpenAPI schema (`/openapi.json`) endpoints (default: `true`)
 
 ## Configuration Location
 
-The configuration file should be placed in the **project root directory** (`VassilFlow/config.yaml`). Set `VASSILFLOW_PROJECT_ROOT` when the process may start from another working directory, or set `VASSILFLOW_CONFIG_PATH` to point at a specific file. The legacy `DEER_FLOW_PROJECT_ROOT` and `DEER_FLOW_CONFIG_PATH` names still work as fallbacks.
+The configuration file should be placed in the **project root directory** (`VassilFlow/config.yaml`). Set `VASSILFLOW_PROJECT_ROOT` when the process may start from another working directory, or set `VASSILFLOW_CONFIG_PATH` to point at a specific file.
 
 ## Configuration Priority
 
 VassilFlow searches for configuration in this order:
 
 1. Path specified in code via `config_path` argument
-2. Path from `VASSILFLOW_CONFIG_PATH`, falling back to `DEER_FLOW_CONFIG_PATH`
-3. `config.yaml` under `VASSILFLOW_PROJECT_ROOT`, falling back to `DEER_FLOW_PROJECT_ROOT` or the current working directory
-4. Legacy backend/repository-root locations for monorepo compatibility
+2. Path from `VASSILFLOW_CONFIG_PATH`
+3. `config.yaml` under `VASSILFLOW_PROJECT_ROOT` or the current working directory
+4. Backend/repository-root locations for monorepo compatibility
 
 ## Security Notes
 ### Sandbox Isolation and the Docker Socket (DooD)
@@ -523,7 +520,7 @@ genuinely reads the full CLI config directory.
 
 ## Best Practices
 
-1. **Place `config.yaml` in project root** - Set `VASSILFLOW_PROJECT_ROOT` if the runtime starts elsewhere; legacy `DEER_FLOW_PROJECT_ROOT` still works
+1. **Place `config.yaml` in project root** - Set `VASSILFLOW_PROJECT_ROOT` if the runtime starts elsewhere
 2. **Never commit `config.yaml`** - It's already in `.gitignore`
 3. **Use environment variables for secrets** - Don't hardcode API keys
 4. **Keep `config.example.yaml` updated** - Document all new options
@@ -534,8 +531,8 @@ genuinely reads the full CLI config directory.
 
 ### "Config file not found"
 - Ensure `config.yaml` exists in the **project root** directory (`VassilFlow/config.yaml`)
-- If the runtime starts outside the project root, set `VASSILFLOW_PROJECT_ROOT` (legacy: `DEER_FLOW_PROJECT_ROOT`)
-- Alternatively, set `VASSILFLOW_CONFIG_PATH` (legacy: `DEER_FLOW_CONFIG_PATH`) environment variable to custom location
+- If the runtime starts outside the project root, set `VASSILFLOW_PROJECT_ROOT`
+- Alternatively, set `VASSILFLOW_CONFIG_PATH` environment variable to custom location
 
 ### "Invalid API key"
 - Verify environment variables are set correctly
@@ -544,7 +541,7 @@ genuinely reads the full CLI config directory.
 ### "Skills not loading"
 - Check that `VassilFlow/skills/` directory exists
 - Verify skills have valid `SKILL.md` files
-- Check `skills.path` or `VASSILFLOW_SKILLS_PATH` (legacy: `DEER_FLOW_SKILLS_PATH`) if using a custom path
+- Check `skills.path` or `VASSILFLOW_SKILLS_PATH` if using a custom path
 
 ### "Docker sandbox fails to start"
 - Ensure Docker is running

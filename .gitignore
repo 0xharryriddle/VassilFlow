@@ -36,7 +36,6 @@ extensions_config.json
 coverage.xml
 coverage/
 .vassilflow/
-.deer-flow/
 .claude/
 skills/custom/*
 logs/

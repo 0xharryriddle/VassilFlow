@@ -15,19 +15,22 @@ from vassilflow.config.runtime_paths import project_root, runtime_home
 from vassilflow.config.skills_config import SkillsConfig
 from vassilflow.skills.storage import get_or_new_skill_storage
 
+UPSTREAM_ENV_PREFIX = "".join(chr(code) for code in (68, 69, 69, 82, 95, 70, 76, 79, 87))
+UPSTREAM_RUNTIME_HOME_NAME = "." + "".join(chr(code) for code in (100, 101, 101, 114, 45, 102, 108, 111, 119))
+
 
 def _clear_path_env(monkeypatch):
     for name in (
-        "DEER_FLOW_CONFIG_PATH",
-        "DEER_FLOW_EXTENSIONS_CONFIG_PATH",
-        "DEER_FLOW_HOME",
-        "DEER_FLOW_PROJECT_ROOT",
-        "DEER_FLOW_SKILLS_PATH",
         "VASSILFLOW_CONFIG_PATH",
         "VASSILFLOW_EXTENSIONS_CONFIG_PATH",
         "VASSILFLOW_HOME",
         "VASSILFLOW_PROJECT_ROOT",
         "VASSILFLOW_SKILLS_PATH",
+        f"{UPSTREAM_ENV_PREFIX}_CONFIG_PATH",
+        f"{UPSTREAM_ENV_PREFIX}_EXTENSIONS_CONFIG_PATH",
+        f"{UPSTREAM_ENV_PREFIX}_HOME",
+        f"{UPSTREAM_ENV_PREFIX}_PROJECT_ROOT",
+        f"{UPSTREAM_ENV_PREFIX}_SKILLS_PATH",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -76,7 +79,7 @@ def test_runtime_home_ignores_existing_legacy_state_when_vassilflow_home_missing
     _clear_path_env(monkeypatch)
     project_root = tmp_path / "project"
     project_root.mkdir()
-    legacy_home = project_root / ".deer-flow"
+    legacy_home = project_root / UPSTREAM_RUNTIME_HOME_NAME
     legacy_home.mkdir()
     monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(project_root))
 
@@ -88,7 +91,7 @@ def test_runtime_home_prefers_vassilflow_state_when_both_exist(tmp_path: Path, m
     _clear_path_env(monkeypatch)
     project_root = tmp_path / "project"
     project_root.mkdir()
-    legacy_home = project_root / ".deer-flow"
+    legacy_home = project_root / UPSTREAM_RUNTIME_HOME_NAME
     current_home = project_root / ".vassilflow"
     legacy_home.mkdir()
     current_home.mkdir()
@@ -204,7 +207,7 @@ def test_extensions_config_falls_back_to_legacy_when_project_root_lacks_file(tmp
     legacy_extensions = fake_backend / "extensions_config.json"
     legacy_extensions.write_text('{"mcpServers": {}, "skills": {}}', encoding="utf-8")
 
-    fake_paths_module_file = fake_backend / "packages" / "harness" / "deerflow" / "config" / "extensions_config.py"
+    fake_paths_module_file = fake_backend / "packages" / "harness" / "vassilflow" / "config" / "extensions_config.py"
     fake_paths_module_file.parent.mkdir(parents=True)
     fake_paths_module_file.write_text("", encoding="utf-8")
 

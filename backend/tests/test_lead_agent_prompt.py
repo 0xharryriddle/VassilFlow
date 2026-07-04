@@ -126,7 +126,7 @@ def test_apply_prompt_template_uses_vassilflow_default_identity(monkeypatch):
     assert "You are VassilFlow, an open-source super agent." in prompt
     assert "visible and editable via the VassilFlow UI" in prompt
     assert "https://github.com/linhlln1104/VassilFlow" in prompt
-    assert "DeerFlow 2.0" not in prompt
+    assert "VassilFlow 2.0" not in prompt
 
 
 def test_apply_prompt_template_threads_explicit_app_config_without_global_config(monkeypatch):

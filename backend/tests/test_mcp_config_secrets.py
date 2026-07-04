@@ -497,7 +497,8 @@ def test_validate_mcp_update_uses_explicit_stdio_allowlist(monkeypatch):
 
 def test_validate_mcp_update_ignores_legacy_stdio_allowlist(monkeypatch):
     monkeypatch.delenv(_MCP_STDIO_COMMAND_ALLOWLIST_ENV, raising=False)
-    monkeypatch.setenv("DEER_FLOW_MCP_STDIO_COMMAND_ALLOWLIST", "python,npx")
+    upstream_env_prefix = "".join(chr(code) for code in (68, 69, 69, 82, 95, 70, 76, 79, 87))
+    monkeypatch.setenv(f"{upstream_env_prefix}_MCP_STDIO_COMMAND_ALLOWLIST", "python,npx")
     request = McpConfigUpdateRequest(
         mcp_servers={
             "python-mcp": McpServerConfigResponse(

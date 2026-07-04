@@ -103,12 +103,11 @@ def e2e_env(tmp_path, monkeypatch):
     """
     # 1. Filesystem isolation
     monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
-    monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
     monkeypatch.setenv(
         "VASSILFLOW_PROJECT_ROOT",
         str(Path(__file__).resolve().parents[2]),
     )
-    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
+    monkeypatch.delenv("VASSILFLOW_PROJECT_ROOT", raising=False)
     monkeypatch.setattr("vassilflow.config.paths._paths", None)
     monkeypatch.setattr("vassilflow.sandbox.sandbox_provider._default_sandbox_provider", None)
 
@@ -701,7 +700,6 @@ class TestConfigManagement:
         config_file = tmp_path / "extensions_config.json"
         config_file.write_text(json.dumps({"mcpServers": {}, "skills": {}}))
         monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
-        monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
         # Force reload so the singleton picks up our test file
         from vassilflow.config.extensions_config import reload_extensions_config
@@ -729,7 +727,6 @@ class TestConfigManagement:
         config_file = tmp_path / "extensions_config.json"
         config_file.write_text(json.dumps({"mcpServers": {}, "skills": {}}))
         monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
-        monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
         from vassilflow.config.extensions_config import reload_extensions_config
 
@@ -758,7 +755,6 @@ class TestConfigManagement:
         config_file = tmp_path / "extensions_config.json"
         config_file.write_text(json.dumps({"mcpServers": {}, "skills": {}}))
         monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(config_file))
-        monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
         from vassilflow.config.extensions_config import reload_extensions_config
 

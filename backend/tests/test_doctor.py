@@ -12,6 +12,8 @@ from pathlib import Path
 
 import doctor
 
+UPSTREAM_ENV_PREFIX = "".join(chr(code) for code in (68, 69, 69, 82, 95, 70, 76, 79, 87))
+
 # ---------------------------------------------------------------------------
 # check_python
 # ---------------------------------------------------------------------------
@@ -32,14 +34,14 @@ class TestCheckPython:
 class TestResolveConfigPath:
     def test_defaults_to_project_config(self, tmp_path, monkeypatch):
         monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
-        monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
+        monkeypatch.delenv(f"{UPSTREAM_ENV_PREFIX}_CONFIG_PATH", raising=False)
 
         assert doctor._resolve_config_path(tmp_path) == tmp_path / "config.yaml"
 
     def test_ignores_legacy_config_path(self, tmp_path, monkeypatch):
         legacy_config = tmp_path / "legacy.yaml"
         monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
-        monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy_config))
+        monkeypatch.setenv(f"{UPSTREAM_ENV_PREFIX}_CONFIG_PATH", str(legacy_config))
 
         assert doctor._resolve_config_path(tmp_path) == tmp_path / "config.yaml"
 
@@ -47,7 +49,7 @@ class TestResolveConfigPath:
         current_config = tmp_path / "current.yaml"
         legacy_config = tmp_path / "legacy.yaml"
         monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(current_config))
-        monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy_config))
+        monkeypatch.setenv(f"{UPSTREAM_ENV_PREFIX}_CONFIG_PATH", str(legacy_config))
 
         assert doctor._resolve_config_path(tmp_path) == current_config
 

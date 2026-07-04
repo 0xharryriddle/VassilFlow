@@ -111,9 +111,7 @@ def test_app_config_defaults_missing_database_to_sqlite(tmp_path, monkeypatch):
     _write_config(config_path, model_name="first-model", supports_thinking=False)
 
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(tmp_path))
-    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
 
     config = AppConfig.from_file(str(config_path))
 
@@ -136,9 +134,7 @@ def test_app_config_defaults_empty_database_to_sqlite(tmp_path, monkeypatch):
     )
 
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(tmp_path))
-    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
 
     config = AppConfig.from_file(str(config_path))
 
@@ -151,12 +147,10 @@ def test_app_config_database_default_ignores_existing_legacy_state(tmp_path, mon
     extensions_path = tmp_path / "extensions_config.json"
     _write_extensions_config(extensions_path)
     _write_config(config_path, model_name="first-model", supports_thinking=False)
-    (tmp_path / ".deer-flow").mkdir()
+    (tmp_path / ".vassilflow").mkdir()
 
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(tmp_path))
-    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
 
     config = AppConfig.from_file(str(config_path))
 
@@ -186,7 +180,6 @@ def test_app_config_coerces_commented_out_list_sections(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
     config = AppConfig.from_file(str(config_path))
 
@@ -219,7 +212,6 @@ def test_app_config_coerces_commented_out_object_sections(tmp_path, monkeypatch)
         encoding="utf-8",
     )
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
     config = AppConfig.from_file(str(config_path))
 
@@ -244,7 +236,6 @@ def test_app_config_null_required_section_still_errors(tmp_path, monkeypatch):
     _write_extensions_config(extensions_path)
     config_path.write_text(yaml.safe_dump({"sandbox": None}), encoding="utf-8")
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
     with pytest.raises(ValidationError):
         AppConfig.from_file(str(config_path))
@@ -264,7 +255,6 @@ def test_app_config_warns_when_no_models_configured(tmp_path, monkeypatch, caplo
         encoding="utf-8",
     )
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
     with caplog.at_level("WARNING", logger="vassilflow.config.app_config"):
         AppConfig.from_file(str(config_path))
@@ -279,9 +269,7 @@ def test_get_app_config_reloads_when_file_changes(tmp_path, monkeypatch):
     _write_config(config_path, model_name="first-model", supports_thinking=False)
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     reset_app_config()
 
     try:
@@ -306,9 +294,7 @@ def test_get_app_config_reloads_when_content_digest_changes_without_metadata(tmp
     _write_config(config_path, model_name="model-a", supports_thinking=False)
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     _reset_config_singletons()
 
     try:
@@ -349,9 +335,7 @@ def test_get_app_config_reloads_when_config_path_changes(tmp_path, monkeypatch):
     _write_config(config_b, model_name="model-b", supports_thinking=True)
 
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_a))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     reset_app_config()
 
     try:
@@ -359,7 +343,6 @@ def test_get_app_config_reloads_when_config_path_changes(tmp_path, monkeypatch):
         assert first.models[0].name == "model-a"
 
         monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_b))
-        monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
         second = get_app_config()
         assert second.models[0].name == "model-b"
         assert second is not first
@@ -379,9 +362,7 @@ def test_get_app_config_resets_agents_api_config_when_section_removed(tmp_path, 
     )
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     reset_app_config()
 
     try:
@@ -423,9 +404,7 @@ def test_get_app_config_resets_singleton_configs_when_sections_removed(tmp_path,
     )
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     reset_app_config()
 
     try:
@@ -463,9 +442,7 @@ def test_get_app_config_resets_persistence_runtime_singletons_when_checkpointer_
     _write_config_with_sections(config_path, {"checkpointer": {"type": "memory"}})
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     reset_checkpointer()
     reset_store()
     reset_app_config()
@@ -501,9 +478,7 @@ def test_get_app_config_keeps_persistence_runtime_singletons_when_checkpointer_u
     )
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     _reset_config_singletons()
 
     try:
@@ -543,9 +518,7 @@ def test_get_app_config_does_not_mutate_singletons_when_reload_validation_fails(
     )
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
     _reset_config_singletons()
 
     try:

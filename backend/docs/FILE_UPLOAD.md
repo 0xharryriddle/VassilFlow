@@ -46,7 +46,7 @@ POST /api/threads/{thread_id}/uploads
 ```
 
 **路径说明：**
-- `path`: 实际主机文件系统路径（位于 VassilFlow runtime home 下；默认新工作区为 `.vassilflow`，旧工作区可继续使用 `.deer-flow`）
+- `path`: 实际主机文件系统路径（位于 VassilFlow runtime home 下；默认新工作区为 `.vassilflow`，旧工作区可继续使用 `.vassilflow`）
 - `virtual_path`: Agent 在沙箱中使用的虚拟路径
 - `artifact_url`: 前端通过 HTTP 访问文件的 URL
 

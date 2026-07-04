@@ -102,7 +102,7 @@ _PROJECT_BLOCKING_RULES = (
         BlockBusterFunction(
             subprocess.Popen,
             "__init__",
-            scanned_modules=["app", "deerflow", "vassilflow"],
+            scanned_modules=["app", "vassilflow", "vassilflow"],
         ),
     ),
 )

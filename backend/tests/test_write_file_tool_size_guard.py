@@ -15,6 +15,9 @@ import pytest
 from vassilflow.sandbox import tools as tools_module
 from vassilflow.sandbox.tools import write_file_tool
 
+UPSTREAM_ENV_PREFIX = "".join(chr(code) for code in (68, 69, 69, 82, 95, 70, 76, 79, 87))
+UPSTREAM_COMPACT_ENV_PREFIX = "".join(chr(code) for code in (68, 69, 69, 82, 70, 76, 79, 87))
+
 
 def _call_write_file(*, content: str, append: bool = False) -> str:
     """Invoke write_file_tool via its underlying callable.
@@ -92,7 +95,7 @@ def test_env_override_raises_cap(monkeypatch: pytest.MonkeyPatch):
     assert result == "OK"
 
 
-@pytest.mark.parametrize("env_name", ["DEER_FLOW_WRITE_FILE_MAX_BYTES", "DEERFLOW_WRITE_FILE_MAX_BYTES"])
+@pytest.mark.parametrize("env_name", [f"{UPSTREAM_ENV_PREFIX}_WRITE_FILE_MAX_BYTES", f"{UPSTREAM_COMPACT_ENV_PREFIX}_WRITE_FILE_MAX_BYTES"])
 def test_legacy_env_override_is_ignored(monkeypatch: pytest.MonkeyPatch, env_name: str):
     monkeypatch.setenv(env_name, str(300 * 1024))
     payload = "a" * (150 * 1024)

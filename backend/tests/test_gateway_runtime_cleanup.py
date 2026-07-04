@@ -47,23 +47,19 @@ def test_local_dev_gateway_reload_excludes_runtime_state_with_absolute_dirs():
     serve_sh = _read("scripts/serve.sh")
 
     assert "sync_vassilflow_env" not in serve_sh
-    assert "DEER_FLOW" not in serve_sh
     assert 'export VASSILFLOW_PROJECT_ROOT="$REPO_ROOT"' in serve_sh
     assert 'BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.vassilflow"' in serve_sh
     assert 'export VASSILFLOW_HOME="$BACKEND_RUNTIME_HOME"' in serve_sh
     assert "export VASSILFLOW_HOME" in serve_sh
     assert "VASSILFLOW_ROOTS=" in serve_sh
-    assert "DEERFLOW_ROOTS=" not in serve_sh
     assert "_is_vassilflow_pid()" in serve_sh
-    assert "_is_deerflow_pid()" not in serve_sh
     assert "VASSILFLOW_DAEMON_ROOT" in serve_sh
-    assert "DEERFLOW_DAEMON_ROOT" not in serve_sh
     # Every absolute reload-exclude must be pre-created, including backend/sandbox
     # (#3459 / #3454) — see test_uvicorn_reload_exclude.py for the mechanism.
     assert 'mkdir -p "$VASSILFLOW_HOME" "$REPO_ROOT/backend/sandbox"' in serve_sh
     assert "--reload-exclude='$VASSILFLOW_HOME'" in serve_sh
     assert "--reload-exclude='sandbox/'" not in serve_sh
-    assert "--reload-exclude='.deer-flow/'" not in serve_sh
+    assert "--reload-exclude='.vassilflow/'" not in serve_sh
 
 
 def test_shell_launchers_use_vassilflow_env_only():
@@ -76,8 +72,6 @@ def test_shell_launchers_use_vassilflow_env_only():
     for path, content in scripts.items():
         assert "vassilflow_alias_for()" not in content, path
         assert "sync_vassilflow_env()" not in content, path
-        assert "DEER_FLOW" not in content, path
-        assert "DEERFLOW" not in content, path
 
     deploy_sh = scripts["scripts/deploy.sh"]
     config_upgrade_sh = scripts["scripts/config-upgrade.sh"]
@@ -106,9 +100,6 @@ def test_compose_files_expose_vassilflow_runtime_env_only():
     dev = _read("docker/docker-compose-dev.yaml")
     dood = _read("docker/docker-compose.dood.yaml")
 
-    assert "DEER_FLOW" not in prod
-    assert "DEER_FLOW" not in dev
-    assert "DEER_FLOW" not in dood
     assert "${VASSILFLOW_CONFIG_PATH:-../config.yaml}" in prod
     assert "${VASSILFLOW_EXTENSIONS_CONFIG_PATH:-../extensions_config.json}" in prod
     assert "${VASSILFLOW_HOME:-../backend/.vassilflow}" in prod
@@ -147,7 +138,6 @@ def test_root_makefile_does_not_expose_legacy_runtime_migration():
     makefile = _read("Makefile")
 
     assert "runtime-migrate" not in makefile
-    assert "backend/.deer-flow" not in makefile
 
 
 def test_nginx_routes_official_langgraph_prefix_to_gateway_api():
@@ -187,7 +177,7 @@ def test_frontend_rewrites_langgraph_prefix_to_gateway():
     next_config = _read("frontend/next.config.js")
     api_client = _read("frontend/src/core/api/api-client.ts")
 
-    assert "DEER_FLOW_INTERNAL_LANGGRAPH_BASE_URL" not in next_config
+    assert "VASSILFLOW_INTERNAL_LANGGRAPH_BASE_URL" not in next_config
     assert "http://127.0.0.1:2024" not in next_config
     assert "langgraph-compat" not in api_client
 
@@ -207,7 +197,7 @@ def test_smoke_test_docs_do_not_expect_standalone_langgraph_server():
     for path, content in smoke_files.items():
         assert "localhost:2024" not in content, path
         assert "127.0.0.1:2024" not in content, path
-        assert "deer-flow-langgraph" not in content, path
+        assert "vassilflow-langgraph" not in content, path
         assert "langgraph.log" not in content, path
         assert "LangGraph service" not in content, path
         assert "langgraph dev" not in content, path

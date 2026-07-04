@@ -4,11 +4,10 @@ VassilFlow began from an upstream open-source agent runtime and now maintains it
 own product identity, package namespace, runtime paths, and harness direction.
 
 The active VassilFlow codebase uses `vassilflow.*` as the canonical Python
-package namespace. Legacy names such as `DEER_FLOW_*`, `.deer-flow`,
-`deerflow.db`, and `X-DeerFlow-*` remain only as migration fallbacks for
-existing checkouts, persisted data, and deployment environments.
+package namespace. Runtime configuration, local state, database files, HTTP
+headers, Docker names, and public documentation should use VassilFlow-owned
+names exclusively.
 
-Historical planning notes, migration documents, and compatibility comments may
-still mention the upstream project when they explain provenance, bug history, or
-why a legacy alias exists. New product documentation and runtime examples should
-prefer VassilFlow-owned names.
+Historical planning notes may still explain provenance when that context is
+useful, but runtime examples and user-facing documentation should not depend on
+upstream names.

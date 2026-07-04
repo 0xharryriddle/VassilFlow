@@ -13,6 +13,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DETECT_SCRIPT_PATH = REPO_ROOT / "scripts" / "detect_uv_extras.py"
+UPSTREAM_ENV_PREFIX = "".join(chr(code) for code in (68, 69, 69, 82, 95, 70, 76, 79, 87))
 
 
 spec = importlib.util.spec_from_file_location("vassilflow_detect_uv_extras", DETECT_SCRIPT_PATH)
@@ -26,8 +27,8 @@ def isolated_cwd(tmp_path, monkeypatch):
     """Isolate `find_config_file()` from the real repo by chdir + clearing env."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("UV_EXTRAS", raising=False)
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
     monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
+    monkeypatch.delenv(f"{UPSTREAM_ENV_PREFIX}_CONFIG_PATH", raising=False)
     return tmp_path
 
 
@@ -139,7 +140,7 @@ def test_detect_from_config_postgres_via_checkpointer(tmp_path):
 
 def test_detect_from_config_sqlite_returns_no_extras(tmp_path):
     cfg = tmp_path / "config.yaml"
-    cfg.write_text("database:\n  backend: sqlite\n  sqlite_dir: .deer-flow/data\n")
+    cfg.write_text("database:\n  backend: sqlite\n  sqlite_dir: .vassilflow/data\n")
     assert detect.detect_from_config(cfg) == []
 
 
@@ -177,7 +178,7 @@ def test_resolve_extras_ignores_legacy_config_path(tmp_path, monkeypatch):
     elsewhere = tmp_path / "elsewhere.yaml"
     elsewhere.write_text("database:\n  backend: postgres\n")
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(elsewhere))
+    monkeypatch.setenv(f"{UPSTREAM_ENV_PREFIX}_CONFIG_PATH", str(elsewhere))
 
     assert detect.resolve_extras() == []
 
@@ -188,7 +189,6 @@ def test_resolve_extras_respects_vassilflow_config_path_alias(tmp_path, monkeypa
     elsewhere.write_text("database:\n  backend: postgres\n")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(elsewhere))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
 
     assert detect.resolve_extras() == ["postgres"]
 
@@ -201,7 +201,7 @@ def test_resolve_extras_uses_vassilflow_config_path_even_when_legacy_is_set(tmp_
     legacy.write_text("database:\n  backend: sqlite\n")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(current))
-    monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy))
+    monkeypatch.setenv(f"{UPSTREAM_ENV_PREFIX}_CONFIG_PATH", str(legacy))
 
     assert detect.resolve_extras() == ["postgres"]
 

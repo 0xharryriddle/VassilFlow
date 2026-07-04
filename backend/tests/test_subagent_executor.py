@@ -2274,7 +2274,6 @@ class TestSubagentTracingWiring:
         monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
         monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
         monkeypatch.setenv("VASSILFLOW_ENV", "staging")
-        monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
         from vassilflow.config.tracing_config import reset_tracing_config
 
         reset_tracing_config()

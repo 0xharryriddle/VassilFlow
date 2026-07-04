@@ -301,7 +301,7 @@ class TestGetCheckpointer:
         'sqlite3.OperationalError: unable to open database file' when the
         parent directory for the database file does not yet exist (e.g. when
         using the harness package from an external virtualenv where the
-        .deer-flow directory has not been created).
+        .vassilflow directory has not been created).
         """
         load_checkpointer_config_from_dict({"type": "sqlite", "connection_string": "relative/test.db"})
 

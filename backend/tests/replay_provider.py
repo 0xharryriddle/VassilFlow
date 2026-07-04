@@ -83,7 +83,7 @@ from langchain_core.runnables import Runnable
 from pydantic import PrivateAttr
 
 _FIXTURE_ENV = "VASSILFLOW_REPLAY_FIXTURE"
-_LEGACY_FIXTURE_ENVS = ("DEER_FLOW_REPLAY_FIXTURE", "DEERFLOW_REPLAY_FIXTURE")
+_LEGACY_FIXTURE_ENVS = ("VASSILFLOW_REPLAY_FIXTURE", "VASSILFLOW_REPLAY_FIXTURE")
 _DEFAULT_CALLER = "lead_agent"
 _CALLER_TAG_PREFIXES = ("middleware:", "subagent:")
 _CALLER_NAME_ALIASES = {
@@ -146,7 +146,7 @@ _SYSTEM_REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.D
 _UUID_RE = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 _ISO_TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?")
 _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
-# Absolute temp/home roots used for per-run isolation (macOS + Linux + DEER_FLOW_HOME tmp).
+# Absolute temp/home roots used for per-run isolation (macOS + Linux + VASSILFLOW_HOME tmp).
 _PATH_RE = re.compile(r"(?:/private)?/(?:var/folders|tmp)/[^\s\"']*")
 
 # InputSanitizationMiddleware wraps user content in plain-text boundary markers.

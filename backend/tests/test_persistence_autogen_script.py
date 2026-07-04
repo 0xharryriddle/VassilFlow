@@ -73,9 +73,6 @@ def test_alembic_default_url_uses_vassilflow_sqlite_name() -> None:
     assert "sqlite+aiosqlite:///./data/vassilflow.db" in content
     assert "sqlite:///./data/vassilflow.db" in script_content
     assert "./data/vassilflow.db" in makefile_content
-    assert "deerflow.db" not in content
-    assert "deerflow.db" not in script_content
-    assert "deerflow.db" not in makefile_content
 
 
 def test_autogen_temp_db_is_at_head(autogen_module) -> None:

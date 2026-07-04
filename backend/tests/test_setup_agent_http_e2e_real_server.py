@@ -70,7 +70,6 @@ def isolated_vassilflow_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     home = tmp_path / "vassilflow-home"
     home.mkdir()
     monkeypatch.setenv("VASSILFLOW_HOME", str(home))
-    monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "sk-fake-key-not-used-because-llm-is-mocked")
     monkeypatch.setenv("OPENAI_API_BASE", "https://example.invalid")
 
@@ -82,7 +81,6 @@ def isolated_vassilflow_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     staged_config = tmp_path / "config.yaml"
     staged_config.write_text(_MINIMAL_CONFIG_YAML, encoding="utf-8")
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(staged_config))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
 
     return home
 

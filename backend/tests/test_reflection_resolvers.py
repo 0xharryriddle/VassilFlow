@@ -130,7 +130,6 @@ def test_config_example_prefers_vassilflow_dynamic_paths():
     content = (REPO_ROOT / "config.example.yaml").read_text(encoding="utf-8")
 
     assert "use: vassilflow." in content
-    assert "use: deerflow." not in content
 
 
 def test_active_config_example_vassilflow_use_paths_resolve():

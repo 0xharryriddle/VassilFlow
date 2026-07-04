@@ -1241,7 +1241,7 @@ class TestChannelManager:
         """Conversation should continue after ask_clarification instead of resetting history."""
         from app.channels.manager import ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -2386,7 +2386,7 @@ class TestChannelManager:
         """Messages with the same topic_id should reuse the same VassilFlow thread."""
         from app.channels.manager import ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -2768,7 +2768,7 @@ class TestResolveRunParamsUserId:
 
     def test_safe_user_id_is_passed_through(self, monkeypatch):
         manager = self._manager()
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
         msg = InboundMessage(channel_name="telegram", chat_id="c", user_id="123456", text="hi")
 
         _, _, run_context = manager._resolve_run_params(msg, "thread-1")
@@ -2794,7 +2794,7 @@ class TestResolveRunParamsUserId:
         from app.channels.manager import _channel_storage_user_id
 
         manager = self._manager()
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
         msg = InboundMessage(channel_name="slack", chat_id="C123", text="hi", **kwargs)
 
         _, _, run_context = manager._resolve_run_params(msg, "thread-1")
@@ -2803,7 +2803,7 @@ class TestResolveRunParamsUserId:
 
     def test_connection_owner_user_id_takes_precedence_over_platform_user_id(self, monkeypatch):
         manager = self._manager()
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
         msg = InboundMessage(
             channel_name="slack",
             chat_id="C123",
@@ -2859,7 +2859,7 @@ class TestResolveRunParamsUserId:
         from app.channels.manager import _owner_headers
 
         manager = self._manager()
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
         msg = InboundMessage(channel_name="slack", chat_id="C123", user_id="U-platform", text="hi")
 
         _, _, run_context = manager._resolve_run_params(msg, "thread-1")
@@ -2872,7 +2872,7 @@ class TestResolveRunParamsUserId:
         from vassilflow.config.paths import make_safe_user_id
 
         manager = self._manager()
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
         raw = "user@example.com"
         msg = InboundMessage(channel_name="feishu", chat_id="c", user_id=raw, text="hi")
 
@@ -2892,7 +2892,7 @@ class TestResolveRunParamsUserId:
         monkeypatch.setattr("vassilflow.config.paths.get_paths", lambda: paths)
 
         manager = self._manager()
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
         raw = "user@example.com"
         msg = InboundMessage(channel_name="feishu", chat_id="c", user_id=raw, text="hi")
 
@@ -2907,7 +2907,7 @@ class TestResolveRunParamsUserId:
     @pytest.mark.parametrize("raw_user_id", ["", None])
     def test_empty_or_none_user_id_is_not_injected(self, raw_user_id, monkeypatch):
         manager = self._manager()
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
         msg = InboundMessage(channel_name="feishu", chat_id="c", user_id=raw_user_id, text="hi")
 
         _, _, run_context = manager._resolve_run_params(msg, "thread-1")
@@ -2964,7 +2964,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_unbound_auth_enabled_chat_is_rejected_before_thread_or_run_creation(self, monkeypatch):
         from app.channels.manager import BOUND_IDENTITY_REQUIRED_MESSAGE, ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3001,7 +3001,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_bound_identity_repo_unavailable_uses_transient_failure_message(self, monkeypatch):
         from app.channels.manager import BOUND_IDENTITY_UNAVAILABLE_MESSAGE, ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3039,7 +3039,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_unbound_auth_enabled_chat_is_rejected_before_semaphore(self, monkeypatch):
         from app.channels.manager import BOUND_IDENTITY_REQUIRED_MESSAGE, ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3080,7 +3080,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_bound_auth_enabled_chat_is_allowed_when_bound_identity_is_required(self, monkeypatch):
         from app.channels.manager import ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3123,7 +3123,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_bound_auth_enabled_message_checks_bound_identity_once_on_hot_path(self, monkeypatch):
         from app.channels.manager import ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3173,7 +3173,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_auth_enabled_chat_rejects_unverified_bound_identity(self, monkeypatch):
         from app.channels.manager import BOUND_IDENTITY_REQUIRED_MESSAGE, ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3251,7 +3251,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_legacy_open_bot_mode_allows_unbound_auth_enabled_chat(self, monkeypatch):
         from app.channels.manager import ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3280,7 +3280,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_unbound_auth_enabled_new_command_is_rejected_before_thread_creation(self, monkeypatch):
         from app.channels.manager import BOUND_IDENTITY_REQUIRED_MESSAGE, ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3317,7 +3317,7 @@ class TestChannelManagerBoundIdentityPolicy:
     def test_bound_auth_enabled_new_command_creates_thread(self, monkeypatch):
         from app.channels.manager import ChannelManager
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             bus = MessageBus()
@@ -3361,7 +3361,7 @@ class TestChannelManagerConnectionRouting:
         from app.gateway.internal_auth import INTERNAL_OWNER_USER_ID_HEADER_NAME
         from vassilflow.persistence.engine import close_engine
 
-        monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
+        monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
 
         async def go():
             repo = await _make_channel_connection_repo(tmp_path)

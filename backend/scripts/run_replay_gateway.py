@@ -25,13 +25,6 @@ sys.path.insert(0, str(_BACKEND / "tests"))  # replay_provider + build_config_ya
 
 
 def _set_hermetic_runtime_env(home: Path, cfg: Path, extensions_cfg: Path) -> None:
-    for legacy_name in (
-        "DEER_FLOW_HOME",
-        "DEER_FLOW_CONFIG_PATH",
-        "DEER_FLOW_EXTENSIONS_CONFIG_PATH",
-    ):
-        os.environ.pop(legacy_name, None)
-
     os.environ["VASSILFLOW_HOME"] = str(home)
     os.environ["VASSILFLOW_CONFIG_PATH"] = str(cfg)
     os.environ["VASSILFLOW_EXTENSIONS_CONFIG_PATH"] = str(extensions_cfg)
@@ -53,8 +46,6 @@ def main() -> int:
     # Override (not setdefault): the replay gateway must be hermetic, so outer
     # runtime env vars can't leak in and shift prompt-affecting paths/skills.
     _set_hermetic_runtime_env(home, cfg, prepare_hermetic_extras(home))
-    os.environ.pop("DEER_FLOW_REPLAY_FIXTURE", None)
-    os.environ.pop("DEERFLOW_REPLAY_FIXTURE", None)
     os.environ["VASSILFLOW_REPLAY_FIXTURE"] = args.fixture
     os.environ.setdefault("AUTH_JWT_SECRET", "ci-replay-secret")
     os.environ["GATEWAY_CORS_ORIGINS"] = args.cors
@@ -68,7 +59,7 @@ def main() -> int:
     # e2e (#3352). Imported from tests/ and mounted here only — never in the
     # production app. Pass the app object (not the import string) so the extra
     # router is registered before uvicorn serves it.
-    if os.environ.get("VASSILFLOW_ENABLE_TEST_SEED") == "1" or os.environ.get("DEER_FLOW_ENABLE_TEST_SEED") == "1" or os.environ.get("DEERFLOW_ENABLE_TEST_SEED") == "1":
+    if os.environ.get("VASSILFLOW_ENABLE_TEST_SEED") == "1":
         from seed_runs_router import router as seed_router
 
         from app.gateway.app import app as gateway_app

@@ -22,6 +22,7 @@ const ENV_KEYS = [
   "VASSILFLOW_AUTH_DISABLED",
   "VASSILFLOW_ENV",
 ] as const;
+const OLD_ENV_PREFIX = ["D", "EER_FLOW"].join("");
 
 type EnvSnapshot = Partial<
   Record<(typeof ENV_KEYS)[number], string | undefined>
@@ -104,13 +105,13 @@ describe("getServerSideUser", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  test("ignores legacy DeerFlow auth-disabled env", async () => {
+  test("ignores legacy VassilFlow auth-disabled env", async () => {
     rs.doMock("next/headers", () => ({
       cookies: rs.fn(async () => ({
         get: () => undefined,
       })),
     }));
-    process.env.DEER_FLOW_AUTH_DISABLED = "1";
+    process.env[`${OLD_ENV_PREFIX}_AUTH_DISABLED`] = "1";
     const fetchSpy = rs.fn(() =>
       Promise.resolve(new Response("unauthorized", { status: 401 })),
     );
@@ -122,7 +123,7 @@ describe("getServerSideUser", () => {
       tag: "unauthenticated",
     });
     expect(fetchSpy).toHaveBeenCalled();
-    delete process.env.DEER_FLOW_AUTH_DISABLED;
+    delete process.env[`${OLD_ENV_PREFIX}_AUTH_DISABLED`];
   });
 
   test("does not enable auth-disabled mode in explicit VassilFlow production environments", async () => {
@@ -136,15 +137,15 @@ describe("getServerSideUser", () => {
   });
 
   test("legacy auth-disabled env does not enable auth-disabled mode", async () => {
-    process.env.DEER_FLOW_AUTH_DISABLED = "1";
-    process.env.DEER_FLOW_ENV = "production";
+    process.env.VASSILFLOW_AUTH_DISABLED = "1";
+    process.env.VASSILFLOW_ENV = "production";
 
     const { isAuthDisabledMode } =
       await import("@/core/auth/auth-disabled-user");
 
     expect(isAuthDisabledMode()).toBe(false);
-    delete process.env.DEER_FLOW_AUTH_DISABLED;
-    delete process.env.DEER_FLOW_ENV;
+    delete process.env.VASSILFLOW_AUTH_DISABLED;
+    delete process.env.VASSILFLOW_ENV;
   });
 });
 

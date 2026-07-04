@@ -28,7 +28,7 @@ def _pending(
     created_at: float = 9999999999,
 ) -> dict:
     return {
-        "thread_id": thread_id or f"deer-thread-{topic_id}",
+        "thread_id": thread_id or f"vassil-thread-{topic_id}",
         "topic_id": topic_id,
         "source_message_id": source_message_id or topic_id,
         "card_message_id": card_message_id or f"card-{topic_id}",
@@ -236,7 +236,7 @@ def test_feishu_on_message_reuses_stored_parent_topic_for_card_replies():
     store.set_thread_id(
         "feishu",
         "chat_1",
-        "deer-thread-1",
+        "vassil-thread-1",
         topic_id="om_clarification_card",
         user_id="user_1",
     )
@@ -288,9 +288,9 @@ def _make_text_event(
 def test_feishu_plain_reply_consumes_pending_clarification_topic():
     bus = MessageBus()
     store = ChannelStore(path=Path(tempfile.mkdtemp()) / "store.json")
-    store.set_thread_id("feishu", "chat_1", "deer-thread-1", topic_id="om_original", user_id="user_1")
+    store.set_thread_id("feishu", "chat_1", "vassil-thread-1", topic_id="om_original", user_id="user_1")
     channel = FeishuChannel(bus, {"app_id": "test", "app_secret": "test", "channel_store": store})
-    channel._pending_clarifications[channel._pending_key("chat_1", "user_1")] = [_pending("om_original", thread_id="deer-thread-1", card_message_id="om_card")]
+    channel._pending_clarifications[channel._pending_key("chat_1", "user_1")] = [_pending("om_original", thread_id="vassil-thread-1", card_message_id="om_card")]
 
     with pytest.MonkeyPatch.context() as m:
         mock_make_inbound = MagicMock()
@@ -308,7 +308,7 @@ def test_feishu_plain_reply_consumes_pending_clarification_topic():
 def test_feishu_pending_clarification_is_consumed_once():
     bus = MessageBus()
     channel = FeishuChannel(bus, {"app_id": "test", "app_secret": "test"})
-    channel._pending_clarifications[channel._pending_key("chat_1", "user_1")] = [_pending("om_original", thread_id="deer-thread-1", card_message_id="om_card")]
+    channel._pending_clarifications[channel._pending_key("chat_1", "user_1")] = [_pending("om_original", thread_id="vassil-thread-1", card_message_id="om_card")]
 
     with pytest.MonkeyPatch.context() as m:
         created = []
@@ -339,7 +339,7 @@ def test_feishu_expired_pending_clarification_is_ignored(monkeypatch):
     bus = MessageBus()
     channel = FeishuChannel(bus, {"app_id": "test", "app_secret": "test"})
     monkeypatch.setattr("app.channels.feishu.time.time", lambda: 10_000.0)
-    channel._pending_clarifications[channel._pending_key("chat_1", "user_1")] = [_pending("om_original", thread_id="deer-thread-1", card_message_id="om_card", created_at=0.0)]
+    channel._pending_clarifications[channel._pending_key("chat_1", "user_1")] = [_pending("om_original", thread_id="vassil-thread-1", card_message_id="om_card", created_at=0.0)]
 
     with pytest.MonkeyPatch.context() as m:
         mock_make_inbound = MagicMock()
@@ -356,7 +356,7 @@ def test_feishu_command_does_not_consume_pending_clarification():
     bus = MessageBus()
     channel = FeishuChannel(bus, {"app_id": "test", "app_secret": "test"})
     key = channel._pending_key("chat_1", "user_1")
-    channel._pending_clarifications[key] = [_pending("om_original", thread_id="deer-thread-1", card_message_id="om_card")]
+    channel._pending_clarifications[key] = [_pending("om_original", thread_id="vassil-thread-1", card_message_id="om_card")]
 
     with pytest.MonkeyPatch.context() as m:
         mock_make_inbound = MagicMock()
@@ -376,7 +376,7 @@ def test_feishu_remembers_pending_clarification_only_after_final_card_success():
     outbound = OutboundMessage(
         channel_name="feishu",
         chat_id="chat_1",
-        thread_id="deer-thread-1",
+        thread_id="vassil-thread-1",
         text="clarify?",
         thread_ts="om_original",
         metadata={
@@ -393,7 +393,7 @@ def test_feishu_remembers_pending_clarification_only_after_final_card_success():
     channel._remember_pending_clarification(outbound, "om_card")
     pending = channel._pending_clarifications[channel._pending_key("chat_1", "user_1")][0]
     assert pending["topic_id"] == "om_original"
-    assert pending["thread_id"] == "deer-thread-1"
+    assert pending["thread_id"] == "vassil-thread-1"
     assert pending["card_message_id"] == "om_card"
 
 
@@ -402,8 +402,8 @@ def test_feishu_multiple_pending_clarifications_are_consumed_in_order():
     channel = FeishuChannel(bus, {"app_id": "test", "app_secret": "test"})
     key = channel._pending_key("chat_1", "user_1")
     channel._pending_clarifications[key] = [
-        _pending("om_first", thread_id="deer-thread-1"),
-        _pending("om_second", thread_id="deer-thread-2"),
+        _pending("om_first", thread_id="vassil-thread-1"),
+        _pending("om_second", thread_id="vassil-thread-2"),
     ]
 
     with pytest.MonkeyPatch.context() as m:
@@ -425,10 +425,10 @@ def test_feishu_multiple_pending_clarifications_are_consumed_in_order():
 def test_feishu_explicit_reply_prefers_stored_mapping_over_pending():
     bus = MessageBus()
     store = ChannelStore(path=Path(tempfile.mkdtemp()) / "store.json")
-    store.set_thread_id("feishu", "chat_1", "deer-thread-card", topic_id="om_card", user_id="user_1")
+    store.set_thread_id("feishu", "chat_1", "vassil-thread-card", topic_id="om_card", user_id="user_1")
     channel = FeishuChannel(bus, {"app_id": "test", "app_secret": "test", "channel_store": store})
     key = channel._pending_key("chat_1", "user_1")
-    channel._pending_clarifications[key] = [_pending("om_pending", thread_id="deer-thread-pending")]
+    channel._pending_clarifications[key] = [_pending("om_pending", thread_id="vassil-thread-pending")]
 
     with pytest.MonkeyPatch.context() as m:
         mock_make_inbound = MagicMock()

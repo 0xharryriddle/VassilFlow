@@ -159,7 +159,7 @@ The project includes a unified cleanup script that handles both runtimes:
 ./scripts/cleanup-containers.sh vassilflow-sandbox
 
 # Legacy transition prefix, if old containers are still running
-./scripts/cleanup-containers.sh deer-flow-sandbox
+./scripts/cleanup-containers.sh vassilflow-sandbox
 
 # Custom prefix
 ./scripts/cleanup-containers.sh my-prefix
@@ -226,7 +226,7 @@ These checks will:
 2. Run cleanup script manually:
    ```bash
    ./scripts/cleanup-containers.sh vassilflow-sandbox
-   ./scripts/cleanup-containers.sh deer-flow-sandbox  # legacy transition prefix
+   ./scripts/cleanup-containers.sh vassilflow-sandbox  # legacy transition prefix
    ```
 
 ### Performance issues

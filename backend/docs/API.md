@@ -261,8 +261,7 @@ Content-Type: application/json
 Requires an authenticated admin session. API-managed `stdio` MCP servers may
 only use allowed executable names for `command` (default: `npx`, `uvx`). Set
 `VASSILFLOW_MCP_STDIO_COMMAND_ALLOWLIST` to a comma-separated list when a
-deployment needs additional trusted launchers. Legacy
-`DEER_FLOW_MCP_STDIO_COMMAND_ALLOWLIST` remains accepted as a fallback.
+deployment needs additional trusted launchers.
 
 **Request Body:**
 ```json
@@ -508,7 +507,7 @@ DELETE /api/threads/{thread_id}/uploads/{filename}
 
 ### Thread Cleanup
 
-Remove VassilFlow-managed local thread files under `{runtime_home}/threads/{thread_id}` after the LangGraph thread itself has been deleted. `runtime_home` defaults to `.vassilflow` with `.deer-flow` as a transition fallback.
+Remove VassilFlow-managed local thread files under `{runtime_home}/threads/{thread_id}` after the LangGraph thread itself has been deleted. `runtime_home` defaults to `.vassilflow`.
 
 ```http
 DELETE /api/threads/{thread_id}

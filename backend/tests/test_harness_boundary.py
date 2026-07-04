@@ -12,7 +12,7 @@ import ast
 from pathlib import Path
 
 HARNESS_PACKAGE_ROOTS = (
-    Path(__file__).parent.parent / "packages" / "harness" / "deerflow",
+    Path(__file__).parent.parent / "packages" / "harness" / "vassilflow",
     Path(__file__).parent.parent / "packages" / "harness" / "vassilflow",
 )
 

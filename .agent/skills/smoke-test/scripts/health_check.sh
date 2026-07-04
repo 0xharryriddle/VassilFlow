@@ -46,7 +46,7 @@ docker_available() {
 }
 
 vassilflow_containers_running() {
-    docker ps --format "{{.Names}}" | grep -Eiq "vassilflow|deer-flow|deerflow"
+    docker ps --format "{{.Names}}" | grep -Eiq "vassilflow"
 }
 
 detect_mode() {

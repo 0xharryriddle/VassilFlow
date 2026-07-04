@@ -64,9 +64,7 @@ frontend/.next
 frontend/node_modules
 backend/.venv
 backend/.vassilflow
-backend/.deer-flow
 .vassilflow
-.deer-flow
 backend/htmlcov
 backend/.coverage
 *.md

@@ -305,8 +305,8 @@ MCP servers and skill states in a single file:
 
 ### Environment Variables
 
-- `VASSILFLOW_CONFIG_PATH` - Override config.yaml location (legacy: `DEER_FLOW_CONFIG_PATH`)
-- `VASSILFLOW_EXTENSIONS_CONFIG_PATH` - Override extensions_config.json location (legacy: `DEER_FLOW_EXTENSIONS_CONFIG_PATH`)
+- `VASSILFLOW_CONFIG_PATH` - Override config.yaml location
+- `VASSILFLOW_EXTENSIONS_CONFIG_PATH` - Override extensions_config.json location
 - Model API keys: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DEEPSEEK_API_KEY`, etc.
 - Tool API keys: `TAVILY_API_KEY`, `GITHUB_TOKEN`, etc.
 

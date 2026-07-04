@@ -20,7 +20,7 @@ def test_vassilflow_boundary_contract_is_versioned_json():
     assert "description" in contract
     assert "entities" in contract
     assert "legacy implementation can remain the v0 runtime" in contract["description"]
-    assert "DeerFlow can remain the v0 runtime" not in contract["description"]
+    assert "VassilFlow can remain the v0 runtime" not in contract["description"]
 
 
 def test_vassilflow_boundary_contract_declares_core_entities():

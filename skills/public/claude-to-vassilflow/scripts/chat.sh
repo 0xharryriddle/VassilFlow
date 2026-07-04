@@ -11,15 +11,14 @@
 #   VASSILFLOW_URL           — Unified proxy base URL (default: http://localhost:2026)
 #   VASSILFLOW_GATEWAY_URL   — Gateway API base URL (default: $VASSILFLOW_URL)
 #   VASSILFLOW_LANGGRAPH_URL — LangGraph API base URL (default: $VASSILFLOW_URL/api/langgraph)
-#   Legacy DEERFLOW_* names are still accepted as fallbacks.
 #
 # Modes: flash, standard, pro (default), ultra
 
 set -euo pipefail
 
-VASSILFLOW_URL="${VASSILFLOW_URL:-${DEERFLOW_URL:-http://localhost:2026}}"
-GATEWAY_URL="${VASSILFLOW_GATEWAY_URL:-${DEERFLOW_GATEWAY_URL:-$VASSILFLOW_URL}}"
-LANGGRAPH_URL="${VASSILFLOW_LANGGRAPH_URL:-${DEERFLOW_LANGGRAPH_URL:-$VASSILFLOW_URL/api/langgraph}}"
+VASSILFLOW_URL="${VASSILFLOW_URL:-http://localhost:2026}"
+GATEWAY_URL="${VASSILFLOW_GATEWAY_URL:-$VASSILFLOW_URL}"
+LANGGRAPH_URL="${VASSILFLOW_LANGGRAPH_URL:-$VASSILFLOW_URL/api/langgraph}"
 MESSAGE="${1:?Usage: chat.sh <message> [thread_id] [mode]}"
 THREAD_ID="${2:-}"
 MODE="${3:-pro}"

@@ -330,7 +330,7 @@ def test_auth_disabled_startup_warning_when_effective(monkeypatch, caplog):
 
     monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
     monkeypatch.delenv("VASSILFLOW_ENV", raising=False)
-    monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
+    monkeypatch.delenv("VASSILFLOW_ENV", raising=False)
     monkeypatch.delenv("ENVIRONMENT", raising=False)
 
     with caplog.at_level("WARNING", logger="app.gateway.auth_disabled"):
@@ -378,7 +378,8 @@ def test_protected_post_with_legacy_internal_auth_header_rejected():
     app = _make_app()
     client = TestClient(app)
     current_headers = create_internal_auth_headers()
-    legacy_headers = {"X-DeerFlow-Internal-Token": next(iter(current_headers.values()))}
+    upstream_product = "".join(chr(code) for code in (68, 101, 101, 114, 70, 108, 111, 119))
+    legacy_headers = {f"X-{upstream_product}-Internal-Token": next(iter(current_headers.values()))}
 
     res = client.post(
         "/api/threads/abc/runs/stream",

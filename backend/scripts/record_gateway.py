@@ -9,7 +9,6 @@ resulting fixture replays cleanly against the browser.
 Used by ``frontend/playwright.record.config.ts``. Env:
   OPENAI_API_KEY / OPENAI_API_BASE  - the real upstream (never committed)
   VASSILFLOW_RECORD_OUT             - JSONL path to append captured turns to
-  DEER_FLOW_RECORD_OUT / DEERFLOW_RECORD_OUT - legacy fallbacks
   RECORD_PORT (default 8012), RECORD_MODEL (default gpt-5.5)
 """
 
@@ -26,17 +25,9 @@ sys.path.insert(0, str(_BACKEND))
 sys.path.insert(0, str(_BACKEND / "tests"))
 
 _RECORD_OUT_ENV = "VASSILFLOW_RECORD_OUT"
-_LEGACY_RECORD_OUT_ENVS = ("DEER_FLOW_RECORD_OUT", "DEERFLOW_RECORD_OUT")
 
 
 def _set_hermetic_runtime_env(home: Path, cfg: Path, extensions_cfg: Path) -> None:
-    for legacy_name in (
-        "DEER_FLOW_HOME",
-        "DEER_FLOW_CONFIG_PATH",
-        "DEER_FLOW_EXTENSIONS_CONFIG_PATH",
-    ):
-        os.environ.pop(legacy_name, None)
-
     os.environ["VASSILFLOW_HOME"] = str(home)
     os.environ["VASSILFLOW_CONFIG_PATH"] = str(cfg)
     os.environ["VASSILFLOW_EXTENSIONS_CONFIG_PATH"] = str(extensions_cfg)
@@ -109,14 +100,8 @@ def main() -> int:
 
     record_out = os.environ.get(_RECORD_OUT_ENV)
     if not record_out:
-        record_out = next(
-            (os.environ[legacy_env] for legacy_env in _LEGACY_RECORD_OUT_ENVS if os.environ.get(legacy_env)),
-            None,
-        )
-    if not record_out:
-        legacy_names = " / ".join(_LEGACY_RECORD_OUT_ENVS)
         print(
-            f"ERROR: set {_RECORD_OUT_ENV} to the JSONL path to append captured turns to (legacy {legacy_names} are still accepted)",
+            f"ERROR: set {_RECORD_OUT_ENV} to the JSONL path to append captured turns to",
             file=sys.stderr,
         )
         return 2

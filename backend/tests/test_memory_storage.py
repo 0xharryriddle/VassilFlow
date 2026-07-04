@@ -241,8 +241,8 @@ class TestGetMemoryStorage:
             storage = get_memory_storage()
             assert isinstance(storage, FileMemoryStorage)
 
-    def test_accepts_legacy_deerflow_storage_class(self):
-        """Should keep loading legacy DeerFlow class paths during migration."""
+    def test_accepts_legacy_vassilflow_storage_class(self):
+        """Should keep loading legacy VassilFlow class paths during migration."""
         with patch("vassilflow.agents.memory.storage.get_memory_config", return_value=MemoryConfig(storage_class="vassilflow.agents.memory.storage.FileMemoryStorage")):
             storage = get_memory_storage()
             assert isinstance(storage, FileMemoryStorage)

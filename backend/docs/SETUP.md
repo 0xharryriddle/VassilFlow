@@ -40,9 +40,9 @@ VassilFlow uses a YAML configuration file that should be placed in the **project
 
 - **Location**: `config.yaml` should be in `VassilFlow/` (project root)
 - **Git**: `config.yaml` is automatically ignored by git (contains secrets)
-- **Runtime aliases**: Prefer `VASSILFLOW_*` variables. Legacy `DEER_FLOW_*` variables still work as fallbacks; if both are set, `VASSILFLOW_*` wins.
+- **Runtime variables**: Use `VASSILFLOW_*` variables.
 - **Runtime root**: Set `VASSILFLOW_PROJECT_ROOT` if VassilFlow may start from outside the project root
-- **Runtime data**: State defaults to `.vassilflow` under the project root; existing `.deer-flow` state is used as a transition fallback when `.vassilflow` does not exist. Set `VASSILFLOW_HOME` to move it
+- **Runtime data**: State defaults to `.vassilflow` under the project root. Set `VASSILFLOW_HOME` to move it
 - **Skills**: Skills default to `skills/` under the project root; set `VASSILFLOW_SKILLS_PATH` or `skills.path` to move them
 
 ## Configuration File Locations
@@ -50,9 +50,9 @@ VassilFlow uses a YAML configuration file that should be placed in the **project
 The backend searches for `config.yaml` in this order:
 
 1. Explicit `config_path` argument from code
-2. `VASSILFLOW_CONFIG_PATH` environment variable, falling back to `DEER_FLOW_CONFIG_PATH`
-3. `config.yaml` under `VASSILFLOW_PROJECT_ROOT`, falling back to `DEER_FLOW_PROJECT_ROOT` or the current working directory
-4. Legacy backend/repository-root locations for monorepo compatibility
+2. `VASSILFLOW_CONFIG_PATH` environment variable
+3. `config.yaml` under `VASSILFLOW_PROJECT_ROOT` or the current working directory
+4. Backend/repository-root locations for monorepo compatibility
 
 **Recommended**: Place `config.yaml` in project root (`VassilFlow/config.yaml`).
 

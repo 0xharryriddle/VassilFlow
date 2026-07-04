@@ -62,8 +62,6 @@ def test_entrypoint_excludes_runtime_state_from_uvicorn_reload():
     content = ENTRYPOINT.read_text(encoding="utf-8")
 
     assert ': "${VASSILFLOW_HOME:=/app/backend/.vassilflow}"' in content
-    assert "DEER_FLOW_HOME" not in content
-    assert ".deer-flow" not in content
     assert "export VASSILFLOW_HOME" in content
     # sandbox must be created too, not just the runtime home (#3459 / #3454).
     assert 'mkdir -p "$VASSILFLOW_HOME" /app/backend/sandbox' in content

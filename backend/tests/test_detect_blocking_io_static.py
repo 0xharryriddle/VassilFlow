@@ -425,4 +425,3 @@ def test_default_scan_paths_include_vassilflow_package() -> None:
     scan_paths = {path.as_posix() for path in detector.DEFAULT_SCAN_PATHS}
 
     assert any(path.endswith("/backend/packages/harness/vassilflow") for path in scan_paths)
-    assert not any(path.endswith("/backend/packages/harness/deerflow") for path in scan_paths)

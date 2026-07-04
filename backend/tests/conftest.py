@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-# Make 'app' and 'deerflow' importable from any working directory
+# Make 'app' and 'vassilflow' importable from any working directory
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 

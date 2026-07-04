@@ -58,6 +58,6 @@ Use this when reviewing the Memory Settings add/edit flow locally with the fewes
 ## Fixture Files
 
 - Sample fixture: `backend/docs/memory-settings-sample.json`
-- Default local runtime target: `backend/.vassilflow/memory.json` (legacy `.deer-flow` is still used as a transition fallback when present)
+- Default local runtime target: `backend/.vassilflow/memory.json` (VassilFlow runtime state)
 
 The loader script creates a timestamped backup automatically before overwriting an existing runtime memory file.

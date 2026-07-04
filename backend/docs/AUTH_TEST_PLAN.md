@@ -22,7 +22,7 @@
 ```bash
 # 清除已有数据
 rm -f backend/.vassilflow/data/vassilflow.db
-rm -f backend/.deer-flow/data/vassilflow.db  # legacy fallback, if present
+rm -f backend/.vassilflow/data/vassilflow.db
 
 # 启动标准模式（Gateway embedded runtime）
 make dev
@@ -831,7 +831,7 @@ make dev
 
 ```bash
 rm -f backend/.vassilflow/data/vassilflow.db
-rm -f backend/.deer-flow/data/vassilflow.db  # legacy fallback, if present
+rm -f backend/.vassilflow/data/vassilflow.db
 make dev
 make stop
 
@@ -1419,7 +1419,7 @@ done
 >
 > 前置条件：
 > - `.env` 中设置 `AUTH_JWT_SECRET`（否则每次容器重启 session 全部失效）
-> - `VASSILFLOW_HOME` 挂载到宿主机目录（持久化 `vassilflow.db`；legacy `DEER_FLOW_HOME` 仍可作为 fallback）
+> - `VASSILFLOW_HOME` 挂载到宿主机目录（持久化 `vassilflow.db`；VASSILFLOW_HOME）
 
 #### TC-DOCKER-01: vassilflow.db 通过 volume 持久化
 
@@ -1519,7 +1519,7 @@ docker logs vassilflow-gateway 2>&1 | grep -iE "Password: .{15,}" && echo "FAIL:
 ```
 
 **预期：**
-- 凭证文件存在于 `VASSILFLOW_HOME` 下（legacy `DEER_FLOW_HOME` 仍可作为 fallback），权限 `0600`
+- 凭证文件存在于 `VASSILFLOW_HOME` 下（VASSILFLOW_HOME），权限 `0600`
 - 容器日志输出**路径**（不是密码本身），符合 CodeQL `py/clear-text-logging-sensitive-data` 规则
 - `grep "Password:"` 在日志中**应当无匹配**（旧行为已废弃，simplify pass 移除了日志泄露路径）
 

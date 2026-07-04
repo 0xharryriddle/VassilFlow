@@ -1,4 +1,4 @@
-"""Regression tests for config-upgrade migrations."""
+"""Regression tests for config-upgrade schema merging."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def _bash_path(path: Path) -> str:
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for config-upgrade tests")
-def test_config_upgrade_migrates_legacy_runtime_defaults(tmp_path: Path):
+def test_config_upgrade_preserves_vassilflow_runtime_defaults(tmp_path: Path):
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         "\n".join(
@@ -43,15 +43,15 @@ def test_config_upgrade_migrates_legacy_runtime_defaults(tmp_path: Path):
                 "config_version: '16'",
                 "database:",
                 "  backend: sqlite",
-                "  sqlite_dir: .deer-flow/data",
+                "  sqlite_dir: .vassilflow/data",
                 "channel_connections:",
                 "  wechat:",
-                "    state_dir: ./.deer-flow/wechat/state",
+                "    state_dir: ./.vassilflow/wechat/state",
                 "memory:",
-                "  storage_path: .deer-flow/memory.json",
+                "  storage_path: .vassilflow/memory.json",
                 "checkpointer:",
                 "  type: sqlite",
-                "  connection_string: ./.deer-flow/checkpoints.db",
+                "  connection_string: ./.vassilflow/checkpoints.db",
                 "",
             ]
         ),
@@ -72,7 +72,7 @@ def test_config_upgrade_migrates_legacy_runtime_defaults(tmp_path: Path):
     upgraded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
     assert "version 16 -> 17" in result.stdout
-    assert "database.sqlite_dir: .deer-flow/data -> .vassilflow/data" in result.stdout
+    assert "Applied" not in result.stdout
     assert (tmp_path / "config.yaml.bak").exists()
     assert upgraded["config_version"] == 17
     assert upgraded["database"]["sqlite_dir"] == ".vassilflow/data"

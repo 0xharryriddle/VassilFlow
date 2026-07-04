@@ -367,7 +367,7 @@ curl http://localhost:2026/health
 
 **Steps**:
 1. Run `bash .agent/skills/smoke-test/scripts/frontend_check.sh`.
-2. The script auto-detects whether authentication (`VASSILFLOW_AUTH_DISABLED`, legacy `DEER_FLOW_AUTH_DISABLED`) is enabled.
+2. The script auto-detects whether authentication (`VASSILFLOW_AUTH_DISABLED`) is enabled.
 3. When auth is on, the script registers / logs in a smoke-test user (`smoke-test@vassilflow.local` by default) and passes the session cookie so the real `/workspace/*` pages are verified - not the login redirect.
 4. When auth is off, the routes are checked anonymously as before.
 
@@ -433,7 +433,7 @@ curl http://localhost:2026/health
 
 **Steps**:
 1. Run `bash .agent/skills/smoke-test/scripts/frontend_check.sh`.
-2. The script auto-detects whether authentication (`VASSILFLOW_AUTH_DISABLED`, legacy `DEER_FLOW_AUTH_DISABLED`) is enabled.
+2. The script auto-detects whether authentication (`VASSILFLOW_AUTH_DISABLED`) is enabled.
 3. When auth is on, the script registers / logs in a smoke-test user (`smoke-test@vassilflow.local` by default) and passes the session cookie so the real `/workspace/*` pages are verified - not the login redirect.
 4. When auth is off, the routes are checked anonymously as before.
 

@@ -87,7 +87,7 @@ python -m app.gateway.auth.reset_admin --email user@example.com
 
 ```bash
 rm -f backend/.vassilflow/data/vassilflow.db
-rm -f backend/.deer-flow/data/vassilflow.db  # legacy fallback, if present
+rm -f backend/.vassilflow/data/vassilflow.db
 # 重启服务后访问 http://localhost:2026/setup
 ```
 
@@ -127,7 +127,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 - **本地开发**（`make dev`）：Gateway embedded runtime 完全兼容l无 admin 时访问 `/setup` 初始化
 - **Gateway embedded runtime**：标准脚本、Docker dev 和生产部署均通过 Gateway 提供认证与 LangGraph-compatible API
-- **Docker 部署**：完全兼容，`.vassilflow/data/vassilflow.db` 需持久化卷挂载llegacy `.deer-flow/data/vassilflow.db` 仍可读取
+- **Docker 部署**：完全兼容，`.vassilflow/data/vassilflow.db` 需持久化卷挂载llegacy `.vassilflow/data/vassilflow.db` 仍可读取
 - **IM 渠道**（Feishu/Slack/Telegram）：通过 Gateway 内部认证通信，使用 `default` 用户桶
 - **VassilFlowClient**（嵌入式）：不经过 HTTP，不受认证影响
 

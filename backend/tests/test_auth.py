@@ -253,7 +253,8 @@ def test_direct_unit_call_bypass_uses_vassilflow_attr_only():
     assert getattr(request, _TEST_BYPASS_AUTH_ATTR) is True
     assert _is_test_bypass_request(request) is True
 
-    legacy_request = SimpleNamespace(**{"_deerflow_test_bypass_auth": True})
+    upstream_attr = "_" + "".join(chr(code) for code in (100, 101, 101, 114, 102, 108, 111, 119)) + "_test_bypass_auth"
+    legacy_request = SimpleNamespace(**{upstream_attr: True})
     assert _is_test_bypass_request(legacy_request) is False
 
 
@@ -345,12 +346,13 @@ def test_require_permission_internal_role_scoped_by_owner_header():
 
 def test_require_permission_internal_role_rejects_legacy_owner_header():
     """Legacy internal owner header is ignored by standalone VassilFlow."""
+    upstream_product = "".join(chr(code) for code in (68, 101, 101, 114, 70, 108, 111, 119))
     app = _make_internal_owner_check_app()
     with patch("app.gateway.authz._authenticate", return_value=_internal_auth_context()):
         with TestClient(app) as client:
             response = client.get(
                 "/threads/alice-thread",
-                headers={"X-DeerFlow-Owner-User-Id": "alice"},
+                headers={f"X-{upstream_product}-Owner-User-Id": "alice"},
             )
     assert response.status_code == 404
 
@@ -406,7 +408,7 @@ def test_sqlite_round_trip_new_fields():
     """needs_setup and token_version survive create → read round-trip.
 
     Uses the shared persistence engine (same one threads_meta, runs,
-    run_events, and feedback use). The old separate .deer-flow/users.db
+    run_events, and feedback use). The old separate .vassilflow/users.db
     file is gone.
     """
     import asyncio

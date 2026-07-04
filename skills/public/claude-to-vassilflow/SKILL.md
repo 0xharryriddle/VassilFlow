@@ -1,6 +1,6 @@
 ---
 name: claude-to-vassilflow
-description: "Interact with the VassilFlow AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to VassilFlow for research/analysis, start a VassilFlow conversation thread, check VassilFlow status or health, list available models/skills/agents in VassilFlow, manage VassilFlow memory, upload files to VassilFlow threads, or delegate complex research tasks to VassilFlow. Also use when the user mentions vassilflow, deerflow, deer flow, or wants to run a deep research task that VassilFlow can handle."
+description: "Interact with the VassilFlow AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to VassilFlow for research/analysis, start a VassilFlow conversation thread, check VassilFlow status or health, list available models/skills/agents in VassilFlow, manage VassilFlow memory, upload files to VassilFlow threads, or delegate complex research tasks to VassilFlow. Also use when the user mentions vassilflow or wants to run a deep research task that VassilFlow can handle."
 ---
 
 # VassilFlow Skill
@@ -27,15 +27,13 @@ All URLs are configurable via environment variables. **Read these env vars befor
 | `VASSILFLOW_GATEWAY_URL`  | `${VASSILFLOW_URL}`                      | Gateway API base (models, skills, memory, uploads) |
 | `VASSILFLOW_LANGGRAPH_URL`| `${VASSILFLOW_URL}/api/langgraph`        | LangGraph API base (threads, runs) |
 
-Legacy `DEERFLOW_URL`, `DEERFLOW_GATEWAY_URL`, and `DEERFLOW_LANGGRAPH_URL` are still accepted as fallbacks.
-
 When making curl calls, always resolve the URL like this:
 
 ```bash
 # Resolve base URLs from env (do this FIRST before any API call)
-VASSILFLOW_URL="${VASSILFLOW_URL:-${DEERFLOW_URL:-http://localhost:2026}}"
-VASSILFLOW_GATEWAY_URL="${VASSILFLOW_GATEWAY_URL:-${DEERFLOW_GATEWAY_URL:-$VASSILFLOW_URL}}"
-VASSILFLOW_LANGGRAPH_URL="${VASSILFLOW_LANGGRAPH_URL:-${DEERFLOW_LANGGRAPH_URL:-$VASSILFLOW_URL/api/langgraph}}"
+VASSILFLOW_URL="${VASSILFLOW_URL:-http://localhost:2026}"
+VASSILFLOW_GATEWAY_URL="${VASSILFLOW_GATEWAY_URL:-$VASSILFLOW_URL}"
+VASSILFLOW_LANGGRAPH_URL="${VASSILFLOW_LANGGRAPH_URL:-$VASSILFLOW_URL/api/langgraph}"
 ```
 
 ## Available Operations

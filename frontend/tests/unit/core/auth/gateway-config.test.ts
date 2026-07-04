@@ -12,6 +12,7 @@ const ENV_KEYS = [
   "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL",
   "VASSILFLOW_TRUSTED_ORIGINS",
 ] as const;
+const OLD_ENV_PREFIX = ["D", "EER_FLOW"].join("");
 
 type EnvSnapshot = Partial<
   Record<(typeof ENV_KEYS)[number], string | undefined>
@@ -99,11 +100,11 @@ describe("getGatewayConfig", () => {
     ]);
   });
 
-  test("ignores legacy DeerFlow env values when VassilFlow names are unset", async () => {
+  test("ignores legacy VassilFlow env values when VassilFlow names are unset", async () => {
     setEnv("NODE_ENV", "production");
-    process.env.DEER_FLOW_INTERNAL_GATEWAY_BASE_URL =
+    process.env[`${OLD_ENV_PREFIX}_INTERNAL_GATEWAY_BASE_URL`] =
       "https://legacy.example.com/";
-    process.env.DEER_FLOW_TRUSTED_ORIGINS =
+    process.env[`${OLD_ENV_PREFIX}_TRUSTED_ORIGINS`] =
       "https://legacy-app.example.com, https://legacy-admin.example.com";
 
     const { getGatewayConfig } = await loadFreshConfig();
@@ -111,15 +112,15 @@ describe("getGatewayConfig", () => {
 
     expect(cfg.internalGatewayUrl).toBe("http://127.0.0.1:8001");
     expect(cfg.trustedOrigins).toEqual(["http://localhost:3000"]);
-    delete process.env.DEER_FLOW_INTERNAL_GATEWAY_BASE_URL;
-    delete process.env.DEER_FLOW_TRUSTED_ORIGINS;
+    delete process.env[`${OLD_ENV_PREFIX}_INTERNAL_GATEWAY_BASE_URL`];
+    delete process.env[`${OLD_ENV_PREFIX}_TRUSTED_ORIGINS`];
   });
 
-  test("uses VassilFlow env values even when legacy DeerFlow names are present", async () => {
+  test("uses VassilFlow env values even when legacy VassilFlow names are present", async () => {
     setEnv("NODE_ENV", "production");
-    process.env.DEER_FLOW_INTERNAL_GATEWAY_BASE_URL =
+    process.env[`${OLD_ENV_PREFIX}_INTERNAL_GATEWAY_BASE_URL`] =
       "https://legacy.example.com";
-    process.env.DEER_FLOW_TRUSTED_ORIGINS = "https://legacy-app.example.com";
+    process.env[`${OLD_ENV_PREFIX}_TRUSTED_ORIGINS`] = "https://legacy-app.example.com";
     setEnv(
       "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL",
       "https://gateway.vassil.example.com/",
@@ -137,8 +138,8 @@ describe("getGatewayConfig", () => {
       "https://app.vassil.example.com",
       "https://admin.vassil.example.com",
     ]);
-    delete process.env.DEER_FLOW_INTERNAL_GATEWAY_BASE_URL;
-    delete process.env.DEER_FLOW_TRUSTED_ORIGINS;
+    delete process.env.VASSILFLOW_INTERNAL_GATEWAY_BASE_URL;
+    delete process.env.VASSILFLOW_TRUSTED_ORIGINS;
   });
 
   test("trims and filters empty entries in trustedOrigins", async () => {

@@ -204,7 +204,7 @@ from vassilflow.config import get_app_config
 
 Lead-agent middlewares are assembled in strict append order across `packages/harness/vassilflow/agents/middlewares/tool_error_handling_middleware.py` (`build_lead_runtime_middlewares`) and `packages/harness/vassilflow/agents/lead_agent/agent.py` (`build_middlewares`):
 
-1. **ThreadDataMiddleware** - Creates per-thread directories under the user's isolation scope (`{runtime_home}/users/{user_id}/threads/{thread_id}/user-data/{workspace,uploads,outputs}`; `runtime_home` defaults to `.vassilflow` with `.deer-flow` as a transition fallback); resolves `user_id` via `get_effective_user_id()` (falls back to `"default"` in no-auth mode); Web UI thread deletion now follows LangGraph thread removal with Gateway cleanup of the local thread directory
+1. **ThreadDataMiddleware** - Creates per-thread directories under the user's isolation scope (`{runtime_home}/users/{user_id}/threads/{thread_id}/user-data/{workspace,uploads,outputs}`; `runtime_home` defaults to `.vassilflow`); resolves `user_id` via `get_effective_user_id()` (falls back to `"default"` in no-auth mode); Web UI thread deletion now follows LangGraph thread removal with Gateway cleanup of the local thread directory
 2. **UploadsMiddleware** - Tracks and injects newly uploaded files into conversation
 3. **SandboxMiddleware** - Acquires sandbox, stores `sandbox_id` in state
 4. **DanglingToolCallMiddleware** - Injects placeholder ToolMessages for AIMessage tool_calls that lack responses (e.g., due to user interruption), including raw provider tool-call payloads preserved only in `additional_kwargs["tool_calls"]`
@@ -241,7 +241,7 @@ Infrastructure fields are **restart-required**. The authoritative list lives in 
 
 Configuration priority:
 1. Explicit `config_path` argument
-2. `VASSILFLOW_CONFIG_PATH` environment variable (legacy `DEER_FLOW_CONFIG_PATH` is still accepted)
+2. `VASSILFLOW_CONFIG_PATH` environment variable
 3. `config.yaml` in current directory (backend/)
 4. `config.yaml` in parent directory (project root - **recommended location**)
 
@@ -254,7 +254,7 @@ MCP servers and skills are configured together in `extensions_config.json` in pr
 
 Configuration priority:
 1. Explicit `config_path` argument
-2. `VASSILFLOW_EXTENSIONS_CONFIG_PATH` environment variable (legacy `DEER_FLOW_EXTENSIONS_CONFIG_PATH` is still accepted)
+2. `VASSILFLOW_EXTENSIONS_CONFIG_PATH` environment variable
 3. `extensions_config.json` in current directory (backend/)
 4. `extensions_config.json` in parent directory (project root - **recommended location**)
 
@@ -300,7 +300,7 @@ Proxied through nginx: `/api/langgraph/*` → Gateway LangGraph-compatible runti
 
 **Virtual Path System**:
 - Agent sees: `/mnt/user-data/{workspace,uploads,outputs}`, `/mnt/skills`
-- Physical: `{runtime_home}/users/{user_id}/threads/{thread_id}/user-data/...` (`.vassilflow` by default, legacy `.deer-flow` fallback), project `skills/`
+- Physical: `{runtime_home}/users/{user_id}/threads/{thread_id}/user-data/...` (`.vassilflow` by default), project `skills/`
 - Translation: `LocalSandboxProvider` builds per-thread `PathMapping`s for the user-data prefixes at acquire time; `tools.py` keeps `replace_virtual_path()` / `replace_virtual_paths_in_command()` as a defense-in-depth layer (and for path validation). AIO has the directories volume-mounted at the same virtual paths inside its container, so both implementations accept `/mnt/user-data/...` natively.
 - Detection: `is_local_sandbox()` accepts both `sandbox_id == "local"` (legacy / no-thread) and `sandbox_id.startswith("local:")` (per-thread)
 
@@ -420,7 +420,7 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 **Configuration** (`config.yaml` -> `channels`):
 - `langgraph_url` - LangGraph-compatible Gateway API base URL (default: `http://localhost:8001/api`)
 - `gateway_url` - Gateway API URL for auxiliary commands (default: `http://localhost:8001`)
-- In Docker Compose, IM channels run inside the `gateway` container, so `localhost` points back to that container. Use `http://gateway:8001/api` for `langgraph_url` and `http://gateway:8001` for `gateway_url`, or set `VASSILFLOW_CHANNELS_LANGGRAPH_URL` / `VASSILFLOW_CHANNELS_GATEWAY_URL` (legacy `DEER_FLOW_*` aliases are still accepted).
+- In Docker Compose, IM channels run inside the `gateway` container, so `localhost` points back to that container. Use `http://gateway:8001/api` for `langgraph_url` and `http://gateway:8001` for `gateway_url`, or set `VASSILFLOW_CHANNELS_LANGGRAPH_URL` / `VASSILFLOW_CHANNELS_GATEWAY_URL`.
 - Per-channel configs: `feishu` (app_id, app_secret), `slack` (bot_token, app_token), `telegram` (bot_token), `dingtalk` (client_id, client_secret, optional `card_template_id` for AI Card streaming)
 
 **User-owned channel connections** (`config.yaml` -> `channel_connections`):
@@ -450,7 +450,7 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 - Per-agent per-user memory at `{base_dir}/users/{user_id}/agents/{agent_name}/memory.json`
 - Custom agent definitions (`SOUL.md` + `config.yaml`) are also per-user at `{base_dir}/users/{user_id}/agents/{agent_name}/`. The legacy shared layout `{base_dir}/agents/{agent_name}/` remains read-only fallback for unmigrated installations
 - `user_id` is resolved via `get_effective_user_id()` from `vassilflow.runtime.user_context`
-- The `/api/memory*` endpoints resolve the owner through `_resolve_memory_user_id(request)`: trusted internal callers (IM channel workers carrying the `X-VassilFlow-Owner-User-Id` header, with legacy `X-DeerFlow-Owner-User-Id` still accepted, e.g. a bound `/memory` command) act for the connection owner; browser/API callers fall back to `get_effective_user_id()`. The header is only honored after `AuthMiddleware` validated the internal token, mirroring `get_trusted_internal_owner_user_id` used by the threads router
+- The `/api/memory*` endpoints resolve the owner through `_resolve_memory_user_id(request)`: trusted internal callers (IM channel workers carrying the `X-VassilFlow-Owner-User-Id` header, e.g. a bound `/memory` command) act for the connection owner; browser/API callers fall back to `get_effective_user_id()`. The header is only honored after `AuthMiddleware` validated the internal token, mirroring `get_trusted_internal_owner_user_id` used by the threads router
 - In no-auth mode, `user_id` defaults to `"default"` (constant `DEFAULT_USER_ID`)
 - Absolute `storage_path` in config opts out of per-user isolation
 - **Migration**: Run `PYTHONPATH=. python scripts/migrate_user_isolation.py` to move legacy `memory.json`, `threads/`, and `agents/` into per-user layout. Supports `--dry-run` (preview changes) and `--user-id USER_ID` (assign unowned legacy data to a user, defaults to `default`).
@@ -540,7 +540,7 @@ LangSmith and Langfuse are both supported. The wiring lives in two layers:
 | `langfuse_trace_name` | `RunRecord.assistant_id` / client `agent_name` (defaults to `lead-agent`); for subagents, `subagent:<name>` (lowercased, `_` → `-`) |
 | `langfuse_tags`       | `env:<VASSILFLOW_ENV>` + `model:<model_name>` |
 
-Returns `{}` when Langfuse is not in the enabled providers — LangSmith-only deployments are unaffected. Set `VASSILFLOW_ENV` (legacy `DEER_FLOW_ENV`, or `ENVIRONMENT`) to tag traces by deployment environment. Tests live in `tests/test_tracing_factory.py`, `tests/test_tracing_metadata.py`, `tests/test_worker_langfuse_metadata.py`, `tests/test_client_langfuse_metadata.py`, and `tests/test_subagent_executor.py::TestSubagentTracingWiring`.
+Returns `{}` when Langfuse is not in the enabled providers — LangSmith-only deployments are unaffected. Set `VASSILFLOW_ENV` (or `ENVIRONMENT`) to tag traces by deployment environment. Tests live in `tests/test_tracing_factory.py`, `tests/test_tracing_metadata.py`, `tests/test_worker_langfuse_metadata.py`, `tests/test_client_langfuse_metadata.py`, and `tests/test_subagent_executor.py::TestSubagentTracingWiring`.
 
 ### Config Schema
 

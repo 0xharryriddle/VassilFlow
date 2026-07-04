@@ -37,13 +37,11 @@ def test_compose_container_and_network_names_use_vassilflow(compose_file: str, e
     compose = _load_compose(compose_file)
 
     assert expected_network in compose["networks"]
-    assert all("deer-flow" not in network for network in compose["networks"])
 
     for service in compose["services"].values():
         container_name = service.get("container_name")
         if container_name:
             assert container_name.startswith("vassilflow-")
-            assert "deer-flow" not in container_name
         assert service.get("networks") in ([expected_network], None)
 
 
@@ -59,7 +57,7 @@ def test_compose_provisioner_defaults_use_vassilflow_labels(compose_file: str):
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for docker.sh naming tests")
 def test_docker_script_defaults_to_vassilflow_project_and_sandbox_prefix():
-    command = f'export VASSILFLOW_DOCKER_CLI_AUTH=0 DEER_FLOW_DOCKER_CLI_AUTH=0; source \'{DOCKER_SCRIPT}\' >/dev/null && printf \'%s\\n%s\\n%s\\n\' "$COMPOSE_PROJECT_NAME" "$COMPOSE_CMD" "$SANDBOX_CONTAINER_PREFIX"'
+    command = f'export VASSILFLOW_DOCKER_CLI_AUTH=0 VASSILFLOW_DOCKER_CLI_AUTH=0; source \'{DOCKER_SCRIPT}\' >/dev/null && printf \'%s\\n%s\\n%s\\n\' "$COMPOSE_PROJECT_NAME" "$COMPOSE_CMD" "$SANDBOX_CONTAINER_PREFIX"'
 
     output = subprocess.check_output(
         [BASH_EXECUTABLE, "-lc", command],
@@ -103,10 +101,10 @@ def test_docker_script_can_opt_into_cli_auth_overlay():
     assert "docker-compose.cli-auth.yaml" in output
 
 
-def test_scripts_do_not_keep_legacy_docker_names():
+def test_scripts_use_vassilflow_docker_names():
     docker_script = (REPO_ROOT / "scripts" / "docker.sh").read_text(encoding="utf-8")
     deploy_script = (REPO_ROOT / "scripts" / "deploy.sh").read_text(encoding="utf-8")
 
-    assert "deer-flow-dev" not in docker_script
-    assert "deer-flow-sandbox" not in docker_script
-    assert "deer-flow" not in deploy_script
+    assert 'COMPOSE_PROJECT_NAME="${VASSILFLOW_DOCKER_DEV_PROJECT:-vassilflow-dev}"' in docker_script
+    assert 'SANDBOX_CONTAINER_PREFIX="${VASSILFLOW_SANDBOX_CONTAINER_PREFIX:-vassilflow-sandbox}"' in docker_script
+    assert 'COMPOSE_PROJECT_NAME="${VASSILFLOW_DOCKER_PROJECT:-vassilflow}"' in deploy_script

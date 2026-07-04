@@ -7,7 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECK_SCRIPT_PATH = REPO_ROOT / "scripts" / "check.py"
 
 
-spec = importlib.util.spec_from_file_location("deerflow_check_script", CHECK_SCRIPT_PATH)
+spec = importlib.util.spec_from_file_location("vassilflow_check_script", CHECK_SCRIPT_PATH)
 assert spec is not None
 assert spec.loader is not None
 check_script = importlib.util.module_from_spec(spec)

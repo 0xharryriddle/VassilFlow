@@ -12,7 +12,7 @@ VassilFlow 的文件上传系统返回三种不同的路径，每种路径用于
 
 **用途：**
 - 文件在服务器文件系统中的实际位置
-- 位于 VassilFlow runtime home 下（默认新工作区为 `.vassilflow`，旧工作区可继续使用 `.deer-flow`）
+- 位于 VassilFlow runtime home 下（默认新工作区为 `.vassilflow`，旧工作区可继续使用 `.vassilflow`）
 - 用于直接文件系统访问、备份、调试等
 
 **示例：**

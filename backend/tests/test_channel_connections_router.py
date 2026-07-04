@@ -216,7 +216,7 @@ def test_get_providers_reports_connected_without_binding_in_auth_disabled_mode(t
     import anyio
 
     monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
-    monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
+    monkeypatch.delenv("VASSILFLOW_ENV", raising=False)
     monkeypatch.delenv("ENVIRONMENT", raising=False)
     repo = anyio.run(_make_repo, tmp_path)
     app = _make_app(_enabled_connections_config(), repo, _channels_config())

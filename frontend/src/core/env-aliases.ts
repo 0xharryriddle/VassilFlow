@@ -1,9 +1,5 @@
-export function vassilflowAliasFor(name: string): string | undefined {
+export function vassilflowAliasFor(_name: string): string | undefined {
   return undefined;
-}
-
-function legacyNamesForVassilflow(name: string): string[] {
-  return [];
 }
 
 export function envValue(name: string): string | undefined {

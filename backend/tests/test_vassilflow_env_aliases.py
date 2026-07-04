@@ -11,40 +11,22 @@ from vassilflow.config.skills_config import SkillsConfig
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_vassilflow_alias_for_legacy_names_is_disabled():
-    assert vassilflow_alias_for("DEER_FLOW_HOME") is None
-    assert vassilflow_alias_for("DEERFLOW_WRITE_FILE_MAX_BYTES") is None
+def test_alias_registry_has_no_self_aliases():
+    assert vassilflow_alias_for("VASSILFLOW_HOME") is None
+    assert vassilflow_alias_for("VASSILFLOW_WRITE_FILE_MAX_BYTES") is None
     assert vassilflow_alias_for("ENVIRONMENT") is None
 
 
 def test_env_value_reads_exact_vassilflow_name(monkeypatch):
-    monkeypatch.setenv("DEER_FLOW_HOME", "legacy-home")
     monkeypatch.setenv("VASSILFLOW_HOME", "vassil-home")
 
     assert env_value("VASSILFLOW_HOME") == "vassil-home"
-    assert env_value("DEER_FLOW_HOME") == "legacy-home"
 
 
-def test_env_value_does_not_fallback_to_legacy_name(monkeypatch):
-    monkeypatch.setenv("DEER_FLOW_HOME", "legacy-home")
+def test_missing_vassilflow_name_returns_none(monkeypatch):
     monkeypatch.delenv("VASSILFLOW_HOME", raising=False)
 
     assert env_value("VASSILFLOW_HOME") is None
-
-
-def test_env_value_does_not_alias_compact_legacy_name(monkeypatch):
-    monkeypatch.setenv("DEERFLOW_WRITE_FILE_MAX_BYTES", "1024")
-    monkeypatch.setenv("VASSILFLOW_WRITE_FILE_MAX_BYTES", "2048")
-
-    assert env_value("DEERFLOW_WRITE_FILE_MAX_BYTES") == "1024"
-
-
-def test_env_value_does_not_fallback_to_compact_legacy_name(monkeypatch):
-    monkeypatch.setenv("DEERFLOW_WRITE_FILE_MAX_BYTES", "1024")
-    monkeypatch.delenv("DEER_FLOW_WRITE_FILE_MAX_BYTES", raising=False)
-    monkeypatch.delenv("VASSILFLOW_WRITE_FILE_MAX_BYTES", raising=False)
-
-    assert env_value("VASSILFLOW_WRITE_FILE_MAX_BYTES") is None
 
 
 def test_vassilflow_env_standalone_names_are_documented():
@@ -61,7 +43,7 @@ def test_vassilflow_env_standalone_names_are_documented():
         assert "VASSILFLOW_*" in content, path
 
 
-def test_vassilflow_project_root_and_home_aliases(tmp_path: Path, monkeypatch):
+def test_vassilflow_project_root_and_home(tmp_path: Path, monkeypatch):
     project = tmp_path / "project"
     project.mkdir()
     other_cwd = tmp_path / "other"
@@ -71,8 +53,6 @@ def test_vassilflow_project_root_and_home_aliases(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(other_cwd)
     monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(project))
     monkeypatch.setenv("VASSILFLOW_HOME", str(home))
-    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
-    monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
 
     assert project_root() == project.resolve()
     assert runtime_home() == home.resolve()
@@ -81,100 +61,55 @@ def test_vassilflow_project_root_and_home_aliases(tmp_path: Path, monkeypatch):
 def test_vassilflow_runtime_home_defaults_to_current_name(tmp_path: Path, monkeypatch):
     project = tmp_path / "project"
     project.mkdir()
-    legacy_home = project / ".deer-flow"
-    legacy_home.mkdir()
 
     monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(project))
-    monkeypatch.delenv("DEER_FLOW_PROJECT_ROOT", raising=False)
     monkeypatch.delenv("VASSILFLOW_HOME", raising=False)
-    monkeypatch.delenv("DEER_FLOW_HOME", raising=False)
 
     assert runtime_home() == (project / ".vassilflow").resolve()
 
-    current_home = project / ".vassilflow"
-    current_home.mkdir()
 
-    assert runtime_home() == current_home.resolve()
-
-
-def test_vassilflow_config_path_alias(tmp_path: Path, monkeypatch):
+def test_vassilflow_config_path(tmp_path: Path, monkeypatch):
     config_path = tmp_path / "config.yaml"
     config_path.write_text("sandbox:\n  use: vassilflow.sandbox.local:LocalSandboxProvider\n", encoding="utf-8")
 
     monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_CONFIG_PATH", raising=False)
 
     assert AppConfig.resolve_config_path() == config_path
 
 
-def test_vassilflow_extensions_config_path_alias(tmp_path: Path, monkeypatch):
+def test_vassilflow_extensions_config_path(tmp_path: Path, monkeypatch):
     config_path = tmp_path / "extensions_config.json"
     config_path.write_text('{"mcpServers": {}, "skills": {}}', encoding="utf-8")
 
     monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(config_path))
-    monkeypatch.delenv("DEER_FLOW_EXTENSIONS_CONFIG_PATH", raising=False)
 
     assert ExtensionsConfig.resolve_config_path() == config_path
 
 
-def test_vassilflow_skills_path_alias(tmp_path: Path, monkeypatch):
+def test_vassilflow_skills_path(tmp_path: Path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("VASSILFLOW_SKILLS_PATH", "team-skills")
-    monkeypatch.delenv("DEER_FLOW_SKILLS_PATH", raising=False)
 
     assert SkillsConfig().get_skills_path() == tmp_path / "team-skills"
 
 
-def test_vassilflow_auth_disabled_alias(monkeypatch):
+def test_vassilflow_auth_disabled(monkeypatch):
     monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
-    monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
     monkeypatch.delenv("VASSILFLOW_ENV", raising=False)
-    monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
     monkeypatch.delenv("ENVIRONMENT", raising=False)
 
     assert is_auth_disabled() is True
 
 
-def test_legacy_auth_disabled_does_not_enable_local_mode(monkeypatch):
-    monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
-    monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
-    monkeypatch.delenv("VASSILFLOW_ENV", raising=False)
-    monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
-    monkeypatch.delenv("ENVIRONMENT", raising=False)
-
-    assert is_auth_disabled() is False
-
-
 def test_vassilflow_env_blocks_auth_disabled_in_production(monkeypatch):
     monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "1")
     monkeypatch.setenv("VASSILFLOW_ENV", "production")
-    monkeypatch.delenv("DEER_FLOW_AUTH_DISABLED", raising=False)
-    monkeypatch.delenv("DEER_FLOW_ENV", raising=False)
 
     assert is_explicit_production_environment() is True
     assert is_auth_disabled() is False
 
 
-def test_legacy_env_does_not_mark_explicit_production(monkeypatch):
-    monkeypatch.setenv("DEER_FLOW_AUTH_DISABLED", "1")
-    monkeypatch.setenv("DEER_FLOW_ENV", "production")
-    monkeypatch.delenv("VASSILFLOW_AUTH_DISABLED", raising=False)
-    monkeypatch.delenv("VASSILFLOW_ENV", raising=False)
-    monkeypatch.delenv("ENVIRONMENT", raising=False)
-
-    assert is_explicit_production_environment() is False
-    assert is_auth_disabled() is False
-
-
-def test_vassilflow_channel_url_alias(monkeypatch):
+def test_vassilflow_channel_url(monkeypatch):
     monkeypatch.setenv("VASSILFLOW_CHANNELS_GATEWAY_URL", "http://gateway.internal")
-    monkeypatch.delenv("DEER_FLOW_CHANNELS_GATEWAY_URL", raising=False)
 
     assert _resolve_service_url({}, "gateway_url", "VASSILFLOW_CHANNELS_GATEWAY_URL", "http://default") == "http://gateway.internal"
-
-
-def test_legacy_channel_url_does_not_configure_vassilflow_env(monkeypatch):
-    monkeypatch.setenv("DEER_FLOW_CHANNELS_GATEWAY_URL", "http://legacy-gateway.internal")
-    monkeypatch.delenv("VASSILFLOW_CHANNELS_GATEWAY_URL", raising=False)
-
-    assert _resolve_service_url({}, "gateway_url", "VASSILFLOW_CHANNELS_GATEWAY_URL", "http://default") == "http://default"

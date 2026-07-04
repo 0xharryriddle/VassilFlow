@@ -50,7 +50,7 @@ def test_filter_excludes_indexes_on_langgraph_tables() -> None:
     assert include_object(idx, idx.name, "index", True, None) is False
 
 
-def test_filter_includes_indexes_on_deerflow_tables() -> None:
+def test_filter_includes_indexes_on_vassilflow_tables() -> None:
     md = sa.MetaData()
     parent = sa.Table("runs", md, sa.Column("run_id", sa.String, primary_key=True))
     idx = sa.Index("ix_runs_something", parent.c.run_id)

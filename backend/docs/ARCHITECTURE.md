@@ -185,9 +185,9 @@ class ThreadState(AgentState):
 
 | Virtual Path | Physical Path |
 |-------------|---------------|
-| `/mnt/user-data/workspace` | `{runtime_home}/threads/{thread_id}/user-data/workspace` (`.vassilflow` by default, `.deer-flow` fallback) |
-| `/mnt/user-data/uploads` | `{runtime_home}/threads/{thread_id}/user-data/uploads` (`.vassilflow` by default, `.deer-flow` fallback) |
-| `/mnt/user-data/outputs` | `{runtime_home}/threads/{thread_id}/user-data/outputs` (`.vassilflow` by default, `.deer-flow` fallback) |
+| `/mnt/user-data/workspace` | `{runtime_home}/threads/{thread_id}/user-data/workspace` (`.vassilflow` by default) |
+| `/mnt/user-data/uploads` | `{runtime_home}/threads/{thread_id}/user-data/uploads` (`.vassilflow` by default) |
+| `/mnt/user-data/outputs` | `{runtime_home}/threads/{thread_id}/user-data/outputs` (`.vassilflow` by default) |
 | `/mnt/skills` | `skills/` under the project root by default |
 
 ### Tool System

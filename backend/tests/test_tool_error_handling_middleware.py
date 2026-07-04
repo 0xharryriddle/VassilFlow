@@ -369,7 +369,7 @@ def test_guardrail_provider_framework_hint_can_be_overridden(monkeypatch):
                 "enabled": True,
                 "provider": {
                     "use": "test_guardrails_provider:FakeGuardrailProvider",
-                    "config": {"framework": "deerflow"},
+                    "config": {"framework": "vassilflow"},
                 },
             }
         )
@@ -377,4 +377,4 @@ def test_guardrail_provider_framework_hint_can_be_overridden(monkeypatch):
 
     build_subagent_runtime_middlewares(app_config=app_config)
 
-    assert captured["framework"] == "deerflow"
+    assert captured["framework"] == "vassilflow"
