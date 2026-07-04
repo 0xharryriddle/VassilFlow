@@ -18,12 +18,13 @@ afterEach(() => {
 });
 
 describe("thread chat reset events", () => {
-  test("uses the VassilFlow event namespace with a legacy alias", async () => {
-    const { LEGACY_THREAD_CHAT_RESET_EVENT, THREAD_CHAT_RESET_EVENT } =
-      await loadThreadChatModule();
+  test("uses the VassilFlow event namespace", async () => {
+    const threadChatModule = await loadThreadChatModule();
 
-    expect(THREAD_CHAT_RESET_EVENT).toBe("vassilflow:thread-chat-reset");
-    expect(LEGACY_THREAD_CHAT_RESET_EVENT).toBe("deer-flow:thread-chat-reset");
+    expect(threadChatModule.THREAD_CHAT_RESET_EVENT).toBe(
+      "vassilflow:thread-chat-reset",
+    );
+    expect("LEGACY_THREAD_CHAT_RESET_EVENT" in threadChatModule).toBe(false);
   });
 
   test("dispatches the VassilFlow reset event", async () => {

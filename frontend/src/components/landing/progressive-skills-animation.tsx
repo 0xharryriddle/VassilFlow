@@ -41,11 +41,11 @@ interface FileItem {
 }
 
 const searchSteps = [
-  { type: "search", text: "mRNA lipid nanoparticle delivery 2024" },
-  { type: "fetch", text: "nature.com/articles/s41587-024..." },
-  { type: "search", text: "LNP ionizable lipids efficiency" },
-  { type: "fetch", text: "pubs.acs.org/doi/10.1021/..." },
-  { type: "search", text: "targeted mRNA tissue-specific" },
+  { type: "search", text: "agent runtime orchestration patterns" },
+  { type: "fetch", text: "docs/runtime/sandbox-isolation.md" },
+  { type: "search", text: "memory scoped subagent workflows" },
+  { type: "fetch", text: "workspace/uploads/requirements.md" },
+  { type: "search", text: "artifact review checklist" },
 ];
 
 // Animation duration configuration - adjust the duration for each step here
@@ -233,7 +233,7 @@ export default function ProgressiveSkillsAnimation() {
   const getFileTree = (): FileItem[] => {
     const base: FileItem[] = [
       {
-        name: "deep-search",
+        name: "research-brief",
         type: "folder",
         indent: 0,
         highlight: phase === "scanning",
@@ -264,7 +264,7 @@ export default function ProgressiveSkillsAnimation() {
         ].includes(phase),
       },
       {
-        name: "biotech.md",
+        name: "market-map.md",
         type: "file",
         indent: 1,
         highlight: phase === "load-template",
@@ -278,10 +278,10 @@ export default function ProgressiveSkillsAnimation() {
           "done",
         ].includes(phase),
       },
-      { name: "computer-science.md", type: "file", indent: 1 },
-      { name: "physics.md", type: "file", indent: 1 },
+      { name: "source-audit.md", type: "file", indent: 1 },
+      { name: "risk-model.md", type: "file", indent: 1 },
       {
-        name: "frontend-design",
+        name: "artifact-builder",
         type: "folder",
         indent: 0,
         highlight: phase === "scanning",
@@ -297,7 +297,7 @@ export default function ProgressiveSkillsAnimation() {
         done: ["building", "load-deploy", "deploying", "done"].includes(phase),
       },
       {
-        name: "deploy",
+        name: "release-packager",
         type: "folder",
         indent: 0,
         highlight: phase === "scanning",
@@ -319,7 +319,7 @@ export default function ProgressiveSkillsAnimation() {
         done: ["deploying", "done"].includes(phase),
       },
       {
-        name: "deploy.sh",
+        name: "package.sh",
         type: "file",
         indent: 2,
         done: ["deploying", "done"].includes(phase),
@@ -483,8 +483,8 @@ export default function ProgressiveSkillsAnimation() {
                 >
                   <div className="max-w-[90%] rounded-2xl rounded-tr-sm bg-blue-600 px-5 py-3">
                     <p className="text-base">
-                      Research mRNA delivery, build a landing page, deploy to
-                      Vercel
+                      Build an evidence brief, generate artifacts, package the
+                      workspace
                     </p>
                   </div>
                 </motion.div>
@@ -512,7 +512,7 @@ export default function ProgressiveSkillsAnimation() {
                     "done",
                   ].includes(phase) && (
                     <div className="text-base text-zinc-300">
-                      <span className="text-purple-400">✨</span> Found 3 skills
+                      <span className="text-cyan-300">OK</span> Found 3 skills
                     </div>
                   )}
 
@@ -529,9 +529,7 @@ export default function ProgressiveSkillsAnimation() {
                   ].includes(phase) && (
                     <div className="mt-4">
                       <hr className="mb-3 border-zinc-700" />
-                      <div className="mb-3 text-zinc-300">
-                        🔬 Researching...
-                      </div>
+                      <div className="mb-3 text-zinc-300">Researching...</div>
                       <div className="mb-3 space-y-2">
                         {/* Loading SKILL.md */}
                         {[
@@ -546,10 +544,10 @@ export default function ProgressiveSkillsAnimation() {
                         ].includes(phase) && (
                           <div className="flex items-center gap-2 pl-4 text-zinc-400">
                             <FileText size={16} />
-                            <span>Loading deep-search/SKILL.md...</span>
+                            <span>Loading research-brief/SKILL.md...</span>
                           </div>
                         )}
-                        {/* Loading biotech.md */}
+                        {/* Loading domain template */}
                         {[
                           "load-template",
                           "researching",
@@ -562,8 +560,8 @@ export default function ProgressiveSkillsAnimation() {
                           <div className="flex items-center gap-2 pl-4 text-zinc-400">
                             <FileText size={16} />
                             <span>
-                              Found biotech related topic, loading
-                              deep-search/biotech.md...
+                              Found domain requirements, loading
+                              research-brief/market-map.md...
                             </span>
                           </div>
                         )}
@@ -626,10 +624,10 @@ export default function ProgressiveSkillsAnimation() {
                       className="mt-4"
                     >
                       <hr className="mb-3 border-zinc-700" />
-                      <div className="mb-3 text-zinc-300">🔨 Building...</div>
+                      <div className="mb-3 text-zinc-300">Building...</div>
                       <div className="mb-3 flex items-center gap-2 pl-4 text-zinc-400">
                         <FileText size={16} />
-                        <span>Loading frontend-design/SKILL.md...</span>
+                        <span>Loading artifact-builder/SKILL.md...</span>
                       </div>
                       <div className="space-y-2 pl-4">
                         {workspaceFiles.slice(0, buildIndex).map((file) => (
@@ -656,11 +654,11 @@ export default function ProgressiveSkillsAnimation() {
                       className="mt-4"
                     >
                       <hr className="mb-3 border-zinc-700" />
-                      <div className="mb-3 text-zinc-300">🚀 Deploying...</div>
+                      <div className="mb-3 text-zinc-300">Packaging...</div>
                       <div className="mb-3 space-y-2">
                         <div className="flex items-center gap-2 pl-4 text-zinc-400">
                           <FileText size={16} />
-                          <span>Loading deploy/SKILL.md...</span>
+                          <span>Loading release-packager/SKILL.md...</span>
                         </div>
                         {["deploying", "done"].includes(phase) && (
                           <motion.div
@@ -669,7 +667,7 @@ export default function ProgressiveSkillsAnimation() {
                             className="flex items-center gap-2 pl-4 text-zinc-400"
                           >
                             <Terminal size={16} />
-                            <span>Executing scripts/deploy.sh</span>
+                            <span>Executing scripts/package.sh</span>
                           </motion.div>
                         )}
                       </div>
@@ -680,7 +678,7 @@ export default function ProgressiveSkillsAnimation() {
                           className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 p-4"
                         >
                           <div className="text-lg font-medium text-green-500">
-                            ✅ Live at biotech-startup.vercel.app
+                            Workspace package ready for review
                           </div>
                         </motion.div>
                       )}

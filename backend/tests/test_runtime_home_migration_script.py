@@ -128,7 +128,7 @@ def test_runtime_home_migration_uses_env_defaults(tmp_path: Path):
 
     result = _run_migration_with_env(
         {
-            "DEER_FLOW_HOME": _bash_path(source),
+            "VASSILFLOW_MIGRATION_SOURCE": _bash_path(source),
             "VASSILFLOW_HOME": _bash_path(target),
         }
     )

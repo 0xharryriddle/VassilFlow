@@ -103,9 +103,7 @@ def _load_app_config(config_path: Path) -> object:
 
 
 def _resolve_config_path(project_root: Path) -> Path:
-    explicit = os.environ.get("VASSILFLOW_CONFIG_PATH") or os.environ.get(
-        "DEER_FLOW_CONFIG_PATH"
-    )
+    explicit = os.environ.get("VASSILFLOW_CONFIG_PATH")
     if explicit:
         return Path(explicit).expanduser()
     return project_root / "config.yaml"

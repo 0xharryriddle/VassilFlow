@@ -10,9 +10,6 @@ import {
 import {
   AGENT_CREATE_SAVE_HINT_KEY,
   DEFAULT_LOCAL_SETTINGS,
-  LEGACY_AGENT_CREATE_SAVE_HINT_KEY,
-  LEGACY_LOCAL_SETTINGS_KEY,
-  LEGACY_THREAD_MODEL_KEY_PREFIX,
   LOCAL_SETTINGS_KEY,
   THREAD_MODEL_KEY_PREFIX,
   getLocalSettings,
@@ -64,23 +61,15 @@ describe("VassilFlow localStorage keys", () => {
     );
   });
 
-  test("loads legacy local settings once and migrates them to the VassilFlow key", () => {
-    localStorage.setItem(
-      LEGACY_LOCAL_SETTINGS_KEY,
-      JSON.stringify({ context: { mode: "ultra" } }),
-    );
+  test("ignores legacy local settings namespace", () => {
+    localStorage.setItem("deerflow.local-settings", JSON.stringify({ context: { mode: "ultra" } }));
 
-    expect(getLocalSettings().context.mode).toBe("ultra");
-    expect(localStorage.getItem(LOCAL_SETTINGS_KEY)).toBe(
-      JSON.stringify({ context: { mode: "ultra" } }),
-    );
+    expect(getLocalSettings()).toEqual(DEFAULT_LOCAL_SETTINGS);
+    expect(localStorage.getItem(LOCAL_SETTINGS_KEY)).toBeNull();
   });
 
-  test("prefers current local settings over stale legacy settings", () => {
-    localStorage.setItem(
-      LEGACY_LOCAL_SETTINGS_KEY,
-      JSON.stringify({ context: { mode: "ultra" } }),
-    );
+  test("loads current local settings", () => {
+    localStorage.setItem("deerflow.local-settings", JSON.stringify({ context: { mode: "ultra" } }));
     localStorage.setItem(
       LOCAL_SETTINGS_KEY,
       JSON.stringify({ context: { mode: "flash" } }),
@@ -89,11 +78,8 @@ describe("VassilFlow localStorage keys", () => {
     expect(getLocalSettings().context.mode).toBe("flash");
   });
 
-  test("saves local settings to the VassilFlow key and removes stale legacy state", () => {
-    localStorage.setItem(
-      LEGACY_LOCAL_SETTINGS_KEY,
-      JSON.stringify({ context: { mode: "ultra" } }),
-    );
+  test("saves local settings to the VassilFlow key", () => {
+    localStorage.setItem("deerflow.local-settings", JSON.stringify({ context: { mode: "ultra" } }));
     saveLocalSettings({
       ...DEFAULT_LOCAL_SETTINGS,
       context: {
@@ -102,52 +88,41 @@ describe("VassilFlow localStorage keys", () => {
       },
     });
 
-    expect(localStorage.getItem(LEGACY_LOCAL_SETTINGS_KEY)).toBeNull();
+    expect(localStorage.getItem("deerflow.local-settings")).not.toBeNull();
     expect(localStorage.getItem(LOCAL_SETTINGS_KEY)).toContain('"mode":"pro"');
   });
 
-  test("loads legacy thread model overrides and migrates them to the VassilFlow prefix", () => {
-    localStorage.setItem(
-      `${LEGACY_THREAD_MODEL_KEY_PREFIX}thread-1`,
-      "model-a",
-    );
+  test("ignores legacy thread model overrides", () => {
+    localStorage.setItem("deerflow.thread-model.thread-1", "model-a");
 
-    expect(getThreadModelName("thread-1")).toBe("model-a");
-    expect(localStorage.getItem(`${THREAD_MODEL_KEY_PREFIX}thread-1`)).toBe(
-      "model-a",
-    );
+    expect(getThreadModelName("thread-1")).toBeUndefined();
+    expect(localStorage.getItem(`${THREAD_MODEL_KEY_PREFIX}thread-1`)).toBeNull();
   });
 
-  test("saves thread model overrides to the VassilFlow prefix and removes legacy state", () => {
-    localStorage.setItem(
-      `${LEGACY_THREAD_MODEL_KEY_PREFIX}thread-1`,
-      "model-a",
-    );
+  test("saves thread model overrides to the VassilFlow prefix", () => {
+    localStorage.setItem("deerflow.thread-model.thread-1", "model-a");
 
     saveThreadModelName("thread-1", "model-b");
 
-    expect(
-      localStorage.getItem(`${LEGACY_THREAD_MODEL_KEY_PREFIX}thread-1`),
-    ).toBeNull();
+    expect(localStorage.getItem("deerflow.thread-model.thread-1")).toBe("model-a");
     expect(localStorage.getItem(`${THREAD_MODEL_KEY_PREFIX}thread-1`)).toBe(
       "model-b",
     );
   });
 
-  test("loads the legacy agent-create save hint flag and migrates it", () => {
-    localStorage.setItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY, "1");
+  test("ignores the legacy agent-create save hint flag", () => {
+    localStorage.setItem("deerflow.agent-create.save-hint-seen", "1");
 
-    expect(hasSeenAgentCreateSaveHint()).toBe(true);
-    expect(localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY)).toBe("1");
-    expect(localStorage.getItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY)).toBeNull();
+    expect(hasSeenAgentCreateSaveHint()).toBe(false);
+    expect(localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY)).toBeNull();
   });
 
   test("marks the agent-create save hint with the VassilFlow key", () => {
-    localStorage.setItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY, "1");
+    localStorage.setItem("deerflow.agent-create.save-hint-seen", "1");
 
     markAgentCreateSaveHintSeen();
 
     expect(localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY)).toBe("1");
-    expect(localStorage.getItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY)).toBeNull();
+    expect(localStorage.getItem("deerflow.agent-create.save-hint-seen")).toBe("1");
   });
 });

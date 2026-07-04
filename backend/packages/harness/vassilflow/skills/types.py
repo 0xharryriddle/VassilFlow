@@ -16,6 +16,17 @@ class SkillCategory(StrEnum):
     CUSTOM = "custom"
 
 
+def skill_config_key(name: str, category: str | SkillCategory) -> str:
+    """Stable extensions_config key for a skill."""
+    category_value = category.value if isinstance(category, SkillCategory) else str(category)
+    return f"{category_value}:{name}"
+
+
+def skill_reference_matches(name: str, category: str | SkillCategory, reference: str) -> bool:
+    """Return whether a user/config reference matches a skill name or stable id."""
+    return reference == name or reference == skill_config_key(name, category)
+
+
 @dataclass
 class Skill:
     """Represents a skill with its metadata and file path"""
@@ -29,6 +40,11 @@ class Skill:
     category: SkillCategory  # 'public' or 'custom'
     allowed_tools: list[str] | None = None
     enabled: bool = False  # Whether this skill is enabled
+
+    @property
+    def id(self) -> str:
+        """Stable API/config identifier for this skill."""
+        return skill_config_key(self.name, self.category)
 
     @property
     def skill_path(self) -> str:

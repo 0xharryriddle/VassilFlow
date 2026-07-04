@@ -19,9 +19,8 @@
 #
 # Compatible with both docker-compose.yaml (prod) and docker-compose-dev.yaml
 # (dev): both define a `gateway` service, and Compose merges this volume entry
-# onto it. VASSILFLOW_DOCKER_SOCKET (legacy: DEER_FLOW_DOCKER_SOCKET) defaults
-# to /var/run/docker.sock.
+# onto it. VASSILFLOW_DOCKER_SOCKET defaults to /var/run/docker.sock.
 services:
   gateway:
     volumes:
-      - ${VASSILFLOW_DOCKER_SOCKET:-${DEER_FLOW_DOCKER_SOCKET:-/var/run/docker.sock}}:/var/run/docker.sock
+      - ${VASSILFLOW_DOCKER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock

@@ -119,7 +119,6 @@ _ALL_PERMISSIONS: list[str] = [
 ]
 
 _TEST_BYPASS_AUTH_ATTR = "_vassilflow_test_bypass_auth"
-_LEGACY_TEST_BYPASS_AUTH_ATTR = "_deerflow_test_bypass_auth"
 
 
 def _make_test_request_stub() -> Any:
@@ -133,7 +132,7 @@ def _make_test_request_stub() -> Any:
 
 def _is_test_bypass_request(request: Any) -> bool:
     """Return True for direct unit-call stubs that intentionally bypass auth."""
-    return bool(getattr(request, _TEST_BYPASS_AUTH_ATTR, False) or getattr(request, _LEGACY_TEST_BYPASS_AUTH_ATTR, False))
+    return bool(getattr(request, _TEST_BYPASS_AUTH_ATTR, False))
 
 
 async def _authenticate(request: Request) -> AuthContext:
@@ -300,8 +299,7 @@ def require_permission(
                 )
                 if not allowed and getattr(auth.user, "system_role", None) == INTERNAL_SYSTEM_ROLE:
                     # Trusted internal callers (channel workers) also act for
-                    # the connection owner carried in X-VassilFlow-Owner-User-Id
-                    # (legacy X-DeerFlow-Owner-User-Id is also accepted).
+                    # the connection owner carried in X-VassilFlow-Owner-User-Id.
                     # Scope the check to that owner instead of bypassing it; a
                     # leaked internal token must not grant cross-user thread
                     # access. The header is honored only after ``auth`` proved

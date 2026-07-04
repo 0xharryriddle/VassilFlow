@@ -27,18 +27,17 @@ services:
     volumes:
       - ~/.kube/config:/root/.kube/config:ro
     environment:
-      - K8S_NAMESPACE=${VASSILFLOW_K8S_NAMESPACE:-${DEER_FLOW_K8S_NAMESPACE:-vassilflow}}
-      - SANDBOX_APP_LABEL=${VASSILFLOW_SANDBOX_APP_LABEL:-${DEER_FLOW_SANDBOX_APP_LABEL:-vassilflow-sandbox}}
-      - SANDBOX_APP_NAME_LABEL=${VASSILFLOW_SANDBOX_APP_NAME_LABEL:-${DEER_FLOW_SANDBOX_APP_NAME_LABEL:-vassilflow}}
-      - USERDATA_PVC_SUBPATH_ROOT=${VASSILFLOW_USERDATA_PVC_SUBPATH_ROOT:-${DEER_FLOW_USERDATA_PVC_SUBPATH_ROOT:-vassilflow}}
+      - K8S_NAMESPACE=${VASSILFLOW_K8S_NAMESPACE:-vassilflow}
+      - SANDBOX_APP_LABEL=${VASSILFLOW_SANDBOX_APP_LABEL:-vassilflow-sandbox}
+      - SANDBOX_APP_NAME_LABEL=${VASSILFLOW_SANDBOX_APP_NAME_LABEL:-vassilflow}
+      - USERDATA_PVC_SUBPATH_ROOT=${VASSILFLOW_USERDATA_PVC_SUBPATH_ROOT:-vassilflow}
       - SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
       # Host paths for K8s HostPath volumes (must be absolute paths accessible by K8s node)
       # On Docker Desktop/OrbStack, use your actual host paths like /Users/username/...
       # Set these in your shell before running docker-compose:
       #   export VASSILFLOW_ROOT=/absolute/path/to/VassilFlow
-      #   # legacy alias still accepted: DEER_FLOW_ROOT
-      - SKILLS_HOST_PATH=${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/skills
-      - THREADS_HOST_PATH=${VASSILFLOW_RUNTIME_HOME:-${DEER_FLOW_RUNTIME_HOME:-${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/backend/.vassilflow}}/threads
+      - SKILLS_HOST_PATH=${VASSILFLOW_ROOT:-..}/skills
+      - THREADS_HOST_PATH=${VASSILFLOW_RUNTIME_HOME:-${VASSILFLOW_ROOT:-..}/backend/.vassilflow}/threads
       # Production: use PVC instead of hostPath to avoid data loss on node failure.
       # When set, hostPath vars above are ignored for the corresponding volume.
       # USERDATA_PVC_NAME uses subPath (vassilflow/users/{user_id}/threads/{thread_id}/user-data) automatically.
@@ -111,7 +110,6 @@ services:
       - WATCHPACK_POLLING=true
       - CI=true
       - VASSILFLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
-      - DEER_FLOW_INTERNAL_GATEWAY_BASE_URL=http://gateway:8001
     env_file:
       - ../frontend/.env
     networks:
@@ -165,21 +163,13 @@ services:
     environment:
       - CI=true
       - VASSILFLOW_PROJECT_ROOT=/app
-      - VASSILFLOW_HOME=${VASSILFLOW_CONTAINER_HOME:-${DEER_FLOW_CONTAINER_HOME:-/app/backend/.vassilflow}}
-      - VASSILFLOW_CHANNELS_LANGGRAPH_URL=${VASSILFLOW_CHANNELS_LANGGRAPH_URL:-${DEER_FLOW_CHANNELS_LANGGRAPH_URL:-http://gateway:8001/api}}
-      - VASSILFLOW_CHANNELS_GATEWAY_URL=${VASSILFLOW_CHANNELS_GATEWAY_URL:-${DEER_FLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}}
-      - VASSILFLOW_INTERNAL_AUTH_TOKEN=${VASSILFLOW_INTERNAL_AUTH_TOKEN:-${DEER_FLOW_INTERNAL_AUTH_TOKEN:-}}
-      - VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_RUNTIME_HOME:-${DEER_FLOW_RUNTIME_HOME:-${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/backend/.vassilflow}}
-      - VASSILFLOW_HOST_SKILLS_PATH=${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/skills
+      - VASSILFLOW_HOME=${VASSILFLOW_CONTAINER_HOME:-/app/backend/.vassilflow}
+      - VASSILFLOW_CHANNELS_LANGGRAPH_URL=${VASSILFLOW_CHANNELS_LANGGRAPH_URL:-http://gateway:8001/api}
+      - VASSILFLOW_CHANNELS_GATEWAY_URL=${VASSILFLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}
+      - VASSILFLOW_INTERNAL_AUTH_TOKEN=${VASSILFLOW_INTERNAL_AUTH_TOKEN:-}
+      - VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_RUNTIME_HOME:-${VASSILFLOW_ROOT:-..}/backend/.vassilflow}
+      - VASSILFLOW_HOST_SKILLS_PATH=${VASSILFLOW_ROOT:-..}/skills
       - VASSILFLOW_SANDBOX_HOST=host.docker.internal
-      - DEER_FLOW_PROJECT_ROOT=/app
-      - DEER_FLOW_HOME=${VASSILFLOW_CONTAINER_HOME:-${DEER_FLOW_CONTAINER_HOME:-/app/backend/.vassilflow}}
-      - DEER_FLOW_CHANNELS_LANGGRAPH_URL=${VASSILFLOW_CHANNELS_LANGGRAPH_URL:-${DEER_FLOW_CHANNELS_LANGGRAPH_URL:-http://gateway:8001/api}}
-      - DEER_FLOW_CHANNELS_GATEWAY_URL=${VASSILFLOW_CHANNELS_GATEWAY_URL:-${DEER_FLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}}
-      - DEER_FLOW_INTERNAL_AUTH_TOKEN=${VASSILFLOW_INTERNAL_AUTH_TOKEN:-${DEER_FLOW_INTERNAL_AUTH_TOKEN:-}}
-      - DEER_FLOW_HOST_BASE_DIR=${VASSILFLOW_RUNTIME_HOME:-${DEER_FLOW_RUNTIME_HOME:-${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/backend/.vassilflow}}
-      - DEER_FLOW_HOST_SKILLS_PATH=${VASSILFLOW_ROOT:-${DEER_FLOW_ROOT:-..}}/skills
-      - DEER_FLOW_SANDBOX_HOST=host.docker.internal
       # Proxy values (HTTP_PROXY/HTTPS_PROXY/ALL_PROXY) are inherited from ../.env via env_file.
       # Only NO_PROXY is declared here so internal service hostnames are always exempt from the proxy.
       - NO_PROXY=${NO_PROXY:-}${NO_PROXY:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,host.docker.internal

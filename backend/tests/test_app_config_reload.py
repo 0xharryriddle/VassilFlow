@@ -146,7 +146,7 @@ def test_app_config_defaults_empty_database_to_sqlite(tmp_path, monkeypatch):
     assert config.database.sqlite_dir == ".vassilflow/data"
 
 
-def test_app_config_database_default_preserves_existing_legacy_state(tmp_path, monkeypatch):
+def test_app_config_database_default_ignores_existing_legacy_state(tmp_path, monkeypatch):
     config_path = tmp_path / "config.yaml"
     extensions_path = tmp_path / "extensions_config.json"
     _write_extensions_config(extensions_path)
@@ -161,7 +161,7 @@ def test_app_config_database_default_preserves_existing_legacy_state(tmp_path, m
     config = AppConfig.from_file(str(config_path))
 
     assert config.database.backend == "sqlite"
-    assert config.database.sqlite_dir == ".deer-flow/data"
+    assert config.database.sqlite_dir == ".vassilflow/data"
 
 
 def test_app_config_coerces_commented_out_list_sections(tmp_path, monkeypatch):

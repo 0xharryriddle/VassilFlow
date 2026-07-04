@@ -1,6 +1,6 @@
 # VassilFlow - Unified Development Environment
 
-.PHONY: help config config-upgrade runtime-migrate check install setup doctor detect-thread-boundaries detect-blocking-io dev dev-daemon start start-daemon stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
+.PHONY: help config config-upgrade check install setup doctor detect-thread-boundaries detect-blocking-io dev dev-daemon start start-daemon stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
 
 BASH ?= bash
 BACKEND_UV_RUN = cd backend && uv run
@@ -22,7 +22,6 @@ help:
 	@echo "  make doctor          - Check configuration and system requirements"
 	@echo "  make config          - Generate local config files (aborts if config already exists)"
 	@echo "  make config-upgrade  - Merge new fields from config.example.yaml into config.yaml"
-	@echo "  make runtime-migrate - Copy legacy runtime data to the VassilFlow runtime home"
 	@echo "  make check           - Check if all required tools are installed"
 	@echo "  make detect-thread-boundaries - Inventory async/thread boundary points"
 	@echo "  make detect-blocking-io        - Inventory blocking IO that may block the backend event loop"
@@ -65,9 +64,6 @@ config:
 
 config-upgrade:
 	@$(RUN_WITH_GIT_BASH) ./scripts/config-upgrade.sh
-
-runtime-migrate:
-	@$(RUN_WITH_GIT_BASH) ./scripts/migrate-runtime-home.sh
 
 # Check required tools
 check:
@@ -124,7 +120,6 @@ stop:
 clean: stop
 	@echo "Cleaning up..."
 	@-rm -rf backend/.vassilflow 2>/dev/null || true
-	@-rm -rf backend/.deer-flow 2>/dev/null || true
 	@-rm -rf logs/*.log 2>/dev/null || true
 	@echo "✓ Cleanup complete"
 

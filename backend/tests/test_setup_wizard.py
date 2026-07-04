@@ -30,12 +30,12 @@ class TestSetupWizardPaths:
 
         assert setup_wizard._resolve_config_path(tmp_path) == tmp_path / "config.yaml"
 
-    def test_config_path_respects_legacy_env(self, tmp_path, monkeypatch):
+    def test_config_path_ignores_legacy_env(self, tmp_path, monkeypatch):
         legacy_config = tmp_path / "legacy.yaml"
         monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
         monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy_config))
 
-        assert setup_wizard._resolve_config_path(tmp_path) == legacy_config
+        assert setup_wizard._resolve_config_path(tmp_path) == tmp_path / "config.yaml"
 
     def test_config_path_prefers_vassilflow_env(self, tmp_path, monkeypatch):
         current_config = tmp_path / "current.yaml"

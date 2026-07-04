@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import {
+  APP_BRAND_INITIALS,
   APP_BRAND_NAME,
   APP_REPOSITORY_API_URL,
   APP_REPOSITORY_URL,
@@ -20,23 +21,30 @@ export type HeaderProps = {
 };
 
 export async function Header({ className, homeURL, locale }: HeaderProps) {
-  const isExternalHome = !homeURL;
+  const resolvedHomeURL = homeURL ?? "/";
+  const isExternalHome = resolvedHomeURL.startsWith("http");
   const { locale: resolvedLocale, t } = await getI18n(locale);
   const lang = resolvedLocale.substring(0, 2);
   return (
     <header
       className={cn(
-        "container-md fixed top-0 right-0 left-0 z-20 mx-auto flex h-16 items-center justify-between backdrop-blur-xs",
+        "container-md fixed top-0 right-0 left-0 z-20 mx-auto flex h-16 items-center justify-between border-b border-white/8 bg-[#090b0d]/78 px-4 backdrop-blur-md",
         className,
       )}
     >
       <div className="flex items-center gap-6">
         <a
-          href={homeURL ?? APP_REPOSITORY_URL}
+          href={resolvedHomeURL}
           target={isExternalHome ? "_blank" : "_self"}
           rel={isExternalHome ? "noopener noreferrer" : undefined}
+          className="flex items-center gap-3"
         >
-          <h1 className="font-serif text-xl">{APP_BRAND_NAME}</h1>
+          <span className="flex size-8 items-center justify-center rounded-sm bg-white text-xs font-bold text-black">
+            {APP_BRAND_INITIALS}
+          </span>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {APP_BRAND_NAME}
+          </h1>
         </a>
       </div>
       <nav className="mr-8 ml-auto flex items-center gap-8 text-sm font-medium">
@@ -54,13 +62,6 @@ export async function Header({ className, homeURL, locale }: HeaderProps) {
         </Link>
       </nav>
       <div className="relative">
-        <div
-          className="pointer-events-none absolute inset-0 z-0 h-full w-full rounded-full opacity-30 blur-2xl"
-          style={{
-            background: "linear-gradient(90deg, #ff80b5 0%, #9089fc 100%)",
-            filter: "blur(16px)",
-          }}
-        />
         <Button
           variant="outline"
           size="sm"

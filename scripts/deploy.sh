@@ -43,11 +43,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
 DOCKER_DIR="$REPO_ROOT/docker"
-COMPOSE_PROJECT_NAME="${VASSILFLOW_DOCKER_PROJECT:-${DEER_FLOW_DOCKER_PROJECT:-vassilflow}}"
-LEGACY_COMPOSE_PROJECT_NAME="deer-flow"
+COMPOSE_PROJECT_NAME="${VASSILFLOW_DOCKER_PROJECT:-vassilflow}"
 COMPOSE_CMD=(docker compose -p "$COMPOSE_PROJECT_NAME" -f "$DOCKER_DIR/docker-compose.yaml")
 DEFAULT_RUNTIME_HOME="$REPO_ROOT/backend/.vassilflow"
-LEGACY_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 
@@ -57,78 +55,12 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-vassilflow_alias_for() {
-    case "$1" in
-        DEER_FLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEER_FLOW_}" ;;
-        DEERFLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEERFLOW_}" ;;
-        *) return 1 ;;
-    esac
-}
-
-sync_vassilflow_env() {
-    local legacy="$1"
-    local alias
-    alias="$(vassilflow_alias_for "$legacy" 2>/dev/null || true)"
-    [ -n "$alias" ] || return 0
-
-    if [ -n "${!alias+x}" ]; then
-        export "$legacy=${!alias}"
-    elif [ -n "${!legacy+x}" ]; then
-        export "$alias=${!legacy}"
-    fi
-}
-
-sync_vassilflow_envs() {
-    sync_vassilflow_env DEER_FLOW_HOME
-    sync_vassilflow_env DEER_FLOW_REPO_ROOT
-    sync_vassilflow_env DEER_FLOW_DOCKER_PROJECT
-    sync_vassilflow_env DEER_FLOW_CONFIG_PATH
-    sync_vassilflow_env DEER_FLOW_EXTENSIONS_CONFIG_PATH
-    sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
-    sync_vassilflow_env DEER_FLOW_CHANNELS_LANGGRAPH_URL
-    sync_vassilflow_env DEER_FLOW_CHANNELS_GATEWAY_URL
-    sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
-}
-
-compose_project_has_containers() {
-    local project_name="$1"
-    docker compose -p "$project_name" -f "$DOCKER_DIR/docker-compose.yaml" ps -q 2>/dev/null | grep -q .
-}
-
-down_compose_project() {
-    local project_name="$1"
-    docker compose -p "$project_name" -f "$DOCKER_DIR/docker-compose.yaml" down --remove-orphans >/dev/null 2>&1 || true
-}
-
-stop_legacy_stack_if_running() {
-    if [ "$COMPOSE_PROJECT_NAME" = "$LEGACY_COMPOSE_PROJECT_NAME" ]; then
-        return 0
-    fi
-
-    if compose_project_has_containers "$LEGACY_COMPOSE_PROJECT_NAME"; then
-        echo -e "${YELLOW}Stopping legacy Docker project '$LEGACY_COMPOSE_PROJECT_NAME' before starting '$COMPOSE_PROJECT_NAME'.${NC}"
-        down_compose_project "$LEGACY_COMPOSE_PROJECT_NAME"
-        echo ""
-    fi
-}
-
-default_runtime_home() {
-    if [ ! -e "$DEFAULT_RUNTIME_HOME" ] && [ -e "$LEGACY_RUNTIME_HOME" ]; then
-        printf '%s\n' "$LEGACY_RUNTIME_HOME"
-    else
-        printf '%s\n' "$DEFAULT_RUNTIME_HOME"
-    fi
-}
-
-sync_vassilflow_envs
-
-# ── VASSILFLOW_HOME / DEER_FLOW_HOME ─────────────────────────────────────────
+# ── VASSILFLOW_HOME ──────────────────────────────────────────────────────────
 
 if [ -z "${VASSILFLOW_HOME:-}" ]; then
     export VASSILFLOW_HOME
-    VASSILFLOW_HOME="$(default_runtime_home)"
+    VASSILFLOW_HOME="$DEFAULT_RUNTIME_HOME"
 fi
-sync_vassilflow_env DEER_FLOW_HOME
 echo -e "${BLUE}VASSILFLOW_HOME=$VASSILFLOW_HOME${NC}"
 mkdir -p "$VASSILFLOW_HOME"
 
@@ -137,14 +69,12 @@ mkdir -p "$VASSILFLOW_HOME"
 if [ -z "${VASSILFLOW_REPO_ROOT:-}" ]; then
     export VASSILFLOW_REPO_ROOT="$REPO_ROOT"
 fi
-sync_vassilflow_env DEER_FLOW_REPO_ROOT
 
 # ── config.yaml ───────────────────────────────────────────────────────────────
 
 if [ -z "${VASSILFLOW_CONFIG_PATH:-}" ]; then
     export VASSILFLOW_CONFIG_PATH="$REPO_ROOT/config.yaml"
 fi
-sync_vassilflow_env DEER_FLOW_CONFIG_PATH
 
 if  [ "$CMD" != "down" ] && [ ! -f "$VASSILFLOW_CONFIG_PATH" ]; then
     # Try to seed from repo (config.example.yaml is the canonical template)
@@ -168,7 +98,6 @@ fi
 if [ -z "${VASSILFLOW_EXTENSIONS_CONFIG_PATH:-}" ]; then
     export VASSILFLOW_EXTENSIONS_CONFIG_PATH="$REPO_ROOT/extensions_config.json"
 fi
-sync_vassilflow_env DEER_FLOW_EXTENSIONS_CONFIG_PATH
 
 if [ ! -f "$VASSILFLOW_EXTENSIONS_CONFIG_PATH" ]; then
     if [ -f "$REPO_ROOT/extensions_config.json" ]; then
@@ -221,12 +150,10 @@ fi
 # APIs even when the request is handled by a different Uvicorn worker.
 
 _internal_auth_token_file="$VASSILFLOW_HOME/.internal-auth-token"
-sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
 if  [ "$CMD" != "down" ] && [ -z "${VASSILFLOW_INTERNAL_AUTH_TOKEN:-}" ]; then
     if [ -f "$_internal_auth_token_file" ]; then
         export VASSILFLOW_INTERNAL_AUTH_TOKEN
         VASSILFLOW_INTERNAL_AUTH_TOKEN="$(cat "$_internal_auth_token_file")"
-        sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
         echo -e "${GREEN}✓ VASSILFLOW_INTERNAL_AUTH_TOKEN loaded from $_internal_auth_token_file${NC}"
     else
         export VASSILFLOW_INTERNAL_AUTH_TOKEN
@@ -244,7 +171,6 @@ if  [ "$CMD" != "down" ] && [ -z "${VASSILFLOW_INTERNAL_AUTH_TOKEN:-}" ]; then
             echo -e "${RED}  Set VASSILFLOW_INTERNAL_AUTH_TOKEN manually before running make up.${NC}" >&2
             exit 1
         fi
-        sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
         echo "$VASSILFLOW_INTERNAL_AUTH_TOKEN" > "$_internal_auth_token_file"
         chmod 600 "$_internal_auth_token_file"
         echo -e "${GREEN}✓ VASSILFLOW_INTERNAL_AUTH_TOKEN generated → $_internal_auth_token_file${NC}"
@@ -291,18 +217,13 @@ detect_sandbox_mode() {
 if [ "$CMD" = "down" ]; then
     # Set minimal env var defaults so docker compose can parse the file without
     # warning about unset variables that appear in volume specs.
-    sync_vassilflow_envs
-    export VASSILFLOW_HOME="${VASSILFLOW_HOME:-$(default_runtime_home)}"
+    export VASSILFLOW_HOME="${VASSILFLOW_HOME:-$DEFAULT_RUNTIME_HOME}"
     export VASSILFLOW_CONFIG_PATH="${VASSILFLOW_CONFIG_PATH:-$VASSILFLOW_HOME/config.yaml}"
     export VASSILFLOW_EXTENSIONS_CONFIG_PATH="${VASSILFLOW_EXTENSIONS_CONFIG_PATH:-$VASSILFLOW_HOME/extensions_config.json}"
     export VASSILFLOW_REPO_ROOT="${VASSILFLOW_REPO_ROOT:-$REPO_ROOT}"
     export BETTER_AUTH_SECRET="${BETTER_AUTH_SECRET:-placeholder}"
     export VASSILFLOW_INTERNAL_AUTH_TOKEN="${VASSILFLOW_INTERNAL_AUTH_TOKEN:-placeholder}"
-    sync_vassilflow_envs
     "${COMPOSE_CMD[@]}" down --remove-orphans
-    if [ "$COMPOSE_PROJECT_NAME" != "$LEGACY_COMPOSE_PROJECT_NAME" ]; then
-        down_compose_project "$LEGACY_COMPOSE_PROJECT_NAME"
-    fi
     exit 0
 fi
 
@@ -354,11 +275,9 @@ fi
 # appended here, so the default (local) and provisioner modes never expose the
 # host daemon. Mounting the socket = root-equivalent host control; see SECURITY.md.
 
-sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
 if [ -z "${VASSILFLOW_DOCKER_SOCKET:-}" ]; then
     export VASSILFLOW_DOCKER_SOCKET="/var/run/docker.sock"
 fi
-sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
 
 if [ "$sandbox_mode" = "aio" ]; then
     if [ ! -S "$VASSILFLOW_DOCKER_SOCKET" ]; then
@@ -374,8 +293,6 @@ fi
 echo ""
 
 # ── Start / Up ───────────────────────────────────────────────────────────────
-
-stop_legacy_stack_if_running
 
 if [ "$CMD" = "start" ]; then
     echo "Starting containers (no rebuild)..."

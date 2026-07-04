@@ -28,7 +28,7 @@ if [ "${1:-}" = "--print-extras" ]; then
     PRINT_EXTRAS_ONLY=1
 fi
 
-# Mirror the legacy command's behavior: redirect both stdout and stderr to the
+# Redirect both stdout and stderr to the
 # host-mounted log file (../logs/gateway.log → /app/logs/gateway.log). Skip
 # the redirect under --print-extras so the test runner can capture stdout.
 if [ "$PRINT_EXTRAS_ONLY" = "0" ]; then
@@ -69,17 +69,8 @@ fi
 # directory, not as a plain glob pattern — on Python 3.12, globbing an absolute
 # pattern raises NotImplementedError and crashes startup (#3459 / #3454). That
 # means `sandbox` must be created here too, not just the runtime home.
-if [ -n "${VASSILFLOW_HOME:-}" ]; then
-    DEER_FLOW_HOME="$VASSILFLOW_HOME"
-elif [ -n "${DEER_FLOW_HOME:-}" ]; then
-    VASSILFLOW_HOME="$DEER_FLOW_HOME"
-elif [ ! -e /app/backend/.vassilflow ] && [ -e /app/backend/.deer-flow ]; then
-    VASSILFLOW_HOME=/app/backend/.deer-flow
-    DEER_FLOW_HOME="$VASSILFLOW_HOME"
-fi
 : "${VASSILFLOW_HOME:=/app/backend/.vassilflow}"
-: "${DEER_FLOW_HOME:=$VASSILFLOW_HOME}"
-export VASSILFLOW_HOME DEER_FLOW_HOME
+export VASSILFLOW_HOME
 mkdir -p "$VASSILFLOW_HOME" /app/backend/sandbox
 
 # ── Sync dependencies (with self-heal) ──────────────────────────────────────

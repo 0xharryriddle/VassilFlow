@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from vassilflow.config.agents_config import load_agent_soul
 from vassilflow.skills.storage import get_or_new_skill_storage
-from vassilflow.skills.types import Skill, SkillCategory
+from vassilflow.skills.types import Skill, SkillCategory, skill_config_key, skill_reference_matches
 from vassilflow.subagents import get_available_subagent_names
 from vassilflow.tools.builtins.tool_search import get_deferred_tools_prompt_section
 
@@ -628,17 +628,21 @@ def _get_memory_context(agent_name: str | None = None, *, app_config: AppConfig 
 
 @lru_cache(maxsize=32)
 def _get_cached_skills_prompt_section(
-    skill_signature: tuple[tuple[str, str, str, str], ...],
+    skill_signature: tuple[tuple[str, str, str, str, str], ...],
     available_skills_key: tuple[str, ...] | None,
     container_base_path: str,
     skill_evolution_section: str,
 ) -> str:
-    filtered = [(name, description, category, location) for name, description, category, location in skill_signature if available_skills_key is None or name in available_skills_key]
+    filtered = [
+        (skill_id, name, description, category, location)
+        for skill_id, name, description, category, location in skill_signature
+        if available_skills_key is None or skill_id in available_skills_key or name in available_skills_key
+    ]
     skills_list = ""
     if filtered:
         skill_items = "\n".join(
-            f"    <skill>\n        <name>{name}</name>\n        <description>{description} {_skill_mutability_label(category)}</description>\n        <location>{location}</location>\n    </skill>"
-            for name, description, category, location in filtered
+            f"    <skill>\n        <id>{skill_id}</id>\n        <name>{name}</name>\n        <description>{description} {_skill_mutability_label(category)}</description>\n        <location>{location}</location>\n    </skill>"
+            for skill_id, name, description, category, location in filtered
         )
         skills_list = f"<available_skills>\n{skill_items}\n</available_skills>"
     return f"""<skill_system>
@@ -685,10 +689,10 @@ def get_skills_prompt_section(available_skills: set[str] | None = None, *, app_c
     if not skills and not skill_evolution_enabled:
         return ""
 
-    if available_skills is not None and not any(skill.name in available_skills for skill in skills):
+    if available_skills is not None and not any(any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in available_skills) for skill in skills):
         return ""
 
-    skill_signature = tuple((skill.name, skill.description, skill.category, skill.get_container_file_path(container_base_path)) for skill in skills)
+    skill_signature = tuple((skill_config_key(skill.name, skill.category), skill.name, skill.description, skill.category, skill.get_container_file_path(container_base_path)) for skill in skills)
     available_key = tuple(sorted(available_skills)) if available_skills is not None else None
     if not skill_signature and available_key is not None:
         return ""

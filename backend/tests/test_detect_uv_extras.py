@@ -172,14 +172,14 @@ def test_resolve_extras_falls_back_to_config(isolated_cwd):
     assert detect.resolve_extras() == ["postgres"]
 
 
-def test_resolve_extras_respects_explicit_config_path(tmp_path, monkeypatch):
+def test_resolve_extras_ignores_legacy_config_path(tmp_path, monkeypatch):
     monkeypatch.delenv("UV_EXTRAS", raising=False)
     elsewhere = tmp_path / "elsewhere.yaml"
     elsewhere.write_text("database:\n  backend: postgres\n")
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(elsewhere))
 
-    assert detect.resolve_extras() == ["postgres"]
+    assert detect.resolve_extras() == []
 
 
 def test_resolve_extras_respects_vassilflow_config_path_alias(tmp_path, monkeypatch):
@@ -193,7 +193,7 @@ def test_resolve_extras_respects_vassilflow_config_path_alias(tmp_path, monkeypa
     assert detect.resolve_extras() == ["postgres"]
 
 
-def test_resolve_extras_prefers_vassilflow_config_path_over_legacy(tmp_path, monkeypatch):
+def test_resolve_extras_uses_vassilflow_config_path_even_when_legacy_is_set(tmp_path, monkeypatch):
     monkeypatch.delenv("UV_EXTRAS", raising=False)
     current = tmp_path / "current.yaml"
     legacy = tmp_path / "legacy.yaml"

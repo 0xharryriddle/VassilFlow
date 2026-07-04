@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from vassilflow.skills.types import Skill
+from vassilflow.skills.types import Skill, skill_reference_matches
 
 RESERVED_SLASH_SKILL_NAMES = frozenset({"bootstrap", "help", "memory", "models", "new", "status"})
 _SLASH_SKILL_RE = re.compile(r"^/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\s+|$)")
@@ -51,12 +51,14 @@ def resolve_slash_skill(
     reference = parse_slash_skill_reference(text)
     if reference is None:
         return None
-    if available_skills is not None and reference.name not in available_skills:
-        return None
 
-    skill = next((candidate for candidate in skills if candidate.name == reference.name and candidate.enabled), None)
-    if skill is None:
+    def is_available(skill: Skill) -> bool:
+        return available_skills is None or any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in available_skills)
+
+    matches = [candidate for candidate in skills if candidate.name == reference.name and candidate.enabled and is_available(candidate)]
+    if len(matches) != 1:
         return None
+    skill = matches[0]
 
     return ResolvedSlashSkill(
         skill=skill,

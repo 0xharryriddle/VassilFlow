@@ -7,7 +7,7 @@ set -e
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-SOURCE="${DEER_FLOW_HOME:-$REPO_ROOT/backend/.deer-flow}"
+SOURCE="${VASSILFLOW_MIGRATION_SOURCE:-$REPO_ROOT/backend/.deer-flow}"
 TARGET="${VASSILFLOW_HOME:-$REPO_ROOT/backend/.vassilflow}"
 DRY_RUN=false
 QUIET=false

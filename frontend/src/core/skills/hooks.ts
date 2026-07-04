@@ -16,13 +16,13 @@ export function useEnableSkill() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
-      skillName,
+      skillId,
       enabled,
     }: {
-      skillName: string;
+      skillId: string;
       enabled: boolean;
     }) => {
-      await enableSkill(skillName, enabled);
+      await enableSkill(skillId, enabled);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });

@@ -12,22 +12,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DOCKER_DIR="$PROJECT_ROOT/docker"
 
-# Docker Compose command with project name. The legacy project name is retained
-# only for cleanup so older legacy-named dev stacks do not keep port 2026 busy
-# after the default VassilFlow rename.
-COMPOSE_PROJECT_NAME="${VASSILFLOW_DOCKER_DEV_PROJECT:-${DEER_FLOW_DOCKER_DEV_PROJECT:-vassilflow-dev}}"
-LEGACY_COMPOSE_PROJECT_NAME="deer-flow-dev"
+# Docker Compose command with project name.
+COMPOSE_PROJECT_NAME="${VASSILFLOW_DOCKER_DEV_PROJECT:-vassilflow-dev}"
 COMPOSE_FILE="$DOCKER_DIR/docker-compose-dev.yaml"
 COMPOSE_CMD="docker compose -p $COMPOSE_PROJECT_NAME -f docker-compose-dev.yaml"
-SANDBOX_CONTAINER_PREFIX="${VASSILFLOW_SANDBOX_CONTAINER_PREFIX:-${DEER_FLOW_SANDBOX_CONTAINER_PREFIX:-vassilflow-sandbox}}"
-LEGACY_SANDBOX_CONTAINER_PREFIX="deer-flow-sandbox"
+SANDBOX_CONTAINER_PREFIX="${VASSILFLOW_SANDBOX_CONTAINER_PREFIX:-vassilflow-sandbox}"
 DEFAULT_RUNTIME_HOME="$PROJECT_ROOT/backend/.vassilflow"
-LEGACY_RUNTIME_HOME="$PROJECT_ROOT/backend/.deer-flow"
 
 configure_msys_docker_path_conversion() {
     # Git Bash converts /app and /root-style values for Windows executables.
     # These values are Linux container paths and must reach Docker unchanged.
-    local excluded_vars="VASSILFLOW_CONTAINER_HOME;DEER_FLOW_CONTAINER_HOME;VASSILFLOW_HOME;DEER_FLOW_HOME;CODEX_AUTH_PATH"
+    local excluded_vars="VASSILFLOW_CONTAINER_HOME;VASSILFLOW_HOME;CODEX_AUTH_PATH"
     export MSYS_NO_PATHCONV="${MSYS_NO_PATHCONV:-1}"
     export MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:-*}"
     if [ -n "${MSYS2_ENV_CONV_EXCL:-}" ]; then
@@ -41,41 +36,6 @@ configure_msys_docker_path_conversion() {
 }
 
 configure_msys_docker_path_conversion
-
-vassilflow_alias_for() {
-    case "$1" in
-        DEER_FLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEER_FLOW_}" ;;
-        DEERFLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEERFLOW_}" ;;
-        *) return 1 ;;
-    esac
-}
-
-sync_vassilflow_env() {
-    local legacy="$1"
-    local alias
-    alias="$(vassilflow_alias_for "$legacy" 2>/dev/null || true)"
-    [ -n "$alias" ] || return 0
-
-    if [ -n "${!alias+x}" ]; then
-        export "$legacy=${!alias}"
-    elif [ -n "${!legacy+x}" ]; then
-        export "$alias=${!legacy}"
-    fi
-}
-
-sync_vassilflow_envs() {
-    sync_vassilflow_env DEER_FLOW_ROOT
-    sync_vassilflow_env DEER_FLOW_HOME
-    sync_vassilflow_env DEER_FLOW_RUNTIME_HOME
-    sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
-    sync_vassilflow_env DEER_FLOW_DOCKER_DEV_PROJECT
-    sync_vassilflow_env DEER_FLOW_SANDBOX_CONTAINER_PREFIX
-    sync_vassilflow_env DEER_FLOW_DOCKER_CLI_AUTH
-    sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
-    sync_vassilflow_env DEER_FLOW_INTERNAL_AUTH_TOKEN
-    sync_vassilflow_env DEER_FLOW_CHANNELS_LANGGRAPH_URL
-    sync_vassilflow_env DEER_FLOW_CHANNELS_GATEWAY_URL
-}
 
 load_env_var_from_dotenv_if_unset() {
     local var="$1"
@@ -105,7 +65,6 @@ load_env_var_from_dotenv_if_unset() {
 
 load_docker_control_env_from_dotenv() {
     load_env_var_from_dotenv_if_unset VASSILFLOW_DOCKER_CLI_AUTH
-    load_env_var_from_dotenv_if_unset DEER_FLOW_DOCKER_CLI_AUTH
 }
 
 is_truthy() {
@@ -132,48 +91,18 @@ ensure_home_for_cli_auth_overlay() {
 
 enable_cli_auth_overlay_if_requested() {
     load_docker_control_env_from_dotenv
-    sync_vassilflow_env DEER_FLOW_DOCKER_CLI_AUTH
-    if is_truthy "${VASSILFLOW_DOCKER_CLI_AUTH:-${DEER_FLOW_DOCKER_CLI_AUTH:-}}"; then
+    if is_truthy "${VASSILFLOW_DOCKER_CLI_AUTH:-}"; then
         ensure_home_for_cli_auth_overlay
         COMPOSE_CMD="$COMPOSE_CMD -f docker-compose.cli-auth.yaml"
     fi
 }
 
-compose_project_has_containers() {
-    local project_name="$1"
-    docker compose -p "$project_name" -f "$COMPOSE_FILE" ps -q 2>/dev/null | grep -q .
-}
-
-down_compose_project() {
-    local project_name="$1"
-    docker compose -p "$project_name" -f "$COMPOSE_FILE" down --remove-orphans >/dev/null 2>&1 || true
-}
-
-stop_legacy_stack_if_running() {
-    if [ "$COMPOSE_PROJECT_NAME" = "$LEGACY_COMPOSE_PROJECT_NAME" ]; then
-        return 0
-    fi
-
-    if compose_project_has_containers "$LEGACY_COMPOSE_PROJECT_NAME"; then
-        echo -e "${YELLOW}Stopping legacy Docker project '$LEGACY_COMPOSE_PROJECT_NAME' before starting '$COMPOSE_PROJECT_NAME'.${NC}"
-        down_compose_project "$LEGACY_COMPOSE_PROJECT_NAME"
-        echo ""
-    fi
-}
-
 default_runtime_home() {
-    if [ ! -e "$DEFAULT_RUNTIME_HOME" ] && [ -e "$LEGACY_RUNTIME_HOME" ]; then
-        printf '%s\n' "$LEGACY_RUNTIME_HOME"
-    else
-        printf '%s\n' "$DEFAULT_RUNTIME_HOME"
-    fi
+    printf '%s\n' "$DEFAULT_RUNTIME_HOME"
 }
 
 container_runtime_home_for() {
-    case "$1" in
-        */.deer-flow|*/.deer-flow/) printf '%s\n' "/app/backend/.deer-flow" ;;
-        *) printf '%s\n' "/app/backend/.vassilflow" ;;
-    esac
+    printf '%s\n' "/app/backend/.vassilflow"
 }
 
 enable_cli_auth_overlay_if_requested
@@ -364,10 +293,8 @@ start() {
     # the default (local) and provisioner modes never expose the host daemon.
     # Mounting the socket = root-equivalent host control; see SECURITY.md.
     if [ "$sandbox_mode" = "aio" ]; then
-        sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
         local docker_socket="${VASSILFLOW_DOCKER_SOCKET:-/var/run/docker.sock}"
         export VASSILFLOW_DOCKER_SOCKET="$docker_socket"
-        sync_vassilflow_env DEER_FLOW_DOCKER_SOCKET
         if [ ! -S "$docker_socket" ]; then
             echo -e "${YELLOW}⚠ Docker socket not found at $docker_socket — AioSandboxProvider (DooD) will not work.${NC}"
             exit 1
@@ -385,28 +312,23 @@ start() {
     fi
     echo ""
     
-    sync_vassilflow_envs
 
     if [ -z "${VASSILFLOW_RUNTIME_HOME:-}" ]; then
         export VASSILFLOW_RUNTIME_HOME
         VASSILFLOW_RUNTIME_HOME="$(default_runtime_home)"
     fi
-    sync_vassilflow_env DEER_FLOW_RUNTIME_HOME
 
     if [ -z "${VASSILFLOW_CONTAINER_HOME:-}" ]; then
         export VASSILFLOW_CONTAINER_HOME
         VASSILFLOW_CONTAINER_HOME="$(container_runtime_home_for "$VASSILFLOW_RUNTIME_HOME")"
     fi
-    sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
 
     # Set repo root for provisioner if not already set
     if [ -z "${VASSILFLOW_ROOT:-}" ]; then
         export VASSILFLOW_ROOT="$PROJECT_ROOT"
-        sync_vassilflow_env DEER_FLOW_ROOT
         echo -e "${BLUE}Setting VASSILFLOW_ROOT=$VASSILFLOW_ROOT${NC}"
         echo ""
     fi
-    sync_vassilflow_envs
     
     # Ensure config.yaml exists before starting.
     if [ ! -f "$PROJECT_ROOT/config.yaml" ]; then
@@ -443,7 +365,6 @@ start() {
     fi
 
     load_proxy_env_from_dotenv
-    stop_legacy_stack_if_running
 
     echo "Building and starting containers..."
     cd "$DOCKER_DIR" && $COMPOSE_CMD up --build -d --remove-orphans $services
@@ -500,31 +421,21 @@ logs() {
 stop() {
     # VASSILFLOW_ROOT is referenced in docker-compose-dev.yaml; set it before
     # running compose down to suppress "variable is not set" warnings.
-    sync_vassilflow_envs
     if [ -z "${VASSILFLOW_ROOT:-}" ]; then
         export VASSILFLOW_ROOT="$PROJECT_ROOT"
     fi
-    sync_vassilflow_env DEER_FLOW_ROOT
     if [ -z "${VASSILFLOW_RUNTIME_HOME:-}" ]; then
         export VASSILFLOW_RUNTIME_HOME
         VASSILFLOW_RUNTIME_HOME="$(default_runtime_home)"
     fi
-    sync_vassilflow_env DEER_FLOW_RUNTIME_HOME
     if [ -z "${VASSILFLOW_CONTAINER_HOME:-}" ]; then
         export VASSILFLOW_CONTAINER_HOME
         VASSILFLOW_CONTAINER_HOME="$(container_runtime_home_for "$VASSILFLOW_RUNTIME_HOME")"
     fi
-    sync_vassilflow_env DEER_FLOW_CONTAINER_HOME
     echo "Stopping Docker development services..."
     cd "$DOCKER_DIR" && $COMPOSE_CMD down --remove-orphans
-    if [ "$COMPOSE_PROJECT_NAME" != "$LEGACY_COMPOSE_PROJECT_NAME" ]; then
-        down_compose_project "$LEGACY_COMPOSE_PROJECT_NAME"
-    fi
     echo "Cleaning up sandbox containers..."
     "$SCRIPT_DIR/cleanup-containers.sh" "$SANDBOX_CONTAINER_PREFIX" 2>/dev/null || true
-    if [ "$SANDBOX_CONTAINER_PREFIX" != "$LEGACY_SANDBOX_CONTAINER_PREFIX" ]; then
-        "$SCRIPT_DIR/cleanup-containers.sh" "$LEGACY_SANDBOX_CONTAINER_PREFIX" 2>/dev/null || true
-    fi
     echo -e "${GREEN}✓ Docker services stopped${NC}"
 }
 

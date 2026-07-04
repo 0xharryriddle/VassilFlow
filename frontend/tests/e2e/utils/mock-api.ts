@@ -44,6 +44,7 @@ export type MockAgent = {
 };
 
 export type MockSkill = {
+  id: string;
   name: string;
   description: string;
   category?: string;
@@ -59,18 +60,21 @@ export type MockAPIOptions = {
 
 const DEFAULT_SKILLS: MockSkill[] = [
   {
+    id: "public:data-analysis",
     name: "data-analysis",
     description: "Analyze structured data and produce charts.",
     category: "public",
     enabled: true,
   },
   {
+    id: "public:frontend-design",
     name: "frontend-design",
     description: "Create polished frontend interfaces.",
     category: "public",
     enabled: true,
   },
   {
+    id: "public:disabled-skill",
     name: "disabled-skill",
     description: "Hidden from slash autocomplete.",
     category: "public",

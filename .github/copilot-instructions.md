@@ -4,7 +4,7 @@ Use this file as the default operating guide for this repository. Follow it firs
 
 ## 1) Repository Summary
 
-VassilFlow is a full-stack "super agent harness" being migrated from the upstream DeerFlow runtime.
+VassilFlow is a full-stack "super agent harness" with a standalone VassilFlow runtime.
 
 - Backend: Python 3.12, LangGraph + FastAPI gateway, sandbox/tool system, memory, MCP integration.
 - Frontend: Next.js 16 + React 19 + TypeScript + pnpm.
@@ -143,12 +143,11 @@ Root-level orchestration and config:
 
 Backend core:
 
-- `backend/packages/harness/vassilflow/` - VassilFlow public facade package; prefer `vassilflow.*` imports in docs, scripts, and new integration tests
-- `backend/packages/harness/deerflow/agents/` - current lead agent implementation behind the facade; use `deerflow.*` only when patching implementation globals or working inside that package
+- `backend/packages/harness/vassilflow/` - VassilFlow runtime package; use `vassilflow.*` imports in docs, scripts, tests, and implementation code
 - `backend/app/gateway/` - FastAPI gateway API
-- `backend/packages/harness/deerflow/sandbox/` - current sandbox provider + tool wrappers implementation
-- `backend/packages/harness/deerflow/subagents/` - current subagent registry/execution implementation
-- `backend/packages/harness/deerflow/mcp/` - current MCP integration implementation
+- `backend/packages/harness/vassilflow/sandbox/` - sandbox provider + tool wrappers implementation
+- `backend/packages/harness/vassilflow/subagents/` - subagent registry/execution implementation
+- `backend/packages/harness/vassilflow/mcp/` - MCP integration implementation
 - `backend/langgraph.json` - graph entrypoint (`vassilflow.agents:make_lead_agent`)
 - `backend/pyproject.toml` - Python deps and `requires-python`
 - `backend/ruff.toml` - lint/format policy

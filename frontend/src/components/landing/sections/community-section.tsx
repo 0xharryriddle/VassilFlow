@@ -1,9 +1,9 @@
 "use client";
 
 import { GitHubLogoIcon } from "@radix-ui/react-icons";
+import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 
-import { AuroraText } from "@/components/ui/aurora-text";
 import { Button } from "@/components/ui/button";
 import { APP_BRAND_NAME, APP_REPOSITORY_URL } from "@/core/brand";
 
@@ -12,22 +12,20 @@ import { Section } from "../section";
 export function CommunitySection() {
   return (
     <Section
-      title={
-        <AuroraText colors={["#60A5FA", "#A5FA60", "#A560FA"]}>
-          Join the Community
-        </AuroraText>
-      }
-      subtitle={`Contribute brilliant ideas to shape the future of ${APP_BRAND_NAME}. Collaborate, innovate, and make impacts.`}
+      className="bg-[#0b0d10] px-4"
+      title="Build the Harness With Us"
+      subtitle={`${APP_BRAND_NAME} is open for engineers who want agent systems that can actually operate across files, tools, memory, and execution environments.`}
     >
-      <div className="flex justify-center">
-        <Button className="text-xl" size="lg" asChild>
+      <div className="mt-10 flex justify-center">
+        <Button className="h-12 rounded-md px-5 text-base" size="lg" asChild>
           <Link
             href={APP_REPOSITORY_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
             <GitHubLogoIcon />
-            Contribute Now
+            Contribute on GitHub
+            <ArrowRightIcon className="size-4" />
           </Link>
         </Button>
       </div>

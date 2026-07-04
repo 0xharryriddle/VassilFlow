@@ -216,7 +216,7 @@ class SkillStorage(ABC):
         """
         from vassilflow.skills.parser import parse_skill_file
 
-        skills_by_name: dict[str, Skill] = {}
+        skills_by_id: dict[str, Skill] = {}
         for category, category_root, md_path in self._iter_skill_files():
             skill = parse_skill_file(
                 md_path,
@@ -224,9 +224,9 @@ class SkillStorage(ABC):
                 relative_path=md_path.parent.relative_to(category_root),
             )
             if skill:
-                skills_by_name[skill.name] = skill
+                skills_by_id[skill.id] = skill
 
-        skills = list(skills_by_name.values())
+        skills = list(skills_by_id.values())
 
         # Merge enabled state from extensions config (re-read every call so
         # changes made by another process are picked up immediately).
@@ -242,7 +242,7 @@ class SkillStorage(ABC):
         if enabled_only:
             skills = [s for s in skills if s.enabled]
 
-        skills.sort(key=lambda s: s.name)
+        skills.sort(key=lambda s: (str(s.category), s.name))
         return skills
 
     def ensure_custom_skill_is_editable(self, name: str) -> None:

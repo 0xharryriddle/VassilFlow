@@ -26,7 +26,7 @@ from vassilflow.config.app_config import AppConfig
 from vassilflow.config.env_aliases import env_value
 from vassilflow.models import create_chat_model
 from vassilflow.skills.tool_policy import filter_tools_by_skill_allowed_tools
-from vassilflow.skills.types import Skill
+from vassilflow.skills.types import Skill, skill_reference_matches
 from vassilflow.subagents.config import SubagentConfig, resolve_subagent_model_name
 from vassilflow.subagents.token_collector import SubagentTokenCollector
 from vassilflow.tracing import build_tracing_callbacks, inject_langfuse_metadata
@@ -401,7 +401,7 @@ class SubagentExecutor:
         # Filter by config.skills whitelist
         if self.config.skills is not None:
             allowed = set(self.config.skills)
-            return [s for s in all_skills if s.name in allowed]
+            return [s for s in all_skills if any(skill_reference_matches(s.name, s.category, item) for item in allowed)]
         return all_skills
 
     def _apply_skill_allowed_tools(self, skills: list[Skill]) -> list[BaseTool]:
@@ -416,7 +416,7 @@ class SubagentExecutor:
         skills are loaded:
         - None: load all enabled skills
         - []: no skills
-        - ["skill-a", "skill-b"]: only these skills
+        - ["custom:skill-a", "skill-b"]: only these skill ids or unambiguous names
 
         Returns:
             List of SystemMessages containing skill content.

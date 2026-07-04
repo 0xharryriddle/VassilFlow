@@ -17,7 +17,8 @@ class SubagentConfig:
         system_prompt: The system prompt that guides the subagent's behavior.
         tools: Optional list of tool names to allow. If None, inherits all tools.
         disallowed_tools: Optional list of tool names to deny.
-        skills: Optional list of skill names to load. If None, inherits all enabled skills.
+        skills: Optional list of skill ids (`category:name`) or unambiguous names to load.
+                If None, inherits all enabled skills.
                 If an empty list, no skills are loaded.
         model: Model to use - 'inherit' uses parent's model.
         max_turns: Maximum agent turns before stopping. Built-in agents use the

@@ -11,7 +11,7 @@ VassilFlow is an open-source **super agent harness** that orchestrates **sub-age
 https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
 > [!NOTE]
-> VassilFlow is now the canonical product and runtime identity. Legacy environment names, runtime directories, and SQLite database names are retained only as migration fallbacks for existing checkouts.
+> VassilFlow is the canonical product and runtime identity. Runtime configuration uses `VASSILFLOW_*` environment variables, `.vassilflow` state directories, and `vassilflow.db`; legacy upstream names are handled only by explicit one-time migration scripts.
 
 ## Table of Contents
 
@@ -222,7 +222,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed Docker development guide.
 
 If you prefer running services locally:
 
-Prerequisite: complete the "Configuration" steps above first (`make setup`). `make dev` requires a valid `config.yaml` in the project root. Set `VASSILFLOW_PROJECT_ROOT` to define that root explicitly, or `VASSILFLOW_CONFIG_PATH` to point at a specific config file. Runtime state defaults to `.vassilflow` under the project root; an existing `.deer-flow` directory is still used as a transition fallback when `.vassilflow` does not exist. Use `make runtime-migrate` to copy legacy runtime data into the VassilFlow runtime home without overwriting an existing target; custom `DEER_FLOW_HOME` and `VASSILFLOW_HOME` paths are honored. You can override the location with `VASSILFLOW_HOME`; skills default to `skills/` under the project root and can be moved with `VASSILFLOW_SKILLS_PATH`. Legacy `DEER_FLOW_*` variables still work as fallbacks; when both names are set, `VASSILFLOW_*` wins. Run `make doctor` to verify your setup before starting.
+Prerequisite: complete the "Configuration" steps above first (`make setup`). `make dev` requires a valid `config.yaml` in the project root. Set `VASSILFLOW_PROJECT_ROOT` to define that root explicitly, or `VASSILFLOW_CONFIG_PATH` to point at a specific config file. Runtime state defaults to `.vassilflow` under the project root. You can override the location with `VASSILFLOW_HOME`; skills default to `skills/` under the project root and can be moved with `VASSILFLOW_SKILLS_PATH`. Run `make doctor` to verify your setup before starting.
 On Windows, run the local development flow from Git Bash. Native `cmd.exe` and PowerShell shells are not supported for the bash-based service scripts, and WSL is not guaranteed because some scripts rely on Git for Windows utilities such as `cygpath`.
 
 1. **Check prerequisites**:
@@ -473,7 +473,7 @@ DINGTALK_CLIENT_SECRET=your_client_secret
 4. *(Optional)* To enable streaming AI Card replies (typewriter effect), create an **AI Card** template on the [DingTalk Card Platform](https://open.dingtalk.com/document/dingstart/typewriter-effect-streaming-ai-card), then set `card_template_id` in `config.yaml` to the template ID. You also need to apply for the `Card.Streaming.Write` and `Card.Instance.Write` permissions.
 
 
-When VassilFlow runs in Docker Compose, IM channels execute inside the `gateway` container. In that case, do not point `channels.langgraph_url` or `channels.gateway_url` at `localhost`; use container service names such as `http://gateway:8001/api` and `http://gateway:8001`, or set `VASSILFLOW_CHANNELS_LANGGRAPH_URL` and `VASSILFLOW_CHANNELS_GATEWAY_URL` (legacy `DEER_FLOW_*` aliases still work).
+When VassilFlow runs in Docker Compose, IM channels execute inside the `gateway` container. In that case, do not point `channels.langgraph_url` or `channels.gateway_url` at `localhost`; use container service names such as `http://gateway:8001/api` and `http://gateway:8001`, or set `VASSILFLOW_CHANNELS_LANGGRAPH_URL` and `VASSILFLOW_CHANNELS_GATEWAY_URL`.
 
 **Commands**
 
@@ -524,7 +524,7 @@ If you are using a self-hosted Langfuse instance, set `LANGFUSE_BASE_URL` to you
 - `trace_name` = assistant id (defaults to `lead-agent`)
 - `tags` = `[env:<VASSILFLOW_ENV>, model:<model_name>]` (omitted when not set)
 
-These are injected into `RunnableConfig.metadata` at the graph invocation root for both the gateway path (`runtime/runs/worker.py::run_agent`) and the embedded path (`client.py::VassilFlowClient.stream`), so any LangChain-compatible callback can read them. Set `VASSILFLOW_ENV` (or legacy `DEER_FLOW_ENV`, then `ENVIRONMENT`) to tag traces by deployment environment.
+These are injected into `RunnableConfig.metadata` at the graph invocation root for both the gateway path (`runtime/runs/worker.py::run_agent`) and the embedded path (`client.py::VassilFlowClient.stream`), so any LangChain-compatible callback can read them. Set `VASSILFLOW_ENV` (or `ENVIRONMENT`) to tag traces by deployment environment.
 
 #### Using Both Providers
 
@@ -603,8 +603,6 @@ VASSILFLOW_URL=http://localhost:2026            # Unified proxy base URL
 VASSILFLOW_GATEWAY_URL=http://localhost:2026    # Gateway API
 VASSILFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
 ```
-
-Legacy `DEERFLOW_*` names remain accepted by the bundled scripts.
 
 See [`skills/public/claude-to-vassilflow/SKILL.md`](skills/public/claude-to-vassilflow/SKILL.md) for the full API reference.
 

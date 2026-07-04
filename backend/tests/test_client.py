@@ -146,6 +146,7 @@ class TestConfigQueries:
         assert "skills" in result
         assert len(result["skills"]) == 1
         assert result["skills"][0] == {
+            "id": "public:web-search",
             "name": "web-search",
             "description": "Search the web",
             "license": "MIT",
@@ -3215,6 +3216,7 @@ class TestBugAgentInvalidationInconsistency:
 
         skill = MagicMock()
         skill.name = "s1"
+        skill.category = "c"
         updated = MagicMock()
         updated.name = "s1"
         updated.description = "d"

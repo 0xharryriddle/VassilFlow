@@ -44,7 +44,7 @@ from vassilflow.config.agents_config import load_agent_config, validate_agent_na
 from vassilflow.config.app_config import AppConfig, get_app_config
 from vassilflow.models import create_chat_model
 from vassilflow.skills.tool_policy import filter_tools_by_skill_allowed_tools
-from vassilflow.skills.types import Skill
+from vassilflow.skills.types import Skill, skill_reference_matches
 from vassilflow.tracing import build_tracing_callbacks
 
 logger = logging.getLogger(__name__)
@@ -410,7 +410,7 @@ def _load_enabled_skills_for_tool_policy(available_skills: set[str] | None, *, a
 
     if available_skills is None:
         return skills
-    return [skill for skill in skills if skill.name in available_skills]
+    return [skill for skill in skills if any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in available_skills)]
 
 
 def make_lead_agent(config: RunnableConfig):

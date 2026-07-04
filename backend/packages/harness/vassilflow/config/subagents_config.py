@@ -27,7 +27,7 @@ class SubagentOverrideConfig(BaseModel):
     )
     skills: list[str] | None = Field(
         default=None,
-        description="Skill names whitelist for this subagent (None = inherit all enabled skills, [] = no skills)",
+        description="Skill ids (`category:name`) or unambiguous names whitelist for this subagent (None = inherit all enabled skills, [] = no skills)",
     )
 
 
@@ -50,7 +50,7 @@ class CustomSubagentConfig(BaseModel):
     )
     skills: list[str] | None = Field(
         default=None,
-        description="Skill names whitelist (None = inherit all enabled skills, [] = no skills)",
+        description="Skill ids (`category:name`) or unambiguous names whitelist (None = inherit all enabled skills, [] = no skills)",
     )
     model: str = Field(
         default="inherit",
@@ -134,7 +134,7 @@ class SubagentsAppConfig(BaseModel):
             agent_name: The name of the subagent.
 
         Returns:
-            Skill names whitelist if overridden, None otherwise (subagent will inherit all enabled skills).
+            Skill id/name whitelist if overridden, None otherwise (subagent will inherit all enabled skills).
         """
         override = self.agents.get(agent_name)
         if override is not None and override.skills is not None:

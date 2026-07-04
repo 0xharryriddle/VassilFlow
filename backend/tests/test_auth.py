@@ -239,12 +239,11 @@ def test_require_auth_requires_request_param():
         asyncio.run(bad_endpoint())
 
 
-def test_direct_unit_call_bypass_uses_vassilflow_attr_and_accepts_legacy():
-    """Direct unit-call auth bypass uses the VassilFlow attr while accepting legacy stubs."""
+def test_direct_unit_call_bypass_uses_vassilflow_attr_only():
+    """Direct unit-call auth bypass uses only the VassilFlow attr."""
     from types import SimpleNamespace
 
     from app.gateway.authz import (
-        _LEGACY_TEST_BYPASS_AUTH_ATTR,
         _TEST_BYPASS_AUTH_ATTR,
         _is_test_bypass_request,
         _make_test_request_stub,
@@ -252,11 +251,10 @@ def test_direct_unit_call_bypass_uses_vassilflow_attr_and_accepts_legacy():
 
     request = _make_test_request_stub()
     assert getattr(request, _TEST_BYPASS_AUTH_ATTR) is True
-    assert not hasattr(request, _LEGACY_TEST_BYPASS_AUTH_ATTR)
     assert _is_test_bypass_request(request) is True
 
-    legacy_request = SimpleNamespace(**{_LEGACY_TEST_BYPASS_AUTH_ATTR: True})
-    assert _is_test_bypass_request(legacy_request) is True
+    legacy_request = SimpleNamespace(**{"_deerflow_test_bypass_auth": True})
+    assert _is_test_bypass_request(legacy_request) is False
 
 
 # ── require_permission decorator ─────────────────────────────────────────────
@@ -345,18 +343,16 @@ def test_require_permission_internal_role_scoped_by_owner_header():
     assert response.status_code == 200
 
 
-def test_require_permission_internal_role_accepts_legacy_owner_header():
-    """Legacy internal owner header remains accepted during header migration."""
-    from app.gateway.internal_auth import LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME
-
+def test_require_permission_internal_role_rejects_legacy_owner_header():
+    """Legacy internal owner header is ignored by standalone VassilFlow."""
     app = _make_internal_owner_check_app()
     with patch("app.gateway.authz._authenticate", return_value=_internal_auth_context()):
         with TestClient(app) as client:
             response = client.get(
                 "/threads/alice-thread",
-                headers={LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME: "alice"},
+                headers={"X-DeerFlow-Owner-User-Id": "alice"},
             )
-    assert response.status_code == 200
+    assert response.status_code == 404
 
 
 def test_require_permission_internal_role_denied_for_other_owner():

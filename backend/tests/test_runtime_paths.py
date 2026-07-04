@@ -72,7 +72,7 @@ def test_vassilflow_project_root_overrides_current_directory(tmp_path: Path, mon
     assert SkillsConfig(path="custom-skills").get_skills_path() == project_root / "custom-skills"
 
 
-def test_runtime_home_uses_existing_legacy_state_when_vassilflow_home_missing(tmp_path: Path, monkeypatch):
+def test_runtime_home_ignores_existing_legacy_state_when_vassilflow_home_missing(tmp_path: Path, monkeypatch):
     _clear_path_env(monkeypatch)
     project_root = tmp_path / "project"
     project_root.mkdir()
@@ -80,8 +80,8 @@ def test_runtime_home_uses_existing_legacy_state_when_vassilflow_home_missing(tm
     legacy_home.mkdir()
     monkeypatch.setenv("VASSILFLOW_PROJECT_ROOT", str(project_root))
 
-    assert runtime_home() == legacy_home.resolve()
-    assert Paths().base_dir == legacy_home.resolve()
+    assert runtime_home() == (project_root / ".vassilflow").resolve()
+    assert Paths().base_dir == (project_root / ".vassilflow").resolve()
 
 
 def test_runtime_home_prefers_vassilflow_state_when_both_exist(tmp_path: Path, monkeypatch):

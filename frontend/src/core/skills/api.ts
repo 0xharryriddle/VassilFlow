@@ -9,9 +9,9 @@ export async function loadSkills() {
   return json.skills as Skill[];
 }
 
-export async function enableSkill(skillName: string, enabled: boolean) {
+export async function enableSkill(skillId: string, enabled: boolean) {
   const response = await fetch(
-    `${getBackendBaseURL()}/api/skills/${skillName}`,
+    `${getBackendBaseURL()}/api/skills/${encodeURIComponent(skillId)}`,
     {
       method: "PUT",
       headers: {

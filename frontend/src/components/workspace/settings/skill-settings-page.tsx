@@ -90,7 +90,7 @@ function SkillSettingsList({
       )}
       {filteredSkills.length > 0 &&
         filteredSkills.map((skill) => (
-          <Item className="w-full" variant="outline" key={skill.name}>
+          <Item className="w-full" variant="outline" key={skill.id}>
             <ItemContent>
               <ItemTitle>
                 <div className="flex items-center gap-2">{skill.name}</div>
@@ -104,7 +104,7 @@ function SkillSettingsList({
                 checked={skill.enabled}
                 disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
                 onCheckedChange={(checked) =>
-                  enableSkill({ skillName: skill.name, enabled: checked })
+                  enableSkill({ skillId: skill.id, enabled: checked })
                 }
               />
             </ItemActions>

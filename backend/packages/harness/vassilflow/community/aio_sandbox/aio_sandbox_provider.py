@@ -335,7 +335,7 @@ class AioSandboxProvider(SandboxProvider):
     def _get_skills_mount() -> tuple[str, str, bool] | None:
         """Get the skills directory mount configuration.
 
-        Mount source uses VASSILFLOW_HOST_SKILLS_PATH/DEER_FLOW_HOST_SKILLS_PATH
+        Mount source uses VASSILFLOW_HOST_SKILLS_PATH
         when running inside Docker (DooD) so the host Docker daemon can resolve
         the path.
         """

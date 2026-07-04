@@ -110,9 +110,9 @@ class Paths:
 
     BaseDir resolution (in priority order):
         1. Constructor argument `base_dir`
-        2. VASSILFLOW_HOME/DEER_FLOW_HOME environment variable
+        2. VASSILFLOW_HOME environment variable
         3. Caller project fallback: `{project_root}/.vassilflow`
-        4. Existing legacy fallback: `{project_root}/.deer-flow`
+        4. Default runtime directory: `{project_root}/.vassilflow`
     """
 
     def __init__(self, base_dir: str | Path | None = None) -> None:
@@ -124,7 +124,7 @@ class Paths:
 
         When running inside Docker with a mounted Docker socket (DooD), the Docker
         daemon runs on the host and resolves mount paths against the host filesystem.
-        Set VASSILFLOW_HOST_BASE_DIR/DEER_FLOW_HOST_BASE_DIR to the host-side
+        Set VASSILFLOW_HOST_BASE_DIR to the host-side
         path that corresponds to this container's base_dir so that sandbox
         container volume mounts work correctly.
 

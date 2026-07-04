@@ -201,7 +201,7 @@ class AppConfig(BaseModel):
 
         Priority:
         1. If provided `config_path` argument, use it.
-        2. If provided `VASSILFLOW_CONFIG_PATH`/`DEER_FLOW_CONFIG_PATH` environment variable, use it.
+        2. If provided `VASSILFLOW_CONFIG_PATH` environment variable, use it.
         3. Otherwise, search the caller project root.
         4. Finally, search legacy backend/repository-root defaults for monorepo compatibility.
         """
@@ -213,7 +213,7 @@ class AppConfig(BaseModel):
         elif env_config_path := env_value("VASSILFLOW_CONFIG_PATH"):
             path = Path(env_config_path)
             if not Path.exists(path):
-                raise FileNotFoundError(f"Config file specified by environment variable `VASSILFLOW_CONFIG_PATH`/`DEER_FLOW_CONFIG_PATH` not found at {path}")
+                raise FileNotFoundError(f"Config file specified by environment variable `VASSILFLOW_CONFIG_PATH` not found at {path}")
             return path
         else:
             project_config = existing_project_file(("config.yaml",))
@@ -362,8 +362,7 @@ class AppConfig(BaseModel):
     def resolve_env_variables(cls, config: Any) -> Any:
         """Recursively resolve environment variables in the config.
 
-        Environment variables are resolved from the process environment. VassilFlow
-        variable references also honor their legacy upstream aliases.
+        Environment variables are resolved from the process environment.
 
         Args:
             config: The config to resolve environment variables in.

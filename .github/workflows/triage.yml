@@ -55,11 +55,11 @@ jobs:
             // ---- area: replaces .github/labeler.yml (path -> area) ----
             const AREA_RULES = [
               ['area:frontend', [/^frontend\//]],
-              ['area:backend',  [/^backend\/app\//, /^backend\/packages\/harness\/(deerflow|vassilflow)\/(runtime|persistence|config|tools|guardrails|tracing|models|utils|uploads)\//]],
-              ['area:agents',   [/^backend\/packages\/harness\/(deerflow|vassilflow)\/(agents|subagents|reflection)\//, /(^|\/)langgraph\.json$/, /^backend\/.*\/prompts\//]],
-              ['area:sandbox',  [/^docker\//, /^backend\/packages\/harness\/(deerflow|vassilflow)\/sandbox\//, /(^|\/)Dockerfile$/]],
-              ['area:skills',   [/^skills\//, /^backend\/packages\/harness\/(deerflow|vassilflow)\/skills\//, /^frontend\/src\/core\/skills\//]],
-              ['area:mcp',      [/^backend\/packages\/harness\/(deerflow|vassilflow)\/mcp\//, /^frontend\/src\/core\/mcp\//]],
+              ['area:backend',  [/^backend\/app\//, /^backend\/packages\/harness\/vassilflow\/(runtime|persistence|config|tools|guardrails|tracing|models|utils|uploads)\//]],
+              ['area:agents',   [/^backend\/packages\/harness\/vassilflow\/(agents|subagents|reflection)\//, /(^|\/)langgraph\.json$/, /^backend\/.*\/prompts\//]],
+              ['area:sandbox',  [/^docker\//, /^backend\/packages\/harness\/vassilflow\/sandbox\//, /(^|\/)Dockerfile$/]],
+              ['area:skills',   [/^skills\//, /^backend\/packages\/harness\/vassilflow\/skills\//, /^frontend\/src\/core\/skills\//]],
+              ['area:mcp',      [/^backend\/packages\/harness\/vassilflow\/mcp\//, /^frontend\/src\/core\/mcp\//]],
               ['area:ci',       [/^\.github\//, /^scripts\//]],
               ['area:docs',     [/^docs\//, /\.mdx?$/]],
               ['area:deps',     [/(^|\/)(pyproject\.toml|uv\.lock|package\.json|pnpm-lock\.yaml)$/]],
@@ -85,7 +85,7 @@ jobs:
               /\.(png|jpe?g|gif|svg|webp|ico)$/i.test(p));
             const highRisk =
               m(/^backend\/app\/gateway\//) ||
-              m(/^backend\/packages\/harness\/(deerflow|vassilflow)\/(agents|subagents|sandbox)\//) ||
+              m(/^backend\/packages\/harness\/vassilflow\/(agents|subagents|sandbox)\//) ||
               m(/(^|\/)langgraph\.json$/) ||
               m(/(^|\/)(auth|authz|security)/i) ||
               m(/(pyproject\.toml|uv\.lock|package\.json|pnpm-lock\.yaml)$/) ||
@@ -96,7 +96,7 @@ jobs:
             // ---- needs-validation: front/back contract surface ----
             const contract =
               m(/^backend\/app\/gateway\//) ||
-              m(/^backend\/packages\/harness\/(deerflow|vassilflow)\/(agents|subagents)\//) ||
+              m(/^backend\/packages\/harness\/vassilflow\/(agents|subagents)\//) ||
               m(/(^|\/)langgraph\.json$/) ||
               m(/^frontend\/src\/core\/(api|threads|messages)\//);
 

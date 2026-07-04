@@ -17,8 +17,6 @@ rs.mock("next/headers", () => ({
 }));
 
 const ENV_KEYS = [
-  "DEER_FLOW_AUTH_DISABLED",
-  "DEER_FLOW_ENV",
   "ENVIRONMENT",
   "NEXT_PUBLIC_STATIC_WEBSITE_ONLY",
   "VASSILFLOW_AUTH_DISABLED",
@@ -62,8 +60,6 @@ describe("getServerSideUser", () => {
 
   beforeEach(() => {
     saved = snapshotEnv();
-    setEnv("DEER_FLOW_AUTH_DISABLED", undefined);
-    setEnv("DEER_FLOW_ENV", undefined);
     setEnv("ENVIRONMENT", undefined);
     setEnv("NEXT_PUBLIC_STATIC_WEBSITE_ONLY", undefined);
     setEnv("VASSILFLOW_AUTH_DISABLED", undefined);
@@ -73,6 +69,7 @@ describe("getServerSideUser", () => {
   afterEach(() => {
     restoreEnv(saved);
     rs.unstubAllGlobals();
+    rs.doUnmock("next/headers");
   });
 
   test("bypasses gateway auth in static website mode", async () => {
@@ -107,20 +104,25 @@ describe("getServerSideUser", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  test("bypasses gateway auth using legacy DeerFlow auth-disabled env", async () => {
-    setEnv("DEER_FLOW_AUTH_DISABLED", "1");
-    const fetchSpy = rs.fn(() => {
-      throw new Error("fetch should not be called in auth-disabled mode");
-    });
+  test("ignores legacy DeerFlow auth-disabled env", async () => {
+    rs.doMock("next/headers", () => ({
+      cookies: rs.fn(async () => ({
+        get: () => undefined,
+      })),
+    }));
+    process.env.DEER_FLOW_AUTH_DISABLED = "1";
+    const fetchSpy = rs.fn(() =>
+      Promise.resolve(new Response("unauthorized", { status: 401 })),
+    );
     rs.stubGlobal("fetch", fetchSpy);
 
     const { getServerSideUser } = await loadFreshServerAuth();
 
     await expect(getServerSideUser()).resolves.toEqual({
-      tag: "authenticated",
-      user: AUTH_DISABLED_USER,
+      tag: "unauthenticated",
     });
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalled();
+    delete process.env.DEER_FLOW_AUTH_DISABLED;
   });
 
   test("does not enable auth-disabled mode in explicit VassilFlow production environments", async () => {
@@ -133,14 +135,16 @@ describe("getServerSideUser", () => {
     expect(isAuthDisabledMode()).toBe(false);
   });
 
-  test("does not enable legacy auth-disabled env in explicit legacy production environments", async () => {
-    setEnv("DEER_FLOW_AUTH_DISABLED", "1");
-    setEnv("DEER_FLOW_ENV", "production");
+  test("legacy auth-disabled env does not enable auth-disabled mode", async () => {
+    process.env.DEER_FLOW_AUTH_DISABLED = "1";
+    process.env.DEER_FLOW_ENV = "production";
 
     const { isAuthDisabledMode } =
       await import("@/core/auth/auth-disabled-user");
 
     expect(isAuthDisabledMode()).toBe(false);
+    delete process.env.DEER_FLOW_AUTH_DISABLED;
+    delete process.env.DEER_FLOW_ENV;
   });
 });
 
@@ -149,7 +153,6 @@ describe("getServerSideUser — gateway_unavailable contract (issue #3493)", () 
 
   beforeEach(() => {
     saved = snapshotEnv();
-    setEnv("DEER_FLOW_AUTH_DISABLED", undefined);
     setEnv("NEXT_PUBLIC_STATIC_WEBSITE_ONLY", undefined);
   });
 

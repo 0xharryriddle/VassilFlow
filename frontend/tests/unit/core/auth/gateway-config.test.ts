@@ -9,8 +9,6 @@ import {
 
 const ENV_KEYS = [
   "NODE_ENV",
-  "DEER_FLOW_INTERNAL_GATEWAY_BASE_URL",
-  "DEER_FLOW_TRUSTED_ORIGINS",
   "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL",
   "VASSILFLOW_TRUSTED_ORIGINS",
 ] as const;
@@ -54,8 +52,6 @@ describe("getGatewayConfig", () => {
 
   beforeEach(() => {
     saved = snapshotEnv();
-    setEnv("DEER_FLOW_INTERNAL_GATEWAY_BASE_URL", undefined);
-    setEnv("DEER_FLOW_TRUSTED_ORIGINS", undefined);
     setEnv("VASSILFLOW_INTERNAL_GATEWAY_BASE_URL", undefined);
     setEnv("VASSILFLOW_TRUSTED_ORIGINS", undefined);
   });
@@ -103,31 +99,27 @@ describe("getGatewayConfig", () => {
     ]);
   });
 
-  test("accepts legacy DeerFlow env values when VassilFlow names are unset", async () => {
+  test("ignores legacy DeerFlow env values when VassilFlow names are unset", async () => {
     setEnv("NODE_ENV", "production");
-    setEnv(
-      "DEER_FLOW_INTERNAL_GATEWAY_BASE_URL",
-      "https://legacy.example.com/",
-    );
-    setEnv(
-      "DEER_FLOW_TRUSTED_ORIGINS",
-      "https://legacy-app.example.com, https://legacy-admin.example.com",
-    );
+    process.env.DEER_FLOW_INTERNAL_GATEWAY_BASE_URL =
+      "https://legacy.example.com/";
+    process.env.DEER_FLOW_TRUSTED_ORIGINS =
+      "https://legacy-app.example.com, https://legacy-admin.example.com";
 
     const { getGatewayConfig } = await loadFreshConfig();
     const cfg = getGatewayConfig();
 
-    expect(cfg.internalGatewayUrl).toBe("https://legacy.example.com");
-    expect(cfg.trustedOrigins).toEqual([
-      "https://legacy-app.example.com",
-      "https://legacy-admin.example.com",
-    ]);
+    expect(cfg.internalGatewayUrl).toBe("http://127.0.0.1:8001");
+    expect(cfg.trustedOrigins).toEqual(["http://localhost:3000"]);
+    delete process.env.DEER_FLOW_INTERNAL_GATEWAY_BASE_URL;
+    delete process.env.DEER_FLOW_TRUSTED_ORIGINS;
   });
 
-  test("prefers VassilFlow env aliases over legacy DeerFlow names", async () => {
+  test("uses VassilFlow env values even when legacy DeerFlow names are present", async () => {
     setEnv("NODE_ENV", "production");
-    setEnv("DEER_FLOW_INTERNAL_GATEWAY_BASE_URL", "https://legacy.example.com");
-    setEnv("DEER_FLOW_TRUSTED_ORIGINS", "https://legacy-app.example.com");
+    process.env.DEER_FLOW_INTERNAL_GATEWAY_BASE_URL =
+      "https://legacy.example.com";
+    process.env.DEER_FLOW_TRUSTED_ORIGINS = "https://legacy-app.example.com";
     setEnv(
       "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL",
       "https://gateway.vassil.example.com/",
@@ -145,6 +137,8 @@ describe("getGatewayConfig", () => {
       "https://app.vassil.example.com",
       "https://admin.vassil.example.com",
     ]);
+    delete process.env.DEER_FLOW_INTERNAL_GATEWAY_BASE_URL;
+    delete process.env.DEER_FLOW_TRUSTED_ORIGINS;
   });
 
   test("trims and filters empty entries in trustedOrigins", async () => {

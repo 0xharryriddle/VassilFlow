@@ -37,31 +37,6 @@ if [ -f "$REPO_ROOT/.env" ]; then
     set +a
 fi
 
-vassilflow_alias_for() {
-    case "$1" in
-        DEER_FLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEER_FLOW_}" ;;
-        DEERFLOW_*) printf 'VASSILFLOW_%s\n' "${1#DEERFLOW_}" ;;
-        *) return 1 ;;
-    esac
-}
-
-sync_vassilflow_env() {
-    local legacy="$1"
-    local alias
-    alias="$(vassilflow_alias_for "$legacy" 2>/dev/null || true)"
-    [ -n "$alias" ] || return 0
-
-    if [ -n "${!alias+x}" ]; then
-        export "$legacy=${!alias}"
-    elif [ -n "${!legacy+x}" ]; then
-        export "$alias=${!legacy}"
-    fi
-}
-
-sync_vassilflow_env DEER_FLOW_PROJECT_ROOT
-sync_vassilflow_env DEER_FLOW_HOME
-sync_vassilflow_env DEER_FLOW_CONFIG_PATH
-
 _pick_python() {
     local candidate
     for candidate in python3 python py; do
@@ -124,14 +99,10 @@ _is_vassilflow_pid() {
     # Daemon children inherit VASSILFLOW_DAEMON_ROOT from run_service. Checking
     # it (Linux only — macOS has no /proc) identifies processes like
     # next-server that lsof misses, so the name/port reaps in stop_all can
-    # claim them. DEERFLOW_DAEMON_ROOT is still accepted for older daemons.
+    # claim them.
     if [ -r "/proc/$pid/environ" ]; then
         if tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null |
             grep -Fxq "VASSILFLOW_DAEMON_ROOT=$REPO_ROOT"; then
-            return 0
-        fi
-        if tr '\0' '\n' < "/proc/$pid/environ" 2>/dev/null |
-            grep -Fxq "DEERFLOW_DAEMON_ROOT=$REPO_ROOT"; then
             return 0
         fi
     fi
@@ -294,7 +265,6 @@ stop_all() {
     _kill_repo_port 3000
     _kill_repo_port 2026
     ./scripts/cleanup-containers.sh vassilflow-sandbox 2>/dev/null || true
-    ./scripts/cleanup-containers.sh deer-flow-sandbox 2>/dev/null || true
     echo "✓ All services stopped"
 }
 
@@ -337,24 +307,14 @@ fi
 # Runtime path defaults. Local `make dev` launches Gateway from `backend/`,
 # so pin VassilFlow-owned state to the expected backend runtime directory and
 # create it before uvicorn builds its reload exclude filter.
-if [ -z "${VASSILFLOW_PROJECT_ROOT:-}" ] && [ -z "${DEER_FLOW_PROJECT_ROOT:-}" ]; then
+if [ -z "${VASSILFLOW_PROJECT_ROOT:-}" ]; then
     export VASSILFLOW_PROJECT_ROOT="$REPO_ROOT"
 fi
-sync_vassilflow_env DEER_FLOW_PROJECT_ROOT
 
 BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.vassilflow"
-LEGACY_BACKEND_RUNTIME_HOME="$REPO_ROOT/backend/.deer-flow"
-if [ -z "${VASSILFLOW_HOME:-}" ] && [ -z "${DEER_FLOW_HOME:-}" ]; then
-    "$REPO_ROOT/scripts/migrate-runtime-home.sh" --quiet
-fi
 if [ -z "${VASSILFLOW_HOME:-}" ]; then
-    if [ ! -e "$BACKEND_RUNTIME_HOME" ] && [ -e "$LEGACY_BACKEND_RUNTIME_HOME" ]; then
-        export VASSILFLOW_HOME="$LEGACY_BACKEND_RUNTIME_HOME"
-    else
-        export VASSILFLOW_HOME="$BACKEND_RUNTIME_HOME"
-    fi
+    export VASSILFLOW_HOME="$BACKEND_RUNTIME_HOME"
 fi
-sync_vassilflow_env DEER_FLOW_HOME
 
 # `backend/sandbox` is excluded from uvicorn's reload watcher below. uvicorn only
 # excludes an absolute path directly when it already exists as a directory;
@@ -364,9 +324,7 @@ sync_vassilflow_env DEER_FLOW_HOME
 mkdir -p "$VASSILFLOW_HOME" "$REPO_ROOT/backend/sandbox"
 VASSILFLOW_HOME="$(cd "$VASSILFLOW_HOME" && pwd -P)"
 BACKEND_RUNTIME_HOME="$VASSILFLOW_HOME"
-DEER_FLOW_HOME="$VASSILFLOW_HOME"
 export VASSILFLOW_HOME
-export DEER_FLOW_HOME
 
 # Extra flags for uvicorn
 if $DEV_MODE && ! $DAEMON_MODE; then
@@ -483,7 +441,6 @@ run_service() {
         # remains for older helper compatibility.
         nohup env \
             VASSILFLOW_DAEMON_ROOT="$REPO_ROOT" \
-            DEERFLOW_DAEMON_ROOT="$REPO_ROOT" \
             sh -c "$cmd" > /dev/null 2>&1 &
     else
         sh -c "$cmd" &

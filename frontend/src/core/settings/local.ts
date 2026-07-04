@@ -17,13 +17,9 @@ export const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
 };
 
 export const LOCAL_SETTINGS_KEY = "vassilflow.local-settings";
-export const LEGACY_LOCAL_SETTINGS_KEY = "deerflow.local-settings";
 export const THREAD_MODEL_KEY_PREFIX = "vassilflow.thread-model.";
-export const LEGACY_THREAD_MODEL_KEY_PREFIX = "deerflow.thread-model.";
 export const AGENT_CREATE_SAVE_HINT_KEY =
   "vassilflow.agent-create.save-hint-seen";
-export const LEGACY_AGENT_CREATE_SAVE_HINT_KEY =
-  "deerflow.agent-create.save-hint-seen";
 
 function isBrowser(): boolean {
   return typeof window !== "undefined";
@@ -74,10 +70,6 @@ function getThreadModelStorageKey(threadId: string): string {
   return `${THREAD_MODEL_KEY_PREFIX}${threadId}`;
 }
 
-function getLegacyThreadModelStorageKey(threadId: string): string {
-  return `${LEGACY_THREAD_MODEL_KEY_PREFIX}${threadId}`;
-}
-
 export function getThreadModelName(threadId: string): string | undefined {
   if (!isBrowser()) {
     return undefined;
@@ -86,14 +78,6 @@ export function getThreadModelName(threadId: string): string | undefined {
   const value = localStorage.getItem(key);
   if (value !== null) {
     return value;
-  }
-
-  const legacyValue = localStorage.getItem(
-    getLegacyThreadModelStorageKey(threadId),
-  );
-  if (legacyValue !== null) {
-    localStorage.setItem(key, legacyValue);
-    return legacyValue;
   }
   return undefined;
 }
@@ -106,14 +90,11 @@ export function saveThreadModelName(
     return;
   }
   const key = getThreadModelStorageKey(threadId);
-  const legacyKey = getLegacyThreadModelStorageKey(threadId);
   if (!modelName) {
     localStorage.removeItem(key);
-    localStorage.removeItem(legacyKey);
     return;
   }
   localStorage.setItem(key, modelName);
-  localStorage.removeItem(legacyKey);
 }
 
 export function applyThreadModelOverride(
@@ -137,15 +118,9 @@ export function getLocalSettings(): LocalSettings {
     return DEFAULT_LOCAL_SETTINGS;
   }
   const json = localStorage.getItem(LOCAL_SETTINGS_KEY);
-  const legacyJson =
-    json === null ? localStorage.getItem(LEGACY_LOCAL_SETTINGS_KEY) : null;
   try {
-    const rawSettings = json ?? legacyJson;
-    if (rawSettings) {
-      const settings = JSON.parse(rawSettings) as Partial<LocalSettings>;
-      if (json === null && legacyJson !== null) {
-        localStorage.setItem(LOCAL_SETTINGS_KEY, legacyJson);
-      }
+    if (json) {
+      const settings = JSON.parse(json) as Partial<LocalSettings>;
       return mergeLocalSettings(settings);
     }
   } catch {}
@@ -157,7 +132,6 @@ export function saveLocalSettings(settings: LocalSettings) {
     return;
   }
   localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(settings));
-  localStorage.removeItem(LEGACY_LOCAL_SETTINGS_KEY);
 }
 
 export function hasSeenAgentCreateSaveHint(): boolean {
@@ -165,11 +139,6 @@ export function hasSeenAgentCreateSaveHint(): boolean {
     return false;
   }
   if (localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY) === "1") {
-    return true;
-  }
-  if (localStorage.getItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY) === "1") {
-    localStorage.setItem(AGENT_CREATE_SAVE_HINT_KEY, "1");
-    localStorage.removeItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY);
     return true;
   }
   return false;
@@ -180,5 +149,4 @@ export function markAgentCreateSaveHintSeen() {
     return;
   }
   localStorage.setItem(AGENT_CREATE_SAVE_HINT_KEY, "1");
-  localStorage.removeItem(LEGACY_AGENT_CREATE_SAVE_HINT_KEY);
 }

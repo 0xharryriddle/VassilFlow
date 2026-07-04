@@ -36,14 +36,14 @@ class TestResolveConfigPath:
 
         assert doctor._resolve_config_path(tmp_path) == tmp_path / "config.yaml"
 
-    def test_respects_legacy_config_path(self, tmp_path, monkeypatch):
+    def test_ignores_legacy_config_path(self, tmp_path, monkeypatch):
         legacy_config = tmp_path / "legacy.yaml"
         monkeypatch.delenv("VASSILFLOW_CONFIG_PATH", raising=False)
         monkeypatch.setenv("DEER_FLOW_CONFIG_PATH", str(legacy_config))
 
-        assert doctor._resolve_config_path(tmp_path) == legacy_config
+        assert doctor._resolve_config_path(tmp_path) == tmp_path / "config.yaml"
 
-    def test_prefers_vassilflow_config_path_over_legacy(self, tmp_path, monkeypatch):
+    def test_uses_vassilflow_config_path_even_when_legacy_is_set(self, tmp_path, monkeypatch):
         current_config = tmp_path / "current.yaml"
         legacy_config = tmp_path / "legacy.yaml"
         monkeypatch.setenv("VASSILFLOW_CONFIG_PATH", str(current_config))

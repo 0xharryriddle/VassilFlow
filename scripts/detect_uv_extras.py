@@ -39,36 +39,8 @@ from pathlib import Path
 _EXTRA_NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]*$")
 
 
-def _vassilflow_alias_for(name: str) -> str | None:
-    if name.startswith("DEER_FLOW_"):
-        return f"VASSILFLOW_{name.removeprefix('DEER_FLOW_')}"
-    if name.startswith("DEERFLOW_"):
-        return f"VASSILFLOW_{name.removeprefix('DEERFLOW_')}"
-    return None
-
-
-def _legacy_alias_for(name: str) -> str | None:
-    if name.startswith("VASSILFLOW_"):
-        return f"DEER_FLOW_{name.removeprefix('VASSILFLOW_')}"
-    return None
-
-
 def _env_value(name: str) -> str | None:
-    alias = _vassilflow_alias_for(name)
-    if alias is not None:
-        value = os.environ.get(alias)
-        if value is not None:
-            return value
-        return os.environ.get(name)
-
-    value = os.environ.get(name)
-    if value is not None:
-        return value
-
-    legacy_alias = _legacy_alias_for(name)
-    if legacy_alias is not None:
-        return os.environ.get(legacy_alias)
-    return None
+    return os.environ.get(name)
 
 
 def _validate_extras(names: list[str]) -> list[str]:

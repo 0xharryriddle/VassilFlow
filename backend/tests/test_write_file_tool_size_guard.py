@@ -92,17 +92,12 @@ def test_env_override_raises_cap(monkeypatch: pytest.MonkeyPatch):
     assert result == "OK"
 
 
-@pytest.mark.parametrize(
-    "env_name",
-    ["DEER_FLOW_WRITE_FILE_MAX_BYTES", "DEERFLOW_WRITE_FILE_MAX_BYTES"],
-)
-def test_legacy_env_override_still_supported(
-    monkeypatch: pytest.MonkeyPatch, env_name: str
-):
+@pytest.mark.parametrize("env_name", ["DEER_FLOW_WRITE_FILE_MAX_BYTES", "DEERFLOW_WRITE_FILE_MAX_BYTES"])
+def test_legacy_env_override_is_ignored(monkeypatch: pytest.MonkeyPatch, env_name: str):
     monkeypatch.setenv(env_name, str(300 * 1024))
     payload = "a" * (150 * 1024)
     result = _call_write_file(content=payload)
-    assert result == "OK"
+    assert result.startswith("Error: write_file content")
 
 
 def test_env_override_zero_disables_guard(monkeypatch: pytest.MonkeyPatch):

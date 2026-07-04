@@ -146,8 +146,8 @@ def _resolve_docker_bind_host(sandbox_host: str | None = None, bind_host: str | 
     Bare-metal/local runs talk to sandboxes through localhost and should not
     expose the sandbox HTTP API on every host interface.  Docker-outside-of-
     Docker deployments commonly use ``host.docker.internal`` from another
-    container; keep their legacy broad bind unless operators opt into a
-    narrower bind with ``VASSILFLOW_SANDBOX_BIND_HOST``/``DEER_FLOW_SANDBOX_BIND_HOST``.
+    container; keep their broad bind unless operators opt into a narrower bind
+    with ``VASSILFLOW_SANDBOX_BIND_HOST``.
     When operators choose an IPv6 loopback sandbox host, bind Docker to IPv6
     loopback as well so the advertised sandbox URL and published socket use the
     same address family.

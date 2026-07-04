@@ -6,20 +6,17 @@ import secrets
 from types import SimpleNamespace
 from typing import Any
 
-from vassilflow.config.env_aliases import first_env_value
+from vassilflow.config.env_aliases import env_value
 from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
 INTERNAL_AUTH_HEADER_NAME = "X-VassilFlow-Internal-Token"
-LEGACY_INTERNAL_AUTH_HEADER_NAME = "X-DeerFlow-Internal-Token"
 INTERNAL_OWNER_USER_ID_HEADER_NAME = "X-VassilFlow-Owner-User-Id"
-LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME = "X-DeerFlow-Owner-User-Id"
 INTERNAL_AUTH_ENV_VAR = "VASSILFLOW_INTERNAL_AUTH_TOKEN"
-LEGACY_INTERNAL_AUTH_ENV_VAR = "DEER_FLOW_INTERNAL_AUTH_TOKEN"
 INTERNAL_SYSTEM_ROLE = "internal"
 
 
 def _load_internal_auth_token() -> str:
-    token = first_env_value((INTERNAL_AUTH_ENV_VAR, LEGACY_INTERNAL_AUTH_ENV_VAR))
+    token = env_value(INTERNAL_AUTH_ENV_VAR)
     if token:
         return token
     return secrets.token_urlsafe(32)
@@ -37,15 +34,15 @@ def create_internal_auth_headers(*, owner_user_id: str | None = None) -> dict[st
 
 
 def internal_auth_token_from_headers(headers: Any) -> str | None:
-    """Return the internal auth token from current or legacy headers."""
+    """Return the internal auth token from VassilFlow headers."""
 
-    return headers.get(INTERNAL_AUTH_HEADER_NAME) or headers.get(LEGACY_INTERNAL_AUTH_HEADER_NAME)
+    return headers.get(INTERNAL_AUTH_HEADER_NAME)
 
 
 def internal_owner_user_id_from_headers(headers: Any) -> str | None:
-    """Return the owner override from current or legacy internal headers."""
+    """Return the owner override from VassilFlow internal headers."""
 
-    return headers.get(INTERNAL_OWNER_USER_ID_HEADER_NAME) or headers.get(LEGACY_INTERNAL_OWNER_USER_ID_HEADER_NAME)
+    return headers.get(INTERNAL_OWNER_USER_ID_HEADER_NAME)
 
 
 def is_valid_internal_auth_token(token: str | None) -> bool:

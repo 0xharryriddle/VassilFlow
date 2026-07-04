@@ -44,6 +44,7 @@ from vassilflow.config.paths import get_paths
 from vassilflow.models import create_chat_model
 from vassilflow.runtime.user_context import get_effective_user_id
 from vassilflow.skills.storage import get_or_new_skill_storage
+from vassilflow.skills.types import skill_config_key
 from vassilflow.tools.builtins.tool_search import assemble_deferred_tools
 from vassilflow.tracing import build_tracing_callbacks, inject_langfuse_metadata
 from vassilflow.uploads.manager import (
@@ -143,13 +144,12 @@ class VassilFlowClient:
             subagent_enabled: Enable subagent delegation.
             plan_mode: Enable TodoList middleware for plan mode.
             agent_name: Name of the agent to use.
-            available_skills: Optional set of skill names to make available. If None (default), all scanned skills are available.
+            available_skills: Optional set of skill ids (`category:name`) or unambiguous names to make available. If None (default), all scanned skills are available.
             middlewares: Optional list of custom middlewares to inject into the agent.
             environment: Deployment environment label that ends up in
                 ``langfuse_tags`` (e.g. ``"production"`` / ``"staging"``).
                 When ``None`` the worker/client falls back to the
-                ``VASSILFLOW_ENV`` (legacy: ``DEER_FLOW_ENV``) or
-                ``ENVIRONMENT`` env vars. Pass an
+                ``VASSILFLOW_ENV`` or ``ENVIRONMENT`` env vars. Pass an
                 explicit value for programmatic callers that do not want
                 env-var coupling.
         """
@@ -884,6 +884,7 @@ class VassilFlowClient:
         return {
             "skills": [
                 {
+                    "id": skill_config_key(s.name, s.category),
                     "name": s.name,
                     "description": s.description,
                     "license": s.license,
@@ -970,7 +971,7 @@ class VassilFlowClient:
         """
         config_path = ExtensionsConfig.resolve_config_path()
         if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set VASSILFLOW_EXTENSIONS_CONFIG_PATH (legacy: DEER_FLOW_EXTENSIONS_CONFIG_PATH) or ensure it exists in the project root.")
+            raise FileNotFoundError("Cannot locate extensions_config.json. Set VASSILFLOW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
 
         current_config = get_extensions_config()
 
@@ -991,20 +992,28 @@ class VassilFlowClient:
     # ------------------------------------------------------------------
 
     def get_skill(self, name: str) -> dict | None:
-        """Get a specific skill by name.
+        """Get a specific skill by stable id or unambiguous name.
 
         Args:
-            name: Skill name.
+            name: Skill id (`category:name`) or unambiguous skill name.
 
         Returns:
             Skill info dict, or None if not found.
         """
         from vassilflow.skills.storage import get_or_new_skill_storage
 
-        skill = next((s for s in get_or_new_skill_storage().load_skills(enabled_only=False) if s.name == name), None)
+        skills = get_or_new_skill_storage().load_skills(enabled_only=False)
+        if ":" in name:
+            skill = next((s for s in skills if skill_config_key(s.name, s.category) == name), None)
+        else:
+            matches = [s for s in skills if s.name == name]
+            if len(matches) > 1:
+                raise ValueError(f"Skill name '{name}' is ambiguous; use a stable skill id such as '{skill_config_key(matches[0].name, matches[0].category)}'")
+            skill = matches[0] if matches else None
         if skill is None:
             return None
         return {
+            "id": skill_config_key(skill.name, skill.category),
             "name": skill.name,
             "description": skill.description,
             "license": skill.license,
@@ -1016,7 +1025,7 @@ class VassilFlowClient:
         """Update a skill's enabled status.
 
         Args:
-            name: Skill name.
+            name: Skill id (`category:name`) or unambiguous skill name.
             enabled: New enabled status.
 
         Returns:
@@ -1029,16 +1038,23 @@ class VassilFlowClient:
         from vassilflow.skills.storage import get_or_new_skill_storage
 
         skills = get_or_new_skill_storage().load_skills(enabled_only=False)
-        skill = next((s for s in skills if s.name == name), None)
+        if ":" in name:
+            skill = next((s for s in skills if skill_config_key(s.name, s.category) == name), None)
+        else:
+            matches = [s for s in skills if s.name == name]
+            if len(matches) > 1:
+                raise ValueError(f"Skill name '{name}' is ambiguous; use a stable skill id such as '{skill_config_key(matches[0].name, matches[0].category)}'")
+            skill = matches[0] if matches else None
         if skill is None:
             raise ValueError(f"Skill '{name}' not found")
+        config_key = skill_config_key(skill.name, skill.category)
 
         config_path = ExtensionsConfig.resolve_config_path()
         if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set VASSILFLOW_EXTENSIONS_CONFIG_PATH (legacy: DEER_FLOW_EXTENSIONS_CONFIG_PATH) or ensure it exists in the project root.")
+            raise FileNotFoundError("Cannot locate extensions_config.json. Set VASSILFLOW_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
 
         extensions_config = get_extensions_config()
-        extensions_config.skills[name] = SkillStateConfig(enabled=enabled)
+        extensions_config.skills[config_key] = SkillStateConfig(enabled=enabled)
 
         config_data = {
             "mcpServers": {n: s.model_dump() for n, s in extensions_config.mcp_servers.items()},
@@ -1051,10 +1067,11 @@ class VassilFlowClient:
         self._agent_config_key = None
         reload_extensions_config()
 
-        updated = next((s for s in get_or_new_skill_storage().load_skills(enabled_only=False) if s.name == name), None)
+        updated = next((s for s in get_or_new_skill_storage().load_skills(enabled_only=False) if skill_config_key(s.name, s.category) == config_key), None)
         if updated is None:
             raise RuntimeError(f"Skill '{name}' disappeared after update")
         return {
+            "id": skill_config_key(updated.name, updated.category),
             "name": updated.name,
             "description": updated.description,
             "license": updated.license,

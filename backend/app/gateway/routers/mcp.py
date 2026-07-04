@@ -18,7 +18,6 @@ _ADMIN_REQUIRED_DETAIL = "Admin privileges required to manage MCP configuration.
 
 
 _MCP_STDIO_COMMAND_ALLOWLIST_ENV = "VASSILFLOW_MCP_STDIO_COMMAND_ALLOWLIST"
-_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV = "DEER_FLOW_MCP_STDIO_COMMAND_ALLOWLIST"
 _DEFAULT_MCP_STDIO_COMMAND_ALLOWLIST = frozenset({"npx", "uvx"})
 _SHELL_METACHARS = frozenset(";|&`$<>\n\r")
 
@@ -133,7 +132,7 @@ def _validate_mcp_update_request(request: McpConfigUpdateRequest) -> None:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=(
                     f"MCP server '{name}' uses disallowed stdio command '{command_name}'. Allowed commands: {allowed}. "
-                    f"Configure {_MCP_STDIO_COMMAND_ALLOWLIST_ENV} (legacy: {_LEGACY_MCP_STDIO_COMMAND_ALLOWLIST_ENV}) to extend this list."
+                    f"Configure {_MCP_STDIO_COMMAND_ALLOWLIST_ENV} to extend this list."
                 ),
             )
 

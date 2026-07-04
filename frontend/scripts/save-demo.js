@@ -45,15 +45,7 @@ export async function main() {
 }
 
 function resolveBackendThreadRoot(threadId) {
-  const currentPath = path.resolve(
-    process.cwd(),
-    "../backend/.vassilflow/threads",
-    threadId,
-  );
-  if (fs.existsSync(currentPath)) {
-    return currentPath;
-  }
-  return path.resolve(process.cwd(), "../backend/.deer-flow/threads", threadId);
+  return path.resolve(process.cwd(), "../backend/.vassilflow/threads", threadId);
 }
 
 function copyFolder(relPath, rootPath, backendRootPath) {

@@ -14,7 +14,7 @@ from vassilflow.skills import Skill
 from vassilflow.skills.installer import SkillAlreadyExistsError
 from vassilflow.skills.security_scanner import scan_skill_content
 from vassilflow.skills.storage import get_or_new_skill_storage
-from vassilflow.skills.types import SKILL_MD_FILE, SkillCategory
+from vassilflow.skills.types import SKILL_MD_FILE, SkillCategory, skill_config_key
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,7 @@ router = APIRouter(prefix="/api", tags=["skills"])
 class SkillResponse(BaseModel):
     """Response model for skill information."""
 
+    id: str = Field(..., description="Stable skill id in `category:name` form")
     name: str = Field(..., description="Name of the skill")
     description: str = Field(..., description="Description of what the skill does")
     license: str | None = Field(None, description="License information")
@@ -77,12 +78,35 @@ class SkillRollbackRequest(BaseModel):
 def _skill_to_response(skill: Skill) -> SkillResponse:
     """Convert a Skill object to a SkillResponse."""
     return SkillResponse(
+        id=skill_config_key(skill.name, skill.category),
         name=skill.name,
         description=skill.description,
         license=skill.license,
         category=skill.category,
         enabled=skill.enabled,
     )
+
+
+def _clean_skill_identifier(value: str) -> str:
+    return value.replace("\r\n", "").replace("\n", "")
+
+
+def _find_skill_by_identifier(skills: list[Skill], identifier: str) -> Skill:
+    """Resolve either a stable `category:name` id or an unambiguous name."""
+    identifier = _clean_skill_identifier(identifier)
+    if ":" in identifier:
+        skill = next((s for s in skills if skill_config_key(s.name, s.category) == identifier), None)
+        if skill is None:
+            raise HTTPException(status_code=404, detail=f"Skill '{identifier}' not found")
+        return skill
+
+    matches = [s for s in skills if s.name == identifier]
+    if not matches:
+        raise HTTPException(status_code=404, detail=f"Skill '{identifier}' not found")
+    if len(matches) > 1:
+        ids = ", ".join(skill_config_key(s.name, s.category) for s in matches)
+        raise HTTPException(status_code=409, detail=f"Skill name '{identifier}' is ambiguous; use one of: {ids}")
+    return matches[0]
 
 
 @router.get(
@@ -279,42 +303,33 @@ async def rollback_custom_skill(skill_name: str, request: SkillRollbackRequest, 
 
 
 @router.get(
-    "/skills/{skill_name}",
+    "/skills/{skill_id}",
     response_model=SkillResponse,
     summary="Get Skill Details",
-    description="Retrieve detailed information about a specific skill by its name.",
+    description="Retrieve detailed information about a specific skill by stable id (`category:name`).",
 )
-async def get_skill(skill_name: str, config: AppConfig = Depends(get_config)) -> SkillResponse:
+async def get_skill(skill_id: str, config: AppConfig = Depends(get_config)) -> SkillResponse:
     try:
-        skill_name = skill_name.replace("\r\n", "").replace("\n", "")
         skills = get_or_new_skill_storage(app_config=config).load_skills(enabled_only=False)
-        skill = next((s for s in skills if s.name == skill_name), None)
-
-        if skill is None:
-            raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
-
-        return _skill_to_response(skill)
+        return _skill_to_response(_find_skill_by_identifier(skills, skill_id))
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to get skill {skill_name}: {e}", exc_info=True)
+        logger.error(f"Failed to get skill {skill_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get skill: {str(e)}")
 
 
 @router.put(
-    "/skills/{skill_name}",
+    "/skills/{skill_id}",
     response_model=SkillResponse,
     summary="Update Skill",
     description="Update a skill's enabled status by modifying the extensions_config.json file.",
 )
-async def update_skill(skill_name: str, request: SkillUpdateRequest, config: AppConfig = Depends(get_config)) -> SkillResponse:
+async def update_skill(skill_id: str, request: SkillUpdateRequest, config: AppConfig = Depends(get_config)) -> SkillResponse:
     try:
-        skill_name = skill_name.replace("\r\n", "").replace("\n", "")
         skills = get_or_new_skill_storage(app_config=config).load_skills(enabled_only=False)
-        skill = next((s for s in skills if s.name == skill_name), None)
-
-        if skill is None:
-            raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
+        skill = _find_skill_by_identifier(skills, skill_id)
+        config_key = skill_config_key(skill.name, skill.category)
 
         config_path = ExtensionsConfig.resolve_config_path()
         if config_path is None:
@@ -322,7 +337,7 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest, config: App
             logger.info(f"No existing extensions config found. Creating new config at: {config_path}")
 
         extensions_config = get_extensions_config()
-        extensions_config.skills[skill_name] = SkillStateConfig(enabled=request.enabled)
+        extensions_config.skills[config_key] = SkillStateConfig(enabled=request.enabled)
 
         config_data = {
             "mcpServers": {name: server.model_dump() for name, server in extensions_config.mcp_servers.items()},
@@ -337,16 +352,16 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest, config: App
         await refresh_skills_system_prompt_cache_async()
 
         skills = get_or_new_skill_storage(app_config=config).load_skills(enabled_only=False)
-        updated_skill = next((s for s in skills if s.name == skill_name), None)
+        updated_skill = next((s for s in skills if skill_config_key(s.name, s.category) == config_key), None)
 
         if updated_skill is None:
-            raise HTTPException(status_code=500, detail=f"Failed to reload skill '{skill_name}' after update")
+            raise HTTPException(status_code=500, detail=f"Failed to reload skill '{config_key}' after update")
 
-        logger.info(f"Skill '{skill_name}' enabled status updated to {request.enabled}")
+        logger.info(f"Skill '{config_key}' enabled status updated to {request.enabled}")
         return _skill_to_response(updated_skill)
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Failed to update skill {skill_name}: {e}", exc_info=True)
+        logger.error(f"Failed to update skill {skill_id}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to update skill: {str(e)}")

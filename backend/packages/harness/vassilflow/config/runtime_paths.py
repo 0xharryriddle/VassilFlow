@@ -6,7 +6,6 @@ from pathlib import Path
 from vassilflow.config.env_aliases import env_value
 
 DEFAULT_RUNTIME_HOME_NAME = ".vassilflow"
-LEGACY_RUNTIME_HOME_NAME = ".deer-flow"
 
 
 def project_root() -> Path:
@@ -14,30 +13,17 @@ def project_root() -> Path:
     if env_root := env_value("VASSILFLOW_PROJECT_ROOT"):
         root = Path(env_root).resolve()
         if not root.exists():
-            raise ValueError(f"VASSILFLOW_PROJECT_ROOT/DEER_FLOW_PROJECT_ROOT is set to '{env_root}', but the resolved path '{root}' does not exist.")
+            raise ValueError(f"VASSILFLOW_PROJECT_ROOT is set to '{env_root}', but the resolved path '{root}' does not exist.")
         if not root.is_dir():
-            raise ValueError(f"VASSILFLOW_PROJECT_ROOT/DEER_FLOW_PROJECT_ROOT is set to '{env_root}', but the resolved path '{root}' is not a directory.")
+            raise ValueError(f"VASSILFLOW_PROJECT_ROOT is set to '{env_root}', but the resolved path '{root}' is not a directory.")
         return root
     return Path.cwd().resolve()
 
 
 def default_runtime_home(root: Path | None = None) -> Path:
-    """Return the default runtime home, preserving existing legacy state.
-
-    Fresh VassilFlow workspaces use ``.vassilflow``. During the transition,
-    workspaces that already have ``.deer-flow`` and no ``.vassilflow`` keep using
-    the legacy directory so persisted DB/session/thread data is not orphaned by a
-    default-name upgrade.
-    """
+    """Return the default VassilFlow runtime home."""
     base = (root or project_root()).resolve()
-    current = base / DEFAULT_RUNTIME_HOME_NAME
-    legacy = base / LEGACY_RUNTIME_HOME_NAME
-
-    if current.exists():
-        return current
-    if legacy.exists():
-        return legacy
-    return current
+    return base / DEFAULT_RUNTIME_HOME_NAME
 
 
 def runtime_home() -> Path:

@@ -434,4 +434,4 @@ def test_update_skill_refreshes_prompt_cache_before_return(monkeypatch, tmp_path
     assert response.status_code == 200
     assert response.json()["enabled"] is False
     assert refresh_calls == ["refresh"]
-    assert json.loads(config_path.read_text(encoding="utf-8")) == {"mcpServers": {}, "skills": {"demo-skill": {"enabled": False}}}
+    assert json.loads(config_path.read_text(encoding="utf-8")) == {"mcpServers": {}, "skills": {"public:demo-skill": {"enabled": False}}}

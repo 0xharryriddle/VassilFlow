@@ -9,15 +9,16 @@ import { Section } from "../section";
 export function SkillsSection({ className }: { className?: string }) {
   return (
     <Section
-      className={cn("h-[calc(100vh-64px)] w-full bg-white/2", className)}
-      title="Agent Skills"
+      className={cn("min-h-[calc(100vh-64px)] w-full bg-[#0b0d10]", className)}
+      title="Skill Runtime"
       subtitle={
         <div>
-          Agent Skills are loaded progressively — only what&apos;s needed, when
-          it&apos;s needed.
+          Skills are loaded by stable VassilFlow identities such as{" "}
+          <span className="font-mono text-cyan-100">public:research</span> and{" "}
+          <span className="font-mono text-cyan-100">custom:review</span>.
           <br />
-          Extend {APP_BRAND_NAME} with your own skill files, or use our built-in
-          library.
+          Extend {APP_BRAND_NAME} with focused skill folders without coupling
+          the runtime to one legacy workflow.
         </div>
       }
     >

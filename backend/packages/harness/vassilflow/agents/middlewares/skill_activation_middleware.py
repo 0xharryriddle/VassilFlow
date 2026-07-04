@@ -19,7 +19,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from vassilflow.skills.slash import parse_slash_skill_reference, resolve_slash_skill
 from vassilflow.skills.storage import get_or_new_skill_storage
 from vassilflow.skills.storage.skill_storage import SkillStorage
-from vassilflow.skills.types import SKILL_MD_FILE
+from vassilflow.skills.types import SKILL_MD_FILE, skill_reference_matches
 from vassilflow.utils.messages import get_original_user_content_text
 
 if TYPE_CHECKING:
@@ -102,13 +102,28 @@ class SkillActivationMiddleware(AgentMiddleware):
 
         storage = self._storage()
         skills = storage.load_skills(enabled_only=False)
-        skill = next((candidate for candidate in skills if candidate.name == reference.name), None)
-        if skill is None:
+        matching_by_name = [candidate for candidate in skills if candidate.name == reference.name]
+        if not matching_by_name:
             return _ActivationResolution(failure_message=f"Skill `/{reference.name}` is not installed.")
-        if not skill.enabled:
+        if not any(skill.enabled for skill in matching_by_name):
             return _ActivationResolution(failure_message=f"Skill `/{reference.name}` is installed but disabled. Enable it before using slash activation.")
-        if self._available_skills is not None and reference.name not in self._available_skills:
+        if self._available_skills is not None and not any(
+            skill.enabled and any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills)
+            for skill in matching_by_name
+        ):
             return _ActivationResolution(failure_message=f"Skill `/{reference.name}` is not available for this agent.")
+        enabled_matches = [
+            skill
+            for skill in matching_by_name
+            if skill.enabled
+            and (
+                self._available_skills is None
+                or any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills)
+            )
+        ]
+        if len(enabled_matches) > 1:
+            choices = ", ".join(f"`{skill.category}:{skill.name}`" for skill in enabled_matches)
+            return _ActivationResolution(failure_message=f"Skill `/{reference.name}` is ambiguous. Use a custom agent skill allowlist with one of: {choices}.")
 
         resolved = resolve_slash_skill(
             text,

@@ -198,8 +198,6 @@ export const HTML_PREVIEW_SCROLL_MESSAGE_SOURCE =
 
 const HTML_PREVIEW_SCROLL_RESTORATION_ATTR =
   "data-vassilflow-artifact-scroll-restoration";
-const LEGACY_HTML_PREVIEW_SCROLL_RESTORATION_ATTR =
-  "data-deerflow-artifact-scroll-restoration";
 
 export function createHtmlPreviewScrollKey(value: string) {
   let hash = 2166136261;
@@ -264,10 +262,7 @@ export function appendHtmlPreviewScrollRestoration(
   content: string,
   scrollKey = "default",
 ) {
-  if (
-    content.includes(HTML_PREVIEW_SCROLL_RESTORATION_ATTR) ||
-    content.includes(LEGACY_HTML_PREVIEW_SCROLL_RESTORATION_ATTR)
-  ) {
+  if (content.includes(HTML_PREVIEW_SCROLL_RESTORATION_ATTR)) {
     return content;
   }
   const script = htmlScrollRestorationScript(

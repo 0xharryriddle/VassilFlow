@@ -62,10 +62,7 @@ class DiscordChannel(Channel):
         if store is not None:
             self._thread_store_path = store._path.parent / "discord_threads.json"
         else:
-            current_home = Path.home() / ".vassilflow"
-            legacy_home = Path.home() / ".deer-flow"
-            runtime_home = legacy_home if not current_home.exists() and legacy_home.exists() else current_home
-            self._thread_store_path = runtime_home / "channels" / "discord_threads.json"
+            self._thread_store_path = Path.home() / ".vassilflow" / "channels" / "discord_threads.json"
 
         # Typing indicator management
         self._typing_tasks: dict[str, asyncio.Task] = {}

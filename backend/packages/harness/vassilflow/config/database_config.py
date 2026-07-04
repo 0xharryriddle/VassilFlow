@@ -5,9 +5,8 @@ persistence layer (runs, threads metadata, users, etc.). The user
 configures one backend; the system handles physical separation details.
 
 SQLite mode: checkpointer and app share a single .db file
-({sqlite_dir}/vassilflow.db for new installs, preserving an existing
-{sqlite_dir}/deerflow.db during migration) with WAL journal mode enabled on
-every connection. WAL allows concurrent readers and a single writer without
+({sqlite_dir}/vassilflow.db) with WAL journal mode enabled on every
+connection. WAL allows concurrent readers and a single writer without
 blocking, making a unified file safe for both workloads. Writers
 that contend for the lock wait via the default 5-second sqlite3
 busy timeout rather than failing immediately.
@@ -37,24 +36,14 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from vassilflow.config.runtime_paths import DEFAULT_RUNTIME_HOME_NAME, LEGACY_RUNTIME_HOME_NAME, project_root
+from vassilflow.config.runtime_paths import DEFAULT_RUNTIME_HOME_NAME
 
 DEFAULT_SQLITE_DIR = f"{DEFAULT_RUNTIME_HOME_NAME}/data"
-LEGACY_SQLITE_DIR = f"{LEGACY_RUNTIME_HOME_NAME}/data"
 DEFAULT_SQLITE_FILENAME = "vassilflow.db"
-LEGACY_SQLITE_FILENAME = "deerflow.db"
 
 
 def default_sqlite_dir() -> str:
-    """Return the default SQLite directory, preserving existing legacy state."""
-    root = project_root()
-    current_home = root / DEFAULT_RUNTIME_HOME_NAME
-    legacy_home = root / LEGACY_RUNTIME_HOME_NAME
-
-    if current_home.exists():
-        return DEFAULT_SQLITE_DIR
-    if legacy_home.exists():
-        return LEGACY_SQLITE_DIR
+    """Return the default SQLite directory."""
     return DEFAULT_SQLITE_DIR
 
 
@@ -67,9 +56,7 @@ class DatabaseConfig(BaseModel):
         default_factory=default_sqlite_dir,
         description=(
             "Directory for the SQLite database file. Both checkpointer and "
-            "application data share {sqlite_dir}/vassilflow.db; an existing "
-            "{sqlite_dir}/deerflow.db is preserved during migration when "
-            "vassilflow.db is absent."
+            "application data share {sqlite_dir}/vassilflow.db."
         ),
     )
     postgres_url: str = Field(
@@ -102,11 +89,7 @@ class DatabaseConfig(BaseModel):
     @property
     def sqlite_path(self) -> str:
         """Unified SQLite file path shared by checkpointer and app."""
-        current_path = os.path.join(self._resolved_sqlite_dir, DEFAULT_SQLITE_FILENAME)
-        legacy_path = os.path.join(self._resolved_sqlite_dir, LEGACY_SQLITE_FILENAME)
-        if not os.path.exists(current_path) and os.path.exists(legacy_path):
-            return legacy_path
-        return current_path
+        return os.path.join(self._resolved_sqlite_dir, DEFAULT_SQLITE_FILENAME)
 
     # Backward-compatible aliases
     @property

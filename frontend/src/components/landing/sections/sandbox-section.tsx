@@ -9,116 +9,87 @@ import { APP_BRAND_NAME } from "@/core/brand";
 
 import { Section } from "../section";
 
+const runtimeTags = [
+  "Filesystem",
+  "Shell",
+  "Browser",
+  "MCP",
+  "Artifacts",
+  "Policies",
+];
+
 export function SandboxSection({ className }: { className?: string }) {
   return (
     <Section
       className={className}
-      title="Agent Runtime Environment"
+      title="Isolated Execution Layer"
       subtitle={
         <p>
-          We give {APP_BRAND_NAME} a &quot;computer&quot;, which can execute
-          commands, manage files, and run long tasks — all in a secure
-          Docker-based sandbox
+          {APP_BRAND_NAME} gives agents a bounded workspace for real file work,
+          command execution, tool calls, and artifact generation.
         </p>
       }
     >
-      <div className="mt-8 flex w-full max-w-6xl flex-col items-center gap-12 lg:flex-row lg:gap-16">
-        {/* Left: Terminal */}
+      <div className="container-md mx-auto mt-10 flex w-full flex-col items-stretch gap-10 px-4 lg:flex-row">
         <div className="w-full flex-1">
-          <Terminal className="h-[360px] w-full">
-            {/* Scene 1: Build a Game */}
-            <TypingAnimation>$ cat requirements.txt</TypingAnimation>
+          <Terminal className="h-[360px] w-full rounded-md border-white/10 bg-black/45">
+            <TypingAnimation>$ vassilflow run evidence-brief</TypingAnimation>
             <AnimatedSpan delay={800} className="text-zinc-400">
-              pygame==2.5.0
+              loading config from VASSILFLOW_CONFIG_PATH
             </AnimatedSpan>
 
-            <TypingAnimation delay={1200}>
-              $ pip install -r requirements.txt
+            <TypingAnimation delay={1300}>
+              $ mount workspace /mnt/user-data
             </TypingAnimation>
             <AnimatedSpan delay={2000} className="text-green-500">
-              ✔ Installed pygame
+              ok workspace mounted
             </AnimatedSpan>
 
-            <TypingAnimation delay={2400}>
-              $ write game.py --lines 156
+            <TypingAnimation delay={2500}>
+              $ python tools/analyze_sources.py
             </TypingAnimation>
-            <AnimatedSpan delay={3200} className="text-blue-500">
-              ✔ Written 156 lines
+            <AnimatedSpan delay={3300} className="text-cyan-400">
+              ok extracted 42 source notes
             </AnimatedSpan>
 
-            <TypingAnimation delay={3600}>
-              $ python game.py --test
+            <TypingAnimation delay={3800}>
+              $ write outputs/evidence-brief.md
             </TypingAnimation>
-            <AnimatedSpan delay={4200} className="text-green-500">
-              ✔ All sprites loaded
-            </AnimatedSpan>
             <AnimatedSpan delay={4500} className="text-green-500">
-              ✔ Physics engine OK
-            </AnimatedSpan>
-            <AnimatedSpan delay={4800} className="text-green-500">
-              ✔ 60 FPS stable
+              ok artifact written
             </AnimatedSpan>
 
-            {/* Scene 2: Data Analysis */}
-            <TypingAnimation delay={5400}>
-              $ curl -O sales-2024.csv
+            <TypingAnimation delay={5000}>
+              $ package outputs --manifest
             </TypingAnimation>
-            <AnimatedSpan delay={6200} className="text-zinc-400">
-              Downloaded 12.4 MB
+            <AnimatedSpan delay={5700} className="text-amber-300">
+              ready for review
             </AnimatedSpan>
           </Terminal>
         </div>
 
-        {/* Right: Description */}
-        <div className="w-full flex-1 space-y-6">
-          <div className="space-y-4">
-            <p className="text-sm font-medium tracking-wider text-purple-400 uppercase">
-              Open-source
-            </p>
-            <h2 className="text-4xl font-bold tracking-tight lg:text-5xl">
-              <a
-                href="https://github.com/agent-infra/sandbox"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                AIO Sandbox
-              </a>
-            </h2>
-          </div>
+        <div className="flex w-full flex-1 flex-col justify-center">
+          <p className="text-sm font-medium tracking-[0.24em] text-cyan-200 uppercase">
+            Runtime Boundary
+          </p>
+          <h2 className="mt-4 max-w-xl text-4xl font-semibold tracking-tight text-white lg:text-5xl">
+            Work happens inside a controlled VassilFlow workspace.
+          </h2>
+          <p className="mt-5 max-w-xl text-lg leading-8 text-white/60">
+            The sandbox layer keeps long tasks practical: agents can inspect
+            uploads, create files, run scripts, and preserve outputs while the
+            harness controls paths, policies, and runtime state.
+          </p>
 
-          <div className="space-y-4 text-lg text-zinc-400">
-            <p>
-              We recommend using{" "}
-              <a
-                href="https://github.com/agent-infra/sandbox"
-                className="underline"
-                target="_blank"
-                rel="noopener noreferrer"
+          <div className="mt-8 flex flex-wrap gap-3">
+            {runtimeTags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-sm border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70"
               >
-                All-in-One Sandbox
-              </a>{" "}
-              that combines Browser, Shell, File, MCP and VSCode Server in a
-              single Docker container.
-            </p>
-          </div>
-
-          {/* Feature Tags */}
-          <div className="flex flex-wrap gap-3 pt-4">
-            <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-300">
-              Isolated
-            </span>
-            <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-300">
-              Safe
-            </span>
-            <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-300">
-              Persistent
-            </span>
-            <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-300">
-              Mountable FS
-            </span>
-            <span className="rounded-full border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-300">
-              Long-running
-            </span>
+                {tag}
+              </span>
+            ))}
           </div>
         </div>
       </div>

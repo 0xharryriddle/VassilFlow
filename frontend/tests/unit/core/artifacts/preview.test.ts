@@ -294,11 +294,13 @@ test("does not duplicate HTML scroll restoration script", () => {
   ).toHaveLength(1);
 });
 
-test("does not duplicate legacy HTML scroll restoration script", () => {
+test("does not treat legacy HTML scroll restoration marker as active", () => {
   const html =
     "<html><head><script data-deerflow-artifact-scroll-restoration></script></head><body>x</body></html>";
 
-  expect(appendHtmlPreviewScrollRestoration(html)).toBe(html);
+  expect(appendHtmlPreviewScrollRestoration(html)).toContain(
+    "data-vassilflow-artifact-scroll-restoration",
+  );
 });
 
 test("scopes HTML scroll restoration without exposing the artifact path", () => {

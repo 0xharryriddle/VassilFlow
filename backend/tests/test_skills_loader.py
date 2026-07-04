@@ -84,13 +84,31 @@ def test_load_skills_skips_hidden_directories(tmp_path: Path):
     assert "secret-skill" not in names
 
 
-def test_load_skills_prefers_custom_over_public_with_same_name(tmp_path: Path):
+def test_load_skills_preserves_public_and_custom_with_same_name(tmp_path: Path):
     skills_root = tmp_path / "skills"
     _write_skill(skills_root / "public" / "shared-skill", "shared-skill", "Public version")
     _write_skill(skills_root / "custom" / "shared-skill", "shared-skill", "Custom version")
 
     skills = get_or_new_skill_storage(skills_path=skills_root).load_skills(enabled_only=False)
-    shared = next(skill for skill in skills if skill.name == "shared-skill")
+    shared = {skill.id: skill for skill in skills if skill.name == "shared-skill"}
 
-    assert shared.category == "custom"
-    assert shared.description == "Custom version"
+    assert set(shared) == {"public:shared-skill", "custom:shared-skill"}
+    assert shared["public:shared-skill"].description == "Public version"
+    assert shared["custom:shared-skill"].description == "Custom version"
+
+
+def test_load_skills_uses_category_qualified_enabled_state(tmp_path: Path, monkeypatch):
+    skills_root = tmp_path / "skills"
+    extensions_config = tmp_path / "extensions_config.json"
+    _write_skill(skills_root / "public" / "shared-skill", "shared-skill", "Public version")
+    _write_skill(skills_root / "custom" / "shared-skill", "shared-skill", "Custom version")
+    extensions_config.write_text(
+        '{"mcpServers": {}, "skills": {"public:shared-skill": {"enabled": false}, "custom:shared-skill": {"enabled": true}}}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("VASSILFLOW_EXTENSIONS_CONFIG_PATH", str(extensions_config))
+
+    skills = get_or_new_skill_storage(skills_path=skills_root).load_skills(enabled_only=False)
+    enabled = {skill.id: skill.enabled for skill in skills if skill.name == "shared-skill"}
+
+    assert enabled == {"public:shared-skill": False, "custom:shared-skill": True}
