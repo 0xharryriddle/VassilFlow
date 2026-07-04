@@ -151,9 +151,9 @@ def test_resolve_docker_bind_host_defaults_loopback_for_localhost(monkeypatch):
 
 def test_resolve_docker_bind_host_keeps_dood_compatibility(monkeypatch):
     monkeypatch.delenv("DEER_FLOW_SANDBOX_BIND_HOST", raising=False)
+    monkeypatch.delenv("DEER_FLOW_SANDBOX_HOST", raising=False)
     monkeypatch.delenv("VASSILFLOW_SANDBOX_BIND_HOST", raising=False)
-    monkeypatch.delenv("VASSILFLOW_SANDBOX_HOST", raising=False)
-    monkeypatch.setenv("DEER_FLOW_SANDBOX_HOST", "host.docker.internal")
+    monkeypatch.setenv("VASSILFLOW_SANDBOX_HOST", "host.docker.internal")
 
     assert _resolve_docker_bind_host() == "0.0.0.0"
 
@@ -169,9 +169,9 @@ def test_resolve_docker_bind_host_accepts_vassilflow_sandbox_host(monkeypatch):
 
 def test_resolve_docker_bind_host_uses_ipv6_loopback_for_ipv6_sandbox_host(monkeypatch):
     monkeypatch.delenv("DEER_FLOW_SANDBOX_BIND_HOST", raising=False)
+    monkeypatch.delenv("DEER_FLOW_SANDBOX_HOST", raising=False)
     monkeypatch.delenv("VASSILFLOW_SANDBOX_BIND_HOST", raising=False)
-    monkeypatch.delenv("VASSILFLOW_SANDBOX_HOST", raising=False)
-    monkeypatch.setenv("DEER_FLOW_SANDBOX_HOST", "[::1]")
+    monkeypatch.setenv("VASSILFLOW_SANDBOX_HOST", "[::1]")
 
     assert _resolve_docker_bind_host() == "[::1]"
 
@@ -185,10 +185,10 @@ def test_resolve_docker_bind_host_logs_selected_bind_reason(caplog):
 
 
 def test_resolve_docker_bind_host_allows_explicit_override(monkeypatch):
-    monkeypatch.delenv("VASSILFLOW_SANDBOX_HOST", raising=False)
-    monkeypatch.delenv("VASSILFLOW_SANDBOX_BIND_HOST", raising=False)
-    monkeypatch.setenv("DEER_FLOW_SANDBOX_HOST", "localhost")
-    monkeypatch.setenv("DEER_FLOW_SANDBOX_BIND_HOST", "192.0.2.10")
+    monkeypatch.delenv("DEER_FLOW_SANDBOX_HOST", raising=False)
+    monkeypatch.delenv("DEER_FLOW_SANDBOX_BIND_HOST", raising=False)
+    monkeypatch.setenv("VASSILFLOW_SANDBOX_HOST", "localhost")
+    monkeypatch.setenv("VASSILFLOW_SANDBOX_BIND_HOST", "192.0.2.10")
 
     assert _resolve_docker_bind_host() == "192.0.2.10"
 
@@ -228,9 +228,9 @@ def test_start_container_keeps_broad_bind_for_dood_sandbox_host(monkeypatch):
         config_mounts=[],
         environment={},
     )
-    monkeypatch.setenv("DEER_FLOW_SANDBOX_HOST", "host.docker.internal")
+    monkeypatch.delenv("DEER_FLOW_SANDBOX_HOST", raising=False)
     monkeypatch.delenv("DEER_FLOW_SANDBOX_BIND_HOST", raising=False)
-    monkeypatch.delenv("VASSILFLOW_SANDBOX_HOST", raising=False)
+    monkeypatch.setenv("VASSILFLOW_SANDBOX_HOST", "host.docker.internal")
     monkeypatch.delenv("VASSILFLOW_SANDBOX_BIND_HOST", raising=False)
 
     captured_cmd = _capture_start_container_command(monkeypatch, backend)
@@ -246,9 +246,9 @@ def test_start_container_binds_ipv6_sandbox_host_to_ipv6_loopback(monkeypatch):
         config_mounts=[],
         environment={},
     )
-    monkeypatch.setenv("DEER_FLOW_SANDBOX_HOST", "[::1]")
+    monkeypatch.delenv("DEER_FLOW_SANDBOX_HOST", raising=False)
     monkeypatch.delenv("DEER_FLOW_SANDBOX_BIND_HOST", raising=False)
-    monkeypatch.delenv("VASSILFLOW_SANDBOX_HOST", raising=False)
+    monkeypatch.setenv("VASSILFLOW_SANDBOX_HOST", "[::1]")
     monkeypatch.delenv("VASSILFLOW_SANDBOX_BIND_HOST", raising=False)
 
     captured_cmd = _capture_start_container_command(monkeypatch, backend)
@@ -264,9 +264,9 @@ def test_start_container_keeps_apple_container_port_format(monkeypatch):
         config_mounts=[],
         environment={},
     )
-    monkeypatch.setenv("DEER_FLOW_SANDBOX_BIND_HOST", "127.0.0.1")
+    monkeypatch.delenv("DEER_FLOW_SANDBOX_BIND_HOST", raising=False)
+    monkeypatch.setenv("VASSILFLOW_SANDBOX_BIND_HOST", "127.0.0.1")
     monkeypatch.delenv("VASSILFLOW_SANDBOX_HOST", raising=False)
-    monkeypatch.delenv("VASSILFLOW_SANDBOX_BIND_HOST", raising=False)
 
     captured_cmd = _capture_start_container_command(monkeypatch, backend, runtime="container")
 

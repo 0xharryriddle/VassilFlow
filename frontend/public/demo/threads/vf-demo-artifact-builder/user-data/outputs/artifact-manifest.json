@@ -1,0 +1,17 @@
+{
+  "package": "vassilflow-deployment-review",
+  "version": "1.0.0",
+  "generated_by": "VassilFlow static demo",
+  "artifacts": [
+    {
+      "path": "/mnt/user-data/outputs/deployment-checklist.md",
+      "type": "markdown",
+      "purpose": "human deployment review"
+    },
+    {
+      "path": "/mnt/user-data/outputs/artifact-manifest.json",
+      "type": "json",
+      "purpose": "machine-readable package index"
+    }
+  ]
+}

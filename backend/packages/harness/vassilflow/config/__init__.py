@@ -5,6 +5,7 @@ from .memory_config import MemoryConfig, get_memory_config
 from .paths import Paths, get_paths
 from .skill_evolution_config import SkillEvolutionConfig
 from .skills_config import SkillsConfig
+from .title_config import TitleConfig, get_title_config, set_title_config
 from .tracing_config import (
     get_enabled_tracing_providers,
     get_explicitly_enabled_tracing_providers,
@@ -12,7 +13,6 @@ from .tracing_config import (
     is_tracing_enabled,
     validate_enabled_tracing_providers,
 )
-from .title_config import TitleConfig, get_title_config, set_title_config
 
 
 def load_config(config_path: str | None = None) -> AppConfig:

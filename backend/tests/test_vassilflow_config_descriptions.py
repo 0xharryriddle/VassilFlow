@@ -11,9 +11,7 @@ from vassilflow.persistence.base import Base
 
 def test_auth_config_descriptions_use_vassilflow_name() -> None:
     issuer_description = OIDCProviderConfig.model_fields["issuer"].description or ""
-    auto_create_description = (
-        OIDCProviderConfig.model_fields["auto_create_users"].description or ""
-    )
+    auto_create_description = OIDCProviderConfig.model_fields["auto_create_users"].description or ""
 
     assert "realms/vassilflow" in issuer_description
     assert "VassilFlow user" in auto_create_description
@@ -28,8 +26,8 @@ def test_runtime_config_docstrings_use_vassilflow_primary_name() -> None:
 
     assert "VassilFlow" in app_resolver_doc
     assert "VassilFlow" in extensions_resolver_doc
-    assert "legacy upstream aliases" in app_resolver_doc
-    assert "legacy upstream aliases" in extensions_resolver_doc
+    assert "legacy upstream aliases" not in app_resolver_doc
+    assert "legacy upstream aliases" not in extensions_resolver_doc
     assert "Get the VassilFlow config instance" in (get_app_config.__doc__ or "")
     assert "Get the DeerFlow config instance" not in (get_app_config.__doc__ or "")
 
@@ -41,10 +39,7 @@ def test_persistence_docstrings_use_vassilflow_package() -> None:
 
 
 def test_memory_storage_default_uses_vassilflow_package() -> None:
-    assert (
-        MemoryConfig.model_fields["storage_class"].default
-        == "vassilflow.agents.memory.storage.FileMemoryStorage"
-    )
+    assert MemoryConfig.model_fields["storage_class"].default == "vassilflow.agents.memory.storage.FileMemoryStorage"
 
 
 def test_safety_config_docstring_uses_vassilflow_reflection_package() -> None:

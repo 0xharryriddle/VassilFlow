@@ -86,10 +86,9 @@ def test_vassilflow_package_exports_current_runtime_api():
     )
     from vassilflow.client import VassilFlowClient
     from vassilflow.models import create_chat_model
-    from vassilflow.runtime import RunManager, make_store, serialize_channel_values_for_api
-    from vassilflow.runtime import RunStatus
     from vassilflow.models import create_chat_model as package_create_chat_model
     from vassilflow.models import factory as model_factory
+    from vassilflow.runtime import RunManager, RunStatus, make_store, serialize_channel_values_for_api
     from vassilflow.runtime import RunManager as VassilFlowRunManager
     from vassilflow.runtime import RunStatus as VassilFlowRunStatus
     from vassilflow.runtime import make_store as package_make_store
@@ -139,12 +138,12 @@ def test_vassilflow_config_package_exports_current_config_api(monkeypatch):
 
 def test_vassilflow_config_deep_imports_alias_current_config_modules():
     from vassilflow.config.app_config import AppConfig, get_app_config
-    from vassilflow.config.paths import Paths, get_paths
-    from vassilflow.config.title_config import TitleConfig
     from vassilflow.config.app_config import AppConfig as FacadeAppConfig
     from vassilflow.config.app_config import get_app_config as facade_get_app_config
+    from vassilflow.config.paths import Paths, get_paths
     from vassilflow.config.paths import Paths as FacadePaths
     from vassilflow.config.paths import get_paths as facade_get_paths
+    from vassilflow.config.title_config import TitleConfig
     from vassilflow.config.title_config import TitleConfig as FacadeTitleConfig
 
     assert FacadeAppConfig is AppConfig
@@ -156,10 +155,10 @@ def test_vassilflow_config_deep_imports_alias_current_config_modules():
 
 def test_vassilflow_runtime_deep_imports_alias_current_runtime_modules():
     from vassilflow.runtime.runs.naming import resolve_root_run_name
-    from vassilflow.runtime.user_context import get_effective_user_id
     from vassilflow.runtime.runs.naming import (
         resolve_root_run_name as facade_resolve_root_run_name,
     )
+    from vassilflow.runtime.user_context import get_effective_user_id
     from vassilflow.runtime.user_context import (
         get_effective_user_id as facade_get_effective_user_id,
     )

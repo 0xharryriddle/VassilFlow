@@ -299,21 +299,14 @@ class ReplayChatModel(BaseChatModel):
         fixture_path = kwargs.pop("fixture", None) or os.environ.get(_FIXTURE_ENV)
         if not fixture_path:
             fixture_path = next(
-                (
-                    os.environ[legacy_env]
-                    for legacy_env in _LEGACY_FIXTURE_ENVS
-                    if os.environ.get(legacy_env)
-                ),
+                (os.environ[legacy_env] for legacy_env in _LEGACY_FIXTURE_ENVS if os.environ.get(legacy_env)),
                 None,
             )
         callbacks = kwargs.pop("callbacks", None)
         super().__init__(callbacks=callbacks)
         if not fixture_path:
             legacy_names = " / ".join(_LEGACY_FIXTURE_ENVS)
-            raise ValueError(
-                "ReplayChatModel needs a fixture path via the ``fixture`` kwarg "
-                f"or ${_FIXTURE_ENV} (legacy {legacy_names} are still accepted)"
-            )
+            raise ValueError(f"ReplayChatModel needs a fixture path via the ``fixture`` kwarg or ${_FIXTURE_ENV} (legacy {legacy_names} are still accepted)")
         self._fixture_path = fixture_path
         self._table = _load_fixture(fixture_path)
         self.callbacks = [*(self.callbacks or []), _ReplayCallerCapture(self._run_callers)]

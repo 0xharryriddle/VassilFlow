@@ -1,3 +1,4 @@
+import os
 import stat
 
 from vassilflow.skills.permissions import make_skill_tree_sandbox_readable, make_skill_written_path_sandbox_readable
@@ -29,6 +30,12 @@ def test_skill_tree_readability_includes_hidden_paths_and_removes_sandbox_write(
 
     make_skill_tree_sandbox_readable(root)
 
+    if os.name == "nt":
+        assert root.exists()
+        assert hidden_file.exists()
+        assert script_file.exists()
+        return
+
     assert _mode(root) == 0o755
     assert _mode(hidden_dir) == 0o755
     assert _mode(scripts_dir) == 0o755
@@ -55,6 +62,11 @@ def test_written_path_readability_is_limited_to_written_path(tmp_path):
     sibling.chmod(0o600)
 
     make_skill_written_path_sandbox_readable(root, target)
+
+    if os.name == "nt":
+        assert target.exists()
+        assert sibling.exists()
+        return
 
     assert _mode(root) == 0o755
     assert _mode(ref_dir) == 0o755

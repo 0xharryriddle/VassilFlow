@@ -1,9 +1,9 @@
 """Live integration tests for VassilFlowClient with real API.
 
 These tests require a working config.yaml with valid API credentials.
-They are skipped in CI and must be run explicitly:
+They are skipped in CI/default local test runs and must be run explicitly:
 
-    PYTHONPATH=. uv run pytest tests/test_client_live.py -v -s
+    VASSILFLOW_RUN_LIVE_TESTS=1 PYTHONPATH=. uv run pytest tests/test_client_live.py -v -s
 """
 
 import json
@@ -16,10 +16,12 @@ from vassilflow.client import StreamEvent, VassilFlowClient
 from vassilflow.sandbox.security import is_host_bash_allowed
 from vassilflow.uploads.manager import PathTraversalError
 
-# Skip entire module in CI or when no config.yaml exists
+# Skip entire module unless the operator explicitly opts into live provider calls.
 _skip_reason = None
 if os.environ.get("CI"):
     _skip_reason = "Live tests skipped in CI"
+elif os.environ.get("VASSILFLOW_RUN_LIVE_TESTS") != "1":
+    _skip_reason = "Live tests require VASSILFLOW_RUN_LIVE_TESTS=1"
 elif not Path(__file__).resolve().parents[2].joinpath("config.yaml").exists():
     _skip_reason = "No config.yaml found — live tests require valid API credentials"
 

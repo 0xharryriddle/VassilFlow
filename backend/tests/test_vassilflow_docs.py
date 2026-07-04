@@ -66,9 +66,7 @@ def test_backend_docs_index_and_mcp_use_vassilflow_identity():
 
 
 def test_configuration_docs_use_vassilflow_identity_and_env_names():
-    content = (REPO_ROOT / "backend" / "docs" / "CONFIGURATION.md").read_text(
-        encoding="utf-8"
-    )
+    content = (REPO_ROOT / "backend" / "docs" / "CONFIGURATION.md").read_text(encoding="utf-8")
 
     assert "configure VassilFlow for your environment" in content
     assert "VassilFlow supports multiple sandbox execution modes" in content
@@ -81,9 +79,7 @@ def test_configuration_docs_use_vassilflow_identity_and_env_names():
 
 
 def test_architecture_docs_use_vassilflow_runtime_identity():
-    content = (REPO_ROOT / "backend" / "docs" / "ARCHITECTURE.md").read_text(
-        encoding="utf-8"
-    )
+    content = (REPO_ROOT / "backend" / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
 
     assert "overview of the VassilFlow backend architecture" in content
     assert "Local VassilFlow thread data cleanup" in content
@@ -95,18 +91,13 @@ def test_architecture_docs_use_vassilflow_runtime_identity():
     assert "`skills/` under the project root by default" in content
     assert "overview of the DeerFlow backend architecture" not in content
     assert "Local DeerFlow thread data cleanup" not in content
-    assert (
-        "**Entry Point**: `packages/harness/vassilflow/agents/lead_agent/agent.py:make_lead_agent`"
-        not in content
-    )
+    assert "**Entry Point**: `packages/harness/vassilflow/agents/lead_agent/agent.py:make_lead_agent`" not in content
     assert '"path": "deerflow.agents:make_lead_agent"' not in content
     assert "`backend/.deer-flow/threads/{thread_id}/user-data/workspace`" not in content
 
 
 def test_im_channel_docs_use_vassilflow_identity():
-    content = (REPO_ROOT / "backend" / "docs" / "IM_CHANNEL_CONNECTIONS.md").read_text(
-        encoding="utf-8"
-    )
+    content = (REPO_ROOT / "backend" / "docs" / "IM_CHANNEL_CONNECTIONS.md").read_text(encoding="utf-8")
 
     assert "VassilFlow supports user-owned IM channel bindings" in content
     assert "connect the channel from VassilFlow Settings" in content
@@ -155,12 +146,8 @@ def test_sso_docs_use_vassilflow_realm_and_product_identity():
 
 
 def test_upload_path_docs_use_vassilflow_runtime_paths_and_facade():
-    file_upload = (REPO_ROOT / "backend" / "docs" / "FILE_UPLOAD.md").read_text(
-        encoding="utf-8"
-    )
-    path_examples = (REPO_ROOT / "backend" / "docs" / "PATH_EXAMPLES.md").read_text(
-        encoding="utf-8"
-    )
+    file_upload = (REPO_ROOT / "backend" / "docs" / "FILE_UPLOAD.md").read_text(encoding="utf-8")
+    path_examples = (REPO_ROOT / "backend" / "docs" / "PATH_EXAMPLES.md").read_text(encoding="utf-8")
 
     assert "VassilFlow 后端提供了完整的文件上传功能" in file_upload
     assert "VassilFlow 的文件上传系统返回三种不同的路径" in path_examples
@@ -176,18 +163,10 @@ def test_upload_path_docs_use_vassilflow_runtime_paths_and_facade():
 
 
 def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
-    auth_design = (REPO_ROOT / "backend" / "docs" / "AUTH_DESIGN.md").read_text(
-        encoding="utf-8"
-    )
-    auth_upgrade = (REPO_ROOT / "backend" / "docs" / "AUTH_UPGRADE.md").read_text(
-        encoding="utf-8"
-    )
-    auth_test_plan = (
-        REPO_ROOT / "backend" / "docs" / "AUTH_TEST_PLAN.md"
-    ).read_text(encoding="utf-8")
-    auth_docker_gap = (
-        REPO_ROOT / "backend" / "docs" / "AUTH_TEST_DOCKER_GAP.md"
-    ).read_text(encoding="utf-8")
+    auth_design = (REPO_ROOT / "backend" / "docs" / "AUTH_DESIGN.md").read_text(encoding="utf-8")
+    auth_upgrade = (REPO_ROOT / "backend" / "docs" / "AUTH_UPGRADE.md").read_text(encoding="utf-8")
+    auth_test_plan = (REPO_ROOT / "backend" / "docs" / "AUTH_TEST_PLAN.md").read_text(encoding="utf-8")
+    auth_docker_gap = (REPO_ROOT / "backend" / "docs" / "AUTH_TEST_DOCKER_GAP.md").read_text(encoding="utf-8")
 
     assert "本文档描述 VassilFlow 当前内置认证模块的设计" in auth_design
     assert "认证模块的核心目标是把 VassilFlow" in auth_design
@@ -216,9 +195,7 @@ def test_auth_docs_use_vassilflow_identity_and_runtime_storage():
 
 
 def test_apple_container_docs_use_vassilflow_runtime_names():
-    content = (REPO_ROOT / "backend" / "docs" / "APPLE_CONTAINER.md").read_text(
-        encoding="utf-8"
-    )
+    content = (REPO_ROOT / "backend" / "docs" / "APPLE_CONTAINER.md").read_text(encoding="utf-8")
 
     assert "VassilFlow supports Apple Container" in content
     assert "VassilFlow automatically detects and uses Apple Container" in content
@@ -231,12 +208,8 @@ def test_apple_container_docs_use_vassilflow_runtime_names():
 
 
 def test_memory_docs_use_vassilflow_identity_and_runtime_home():
-    summarization = (REPO_ROOT / "backend" / "docs" / "summarization.md").read_text(
-        encoding="utf-8"
-    )
-    memory_review = (
-        REPO_ROOT / "backend" / "docs" / "MEMORY_SETTINGS_REVIEW.md"
-    ).read_text(encoding="utf-8")
+    summarization = (REPO_ROOT / "backend" / "docs" / "summarization.md").read_text(encoding="utf-8")
+    memory_review = (REPO_ROOT / "backend" / "docs" / "MEMORY_SETTINGS_REVIEW.md").read_text(encoding="utf-8")
 
     assert "VassilFlow includes automatic conversation summarization" in summarization
     assert "VassilFlowSummarizationMiddleware" in summarization
@@ -248,28 +221,16 @@ def test_memory_docs_use_vassilflow_identity_and_runtime_home():
     assert "legacy `.deer-flow` is still used as a transition fallback" in memory_review
     assert "DeerFlow includes automatic conversation summarization" not in summarization
     assert "DeerFlowSummarizationMiddleware.before_model" not in summarization
-    assert (
-        "**Configuration**: `packages/harness/vassilflow/config/summarization_config.py`"
-        not in summarization
-    )
-    assert (
-        "**Integration**: `packages/harness/vassilflow/agents/lead_agent/agent.py`"
-        not in summarization
-    )
+    assert "**Configuration**: `packages/harness/vassilflow/config/summarization_config.py`" not in summarization
+    assert "**Integration**: `packages/harness/vassilflow/agents/lead_agent/agent.py`" not in summarization
     assert "Start DeerFlow locally" not in memory_review
     assert "backend/.deer-flow/memory.json" not in memory_review
 
 
 def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
-    plan_mode = (REPO_ROOT / "backend" / "docs" / "plan_mode_usage.md").read_text(
-        encoding="utf-8"
-    )
-    auto_title = (
-        REPO_ROOT / "backend" / "docs" / "AUTO_TITLE_GENERATION.md"
-    ).read_text(encoding="utf-8")
-    title_implementation = (
-        REPO_ROOT / "backend" / "docs" / "TITLE_GENERATION_IMPLEMENTATION.md"
-    ).read_text(encoding="utf-8")
+    plan_mode = (REPO_ROOT / "backend" / "docs" / "plan_mode_usage.md").read_text(encoding="utf-8")
+    auto_title = (REPO_ROOT / "backend" / "docs" / "AUTO_TITLE_GENERATION.md").read_text(encoding="utf-8")
+    title_implementation = (REPO_ROOT / "backend" / "docs" / "TITLE_GENERATION_IMPLEMENTATION.md").read_text(encoding="utf-8")
 
     assert "TodoList middleware in VassilFlow" in plan_mode
     assert "from vassilflow.agents.lead_agent.agent import make_lead_agent" in plan_mode
@@ -280,10 +241,7 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
     assert "vassilflow.agents.thread_state" in auto_title
     assert "vassilflow.config.title_config" in auto_title
     assert "from vassilflow.config import TitleConfig, set_title_config" in auto_title
-    assert (
-        "from vassilflow.agents.middlewares.title_middleware import TitleMiddleware"
-        in auto_title
-    )
+    assert "from vassilflow.agents.middlewares.title_middleware import TitleMiddleware" in auto_title
     assert 'SqliteSaver.from_conn_string("vassilflow.db")' in title_implementation
     assert "vassilflow.agents.thread_state" in title_implementation
     assert "vassilflow.config.title_config" in title_implementation
@@ -297,18 +255,13 @@ def test_plan_mode_and_title_docs_use_vassilflow_public_imports():
     assert "from vassilflow.agents.title_middleware import TitleMiddleware" not in auto_title
     assert "packages/harness/vassilflow/config/title_config.py" not in auto_title
     assert "packages/harness/vassilflow/config/title_config.py" not in title_implementation
-    assert (
-        "- **Location**: `packages/harness/vassilflow/agents/lead_agent/agent.py`"
-        not in plan_mode
-    )
+    assert "- **Location**: `packages/harness/vassilflow/agents/lead_agent/agent.py`" not in plan_mode
     assert 'SqliteSaver.from_conn_string("deerflow.db")' not in title_implementation
     assert '"lead_agent": "vassilflow.agents:lead_agent"' not in title_implementation
 
 
 def test_streaming_docs_use_vassilflow_client_vocabulary():
-    content = (REPO_ROOT / "backend" / "docs" / "STREAMING.md").read_text(
-        encoding="utf-8"
-    )
+    content = (REPO_ROOT / "backend" / "docs" / "STREAMING.md").read_text(encoding="utf-8")
 
     assert "# VassilFlow 流式输出设计" in content
     assert "VassilFlow 有**两条并行**的流式路径" in content
@@ -323,26 +276,16 @@ def test_streaming_docs_use_vassilflow_client_vocabulary():
 
 
 def test_task_tool_docs_use_vassilflow_public_imports():
-    content = (REPO_ROOT / "backend" / "docs" / "task_tool_improvements.md").read_text(
-        encoding="utf-8"
-    )
+    content = (REPO_ROOT / "backend" / "docs" / "task_tool_improvements.md").read_text(encoding="utf-8")
 
     assert "Public import: `vassilflow.tools.builtins.task_tool`" in content
     assert "**Configuration import**: `vassilflow.subagents.config`" in content
-    assert (
-        "Located in `packages/harness/vassilflow/tools/builtins/task_tool.py`"
-        not in content
-    )
-    assert (
-        "**Configuration** (`packages/harness/vassilflow/subagents/config.py`)"
-        not in content
-    )
+    assert "Located in `packages/harness/vassilflow/tools/builtins/task_tool.py`" not in content
+    assert "**Configuration** (`packages/harness/vassilflow/subagents/config.py`)" not in content
 
 
 def test_contributing_docs_use_vassilflow_public_examples():
-    content = (REPO_ROOT / "backend" / "CONTRIBUTING.md").read_text(
-        encoding="utf-8"
-    )
+    content = (REPO_ROOT / "backend" / "CONTRIBUTING.md").read_text(encoding="utf-8")
 
     assert "# Contributing to VassilFlow Backend" in content
     assert "contributing to VassilFlow" in content
@@ -361,9 +304,7 @@ def test_contributing_docs_use_vassilflow_public_examples():
 
 
 def test_sandbox_memory_profiling_docs_use_vassilflow_defaults():
-    content = (
-        REPO_ROOT / "backend" / "docs" / "SANDBOX_MEMORY_PROFILING.md"
-    ).read_text(encoding="utf-8")
+    content = (REPO_ROOT / "backend" / "docs" / "SANDBOX_MEMORY_PROFILING.md").read_text(encoding="utf-8")
 
     assert "same VassilFlow workload" in content
     assert "--namespace vassilflow" in content
@@ -375,15 +316,9 @@ def test_sandbox_memory_profiling_docs_use_vassilflow_defaults():
 
 
 def test_rfc_docs_use_vassilflow_public_package_imports():
-    sdk_rfc = (
-        REPO_ROOT / "backend" / "docs" / "rfc-create-vassilflow-agent.md"
-    ).read_text(encoding="utf-8")
-    grep_glob_rfc = (
-        REPO_ROOT / "backend" / "docs" / "rfc-grep-glob-tools.md"
-    ).read_text(encoding="utf-8")
-    shared_modules_rfc = (
-        REPO_ROOT / "backend" / "docs" / "rfc-extract-shared-modules.md"
-    ).read_text(encoding="utf-8")
+    sdk_rfc = (REPO_ROOT / "backend" / "docs" / "rfc-create-vassilflow-agent.md").read_text(encoding="utf-8")
+    grep_glob_rfc = (REPO_ROOT / "backend" / "docs" / "rfc-grep-glob-tools.md").read_text(encoding="utf-8")
+    shared_modules_rfc = (REPO_ROOT / "backend" / "docs" / "rfc-extract-shared-modules.md").read_text(encoding="utf-8")
 
     assert "from vassilflow.client import VassilFlowClient" in sdk_rfc
     assert "from vassilflow.agents.features import RuntimeFeatures" in sdk_rfc
@@ -407,9 +342,7 @@ def test_rfc_docs_use_vassilflow_public_package_imports():
 
 
 def test_middleware_docs_use_vassilflow_factory_name():
-    content = (
-        REPO_ROOT / "backend" / "docs" / "middleware-execution-flow.md"
-    ).read_text(encoding="utf-8")
+    content = (REPO_ROOT / "backend" / "docs" / "middleware-execution-flow.md").read_text(encoding="utf-8")
 
     assert "create_vassilflow_agent" in content
     assert "VassilFlow 的实际情况" in content

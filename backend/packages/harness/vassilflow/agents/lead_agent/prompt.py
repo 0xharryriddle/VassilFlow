@@ -633,11 +633,7 @@ def _get_cached_skills_prompt_section(
     container_base_path: str,
     skill_evolution_section: str,
 ) -> str:
-    filtered = [
-        (skill_id, name, description, category, location)
-        for skill_id, name, description, category, location in skill_signature
-        if available_skills_key is None or skill_id in available_skills_key or name in available_skills_key
-    ]
+    filtered = [(skill_id, name, description, category, location) for skill_id, name, description, category, location in skill_signature if available_skills_key is None or skill_id in available_skills_key or name in available_skills_key]
     skills_list = ""
     if filtered:
         skill_items = "\n".join(

@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
-from vassilflow.config.database_config import DEFAULT_SQLITE_FILENAME, LEGACY_SQLITE_FILENAME, DatabaseConfig
+from vassilflow.config.database_config import DEFAULT_SQLITE_FILENAME, DatabaseConfig
 from vassilflow.runtime.runs.store.memory import MemoryRunStore
 
 # -- DatabaseConfig --
@@ -34,22 +34,19 @@ class TestDatabaseConfig:
         assert c.checkpointer_sqlite_path == c.sqlite_path
         assert c.app_sqlite_path == c.sqlite_path
 
-    def test_sqlite_legacy_filename_is_deerflow_db(self):
+    def test_sqlite_filename_is_vassilflow_db(self):
         assert DEFAULT_SQLITE_FILENAME == "vassilflow.db"
-        assert LEGACY_SQLITE_FILENAME == "deerflow.db"
 
-    def test_sqlite_path_preserves_existing_legacy_file(self, tmp_path):
-        legacy_db = tmp_path / LEGACY_SQLITE_FILENAME
-        legacy_db.write_text("legacy", encoding="utf-8")
+    def test_sqlite_path_uses_current_file_even_when_other_files_exist(self, tmp_path):
+        old_db = tmp_path / "old-runtime.db"
+        old_db.write_text("old", encoding="utf-8")
 
         c = DatabaseConfig(backend="sqlite", sqlite_dir=str(tmp_path))
 
-        assert c.sqlite_path == str(legacy_db.resolve())
+        assert c.sqlite_path == str((tmp_path / DEFAULT_SQLITE_FILENAME).resolve())
 
-    def test_sqlite_path_prefers_current_file_when_both_exist(self, tmp_path):
-        legacy_db = tmp_path / LEGACY_SQLITE_FILENAME
+    def test_sqlite_path_prefers_current_file_when_present(self, tmp_path):
         current_db = tmp_path / DEFAULT_SQLITE_FILENAME
-        legacy_db.write_text("legacy", encoding="utf-8")
         current_db.write_text("current", encoding="utf-8")
 
         c = DatabaseConfig(backend="sqlite", sqlite_dir=str(tmp_path))

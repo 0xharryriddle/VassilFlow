@@ -26,13 +26,12 @@ def test_maintainer_orchestrator_skill_uses_vassilflow_identity():
     assert "DeerFlow maintainer" not in metadata["description"]
 
 
-def test_maintainer_orchestrator_design_links_vassilflow_skill():
-    content = (REPO_ROOT / "docs" / "agents" / "maintainer-orchestrator-design.md").read_text(
-        encoding="utf-8"
-    )
+def test_maintainer_orchestrator_design_doc_was_removed_with_legacy_docs():
+    design_doc = REPO_ROOT / "docs" / "agents" / "maintainer-orchestrator-design.md"
+    skill_path = REPO_ROOT / ".agent" / "skills" / "vassilflow-maintainer-orchestrator" / "SKILL.md"
 
-    assert ".agent/skills/vassilflow-maintainer-orchestrator/SKILL.md" in content
-    assert "deerflow-maintainer-orchestrator" not in content
+    assert not design_doc.exists()
+    assert skill_path.exists()
 
 
 def test_public_claude_skill_uses_vassilflow_identity():
@@ -59,14 +58,7 @@ def test_smoke_test_skill_uses_vassilflow_identity():
     skill_path = REPO_ROOT / ".agent" / "skills" / "smoke-test" / "SKILL.md"
     metadata = _frontmatter(skill_path)
     body = skill_path.read_text(encoding="utf-8")
-    docker_template = (
-        REPO_ROOT
-        / ".agent"
-        / "skills"
-        / "smoke-test"
-        / "templates"
-        / "report.docker.template.md"
-    ).read_text(encoding="utf-8")
+    docker_template = (REPO_ROOT / ".agent" / "skills" / "smoke-test" / "templates" / "report.docker.template.md").read_text(encoding="utf-8")
 
     assert "VassilFlow" in metadata["description"]
     assert "# VassilFlow Smoke Test Skill" in body
@@ -76,12 +68,8 @@ def test_smoke_test_skill_uses_vassilflow_identity():
 
 
 def test_smoke_test_scripts_detect_vassilflow_and_legacy_names():
-    health_check = (
-        REPO_ROOT / ".agent" / "skills" / "smoke-test" / "scripts" / "health_check.sh"
-    ).read_text(encoding="utf-8")
-    check_docker = (
-        REPO_ROOT / ".agent" / "skills" / "smoke-test" / "scripts" / "check_docker.sh"
-    ).read_text(encoding="utf-8")
+    health_check = (REPO_ROOT / ".agent" / "skills" / "smoke-test" / "scripts" / "health_check.sh").read_text(encoding="utf-8")
+    check_docker = (REPO_ROOT / ".agent" / "skills" / "smoke-test" / "scripts" / "check_docker.sh").read_text(encoding="utf-8")
 
     assert "vassilflow_containers_running()" in health_check
     assert "vassilflow|deer-flow|deerflow" in health_check
@@ -92,14 +80,7 @@ def test_smoke_test_scripts_detect_vassilflow_and_legacy_names():
 
 def test_blocking_io_guard_skill_uses_vassilflow_paths_and_scope():
     skill_path = REPO_ROOT / ".agent" / "skills" / "blocking-io-guard" / "SKILL.md"
-    reference_path = (
-        REPO_ROOT
-        / ".agent"
-        / "skills"
-        / "blocking-io-guard"
-        / "references"
-        / "good-anchor-rules.md"
-    )
+    reference_path = REPO_ROOT / ".agent" / "skills" / "blocking-io-guard" / "references" / "good-anchor-rules.md"
     metadata = _frontmatter(skill_path)
     body = skill_path.read_text(encoding="utf-8")
     reference = reference_path.read_text(encoding="utf-8")
@@ -114,9 +95,7 @@ def test_blocking_io_guard_skill_uses_vassilflow_paths_and_scope():
 
 
 def test_public_frontend_design_skill_uses_vassilflow_branding():
-    body = (REPO_ROOT / "skills" / "public" / "frontend-design" / "SKILL.md").read_text(
-        encoding="utf-8"
-    )
+    body = (REPO_ROOT / "skills" / "public" / "frontend-design" / "SKILL.md").read_text(encoding="utf-8")
 
     assert "Created By VassilFlow" in body
     assert "https://github.com/linhlln1104/VassilFlow" in body
@@ -125,31 +104,15 @@ def test_public_frontend_design_skill_uses_vassilflow_branding():
 
 
 def test_public_github_deep_research_template_uses_vassilflow_identity():
-    template = (
-        REPO_ROOT
-        / "skills"
-        / "public"
-        / "github-deep-research"
-        / "assets"
-        / "report_template.md"
-    ).read_text(encoding="utf-8")
+    template = (REPO_ROOT / "skills" / "public" / "github-deep-research" / "assets" / "report_template.md").read_text(encoding="utf-8")
 
     assert "Github Deep Research by VassilFlow" in template
     assert "Github Deep Research by DeerFlow" not in template
 
 
 def test_public_slr_skill_uses_vassilflow_runtime_branding():
-    skill_body = (
-        REPO_ROOT / "skills" / "public" / "systematic-literature-review" / "SKILL.md"
-    ).read_text(encoding="utf-8")
-    search_script = (
-        REPO_ROOT
-        / "skills"
-        / "public"
-        / "systematic-literature-review"
-        / "scripts"
-        / "arxiv_search.py"
-    ).read_text(encoding="utf-8")
+    skill_body = (REPO_ROOT / "skills" / "public" / "systematic-literature-review" / "SKILL.md").read_text(encoding="utf-8")
+    search_script = (REPO_ROOT / "skills" / "public" / "systematic-literature-review" / "scripts" / "arxiv_search.py").read_text(encoding="utf-8")
 
     assert "The VassilFlow runtime enforces `MAX_CONCURRENT_SUBAGENTS = 3`" in skill_body
     assert "what VassilFlow users most often want to survey" in skill_body
@@ -159,9 +122,7 @@ def test_public_slr_skill_uses_vassilflow_runtime_branding():
 
 
 def test_find_skills_installer_prefers_vassilflow_workspace_marker():
-    install_script = (
-        REPO_ROOT / "skills" / "public" / "find-skills" / "scripts" / "install-skill.sh"
-    ).read_text(encoding="utf-8")
+    install_script = (REPO_ROOT / "skills" / "public" / "find-skills" / "scripts" / "install-skill.sh").read_text(encoding="utf-8")
 
     assert "vassilflow.code-workspace" in install_script
     assert "$dir/vassilflow.code-workspace" in install_script

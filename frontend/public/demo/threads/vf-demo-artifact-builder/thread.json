@@ -1,0 +1,84 @@
+{
+  "values": {
+    "title": "Artifact Builder Demo",
+    "messages": [
+      {
+        "content": "Create an operations-ready artifact package for a VassilFlow deployment review.",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "vf-artifacts-human-1"
+      },
+      {
+        "content": "I will produce a small package with a deployment checklist and a JSON manifest. The checklist is human-readable; the manifest is machine-readable for downstream automation.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "model_name": "vassilflow-demo-model",
+          "model_provider": "static-demo"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "vf-artifacts-ai-1",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      },
+      {
+        "content": "Generate the package artifacts.",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "vf-artifacts-human-2"
+      },
+      {
+        "content": "Package ready: `deployment-checklist.md` and `artifact-manifest.json` are available in the artifact panel.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "model_name": "vassilflow-demo-model",
+          "model_provider": "static-demo"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "vf-artifacts-ai-2",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      }
+    ],
+    "artifacts": [
+      "/mnt/user-data/outputs/deployment-checklist.md",
+      "/mnt/user-data/outputs/artifact-manifest.json"
+    ],
+    "todos": [
+      {
+        "content": "Draft deployment checklist",
+        "status": "completed"
+      },
+      {
+        "content": "Write artifact manifest",
+        "status": "completed"
+      },
+      {
+        "content": "Attach artifacts to the thread state",
+        "status": "completed"
+      }
+    ]
+  },
+  "context": {
+    "thread_id": "vf-demo-artifact-builder",
+    "model_name": "vassilflow-demo-model",
+    "thinking_enabled": false,
+    "is_plan_mode": false,
+    "subagent_enabled": true,
+    "agent_name": "artifact-builder"
+  },
+  "metadata": {
+    "demo_category": "artifacts",
+    "agent_name": "artifact-builder",
+    "source": "vassilflow-static-demo"
+  },
+  "created_at": "2026-07-04T08:55:00.000Z",
+  "updated_at": "2026-07-04T09:05:00.000Z"
+}

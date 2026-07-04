@@ -30,9 +30,7 @@ def _module(name: str, **attrs):
     return module
 
 
-def _make_app_config(
-    *, supports_vision: bool = False, guardrails: GuardrailsConfig | None = None
-) -> AppConfig:
+def _make_app_config(*, supports_vision: bool = False, guardrails: GuardrailsConfig | None = None) -> AppConfig:
     return AppConfig(
         models=[
             ModelConfig(

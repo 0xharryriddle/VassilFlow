@@ -107,20 +107,9 @@ class SkillActivationMiddleware(AgentMiddleware):
             return _ActivationResolution(failure_message=f"Skill `/{reference.name}` is not installed.")
         if not any(skill.enabled for skill in matching_by_name):
             return _ActivationResolution(failure_message=f"Skill `/{reference.name}` is installed but disabled. Enable it before using slash activation.")
-        if self._available_skills is not None and not any(
-            skill.enabled and any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills)
-            for skill in matching_by_name
-        ):
+        if self._available_skills is not None and not any(skill.enabled and any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills) for skill in matching_by_name):
             return _ActivationResolution(failure_message=f"Skill `/{reference.name}` is not available for this agent.")
-        enabled_matches = [
-            skill
-            for skill in matching_by_name
-            if skill.enabled
-            and (
-                self._available_skills is None
-                or any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills)
-            )
-        ]
+        enabled_matches = [skill for skill in matching_by_name if skill.enabled and (self._available_skills is None or any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills))]
         if len(enabled_matches) > 1:
             choices = ", ".join(f"`{skill.category}:{skill.name}`" for skill in enabled_matches)
             return _ActivationResolution(failure_message=f"Skill `/{reference.name}` is ambiguous. Use a custom agent skill allowlist with one of: {choices}.")

@@ -130,10 +130,7 @@ def _validate_mcp_update_request(request: McpConfigUpdateRequest) -> None:
             allowed = ", ".join(sorted(allowed_commands)) or "<none>"
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=(
-                    f"MCP server '{name}' uses disallowed stdio command '{command_name}'. Allowed commands: {allowed}. "
-                    f"Configure {_MCP_STDIO_COMMAND_ALLOWLIST_ENV} to extend this list."
-                ),
+                detail=(f"MCP server '{name}' uses disallowed stdio command '{command_name}'. Allowed commands: {allowed}. Configure {_MCP_STDIO_COMMAND_ALLOWLIST_ENV} to extend this list."),
             )
 
 

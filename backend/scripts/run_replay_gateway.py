@@ -68,11 +68,7 @@ def main() -> int:
     # e2e (#3352). Imported from tests/ and mounted here only — never in the
     # production app. Pass the app object (not the import string) so the extra
     # router is registered before uvicorn serves it.
-    if (
-        os.environ.get("VASSILFLOW_ENABLE_TEST_SEED") == "1"
-        or os.environ.get("DEER_FLOW_ENABLE_TEST_SEED") == "1"
-        or os.environ.get("DEERFLOW_ENABLE_TEST_SEED") == "1"
-    ):
+    if os.environ.get("VASSILFLOW_ENABLE_TEST_SEED") == "1" or os.environ.get("DEER_FLOW_ENABLE_TEST_SEED") == "1" or os.environ.get("DEERFLOW_ENABLE_TEST_SEED") == "1":
         from seed_runs_router import router as seed_router
 
         from app.gateway.app import app as gateway_app

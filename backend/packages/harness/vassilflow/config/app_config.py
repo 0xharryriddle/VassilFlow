@@ -360,7 +360,7 @@ class AppConfig(BaseModel):
 
     @classmethod
     def resolve_env_variables(cls, config: Any) -> Any:
-        """Recursively resolve environment variables in the config.
+        """Recursively resolve VassilFlow environment variables in the config.
 
         Environment variables are resolved from the process environment.
 

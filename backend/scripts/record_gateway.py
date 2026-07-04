@@ -110,18 +110,13 @@ def main() -> int:
     record_out = os.environ.get(_RECORD_OUT_ENV)
     if not record_out:
         record_out = next(
-            (
-                os.environ[legacy_env]
-                for legacy_env in _LEGACY_RECORD_OUT_ENVS
-                if os.environ.get(legacy_env)
-            ),
+            (os.environ[legacy_env] for legacy_env in _LEGACY_RECORD_OUT_ENVS if os.environ.get(legacy_env)),
             None,
         )
     if not record_out:
         legacy_names = " / ".join(_LEGACY_RECORD_OUT_ENVS)
         print(
-            f"ERROR: set {_RECORD_OUT_ENV} to the JSONL path to append captured turns to "
-            f"(legacy {legacy_names} are still accepted)",
+            f"ERROR: set {_RECORD_OUT_ENV} to the JSONL path to append captured turns to (legacy {legacy_names} are still accepted)",
             file=sys.stderr,
         )
         return 2

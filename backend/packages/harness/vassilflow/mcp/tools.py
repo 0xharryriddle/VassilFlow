@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import re
 from collections.abc import Iterable, Mapping
@@ -44,7 +45,18 @@ _LOCAL_PATH_IN_TEXT_RE = re.compile(r"(?:file://)?(?:/[^\s'\"<>|*?]+|[A-Za-z]:[\
 # Trailing characters that are punctuation/markup rather than part of a path.
 _TEXT_PATH_TRAILING_CHARS = ".,;:!?)]}>\"'`"
 
-_FILE_SNAPSHOT = dict[Path, tuple[int, int]]
+_FILE_SNAPSHOT = dict[Path, tuple[int, int, str]]
+
+
+def _file_content_digest(path: Path) -> str | None:
+    digest = hashlib.blake2b(digest_size=16)
+    try:
+        with path.open("rb") as file_obj:
+            for chunk in iter(lambda: file_obj.read(1024 * 1024), b""):
+                digest.update(chunk)
+    except OSError:
+        return None
+    return digest.hexdigest()
 
 
 def _local_path_from_uri(uri: str, *, base_dir: Path | None = None) -> Path | None:
@@ -135,7 +147,7 @@ def _local_uri_to_virtual_path(
 
 
 def _snapshot_workspace_files(root: Path) -> _FILE_SNAPSHOT:
-    """Return a lightweight snapshot of regular files under *root*."""
+    """Return a content-aware snapshot of regular files under *root*."""
     snapshot: _FILE_SNAPSHOT = {}
     if not root.exists():
         return snapshot
@@ -148,7 +160,10 @@ def _snapshot_workspace_files(root: Path) -> _FILE_SNAPSHOT:
             except OSError:
                 continue
             if path.is_file():
-                snapshot[path] = (stat.st_mtime_ns, stat.st_size)
+                content_digest = _file_content_digest(path)
+                if content_digest is None:
+                    continue
+                snapshot[path] = (stat.st_mtime_ns, stat.st_size, content_digest)
     except OSError:
         return snapshot
     return snapshot

@@ -135,15 +135,7 @@ def test_config_example_prefers_vassilflow_dynamic_paths():
 
 def test_active_config_example_vassilflow_use_paths_resolve():
     config = yaml.safe_load((REPO_ROOT / "config.example.yaml").read_text(encoding="utf-8"))
-    use_paths = sorted(
-        {
-            value["use"]
-            for value in _walk_config_values(config)
-            if isinstance(value, dict)
-            and isinstance(value.get("use"), str)
-            and value["use"].startswith("vassilflow.")
-        }
-    )
+    use_paths = sorted({value["use"] for value in _walk_config_values(config) if isinstance(value, dict) and isinstance(value.get("use"), str) and value["use"].startswith("vassilflow.")})
 
     assert use_paths
     for variable_path in use_paths:

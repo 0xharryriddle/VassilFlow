@@ -372,7 +372,14 @@ class TestPrepareStdioWorkspace:
         assert source_base_dir == paths.sandbox_work_dir("t1", user_id="u1")
         assert tmp_dir == source_base_dir / mcp_tools._MCP_TMP_SUBDIR
         assert tmp_dir.is_dir()
-        assert before == {existing: (existing.stat().st_mtime_ns, existing.stat().st_size)}
+        existing_stat = existing.stat()
+        assert before == {
+            existing: (
+                existing_stat.st_mtime_ns,
+                existing_stat.st_size,
+                mcp_tools._file_content_digest(existing),
+            )
+        }
 
 
 class TestResultHasTextContent:

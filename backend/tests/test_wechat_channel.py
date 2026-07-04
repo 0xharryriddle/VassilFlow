@@ -6,6 +6,7 @@ import asyncio
 import base64
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 from unittest import mock
@@ -1315,7 +1316,8 @@ def test_qrcode_login_binds_and_persists_auth_state(monkeypatch, tmp_path: Path)
         assert auth_state["status"] == "confirmed"
         assert auth_state["bot_token"] == "bound-token"
         assert auth_state["ilink_bot_id"] == "bot-99"
-        assert ((state_dir / "wechat-auth.json").stat().st_mode & 0o777) == 0o600
+        if os.name != "nt":
+            assert ((state_dir / "wechat-auth.json").stat().st_mode & 0o777) == 0o600
 
     _run(go())
 
@@ -1343,7 +1345,8 @@ def test_save_auth_state_tightens_preexisting_loose_file(tmp_path: Path):
     )
     channel._save_auth_state(status="confirmed", bot_token="bound-token", ilink_bot_id="bot-1")
 
-    assert (auth_path.stat().st_mode & 0o777) == 0o600
+    if os.name != "nt":
+        assert (auth_path.stat().st_mode & 0o777) == 0o600
     assert json.loads(auth_path.read_text(encoding="utf-8"))["bot_token"] == "bound-token"
     # Atomic write leaves no temp-file residue behind.
     assert list(state_dir.glob("*.tmp")) == []

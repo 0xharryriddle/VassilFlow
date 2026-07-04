@@ -4417,11 +4417,11 @@ class TestChannelService:
         assert service.manager._channel_sessions["telegram"]["assistant_id"] == "mobile_agent"
         assert service.manager._channel_sessions["telegram"]["users"]["vip"]["assistant_id"] == "vip_agent"
 
-    def test_service_urls_fall_back_to_env(self, monkeypatch):
+    def test_service_urls_use_vassilflow_env(self, monkeypatch):
         from app.channels.service import ChannelService
 
-        monkeypatch.setenv("DEER_FLOW_CHANNELS_LANGGRAPH_URL", "http://gateway:8001/api")
-        monkeypatch.setenv("DEER_FLOW_CHANNELS_GATEWAY_URL", "http://gateway:8001")
+        monkeypatch.setenv("VASSILFLOW_CHANNELS_LANGGRAPH_URL", "http://gateway:8001/api")
+        monkeypatch.setenv("VASSILFLOW_CHANNELS_GATEWAY_URL", "http://gateway:8001")
 
         service = ChannelService(channels_config={})
 
@@ -4431,8 +4431,8 @@ class TestChannelService:
     def test_config_service_urls_override_env(self, monkeypatch):
         from app.channels.service import ChannelService
 
-        monkeypatch.setenv("DEER_FLOW_CHANNELS_LANGGRAPH_URL", "http://gateway:8001/api")
-        monkeypatch.setenv("DEER_FLOW_CHANNELS_GATEWAY_URL", "http://gateway:8001")
+        monkeypatch.setenv("VASSILFLOW_CHANNELS_LANGGRAPH_URL", "http://gateway:8001/api")
+        monkeypatch.setenv("VASSILFLOW_CHANNELS_GATEWAY_URL", "http://gateway:8001")
 
         service = ChannelService(
             channels_config={
@@ -4469,7 +4469,7 @@ class TestChannelService:
         from vassilflow.config import paths as paths_module
         from vassilflow.config.channel_connections_config import ChannelConnectionsConfig
 
-        monkeypatch.setenv("DEER_FLOW_HOME", str(tmp_path))
+        monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
         monkeypatch.setattr(paths_module, "_paths", None)
         app_config = SimpleNamespace(
             model_extra={},
@@ -4497,7 +4497,7 @@ class TestChannelService:
         from vassilflow.config import paths as paths_module
         from vassilflow.config.channel_connections_config import ChannelConnectionsConfig
 
-        monkeypatch.setenv("DEER_FLOW_HOME", str(tmp_path))
+        monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
         monkeypatch.setattr(paths_module, "_paths", None)
         ChannelRuntimeConfigStore().set_provider_config(
             "slack",
@@ -4538,7 +4538,7 @@ class TestChannelService:
         from vassilflow.config import paths as paths_module
         from vassilflow.config.channel_connections_config import ChannelConnectionsConfig
 
-        monkeypatch.setenv("DEER_FLOW_HOME", str(tmp_path))
+        monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
         monkeypatch.setattr(paths_module, "_paths", None)
         ChannelRuntimeConfigStore().set_provider_config(
             "slack",
@@ -4572,7 +4572,7 @@ class TestChannelService:
         from vassilflow.config import paths as paths_module
         from vassilflow.config.channel_connections_config import ChannelConnectionsConfig
 
-        monkeypatch.setenv("DEER_FLOW_HOME", str(tmp_path))
+        monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
         monkeypatch.setattr(paths_module, "_paths", None)
         ChannelRuntimeConfigStore().set_provider_config(
             "feishu",
@@ -4825,7 +4825,7 @@ class TestChannelService:
         from vassilflow.config import paths as paths_module
         from vassilflow.config.channel_connections_config import ChannelConnectionsConfig
 
-        monkeypatch.setenv("DEER_FLOW_HOME", str(tmp_path))
+        monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
         monkeypatch.setattr(paths_module, "_paths", None)
         ChannelRuntimeConfigStore().set_provider_config(
             "telegram",

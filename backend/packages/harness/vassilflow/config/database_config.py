@@ -54,10 +54,7 @@ class DatabaseConfig(BaseModel):
     )
     sqlite_dir: str = Field(
         default_factory=default_sqlite_dir,
-        description=(
-            "Directory for the SQLite database file. Both checkpointer and "
-            "application data share {sqlite_dir}/vassilflow.db."
-        ),
+        description=("Directory for the SQLite database file. Both checkpointer and application data share {sqlite_dir}/vassilflow.db."),
     )
     postgres_url: str = Field(
         default="",

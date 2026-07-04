@@ -143,18 +143,18 @@ class TestBuildOwnerMapFromDb:
 
         assert _build_owner_map_from_db(paths) == {"t1": "alice"}
 
-    def test_reads_legacy_deerflow_database_when_current_absent(self, base_dir: Path, paths: Paths):
+    def test_ignores_old_database_names_when_current_absent(self, base_dir: Path, paths: Paths):
         from scripts.migrate_user_isolation import _build_owner_map_from_db
 
-        self._write_threads_meta(base_dir / "data" / "vassilflow.db", [("t2", "bob")])
+        self._write_threads_meta(base_dir / "data" / "old-runtime.db", [("t2", "bob")])
 
-        assert _build_owner_map_from_db(paths) == {"t2": "bob"}
+        assert _build_owner_map_from_db(paths) == {}
 
-    def test_prefers_current_database_when_both_exist(self, base_dir: Path, paths: Paths):
+    def test_prefers_data_directory_database_over_root_database(self, base_dir: Path, paths: Paths):
         from scripts.migrate_user_isolation import _build_owner_map_from_db
 
         self._write_threads_meta(base_dir / "data" / "vassilflow.db", [("current", "alice")])
-        self._write_threads_meta(base_dir / "data" / "vassilflow.db", [("legacy", "bob")])
+        self._write_threads_meta(base_dir / "vassilflow.db", [("root", "bob")])
 
         assert _build_owner_map_from_db(paths) == {"current": "alice"}
 

@@ -1,0 +1,81 @@
+{
+  "values": {
+    "title": "Runtime Readiness Runbook",
+    "messages": [
+      {
+        "content": "Build a readiness runbook for checking VassilFlow before we layer in the superagent harness.",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "vf-readiness-human-1"
+      },
+      {
+        "content": "The readiness runbook should verify configuration, auth boundaries, sandbox execution, frontend build health, and static demo integrity. I will produce a concise runbook artifact for maintainers.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "model_name": "vassilflow-demo-model",
+          "model_provider": "static-demo"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "vf-readiness-ai-1",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      },
+      {
+        "content": "Write the runbook.",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "vf-readiness-human-2"
+      },
+      {
+        "content": "Ready. The runbook lists commands, smoke checks, and go/no-go criteria for the standalone VassilFlow foundation.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "model_name": "vassilflow-demo-model",
+          "model_provider": "static-demo"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "vf-readiness-ai-2",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      }
+    ],
+    "artifacts": ["/mnt/user-data/outputs/runtime-readiness-runbook.md"],
+    "todos": [
+      {
+        "content": "Define frontend readiness checks",
+        "status": "completed"
+      },
+      {
+        "content": "Define backend readiness checks",
+        "status": "completed"
+      },
+      {
+        "content": "Define smoke-test go/no-go criteria",
+        "status": "completed"
+      }
+    ]
+  },
+  "context": {
+    "thread_id": "vf-demo-runtime-readiness",
+    "model_name": "vassilflow-demo-model",
+    "thinking_enabled": false,
+    "is_plan_mode": true,
+    "subagent_enabled": true,
+    "agent_name": "maintainer"
+  },
+  "metadata": {
+    "demo_category": "readiness",
+    "agent_name": "maintainer",
+    "source": "vassilflow-static-demo"
+  },
+  "created_at": "2026-07-04T09:10:00.000Z",
+  "updated_at": "2026-07-04T09:25:00.000Z"
+}

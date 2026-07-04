@@ -1,0 +1,81 @@
+{
+  "values": {
+    "title": "Skill Routing Blueprint",
+    "messages": [
+      {
+        "content": "Design a VassilFlow-native skill routing flow that avoids name collisions and keeps skill identity stable.",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "vf-skills-human-1"
+      },
+      {
+        "content": "Use category-qualified skill IDs such as `public:research-brief`, `custom:legal-review`, and `workspace:artifact-builder`. The router should resolve aliases for display only, while execution uses stable IDs.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "model_name": "vassilflow-demo-model",
+          "model_provider": "static-demo"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "vf-skills-ai-1",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      },
+      {
+        "content": "Package the routing policy as an artifact.",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "vf-skills-human-2"
+      },
+      {
+        "content": "I wrote a skill routing blueprint with identity rules, activation steps, and expected observability fields.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "model_name": "vassilflow-demo-model",
+          "model_provider": "static-demo"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "vf-skills-ai-2",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      }
+    ],
+    "artifacts": ["/mnt/user-data/outputs/skill-routing-blueprint.md"],
+    "todos": [
+      {
+        "content": "Define stable category-qualified IDs",
+        "status": "completed"
+      },
+      {
+        "content": "Separate display names from execution IDs",
+        "status": "completed"
+      },
+      {
+        "content": "Record selected skill IDs in run metadata",
+        "status": "completed"
+      }
+    ]
+  },
+  "context": {
+    "thread_id": "vf-demo-skill-routing",
+    "model_name": "vassilflow-demo-model",
+    "thinking_enabled": false,
+    "is_plan_mode": false,
+    "subagent_enabled": true,
+    "agent_name": "architect"
+  },
+  "metadata": {
+    "demo_category": "skills",
+    "agent_name": "architect",
+    "source": "vassilflow-static-demo"
+  },
+  "created_at": "2026-07-04T08:35:00.000Z",
+  "updated_at": "2026-07-04T08:50:00.000Z"
+}
