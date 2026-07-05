@@ -118,9 +118,7 @@ export function PostList({ description, posts, title }: PostListProps) {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6">
       <header className="space-y-4">
-        <h2 className="text-foreground text-4xl font-semibold tracking-tight">
-          {title}
-        </h2>
+        <h2 className="text-foreground text-4xl font-semibold">{title}</h2>
         {description ? (
           <p className="text-secondary-foreground">{description}</p>
         ) : null}
@@ -142,7 +140,7 @@ export function PostList({ description, posts, title }: PostListProps) {
                 />
                 <Link
                   href={getBlogRoute(post.slug)}
-                  className="text-foreground hover:text-primary block text-2xl font-semibold tracking-tight transition-colors"
+                  className="text-foreground hover:text-primary block text-2xl font-semibold transition-colors"
                 >
                   {post.title}
                 </Link>

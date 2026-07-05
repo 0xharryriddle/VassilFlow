@@ -5,8 +5,8 @@
 VassilFlow executes skills through category-qualified IDs:
 
 - `public:research-brief`
-- `custom:legal-review`
-- `workspace:artifact-builder`
+- `custom:policy-review`
+- `team:release-packager`
 
 Display labels can change without changing execution identity.
 

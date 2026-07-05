@@ -21,6 +21,6 @@
 
 ## Go Criteria
 
-- No user-facing inherited identity in landing or static demos.
+- Public UI, demo fixtures, and artifact labels use the current VassilFlow identity.
 - Readiness checks pass.
-- Remaining legacy references are explicitly classified as migration compatibility or tests.
+- Runtime compatibility references are explicitly classified as tests or maintainer notes.

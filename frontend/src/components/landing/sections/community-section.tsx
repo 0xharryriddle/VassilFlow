@@ -1,7 +1,6 @@
 "use client";
 
-import { GitHubLogoIcon } from "@radix-ui/react-icons";
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, BracesIcon, PlayIcon } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -13,19 +12,40 @@ export function CommunitySection() {
   return (
     <Section
       className="bg-[#0b0d10] px-4"
-      title="Build the Harness With Us"
-      subtitle={`${APP_BRAND_NAME} is open for engineers who want agent systems that can actually operate across files, tools, memory, and execution environments.`}
+      title="Start From a Working Harness"
+      subtitle={`${APP_BRAND_NAME} is ready to be extended into domain-specific superagent systems with real files, policies, skills, and review loops.`}
     >
-      <div className="mt-10 flex justify-center">
+      <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
         <Button className="h-12 rounded-md px-5 text-base" size="lg" asChild>
+          <Link href="/workspace">
+            Open Workspace
+            <ArrowRightIcon className="size-4" />
+          </Link>
+        </Button>
+        <Button
+          className="h-12 rounded-md px-5 text-base"
+          size="lg"
+          variant="outline"
+          asChild
+        >
+          <Link href="/workspace/chats/vf-demo-orchestrator-run">
+            View Demo
+            <PlayIcon className="size-4" />
+          </Link>
+        </Button>
+        <Button
+          className="h-12 rounded-md px-5 text-base"
+          size="lg"
+          variant="ghost"
+          asChild
+        >
           <Link
             href={APP_REPOSITORY_URL}
             target="_blank"
             rel="noopener noreferrer"
           >
-            <GitHubLogoIcon />
-            Contribute on GitHub
-            <ArrowRightIcon className="size-4" />
+            Source
+            <BracesIcon className="size-4" />
           </Link>
         </Button>
       </div>

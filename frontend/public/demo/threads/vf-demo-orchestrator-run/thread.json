@@ -1,0 +1,85 @@
+{
+  "values": {
+    "title": "Superagent Orchestrator Run",
+    "messages": [
+      {
+        "content": "Coordinate a VassilFlow superagent run for a release-readiness review. Use subagents for routing, runtime checks, artifact packaging, and final handoff.",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "vf-orchestrator-human-1"
+      },
+      {
+        "content": "I will run this as a four-lane harness workflow: lead planning, skill routing, sandbox readiness, and artifact packaging. Each lane will return a concise status and the lead agent will merge the final runbook.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "model_name": "vassilflow-demo-model",
+          "model_provider": "static-demo"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "vf-orchestrator-ai-1",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      },
+      {
+        "content": "Create the runbook artifact and include the policy gates, selected skills, and readiness checks.",
+        "additional_kwargs": {},
+        "response_metadata": {},
+        "type": "human",
+        "name": null,
+        "id": "vf-orchestrator-human-2"
+      },
+      {
+        "content": "Done. I wrote `orchestrator-runbook.md` with the lane assignments, execution policy, artifact manifest, and release handoff checks.",
+        "additional_kwargs": {},
+        "response_metadata": {
+          "model_name": "vassilflow-demo-model",
+          "model_provider": "static-demo"
+        },
+        "type": "ai",
+        "name": null,
+        "id": "vf-orchestrator-ai-2",
+        "tool_calls": [],
+        "invalid_tool_calls": [],
+        "usage_metadata": null
+      }
+    ],
+    "artifacts": ["/mnt/user-data/outputs/orchestrator-runbook.md"],
+    "todos": [
+      {
+        "content": "Plan lead-agent orchestration lanes",
+        "status": "completed"
+      },
+      {
+        "content": "Select skill and subagent routing policy",
+        "status": "completed"
+      },
+      {
+        "content": "Verify sandbox and artifact boundaries",
+        "status": "completed"
+      },
+      {
+        "content": "Write final runbook artifact",
+        "status": "completed"
+      }
+    ]
+  },
+  "context": {
+    "thread_id": "vf-demo-orchestrator-run",
+    "model_name": "vassilflow-demo-model",
+    "thinking_enabled": true,
+    "is_plan_mode": true,
+    "subagent_enabled": true,
+    "agent_name": "lead"
+  },
+  "metadata": {
+    "demo_category": "orchestration",
+    "agent_name": "lead",
+    "source": "vassilflow-static-demo"
+  },
+  "created_at": "2026-07-06T08:00:00.000Z",
+  "updated_at": "2026-07-06T08:18:00.000Z"
+}

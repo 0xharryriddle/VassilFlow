@@ -4,7 +4,7 @@ import type { ThreadsClient } from "@langchain/langgraph-sdk/client";
 import type { AgentThread, AgentThreadState } from "./types";
 
 export const DEMO_THREAD_IDS = [
-  "vf-demo-foundation-audit",
+  "vf-demo-orchestrator-run",
   "vf-demo-skill-routing",
   "vf-demo-artifact-builder",
   "vf-demo-runtime-readiness",

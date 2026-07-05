@@ -9,7 +9,7 @@
 ## Frontend
 
 - Landing page renders VassilFlow-native copy.
-- Workspace static demos load without inherited showcase data.
+- Workspace static demos load with current VassilFlow fixture data.
 - Artifact panel can open generated files.
 
 ## Backend

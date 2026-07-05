@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  AnimatedSpan,
-  Terminal,
-  TypingAnimation,
-} from "@/components/ui/terminal";
+import { Terminal } from "@/components/ui/terminal";
 import { APP_BRAND_NAME } from "@/core/brand";
 
 import { Section } from "../section";
@@ -32,47 +28,42 @@ export function SandboxSection({ className }: { className?: string }) {
     >
       <div className="container-md mx-auto mt-10 flex w-full flex-col items-stretch gap-10 px-4 lg:flex-row">
         <div className="w-full flex-1">
-          <Terminal className="h-[360px] w-full rounded-md border-white/10 bg-black/45">
-            <TypingAnimation>$ vassilflow run evidence-brief</TypingAnimation>
-            <AnimatedSpan delay={800} className="text-zinc-400">
-              loading config from VASSILFLOW_CONFIG_PATH
-            </AnimatedSpan>
+          <Terminal
+            sequence={false}
+            className="h-[360px] w-full rounded-md border-white/10 bg-black/45"
+          >
+            <span className="text-zinc-100">
+              $ vassilflow run release-readiness
+            </span>
+            <span className="text-zinc-400">
+              run_id=vf-run-2049 policy=team/default
+            </span>
 
-            <TypingAnimation delay={1300}>
+            <span className="text-zinc-100">
               $ mount workspace /mnt/user-data
-            </TypingAnimation>
-            <AnimatedSpan delay={2000} className="text-green-500">
-              ok workspace mounted
-            </AnimatedSpan>
+            </span>
+            <span className="text-green-500">ok workspace mounted</span>
 
-            <TypingAnimation delay={2500}>
-              $ python tools/analyze_sources.py
-            </TypingAnimation>
-            <AnimatedSpan delay={3300} className="text-cyan-400">
-              ok extracted 42 source notes
-            </AnimatedSpan>
+            <span className="text-zinc-100">
+              $ check sandbox boundary --tools filesystem,shell,mcp
+            </span>
+            <span className="text-cyan-400">ok policy gate passed</span>
 
-            <TypingAnimation delay={3800}>
-              $ write outputs/evidence-brief.md
-            </TypingAnimation>
-            <AnimatedSpan delay={4500} className="text-green-500">
-              ok artifact written
-            </AnimatedSpan>
+            <span className="text-zinc-100">
+              $ write outputs/orchestrator-runbook.md
+            </span>
+            <span className="text-green-500">ok artifact written</span>
 
-            <TypingAnimation delay={5000}>
-              $ package outputs --manifest
-            </TypingAnimation>
-            <AnimatedSpan delay={5700} className="text-amber-300">
-              ready for review
-            </AnimatedSpan>
+            <span className="text-zinc-100">$ package outputs --manifest</span>
+            <span className="text-amber-300">ready for review</span>
           </Terminal>
         </div>
 
         <div className="flex w-full flex-1 flex-col justify-center">
-          <p className="text-sm font-medium tracking-[0.24em] text-cyan-200 uppercase">
+          <p className="text-sm font-medium text-cyan-200 uppercase">
             Runtime Boundary
           </p>
-          <h2 className="mt-4 max-w-xl text-4xl font-semibold tracking-tight text-white lg:text-5xl">
+          <h2 className="mt-4 max-w-xl text-4xl font-semibold text-white lg:text-5xl">
             Work happens inside a controlled VassilFlow workspace.
           </h2>
           <p className="mt-5 max-w-xl text-lg leading-8 text-white/60">

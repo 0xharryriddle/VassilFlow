@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
@@ -32,6 +32,7 @@ import {
   useThreadTokenUsage,
 } from "@/core/threads/hooks";
 import { threadTokenUsageToTokenUsage } from "@/core/threads/token-usage";
+import type { AgentThread } from "@/core/threads/types";
 import { textOfMessage } from "@/core/threads/utils";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,8 @@ import { cn } from "@/lib/utils";
 export default function ChatPage() {
   const { t } = useI18n();
   const router = useRouter();
+  const pathname = usePathname();
+  const { thread_id: routeThreadId } = useParams<{ thread_id: string }>();
   const { threadId, setThreadId, isNewThread, setIsNewThread, isMock } =
     useThreadChat();
   // `isNewThread` tracks whether the backend has the thread yet — gates the
@@ -60,11 +63,48 @@ export default function ChatPage() {
   });
   const backendTokenUsage = threadTokenUsageToTokenUsage(threadTokenUsage.data);
   const mountedRef = useRef(false);
+  const [staticDemoThread, setStaticDemoThread] = useState<AgentThread | null>(
+    null,
+  );
   useSpecificChatMode();
 
   useEffect(() => {
     mountedRef.current = true;
   }, []);
+
+  useEffect(() => {
+    const pathnameThreadId = pathname.split("/").filter(Boolean).at(-1);
+    const staticThreadId =
+      routeThreadId && routeThreadId !== "new"
+        ? routeThreadId
+        : pathnameThreadId && pathnameThreadId !== "new"
+          ? pathnameThreadId
+          : null;
+    if (!staticThreadId) {
+      setStaticDemoThread(null);
+      return;
+    }
+
+    let cancelled = false;
+    fetch(`/demo/threads/${encodeURIComponent(staticThreadId)}/thread.json`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((demoThread: AgentThread | null) => {
+        if (!cancelled) {
+          setStaticDemoThread(
+            demoThread ? { ...demoThread, thread_id: staticThreadId } : null,
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStaticDemoThread(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, routeThreadId]);
 
   // Keep welcome layout in sync when navigating between threads (sidebar
   // clicks, "new chat" button).  Submitting in /chats/new flips the layout
@@ -169,11 +209,25 @@ export default function ChatPage() {
   const tokenUsageInlineMode = tokenUsageEnabled
     ? localSettings.tokenUsage.inlineMode
     : "off";
-  const hasTodos = (thread.values.todos?.length ?? 0) > 0;
+  const staticDemoValues =
+    staticDemoThread?.values ??
+    (env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"
+      ? threadMetadata.data?.values
+      : undefined);
+  const displayThread =
+    staticDemoValues && (thread.values.messages?.length ?? 0) === 0
+      ? {
+          ...thread,
+          values: staticDemoValues,
+          messages: staticDemoValues.messages ?? [],
+        }
+      : thread;
+  const displayThreadId = staticDemoThread?.thread_id ?? threadId;
+  const hasTodos = (displayThread.values.todos?.length ?? 0) > 0;
 
   return (
-    <ThreadContext.Provider value={{ thread, isMock }}>
-      <ChatBox threadId={threadId}>
+    <ThreadContext.Provider value={{ thread: displayThread, isMock }}>
+      <ChatBox threadId={displayThreadId}>
         <div className="relative flex size-full min-h-0 justify-between">
           <header
             className={cn(
@@ -185,21 +239,21 @@ export default function ChatPage() {
           >
             <SidebarTrigger className="md:hidden" />
             <div className="flex min-w-0 flex-1 items-center text-sm font-medium">
-              <ThreadTitle threadId={threadId} thread={thread} />
+              <ThreadTitle threadId={displayThreadId} thread={displayThread} />
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <TokenUsageIndicator
-                threadId={isNewThread ? undefined : threadId}
+                threadId={isNewThread ? undefined : displayThreadId}
                 backendUsage={backendTokenUsage}
                 enabled={tokenUsageEnabled}
-                messages={thread.messages}
+                messages={displayThread.messages}
                 pendingMessages={pendingUsageMessages}
                 preferences={localSettings.tokenUsage}
                 onPreferencesChange={(preferences) =>
                   setLocalSettings("tokenUsage", preferences)
                 }
               />
-              <ExportTrigger threadId={threadId} />
+              <ExportTrigger threadId={displayThreadId} />
               <ArtifactTrigger />
             </div>
           </header>
@@ -207,8 +261,8 @@ export default function ChatPage() {
             <div className="flex min-h-0 flex-1 justify-center">
               <MessageList
                 className={cn("size-full", !isWelcomeMode && "pt-10")}
-                threadId={threadId}
-                thread={thread}
+                threadId={displayThreadId}
+                thread={displayThread}
                 paddingBottom={MESSAGE_LIST_DEFAULT_PADDING_BOTTOM}
                 hasMoreHistory={hasMoreHistory}
                 loadMoreHistory={loadMoreHistory}
@@ -219,7 +273,7 @@ export default function ChatPage() {
                   !isMock &&
                   env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" &&
                   !isUploading &&
-                  !thread.isLoading
+                  !displayThread.isLoading
                 }
                 onRegenerateMessage={handleRegenerate}
               />
@@ -255,7 +309,7 @@ export default function ChatPage() {
                     >
                       <TodoList
                         className="bg-background/5"
-                        todos={thread.values.todos ?? []}
+                        todos={displayThread.values.todos ?? []}
                         hidden={false}
                       />
                     </div>
@@ -268,12 +322,12 @@ export default function ChatPage() {
                       isWelcomeMode && "-translate-y-2 sm:-translate-y-4",
                     )}
                     isWelcomeMode={isWelcomeMode}
-                    threadId={threadId}
+                    threadId={displayThreadId}
                     autoFocus={isWelcomeMode}
                     status={
                       thread.error
                         ? "error"
-                        : thread.isLoading
+                        : displayThread.isLoading
                           ? "streaming"
                           : "ready"
                     }
