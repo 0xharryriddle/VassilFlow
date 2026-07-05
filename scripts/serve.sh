@@ -305,7 +305,7 @@ else
 fi
 
 # Runtime path defaults. Local `make dev` launches Gateway from `backend/`,
-# so pin VassilFlow-owned state to the expected backend runtime directory and
+# so pin VassilFlow state to the expected backend runtime directory and
 # create it before uvicorn builds its reload exclude filter.
 if [ -z "${VASSILFLOW_PROJECT_ROOT:-}" ]; then
     export VASSILFLOW_PROJECT_ROOT="$REPO_ROOT"

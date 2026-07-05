@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import { handleRunStream, mockLangGraphAPI } from "./utils/mock-api";
 
 /**
- * Regression for upstream issue #2746.
+ * Regression coverage for VassilFlow issue #2746.
  *
  * On a brand-new chat, the LangGraph SDK's useStream eagerly fetches
  * `/threads/{id}/history` the moment it receives a thread id, and the

@@ -87,7 +87,7 @@ def test_build_server_params_rejects_unsupported_transport():
 def test_mcp_server_config_accepts_transport_alias(transport: str):
     """The MCP-spec ``transport`` field should be accepted as an alias for ``type``.
 
-    Regression test for upstream issue #3238 — a
+    Regression test for VassilFlow issue #3238 — a
     remote MCP server configured with only ``transport: sse`` was previously
     misidentified as ``stdio`` (the default for ``type``).
     """

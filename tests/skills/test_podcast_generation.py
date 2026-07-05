@@ -11,7 +11,7 @@ pod = load("podcast-generation")
 
 @pytest.fixture(autouse=True)
 def clean_env(monkeypatch):
-    for k in ["VOLCENGINE_TTS_APPID", "VOLCENGINE_TTS_ACCESS_TOKEN", "VOLCENGINE_TTS_CLUSTER",
+    for k in ["VOLCENGINE_TTS_APPID", "VOLCENGINE_TTS_ACCESS_TOKEN", "VOLCENGINE_TTS_ENDPOINT", "VOLCENGINE_TTS_CLUSTER",
               "MINIMAX_API_KEY", "PODCAST_GENERATION_PROVIDER", "MINIMAX_API_HOST",
               "MINIMAX_TTS_MODEL", "MINIMAX_TTS_VOICE_MALE", "MINIMAX_TTS_VOICE_FEMALE",
               "MINIMAX_TTS_MAX_RETRIES"]:
@@ -23,6 +23,7 @@ def clean_env(monkeypatch):
 def test_resolve_prefers_volcengine(monkeypatch):
     monkeypatch.setenv("VOLCENGINE_TTS_APPID", "a")
     monkeypatch.setenv("VOLCENGINE_TTS_ACCESS_TOKEN", "t")
+    monkeypatch.setenv("VOLCENGINE_TTS_ENDPOINT", "https://tts.example.test/api/v1/tts")
     assert pod._resolve_tts_provider() == "volcengine"
 
 
@@ -34,6 +35,7 @@ def test_resolve_falls_back_to_minimax(monkeypatch):
 def test_resolve_override(monkeypatch):
     monkeypatch.setenv("VOLCENGINE_TTS_APPID", "a")
     monkeypatch.setenv("VOLCENGINE_TTS_ACCESS_TOKEN", "t")
+    monkeypatch.setenv("VOLCENGINE_TTS_ENDPOINT", "https://tts.example.test/api/v1/tts")
     monkeypatch.setenv("PODCAST_GENERATION_PROVIDER", "minimax")
     assert pod._resolve_tts_provider() == "minimax"
 
@@ -102,6 +104,7 @@ def test_volcengine_tts_decodes_base64(monkeypatch):
     import base64
     monkeypatch.setenv("VOLCENGINE_TTS_APPID", "a")
     monkeypatch.setenv("VOLCENGINE_TTS_ACCESS_TOKEN", "t")
+    monkeypatch.setenv("VOLCENGINE_TTS_ENDPOINT", "https://tts.example.test/api/v1/tts")
 
     def fake_post(url, headers=None, json=None, **kw):
         return FakeResp({"code": 3000, "data": base64.b64encode(b"volcbytes").decode()})
@@ -234,6 +237,7 @@ def test_tts_node_defaults_to_one_worker_for_minimax(monkeypatch):
 def test_tts_node_keeps_four_worker_default_for_volcengine(monkeypatch):
     monkeypatch.setenv("VOLCENGINE_TTS_APPID", "a")
     monkeypatch.setenv("VOLCENGINE_TTS_ACCESS_TOKEN", "t")
+    monkeypatch.setenv("VOLCENGINE_TTS_ENDPOINT", "https://tts.example.test/api/v1/tts")
     captured = {}
     real_executor = pod.ThreadPoolExecutor
 

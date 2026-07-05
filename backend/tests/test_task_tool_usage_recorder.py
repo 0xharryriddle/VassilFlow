@@ -1,6 +1,6 @@
 """Regression tests for _find_usage_recorder callback shape handling.
 
-Bytedance issue #3107 BUG-002: When LangChain passes ``config["callbacks"]`` as
+VassilFlow issue BUG-002: When LangChain passes ``config["callbacks"]`` as
 an ``AsyncCallbackManager`` (instead of a plain list), the previous
 ``for cb in callbacks`` loop raised ``TypeError: 'AsyncCallbackManager' object
 is not iterable``. ToolErrorHandlingMiddleware then converted the entire ``task``

@@ -11,7 +11,7 @@ VassilFlow is an open-source **super agent harness** that orchestrates **sub-age
 https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
 > [!NOTE]
-> VassilFlow is the canonical product and runtime identity. Runtime configuration uses `VASSILFLOW_*` environment variables, `.vassilflow` state directories, and `vassilflow.db`; legacy upstream names are handled only by explicit one-time migration scripts.
+> Runtime configuration uses `VASSILFLOW_*` environment variables, `.vassilflow` state directories, and `vassilflow.db` by default.
 
 ## Table of Contents
 
@@ -31,7 +31,7 @@ https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
       - [LangSmith Tracing](#langsmith-tracing)
       - [Langfuse Tracing](#langfuse-tracing)
       - [Using Both Providers](#using-both-providers)
-  - [From Deep Research to Super Agent Harness](#from-deep-research-to-super-agent-harness)
+  - [VassilFlow as a Super Agent Harness](#vassilflow-as-a-super-agent-harness)
   - [Core Features](#core-features)
     - [Skills \& Tools](#skills--tools)
       - [Claude Code Integration](#claude-code-integration)
@@ -129,7 +129,7 @@ That prompt is intended for coding agents. It tells the agent to clone the repo 
 
    To route OpenAI models through `/v1/responses`, keep using `langchain_openai:ChatOpenAI` and set `use_responses_api: true` with `output_version: responses/v1`.
 
-   For vLLM 0.19.0, use `vassilflow.models.vllm_provider:VllmChatModel`. For Qwen-style reasoning models, VassilFlow toggles reasoning with `extra_body.chat_template_kwargs.enable_thinking` and preserves vLLM's non-standard `reasoning` field across multi-turn tool-call conversations. Legacy `thinking` configs are normalized automatically for backward compatibility. Reasoning models may also require the server to be started with `--reasoning-parser ...`. If your local vLLM deployment accepts any non-empty API key, you can still set `VLLM_API_KEY` to a placeholder value.
+   For vLLM 0.19.0, use `vassilflow.models.vllm_provider:VllmChatModel`. For Qwen-style reasoning models, VassilFlow toggles reasoning with `extra_body.chat_template_kwargs.enable_thinking` and preserves vLLM's non-standard `reasoning` field across multi-turn tool-call conversations. Older `thinking` configs are normalized automatically for backward compatibility. Reasoning models may also require the server to be started with `--reasoning-parser ...`. If your local vLLM deployment accepts any non-empty API key, you can still set `VLLM_API_KEY` to a placeholder value.
 
    CLI-backed provider examples:
 
@@ -195,7 +195,7 @@ make docker-start   # Start services (auto-detects sandbox mode from config.yaml
 
 `make docker-start` starts `provisioner` only when `config.yaml` uses provisioner mode (`sandbox.use: vassilflow.community.aio_sandbox:AioSandboxProvider` with `provisioner_url`).
 
-Docker builds use the upstream `uv` registry by default. If you need faster mirrors in restricted networks, export `UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple` and `NPM_REGISTRY=https://registry.npmmirror.com` before running `make docker-init` or `make docker-start`.
+Docker builds use uv's default Python package index settings. If you need faster mirrors in restricted networks, export `UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple` and `NPM_REGISTRY=https://registry.npmmirror.com` before running `make docker-init` or `make docker-start`.
 
 Backend processes automatically pick up `config.yaml` changes on the next config access, so model metadata updates do not require a manual restart during development.
 
@@ -534,15 +534,13 @@ If a provider is explicitly enabled but missing required credentials, or if its 
 
 For Docker deployments, tracing is disabled by default. Set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in your `.env` to enable it.
 
-## From Deep Research to Super Agent Harness
+## VassilFlow as a Super Agent Harness
 
-VassilFlow started as a Deep Research framework — and the community ran with it. Since launch, developers have pushed it far beyond research: building data pipelines, generating slide decks, spinning up dashboards, automating content workflows. Things we never anticipated.
+VassilFlow is built as a super agent harness: a runtime that gives long-horizon agents the infrastructure to actually get work done. It combines sub-agents, memory, sandbox-aware execution, skills, file operations, model routing, streaming, tracing, and user-scoped runtime state.
 
-That told us something important: VassilFlow wasn't just a research tool. It was a **harness** — a runtime that gives agents the infrastructure to actually get work done.
+The goal is to make VassilFlow useful as both an application and a programmable foundation. You can run it as a full web product, drive it through the Gateway API, or embed the Python client in your own agent systems without depending on another product's names or runtime paths.
 
-So we rebuilt it from scratch.
-
-VassilFlow 2.0 is no longer a framework you wire together. It's a super agent harness — batteries included, fully extensible. Built on LangGraph and LangChain, it ships with everything an agent needs out of the box: a filesystem, memory, skills, sandbox-aware execution, and the ability to plan and spawn sub-agents for complex, multi-step tasks.
+VassilFlow 2.0 is batteries included and extensible. Built on LangGraph and LangChain, it ships with the pieces an agent needs out of the box: a filesystem, memory, skills, sandbox-aware execution, and the ability to plan and spawn sub-agents for complex, multi-step tasks.
 
 Use it as-is. Or tear it apart and make it yours.
 
@@ -735,5 +733,3 @@ We would like to extend our sincere appreciation to the following projects:
 
 - **[LangChain](https://github.com/langchain-ai/langchain)**: Their exceptional framework powers our LLM interactions and chains, enabling seamless integration and functionality.
 - **[LangGraph](https://github.com/langchain-ai/langgraph)**: Their innovative approach to multi-agent orchestration has been instrumental in enabling VassilFlow's sophisticated workflows.
-
-See [UPSTREAM.md](./UPSTREAM.md) for provenance notes.

@@ -105,7 +105,7 @@ def test_prepare_update_prompt_preserves_non_ascii_memory_text() -> None:
         facts=[
             {
                 "id": "fact_cn",
-                "content": "Deer-flow是一个非常好的框架。",
+                "content": "VassilFlow是一个非常好的框架。",
                 "category": "context",
                 "confidence": 0.9,
                 "createdAt": "2026-05-20T00:00:00Z",
@@ -130,7 +130,7 @@ def test_prepare_update_prompt_preserves_non_ascii_memory_text() -> None:
 
     assert prepared is not None
     _, prompt = prepared
-    assert "Deer-flow是一个非常好的框架。" in prompt
+    assert "VassilFlow是一个非常好的框架。" in prompt
     assert "\\u" not in prompt
 
 

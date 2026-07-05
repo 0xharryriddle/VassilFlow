@@ -5,14 +5,14 @@ Covers the three-branch decision table:
 | DB state                              | Action                                  |
 |---------------------------------------|-----------------------------------------|
 | empty                                 | create_all + stamp head                 |
-| legacy (VassilFlow tables, no alembic_version) | create_all (baseline tables only, backfill) + stamp baseline + upgrade head |
+| pre-alembic (VassilFlow tables, no alembic_version) | create_all (baseline tables only, backfill) + stamp baseline + upgrade head |
 | versioned                             | upgrade head                            |
 
 Each test seeds a temp SQLite to the relevant pre-state, runs
 ``bootstrap_schema``, and asserts both the resulting schema and the
 ``alembic_version`` row.
 
-The legacy branch is exercised across three scenarios: token-usage column
+The pre-alembic branch is exercised across three scenarios: token-usage column
 missing, token-usage column already present, and a baseline-era table
 missing entirely (the ``channel_*`` backfill case). The first two prove the
 column-level idempotent helpers handle both sub-cases; the third proves the
@@ -514,7 +514,7 @@ async def test_create_all_and_alembic_upgrade_produce_same_schema(tmp_path: Path
 
 
 # ---------------------------------------------------------------------------
-# Baseline-table-restriction guards. The legacy branch's backfill must
+# Baseline-table-restriction guards. The pre-alembic branch's backfill must
 # create *only* the baseline-era tables, not the full ``Base.metadata``.
 # Otherwise it would pre-empt a future ``op.create_table`` revision for a
 # newly-added model (the revision would crash with ``relation already
@@ -539,7 +539,7 @@ async def test_baseline_table_names_constant_matches_0001(tmp_path: Path) -> Non
         async with engine.connect() as conn:
             reflected = await conn.run_sync(lambda c: set(sa.inspect(c).get_table_names()))
         # ``alembic_version`` is alembic's bookkeeping table, not part of
-        # our schema -- the constant is about VassilFlow-owned baseline tables.
+        # our schema -- the constant is about VassilFlow baseline tables.
         reflected.discard("alembic_version")
 
         assert reflected == _BASELINE_TABLE_NAMES, f"_BASELINE_TABLE_NAMES drifted from 0001_baseline.upgrade()'s output: only-in-0001={sorted(reflected - _BASELINE_TABLE_NAMES)} only-in-constant={sorted(_BASELINE_TABLE_NAMES - reflected)}"

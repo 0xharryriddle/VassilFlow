@@ -8,7 +8,7 @@ Role of this revision
 =====================
 
 This revision encodes the schema that ``Base.metadata.create_all`` produces for
-every VassilFlow-owned table at the point alembic was wired in. Under the hybrid
+every VassilFlow table at the point alembic was wired in. Under the hybrid
 bootstrap strategy (``vassilflow.persistence.bootstrap.bootstrap_schema``), the
 ``upgrade()`` here is **almost never executed**:
 

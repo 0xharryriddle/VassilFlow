@@ -16,11 +16,11 @@ Three-branch decision (see ``_decide_state``)
 | DB state                              | Action                                  |
 |---------------------------------------|-----------------------------------------|
 | empty (no VassilFlow tables)          | ``create_all`` + ``alembic stamp head`` |
-| legacy (VassilFlow tables, no alembic) | ``create_all`` (baseline tables only, as backfill) + ``stamp 0001_baseline`` + ``upgrade head`` |
+| pre-alembic (VassilFlow tables, no alembic) | ``create_all`` (baseline tables only, as backfill) + ``stamp 0001_baseline`` + ``upgrade head`` |
 | versioned (``alembic_version`` row)   | ``alembic upgrade head``                |
 
-The legacy branch handles pre-alembic databases that already have at least one
-VassilFlow-owned table. ``create_all`` runs first because stamping at
+The pre-alembic branch handles databases that already have at least one
+VassilFlow table but no alembic version. ``create_all`` runs first because stamping at
 ``0001_baseline`` makes alembic skip the baseline's own ``create_table`` DDL on
 the subsequent upgrade -- so any baseline table introduced into
 ``Base.metadata`` after the user's DB was first provisioned (e.g. the
@@ -113,7 +113,7 @@ _BASELINE_REVISION = "0001_baseline"
 _PG_LOCK_KEY = 0x0DEE_12F1_0BEE_3682
 
 
-# Tables created by ``0001_baseline.upgrade()``. The legacy branch restricts
+# Tables created by ``0001_baseline.upgrade()``. The pre-alembic branch restricts
 # its ``create_all`` backfill to this set so it does NOT pre-empt later
 # ``op.create_table`` revisions for models added after baseline -- those
 # revisions would otherwise fail with ``relation already exists`` if
@@ -252,7 +252,7 @@ def _reflect_state(sync_conn: Any) -> dict[str, bool]:
 def _decide_state(state: dict[str, bool]) -> str:
     """Map a reflected DB state to one of three branch labels.
 
-    The legacy branch covers every pre-alembic DB uniformly -- whether the
+    The pre-alembic branch covers every matching DB uniformly -- whether the
     columns added by later revisions are present or not is a question each
     revision answers for itself via the idempotent helpers in
     ``migrations/_helpers.py``.
@@ -268,7 +268,7 @@ def _decide_state(state: dict[str, bool]) -> str:
 
 
 def _run_create_all_sync(sync_conn: Any) -> None:
-    """Create all VassilFlow-owned tables on *sync_conn*."""
+    """Create all VassilFlow tables on *sync_conn*."""
     # Import here to ensure all model classes are registered with Base.metadata.
     from vassilflow.persistence.base import Base
 

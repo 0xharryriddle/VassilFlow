@@ -563,7 +563,7 @@ def test_categoryless_fact_not_promoted_into_guaranteed_context_pool(monkeypatch
     only facts with an *explicit* ``category == "context"`` qualify.
 
     Strategy: set a guaranteed budget tight enough to fit only the short
-    *explicit* ``context`` fact.  If the legacy (no-category) fact were
+    *explicit* ``context`` fact.  If the categoryless fact were
     silently promoted into the guaranteed pool, it would claim the budget
     first (higher confidence) and push the explicit one out into the
     regular pool where, under a tight ``max_tokens``, it would be lost.

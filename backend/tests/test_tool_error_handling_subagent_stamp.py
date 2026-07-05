@@ -1,6 +1,6 @@
 """Regression tests for ToolErrorHandlingMiddleware's subagent status stamp.
 
-upstream issue #3146: rather than stamp
+VassilFlow issue #3146: rather than stamp
 ``ToolMessage.additional_kwargs.subagent_status`` from each of
 task_tool.py's 5 normal returns + 3 pre-execution Error: returns (which
 would be 8 separate places to drift over time), the middleware that

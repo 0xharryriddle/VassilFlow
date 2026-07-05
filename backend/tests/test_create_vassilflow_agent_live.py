@@ -22,12 +22,16 @@ def _make_model():
     """Create a real chat model from environment variables."""
     from langchain_openai import ChatOpenAI
 
+    kwargs = {}
+    if os.getenv("E2E_BASE_URL"):
+        kwargs["base_url"] = os.getenv("E2E_BASE_URL")
+
     return ChatOpenAI(
-        model=os.getenv("E2E_MODEL_ID", "ep-20251211175242-llcmh"),
-        base_url=os.getenv("E2E_BASE_URL", "https://ark-cn-beijing.bytedance.net/api/v3"),
+        model=os.getenv("E2E_MODEL_ID", "gpt-4o-mini"),
         api_key=os.getenv("OPENAI_API_KEY", ""),
         max_tokens=256,
         temperature=0,
+        **kwargs,
     )
 
 

@@ -56,7 +56,7 @@ describe("parseSubtaskResult", () => {
   });
 
   it("recognises the cancelled-by-user prefix", () => {
-    // upstream issue #3131 review: this is one of the five terminal
+    // VassilFlow issue #3131 review: this is one of the five terminal
     // strings task_tool.py actually emits — the previous cut treated it as
     // unrecognised content and pushed the card back to in_progress.
     const parsed = parseSubtaskResult("Task cancelled by user.");
@@ -111,7 +111,7 @@ describe("parseSubtaskResult", () => {
   });
 
   it("treats middleware-wrapped tool errors as terminal failures", () => {
-    // upstream issue #3107 BUG-007: the parent-visible ToolMessage
+    // VassilFlow issue #3107 BUG-007: the parent-visible ToolMessage
     // produced by ToolErrorHandlingMiddleware never matches the three legacy
     // prefixes, so subtask cards stay stuck on "in_progress".
     const parsed = parseSubtaskResult(
@@ -191,7 +191,7 @@ describe("derivePendingSubtaskStatus", () => {
 });
 
 /**
- * Structured-status path (upstream issue #3146).
+ * Structured-status path (VassilFlow issue #3146).
  *
  * The backend stamps `ToolMessage.additional_kwargs.subagent_status`
  * directly. The frontend should prefer that over reverse-engineering it
@@ -306,7 +306,7 @@ describe("parseSubtaskResult — structured additional_kwargs (preferred path)",
 });
 
 /**
- * Cross-language contract test (upstream issue #3146).
+ * Cross-language contract test (VassilFlow issue #3146).
  *
  * Loads the shared fixture at ``contracts/subagent_status_contract.json``
  * and runs every case through the legacy prefix parser. The matching

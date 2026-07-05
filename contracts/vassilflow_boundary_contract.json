@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Initial VassilFlow-owned boundary vocabulary. This contract is intentionally implementation-neutral so the legacy implementation can remain the v0 runtime while VassilFlow stabilizes its session, run, trace, tool, policy, approval, and completion semantics.",
+  "description": "VassilFlow boundary vocabulary for sessions, runs, trace steps, tools, policy decisions, approvals, and completion evidence.",
   "status_values": {
     "session": [
       "created",

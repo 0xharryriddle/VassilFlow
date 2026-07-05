@@ -95,7 +95,7 @@ rm -f backend/.vassilflow/data/vassilflow.db
 
 | 文件 | 内容 |
 |------|------|
-| `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库（users、threads_meta、runs、feedback 等应用数据）l已有 `{runtime_home}/data/vassilflow.db` 会作为 legacy 文件继续使用 |
+| `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库（users、threads_meta、runs、feedback 等应用数据）；已有 `{runtime_home}/data/vassilflow.db` 会继续读取并升级 |
 | `{runtime_home}/users/{user_id}/threads/{thread_id}/user-data/` | 用户线程的 workspace、uploads、outputs |
 | `{runtime_home}/users/{user_id}/memory.json` | 用户级 memory |
 | `{runtime_home}/users/{user_id}/agents/{agent_name}/` | 用户自定义 agent 配置、SOUL 和 agent memory |
@@ -125,9 +125,9 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 
 ## 兼容性
 
-- **本地开发**（`make dev`）：Gateway embedded runtime 完全兼容l无 admin 时访问 `/setup` 初始化
+- **本地开发**（`make dev`）：Gateway embedded runtime 完全兼容；无 admin 时访问 `/setup` 初始化
 - **Gateway embedded runtime**：标准脚本、Docker dev 和生产部署均通过 Gateway 提供认证与 LangGraph-compatible API
-- **Docker 部署**：完全兼容，`.vassilflow/data/vassilflow.db` 需持久化卷挂载llegacy `.vassilflow/data/vassilflow.db` 仍可读取
+- **Docker 部署**：完全兼容，`.vassilflow/data/vassilflow.db` 需持久化卷挂载；已有 `.vassilflow/data/vassilflow.db` 仍可读取
 - **IM 渠道**（Feishu/Slack/Telegram）：通过 Gateway 内部认证通信，使用 `default` 用户桶
 - **VassilFlowClient**（嵌入式）：不经过 HTTP，不受认证影响
 

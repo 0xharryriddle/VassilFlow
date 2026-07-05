@@ -1,4 +1,4 @@
-"""Static guards for VassilFlow-owned runtime wording."""
+"""Static guards for VassilFlow runtime wording."""
 
 from pathlib import Path
 

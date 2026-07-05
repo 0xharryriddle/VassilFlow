@@ -1,4 +1,4 @@
-"""Static coverage for VassilFlow-owned documentation surfaces."""
+"""Static coverage for VassilFlow documentation and runtime naming."""
 
 import subprocess
 from pathlib import Path
@@ -14,17 +14,23 @@ def _token(*codes: int) -> str:
     return "".join(chr(code) for code in codes)
 
 
-FORBIDDEN_UPSTREAM_TOKENS = (
+FORBIDDEN_EXTERNAL_PRODUCT_TOKENS = (
+    _token(68, 101, 101, 114),
     _token(68, 101, 101, 114, 70, 108, 111, 119),
     _token(100, 101, 101, 114, 102, 108, 111, 119),
     _token(100, 101, 101, 114, 45, 102, 108, 111, 119),
     _token(68, 69, 69, 82, 95, 70, 76, 79, 87),
     _token(68, 69, 69, 82, 70, 76, 79, 87),
     _token(46, 100, 101, 101, 114, 45, 102, 108, 111, 119),
+    _token(66, 121, 116, 101, 68, 97, 110, 99, 101),
+    _token(66, 121, 116, 101, 100, 97, 110, 99, 101),
+    _token(98, 121, 116, 101, 100, 97, 110, 99, 101),
+    _token(76, 97, 110, 103, 77, 97, 110, 117, 115),
+    _token(108, 97, 110, 103, 109, 97, 110, 117, 115),
 )
 
 
-def test_core_docs_use_vassilflow_identity_and_runtime_contracts():
+def test_core_docs_use_vassilflow_runtime_contracts():
     surfaces = {
         "backend/CLAUDE.md": [
             "VassilFlow is a LangGraph-based AI super agent system",
@@ -51,10 +57,6 @@ def test_core_docs_use_vassilflow_identity_and_runtime_contracts():
             "VassilFlow-managed filesystem data",
             '"path": "vassilflow.agents:make_lead_agent"',
         ],
-        "UPSTREAM.md": [
-            "VassilFlow-owned",
-            "names exclusively",
-        ],
     }
 
     for relative_path, expected_phrases in surfaces.items():
@@ -63,7 +65,7 @@ def test_core_docs_use_vassilflow_identity_and_runtime_contracts():
             assert phrase in content, f"{relative_path} missing {phrase!r}"
 
 
-def test_docs_and_scripts_do_not_reintroduce_upstream_tokens():
+def test_docs_and_scripts_do_not_reintroduce_external_product_tokens():
     skipped_prefixes = (
         Path("frontend/public/demo"),
         Path("frontend/src/components/landing"),
@@ -99,7 +101,7 @@ def test_docs_and_scripts_do_not_reintroduce_upstream_tokens():
             content = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        if any(token in content for token in FORBIDDEN_UPSTREAM_TOKENS):
+        if any(token in content for token in FORBIDDEN_EXTERNAL_PRODUCT_TOKENS):
             offenders.append(str(relative))
 
     assert offenders == []

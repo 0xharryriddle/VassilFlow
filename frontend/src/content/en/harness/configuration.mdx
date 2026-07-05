@@ -22,7 +22,7 @@ VassilFlow resolves `config.yaml` using the following priority order:
 1. The path passed to `AppConfig.from_file(config_path)` explicitly.
 2. The `VASSILFLOW_CONFIG_PATH` environment variable.
 3. `config.yaml` under `VASSILFLOW_PROJECT_ROOT` or the current working directory.
-4. Legacy backend/repository-root locations for monorepo compatibility.
+4. Backend/repository-root locations for monorepo compatibility.
 
 If none of these paths exist, the application raises an error at startup.
 

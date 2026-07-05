@@ -162,7 +162,7 @@ enum UserScope:
 
 路由级别的 owner check 由 `require_permission(..., owner_check=True)` 完成：
 
-- 读类请求允许旧的未追踪 legacy thread 兼容读取。
+- 读类请求允许旧的未追踪 thread 兼容读取。
 - 写 / 删除类请求使用 `require_existing=True`，要求 thread row 存在且属于当前用户，避免删除后缺 row 导致其他用户误通过。
 
 ## CSRF 设计
@@ -230,7 +230,7 @@ agent 在 sandbox 内看到统一虚拟路径：
 {base_dir}/users/{user_id}/agents/{agent_name}/memory.json
 ```
 
-有用户上下文时，空或相对 `memory.storage_path` 都使用上述 per-user 默认路径；只有绝对 `memory.storage_path` 会视为显式 opt-out（退出） per-user isolation，所有用户共享该路径。无用户上下文的 legacy 路径仍会把相对 `storage_path` 解析到 `Paths.base_dir` 下。
+有用户上下文时，空或相对 `memory.storage_path` 都使用上述 per-user 默认路径；只有绝对 `memory.storage_path` 会视为显式 opt-out（退出） per-user isolation，所有用户共享该路径。无用户上下文的旧路径仍会把相对 `storage_path` 解析到 `Paths.base_dir` 下。
 
 ### 自定义 agent
 
@@ -284,7 +284,7 @@ PYTHONPATH=. python scripts/migrate_user_isolation.py --dry-run
 PYTHONPATH=. python scripts/migrate_user_isolation.py --user-id <target-user-id>
 ```
 
-迁移脚本覆盖 legacy `memory.json`、`threads/` 和 `agents/` 到 per-user layout。
+迁移脚本覆盖旧版 `memory.json`、`threads/` 和 `agents/` 到 per-user layout。
 
 ## 安全不变量
 
@@ -332,7 +332,7 @@ PYTHONPATH=. python scripts/migrate_user_isolation.py --user-id <target-user-id>
 | `vassilflow.agents.memory.storage` | per-user memory storage |
 | `vassilflow.config.agents_config` | per-user custom agents |
 | `app/channels/manager.py` | IM channel 内部认证调用 |
-| `scripts/migrate_user_isolation.py` | legacy 数据迁移到 per-user layout |
-| `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库，包含 users / threads_meta / runs / feedback 等表；已有 `{runtime_home}/data/vassilflow.db` 会作为 legacy 文件继续使用 |
+| `scripts/migrate_user_isolation.py` | 旧数据迁移到 per-user layout |
+| `{runtime_home}/data/vassilflow.db` | 统一 SQLite 数据库，包含 users / threads_meta / runs / feedback 等表；已有 `{runtime_home}/data/vassilflow.db` 会继续读取并升级 |
 | `{runtime_home}/users/{user_id}/agents/{agent_name}/` | 用户自定义 agent 配置、SOUL 和 agent memory |
 | `{runtime_home}/admin_initial_credentials.txt` | `reset_admin` 生成的新凭据文件（0600，读完应删除） |

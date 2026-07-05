@@ -1,4 +1,4 @@
-"""One-time migration: move legacy thread dirs and memory into per-user layout.
+"""One-time migration: move shared thread dirs and memory into per-user layout.
 
 Usage:
     PYTHONPATH=. python scripts/migrate_user_isolation.py [--dry-run] [--user-id USER_ID]
@@ -26,7 +26,7 @@ def migrate_thread_dirs(
     *,
     dry_run: bool = False,
 ) -> list[dict]:
-    """Move legacy thread directories into per-user layout.
+    """Move shared thread directories into per-user layout.
 
     Args:
         paths: Paths instance.
@@ -37,12 +37,12 @@ def migrate_thread_dirs(
         List of migration report entries.
     """
     report: list[dict] = []
-    legacy_threads = paths.base_dir / "threads"
-    if not legacy_threads.exists():
-        logger.info("No legacy threads directory found — nothing to migrate.")
+    source_threads = paths.base_dir / "threads"
+    if not source_threads.exists():
+        logger.info("No shared threads directory found — nothing to migrate.")
         return report
 
-    for thread_dir in sorted(legacy_threads.iterdir()):
+    for thread_dir in sorted(source_threads.iterdir()):
         if not thread_dir.is_dir():
             continue
         thread_id = thread_dir.name
@@ -67,9 +67,9 @@ def migrate_thread_dirs(
 
         report.append(entry)
 
-    # Clean up empty legacy threads dir
-    if not dry_run and legacy_threads.exists() and not any(legacy_threads.iterdir()):
-        legacy_threads.rmdir()
+    # Clean up empty source threads dir
+    if not dry_run and source_threads.exists() and not any(source_threads.iterdir()):
+        source_threads.rmdir()
 
     return report
 
@@ -80,31 +80,31 @@ def migrate_agents(
     *,
     dry_run: bool = False,
 ) -> list[dict]:
-    """Move legacy custom-agent directories into per-user layout.
+    """Move shared custom-agent directories into the per-user layout.
 
-    Legacy layout:  ``{base_dir}/agents/{name}/``
+    Shared layout:  ``{base_dir}/agents/{name}/``
     Per-user layout: ``{base_dir}/users/{user_id}/agents/{name}/``
 
     Pre-existing per-user agents take precedence: if a destination already
-    exists for an agent name, the legacy copy is moved to
+    exists for an agent name, the source copy is moved to
     ``{base_dir}/migration-conflicts/agents/{name}/`` for manual review.
 
     Args:
         paths: Paths instance.
-        user_id: Target user to receive the legacy agents (defaults to
+        user_id: Target user to receive the shared agents (defaults to
             ``"default"``, matching ``DEFAULT_USER_ID`` for no-auth setups).
         dry_run: If True, only log what would happen.
 
     Returns:
-        List of migration report entries, one per legacy agent directory found.
+        List of migration report entries, one per shared agent directory found.
     """
     report: list[dict] = []
-    legacy_agents = paths.agents_dir
-    if not legacy_agents.exists():
-        logger.info("No legacy agents directory found — nothing to migrate.")
+    source_agents = paths.agents_dir
+    if not source_agents.exists():
+        logger.info("No shared agents directory found — nothing to migrate.")
         return report
 
-    for agent_dir in sorted(legacy_agents.iterdir()):
+    for agent_dir in sorted(source_agents.iterdir()):
         if not agent_dir.is_dir():
             continue
         agent_name = agent_dir.name
@@ -118,7 +118,7 @@ def migrate_agents(
             if not dry_run:
                 conflicts_dir.parent.mkdir(parents=True, exist_ok=True)
                 shutil.move(str(agent_dir), str(conflicts_dir))
-            logger.warning("Conflict for agent %s: moved legacy copy to %s", agent_name, conflicts_dir)
+            logger.warning("Conflict for agent %s: moved source copy to %s", agent_name, conflicts_dir)
         else:
             entry["action"] = f"moved -> {dest}"
             if not dry_run:
@@ -128,9 +128,9 @@ def migrate_agents(
 
         report.append(entry)
 
-    # Clean up empty legacy agents dir
-    if not dry_run and legacy_agents.exists() and not any(legacy_agents.iterdir()):
-        legacy_agents.rmdir()
+    # Clean up empty source agents dir
+    if not dry_run and source_agents.exists() and not any(source_agents.iterdir()):
+        source_agents.rmdir()
 
     return report
 
@@ -141,30 +141,31 @@ def migrate_memory(
     *,
     dry_run: bool = False,
 ) -> None:
-    """Move legacy global memory.json into per-user layout.
+    """Move shared global memory.json into per-user layout.
 
     Args:
         paths: Paths instance.
-        user_id: Target user to receive the legacy memory.
+        user_id: Target user to receive the shared memory.
         dry_run: If True, only log.
     """
-    legacy_mem = paths.base_dir / "memory.json"
-    if not legacy_mem.exists():
-        logger.info("No legacy memory.json found — nothing to migrate.")
+    source_mem = paths.base_dir / "memory.json"
+    if not source_mem.exists():
+        logger.info("No shared memory.json found — nothing to migrate.")
         return
 
     dest = paths.user_memory_file(user_id)
     if dest.exists():
-        legacy_backup = paths.base_dir / "memory.legacy.json"
-        logger.warning("Destination %s exists; renaming legacy to %s", dest, legacy_backup)
+        conflict_backup = paths.base_dir / "migration-conflicts" / f"memory.{user_id}.json"
+        logger.warning("Destination %s exists; moving shared memory to %s", dest, conflict_backup)
         if not dry_run:
-            legacy_mem.rename(legacy_backup)
+            conflict_backup.parent.mkdir(parents=True, exist_ok=True)
+            source_mem.rename(conflict_backup)
         return
 
     logger.info("Migrating memory.json -> %s", dest)
     if not dry_run:
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(legacy_mem), str(dest))
+        shutil.move(str(source_mem), str(dest))
 
 
 def _build_owner_map_from_db(paths: Paths) -> dict[str, str]:
@@ -195,13 +196,13 @@ def _build_owner_map_from_db(paths: Paths) -> dict[str, str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Migrate VassilFlow legacy data to per-user layout")
+    parser = argparse.ArgumentParser(description="Move existing VassilFlow runtime data to the per-user layout")
     parser.add_argument("--dry-run", action="store_true", help="Log actions without making changes")
     parser.add_argument(
         "--user-id",
         default="default",
         metavar="USER_ID",
-        help=("User ID to claim un-owned legacy data (global memory.json and legacy custom agents). Defaults to 'default'. In multi-user installs, set this to the operator account that should inherit those legacy artifacts."),
+        help=("User ID to claim unowned data such as global memory.json and shared custom agents. Defaults to 'default'. In multi-user installs, set this to the operator account that should inherit those artifacts."),
     )
     args = parser.parse_args()
 
@@ -210,7 +211,7 @@ def main() -> None:
     paths = get_paths()
     logger.info("Base directory: %s", paths.base_dir)
     logger.info("Dry run: %s", args.dry_run)
-    logger.info("Claiming un-owned legacy data for user_id=%s", args.user_id)
+    logger.info("Claiming unowned runtime data for user_id=%s", args.user_id)
 
     owner_map = _build_owner_map_from_db(paths)
     logger.info("Found %d thread ownership records in DB", len(owner_map))
@@ -241,7 +242,7 @@ def main() -> None:
 
     if agent_report:
         logger.warning(
-            "%d legacy agent(s) were assigned to '%s'. If those agents belonged to other users, move them manually under {base_dir}/users/<user_id>/agents/.",
+            "%d shared agent(s) were assigned to '%s'. If those agents belonged to other users, move them manually under {base_dir}/users/<user_id>/agents/.",
             len(agent_report),
             args.user_id,
         )

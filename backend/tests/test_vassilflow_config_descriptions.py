@@ -1,4 +1,4 @@
-"""Static guards for VassilFlow-owned public config descriptions."""
+"""Static guards for VassilFlow public config descriptions."""
 
 import vassilflow.config.safety_finish_reason_config as safety_config_module
 import vassilflow.persistence as persistence_module

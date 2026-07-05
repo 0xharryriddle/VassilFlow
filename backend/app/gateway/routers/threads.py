@@ -411,8 +411,8 @@ async def get_thread(thread_id: str, request: Request) -> ThreadResponse:
     if record is None and checkpoint_tuple is None:
         raise HTTPException(status_code=404, detail=f"Thread {thread_id} not found")
 
-    # If the thread exists in the checkpointer but not in thread_meta (e.g.
-    # legacy data created before thread_meta adoption), synthesize a minimal
+    # If the thread exists in the checkpointer but not in thread_meta (for
+    # example, data created before thread_meta adoption), synthesize a minimal
     # record from the checkpoint metadata.
     if record is None and checkpoint_tuple is not None:
         ckpt_meta = getattr(checkpoint_tuple, "metadata", {}) or {}

@@ -173,7 +173,7 @@ After generation:
 ## Requirements
 
 The following environment variables must be set:
-- For Volcengine: `VOLCENGINE_TTS_APPID` and `VOLCENGINE_TTS_ACCESS_TOKEN`
+- For Volcengine: `VOLCENGINE_TTS_APPID`, `VOLCENGINE_TTS_ACCESS_TOKEN`, and `VOLCENGINE_TTS_ENDPOINT`
 - For MiniMax: `MINIMAX_API_KEY`
 - `VOLCENGINE_TTS_CLUSTER`: Volcengine TTS cluster (optional, defaults to "volcano_tts")
 
@@ -189,7 +189,7 @@ The following environment variables must be set:
 
 Auto-selected by environment variables:
 
-- `VOLCENGINE_TTS_APPID` + `VOLCENGINE_TTS_ACCESS_TOKEN` set → Volcengine TTS (default).
+- `VOLCENGINE_TTS_APPID` + `VOLCENGINE_TTS_ACCESS_TOKEN` + `VOLCENGINE_TTS_ENDPOINT` set → Volcengine TTS (default).
 - Only `MINIMAX_API_KEY` set → MiniMax TTS (`/v1/t2a_v2`).
 - Force with `PODCAST_GENERATION_PROVIDER=volcengine|minimax`.
 

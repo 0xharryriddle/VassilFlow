@@ -70,7 +70,7 @@ async def test_discord_connect_command_binds_gateway_identity(repo):
     message.author.id = 987
     message.author.display_name = "Alice"
     message.guild.id = 123
-    message.guild.name = "Deer Guild"
+    message.guild.name = "Vassil Guild"
     message.channel.id = 456
     message.channel.send = AsyncMock()
 
@@ -83,6 +83,6 @@ async def test_discord_connect_command_binds_gateway_identity(repo):
     assert connections[0]["external_account_id"] == "987"
     assert connections[0]["external_account_name"] == "Alice"
     assert connections[0]["workspace_id"] == "123"
-    assert connections[0]["workspace_name"] == "Deer Guild"
+    assert connections[0]["workspace_name"] == "Vassil Guild"
     assert connections[0]["metadata"]["channel_id"] == "456"
     message.channel.send.assert_awaited_once()

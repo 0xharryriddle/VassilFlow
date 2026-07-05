@@ -3,7 +3,7 @@
 Ensures that structured content (list-of-blocks) is properly extracted to
 plain text, preventing raw Python repr strings from reaching the UI.
 
-See: upstream issue #1149
+See: VassilFlow issue #1149
 """
 
 from langchain_core.messages import ToolMessage

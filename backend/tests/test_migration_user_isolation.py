@@ -108,8 +108,8 @@ class TestMigrateMemory:
         assert not legacy_mem.exists()
 
     def test_skips_if_destination_exists(self, base_dir: Path, paths: Paths):
-        legacy_mem = base_dir / "memory.json"
-        legacy_mem.write_text(json.dumps({"version": "old"}))
+        source_mem = base_dir / "memory.json"
+        source_mem.write_text(json.dumps({"version": "old"}))
 
         dest = base_dir / "users" / "default" / "memory.json"
         dest.parent.mkdir(parents=True)
@@ -120,7 +120,7 @@ class TestMigrateMemory:
         migrate_memory(paths, user_id="default")
 
         assert json.loads(dest.read_text())["version"] == "new"
-        assert (base_dir / "memory.legacy.json").exists()
+        assert (base_dir / "migration-conflicts" / "memory.default.json").exists()
 
     def test_no_legacy_memory_is_noop(self, base_dir: Path, paths: Paths):
         from scripts.migrate_user_isolation import migrate_memory

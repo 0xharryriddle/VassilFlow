@@ -132,7 +132,7 @@ enrich_file_listing(result, thread_id) -> dict     # Adds URLs, stringifies size
 
 ### 4.2 Client Slimming
 
-**`vassilflow.client` / legacy `vassilflow/client.py`**:
+**`vassilflow.client` implementation (`vassilflow/client.py`)**:
 - Remove `_get_uploads_dir` static method
 - Remove ~50 lines of inline zip handling in `install_skill`
 - `install_skill` delegates to `install_skill_from_archive()`

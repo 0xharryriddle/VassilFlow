@@ -858,7 +858,7 @@ class ChannelManager:
         configurable["checkpoint_ns"] = ""
         configurable["thread_id"] = thread_id
 
-        # ``user_id`` drives VassilFlow-owned memory, files, and thread buckets.
+        # ``user_id`` drives VassilFlow memory, files, and thread buckets.
         # For browser-connected IM channels, prefer the VassilFlow account that
         # owns the connection. Preserve the raw platform user under
         # ``channel_user_id`` for platform-facing lookups and audits.

@@ -156,9 +156,9 @@ See [Building a Custom AIO Sandbox Image](../../backend/docs/CONFIGURATION.md#bu
 
 ### PVC User-Data Upgrade Note
 
-Older provisioner versions mounted PVC user-data from `threads/{thread_id}/user-data`. The user-scoped layout mounts from `vassilflow/users/{user_id}/threads/{thread_id}/user-data`.
+Provisioner PVC data can be mounted from either a thread-scoped layout (`threads/{thread_id}/user-data`) or the user-scoped layout (`vassilflow/users/{user_id}/threads/{thread_id}/user-data`). New deployments should use the user-scoped layout.
 
-If an existing deployment already has PVC-backed user-data under the legacy layout, migrate the VassilFlow data directory before relying on the new PVC subPath. Mount the same PVC path that the gateway uses as its VassilFlow base directory, then run the existing user-isolation migration script:
+If an existing deployment already has PVC-backed user-data under the thread-scoped layout, migrate the VassilFlow data directory before relying on the user-scoped PVC subPath. Mount the same PVC path that the gateway uses as its VassilFlow base directory, then run the user-isolation migration script:
 
 ```bash
 cd backend
@@ -166,7 +166,7 @@ PYTHONPATH=. python scripts/migrate_user_isolation.py --dry-run
 PYTHONPATH=. python scripts/migrate_user_isolation.py --user-id <target-user-id>
 ```
 
-This moves legacy `threads/{thread_id}/user-data` data under `users/<target-user-id>/threads/{thread_id}/user-data`, which matches the new provisioner PVC subPath when the gateway base directory is mounted at `vassilflow/` on the PVC. Use `default` as the target user only when the legacy data should remain in the default no-auth user namespace. Run the migration while no gateway or sandbox Pods are writing to those paths.
+This moves existing `threads/{thread_id}/user-data` data under `users/<target-user-id>/threads/{thread_id}/user-data`, which matches the new provisioner PVC subPath when the gateway base directory is mounted at `vassilflow/` on the PVC. Use `default` as the target user only when existing data should remain in the default no-auth user namespace. Run the migration while no gateway or sandbox Pods are writing to those paths.
 
 ### Important: K8S_API_SERVER Override
 

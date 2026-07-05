@@ -1,4 +1,4 @@
-"""Static coverage for VassilFlow-owned script import surfaces."""
+"""Static coverage for VassilFlow script import surfaces."""
 
 from pathlib import Path
 

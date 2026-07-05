@@ -1,6 +1,6 @@
 """Contract tests for ``vassilflow.subagents.status_contract``.
 
-upstream issue #3146: the backend stamps
+VassilFlow issue #3146: the backend stamps
 ``ToolMessage.additional_kwargs.subagent_status`` so the frontend can read
 the subagent state from a structured field instead of parsing the result
 text. The mapping from "task tool result text" to status is shared with the

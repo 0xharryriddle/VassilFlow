@@ -3,7 +3,7 @@
     "title": "Skill Routing Blueprint",
     "messages": [
       {
-        "content": "Design a VassilFlow-native skill routing flow that avoids name collisions and keeps skill identity stable.",
+        "content": "Design a VassilFlow-native skill routing flow that avoids name collisions and keeps skill selection stable.",
         "additional_kwargs": {},
         "response_metadata": {},
         "type": "human",
@@ -33,7 +33,7 @@
         "id": "vf-skills-human-2"
       },
       {
-        "content": "I wrote a skill routing blueprint with identity rules, activation steps, and expected observability fields.",
+        "content": "I wrote a skill routing blueprint with routing rules, activation steps, and expected observability fields.",
         "additional_kwargs": {},
         "response_metadata": {
           "model_name": "vassilflow-demo-model",

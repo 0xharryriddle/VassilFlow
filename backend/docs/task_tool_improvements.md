@@ -67,7 +67,7 @@ The `task_status_tool` is no longer exposed to the LLM. It's kept in the codebas
 
 Public import: `vassilflow.tools.builtins.task_tool`
 
-Current implementation file during migration: `packages/harness/vassilflow/tools/builtins/task_tool.py`
+Current implementation file: `packages/harness/vassilflow/tools/builtins/task_tool.py`
 
 ```python
 # Start background execution
@@ -166,7 +166,7 @@ result = task(
 # result should contain "Done"
 ```
 
-## Migration Notes
+## Upgrade Notes
 
 For users/code that previously used `run_in_background=True`:
 - Simply remove the parameter

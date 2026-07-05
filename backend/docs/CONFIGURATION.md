@@ -12,7 +12,7 @@ Run `make config-upgrade` to merge new fields into your config.
 ```
 
 - **Missing `config_version`** in your config is treated as version 0.
-- Run `make config-upgrade` to auto-merge missing fields and rewrite known legacy defaults such as `.vassilflow/data` to `.vassilflow/data` (your existing values are preserved where no migration rule matches, and a `.bak` backup is created).
+- Run `make config-upgrade` to auto-merge missing fields and apply versioned config rewrites for provider and tool class paths (your existing values are preserved where no migration rule matches, and a `.bak` backup is created).
 - When changing the config schema, bump `config_version` in `config.example.yaml`.
 
 ## Configuration Sections
@@ -315,7 +315,7 @@ For bare-metal Docker sandbox runs that use localhost, VassilFlow binds the sand
 
 ### Building a Custom AIO Sandbox Image
 
-`AioSandboxProvider` talks to the sandbox container through the `agent-sandbox` SDK. The Dockerfile for the default `enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest` image is not part of this repository; VassilFlow treats that image as an upstream AIO sandbox runtime.
+`AioSandboxProvider` talks to the sandbox container through the `agent-sandbox` SDK. The Dockerfile for the default `enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest` image is not part of this repository; VassilFlow treats that image as an external AIO sandbox runtime.
 
 For persistent system or language dependencies, extend the published image and keep its startup command intact:
 
@@ -331,7 +331,7 @@ RUN apt-get update \
 # Example Python dependency for work done inside the sandbox.
 RUN python -m pip install --no-cache-dir pandas
 
-# Do not override ENTRYPOINT or CMD; keep the upstream sandbox server startup.
+# Do not override ENTRYPOINT or CMD; keep the published sandbox server startup.
 ```
 
 Use the custom image in local Docker or Apple Container mode with `sandbox.image`:

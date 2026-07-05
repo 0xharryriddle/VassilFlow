@@ -53,7 +53,8 @@ def _resolve_provider(override_env: str, existing_provider: str, has_existing_cr
     if os.getenv("MINIMAX_API_KEY"):
         return "minimax"
     raise ValueError(
-        f"No credentials found. Set VOLCENGINE_TTS_APPID + VOLCENGINE_TTS_ACCESS_TOKEN "
+        f"No credentials found. Set VOLCENGINE_TTS_APPID + VOLCENGINE_TTS_ACCESS_TOKEN + "
+        f"VOLCENGINE_TTS_ENDPOINT "
         f"for {existing_provider}, or MINIMAX_API_KEY for minimax "
         f"(optionally force with {override_env})."
     )
@@ -61,7 +62,9 @@ def _resolve_provider(override_env: str, existing_provider: str, has_existing_cr
 
 def _resolve_tts_provider() -> str:
     has_volc = bool(
-        os.getenv("VOLCENGINE_TTS_APPID") and os.getenv("VOLCENGINE_TTS_ACCESS_TOKEN")
+        os.getenv("VOLCENGINE_TTS_APPID")
+        and os.getenv("VOLCENGINE_TTS_ACCESS_TOKEN")
+        and os.getenv("VOLCENGINE_TTS_ENDPOINT")
     )
     provider = _resolve_provider("PODCAST_GENERATION_PROVIDER", "volcengine", has_volc)
     if provider not in ("volcengine", "minimax"):
@@ -116,10 +119,13 @@ def text_to_speech_volcengine(
     """
     app_id = os.getenv("VOLCENGINE_TTS_APPID")
     access_token = os.getenv("VOLCENGINE_TTS_ACCESS_TOKEN")
+    url = os.getenv("VOLCENGINE_TTS_ENDPOINT")
     cluster = os.getenv("VOLCENGINE_TTS_CLUSTER", "volcano_tts")
     if max_retries is None:
         max_retries = _default_max_retries()
-    url = "https://openspeech.bytedance.com/api/v1/tts"
+    if not url:
+        logger.error("VOLCENGINE_TTS_ENDPOINT is required for Volcengine TTS")
+        return None
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer;{access_token}"}
     payload = {
         "app": {"appid": app_id, "token": "access_token", "cluster": cluster},
@@ -264,11 +270,13 @@ def tts_node(script: Script) -> list[bytes]:
     provider = _resolve_tts_provider()
     max_workers = _default_max_workers(provider)
     if provider == "volcengine" and not (
-        os.getenv("VOLCENGINE_TTS_APPID") and os.getenv("VOLCENGINE_TTS_ACCESS_TOKEN")
+        os.getenv("VOLCENGINE_TTS_APPID")
+        and os.getenv("VOLCENGINE_TTS_ACCESS_TOKEN")
+        and os.getenv("VOLCENGINE_TTS_ENDPOINT")
     ):
         raise ValueError(
             "Volcengine TTS selected but VOLCENGINE_TTS_APPID / "
-            "VOLCENGINE_TTS_ACCESS_TOKEN are not set"
+            "VOLCENGINE_TTS_ACCESS_TOKEN / VOLCENGINE_TTS_ENDPOINT are not set"
         )
     if provider == "minimax" and not os.getenv("MINIMAX_API_KEY"):
         raise ValueError("MiniMax TTS selected but MINIMAX_API_KEY is not set")

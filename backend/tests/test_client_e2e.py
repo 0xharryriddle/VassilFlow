@@ -49,10 +49,10 @@ def _make_e2e_config() -> AppConfig:
     All LLM connection details come from environment variables so that both
     internal CI and external contributors can run the tests:
 
-    - ``E2E_MODEL_NAME``  (default: ``volcengine-ark``)
+    - ``E2E_MODEL_NAME``  (default: ``openai-compatible-e2e``)
     - ``E2E_MODEL_USE``   (default: ``langchain_openai:ChatOpenAI``)
-    - ``E2E_MODEL_ID``    (default: ``ep-20251211175242-llcmh``)
-    - ``E2E_BASE_URL``    (default: ``https://ark-cn-beijing.bytedance.net/api/v3``)
+    - ``E2E_MODEL_ID``    (default: ``gpt-4o-mini``)
+    - ``E2E_BASE_URL``    (optional OpenAI-compatible endpoint override)
     - ``OPENAI_API_KEY``  (required for LLM tests)
 
     Note: We use model_validate with a raw dict (not AppConfig(models=[ModelConfig(...)]))
@@ -60,23 +60,24 @@ def _make_e2e_config() -> AppConfig:
     shortcut that returns stale cached data when another AppConfig was previously
     loaded from disk in the same process. Dict-based validation is always correct.
     """
+    model_entry = {
+        "name": os.getenv("E2E_MODEL_NAME", "openai-compatible-e2e"),
+        "display_name": "E2E Test Model",
+        "use": os.getenv("E2E_MODEL_USE", "langchain_openai:ChatOpenAI"),
+        "model": os.getenv("E2E_MODEL_ID", "gpt-4o-mini"),
+        "api_key": os.getenv("OPENAI_API_KEY", ""),
+        "max_tokens": 512,
+        "temperature": 0.7,
+        "supports_thinking": False,
+        "supports_reasoning_effort": False,
+        "supports_vision": False,
+    }
+    if os.getenv("E2E_BASE_URL"):
+        model_entry["base_url"] = os.getenv("E2E_BASE_URL")
+
     return AppConfig.model_validate(
         {
-            "models": [
-                {
-                    "name": os.getenv("E2E_MODEL_NAME", "volcengine-ark"),
-                    "display_name": "E2E Test Model",
-                    "use": os.getenv("E2E_MODEL_USE", "langchain_openai:ChatOpenAI"),
-                    "model": os.getenv("E2E_MODEL_ID", "ep-20251211175242-llcmh"),
-                    "base_url": os.getenv("E2E_BASE_URL", "https://ark-cn-beijing.bytedance.net/api/v3"),
-                    "api_key": os.getenv("OPENAI_API_KEY", ""),
-                    "max_tokens": 512,
-                    "temperature": 0.7,
-                    "supports_thinking": False,
-                    "supports_reasoning_effort": False,
-                    "supports_vision": False,
-                }
-            ],
+            "models": [model_entry],
             "sandbox": {
                 "use": "vassilflow.sandbox.local:LocalSandboxProvider",
                 "allow_host_bash": True,
@@ -641,7 +642,7 @@ class TestConfigManagement:
 
     def test_list_models_returns_injected_config(self, e2e_env):
         """list_models() returns the model from the injected AppConfig."""
-        expected_model_name = os.getenv("E2E_MODEL_NAME", "volcengine-ark")
+        expected_model_name = os.getenv("E2E_MODEL_NAME", "openai-compatible-e2e")
         c = VassilFlowClient(checkpointer=None, thinking_enabled=False)
         result = c.list_models()
         assert "models" in result
@@ -651,7 +652,7 @@ class TestConfigManagement:
 
     def test_get_model_found(self, e2e_env):
         """get_model() returns the model when it exists."""
-        expected_model_name = os.getenv("E2E_MODEL_NAME", "volcengine-ark")
+        expected_model_name = os.getenv("E2E_MODEL_NAME", "openai-compatible-e2e")
         c = VassilFlowClient(checkpointer=None, thinking_enabled=False)
         model = c.get_model(expected_model_name)
         assert model is not None

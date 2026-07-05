@@ -326,7 +326,7 @@ LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxxxxx
 LANGSMITH_PROJECT=xxx
 ```
 
-**Legacy variables:** The `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`, and `LANGCHAIN_ENDPOINT` variables are also supported for backward compatibility. `LANGSMITH_*` variables take precedence when both are set.
+**Older LangChain variables:** The `LANGCHAIN_TRACING_V2`, `LANGCHAIN_API_KEY`, `LANGCHAIN_PROJECT`, and `LANGCHAIN_ENDPOINT` variables are also supported for backward compatibility. `LANGSMITH_*` variables take precedence when both are set.
 
 ### Langfuse Tracing
 
@@ -375,7 +375,7 @@ runs `alembic upgrade head` automatically on startup via
 `bootstrap_schema(engine, backend=...)`, so operators do not run `alembic`
 manually in production. Bootstrap is concurrency-safe (Postgres advisory lock
 across processes; per-engine `asyncio.Lock` inside one SQLite process) and
-idempotent against pre-existing schemas (empty / legacy / versioned).
+idempotent against pre-existing schemas (empty / pre-alembic / versioned).
 
 When you add or change an ORM model, ship the change as a new revision under
 `packages/harness/vassilflow/persistence/migrations/versions/`:

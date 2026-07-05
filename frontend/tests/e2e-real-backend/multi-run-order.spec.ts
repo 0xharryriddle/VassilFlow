@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Layer 2 (cross-stack contract): reproduces upstream issue #3352 — after the
+ * Layer 2 (cross-stack contract): reproduces VassilFlow issue #3352 — after the
  * checkpoint no longer holds the older messages (post context-compression), the
  * frontend rebuilds thread history from the per-run endpoints, and the order it
  * rebuilds them in must stay chronological.
