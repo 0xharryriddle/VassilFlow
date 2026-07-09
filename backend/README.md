@@ -2,6 +2,10 @@
 
 VassilFlow is a LangGraph-based AI super agent with sandbox execution, persistent memory, and extensible tool integration. The backend enables AI agents to execute code, browse the web, manage files, delegate tasks to subagents, and retain context across conversations - all in isolated, per-thread environments.
 
+For a fresh clone or full-stack setup, start with the repository-level guide:
+[../docs/SETUP.md](../docs/SETUP.md). This README focuses on backend architecture
+and backend-only development.
+
 ---
 
 ## Architecture
@@ -439,6 +443,7 @@ reachability.
 
 ## Documentation
 
+- [Full Setup Guide](../docs/SETUP.md)
 - [Configuration Guide](docs/CONFIGURATION.md)
 - [Architecture Details](docs/ARCHITECTURE.md)
 - [API Reference](docs/API.md)
@@ -446,7 +451,7 @@ reachability.
 - [Path Examples](docs/PATH_EXAMPLES.md)
 - [Context Summarization](docs/summarization.md)
 - [Plan Mode](docs/plan_mode_usage.md)
-- [Setup Guide](docs/SETUP.md)
+- [Backend Setup Notes](docs/SETUP.md)
 
 ---
 

@@ -1,7 +1,11 @@
-# Configuration for the VassilFlow application
+# Configuration reference for the VassilFlow application
 #
 # Guidelines:
-# - Copy this file to `config.yaml` and customize it for your environment
+# - First-time setup: run `make setup` from the project root. It creates a
+#   smaller working `config.yaml`, writes API keys to `.env`, and avoids most
+#   manual YAML editing.
+# - Advanced/manual setup: copy this file to `config.yaml` and customize it for
+#   your environment.
 # - The default path of this configuration file is `config.yaml` in the project root.
 #   You can set `VASSILFLOW_PROJECT_ROOT` to define that root explicitly, or
 #   use `VASSILFLOW_CONFIG_PATH` to point at a specific config file.

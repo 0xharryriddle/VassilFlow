@@ -10,7 +10,8 @@ This directory contains detailed documentation for the VassilFlow backend.
 | [API.md](API.md) | Complete API reference |
 | [AUTH_DESIGN.md](AUTH_DESIGN.md) | User authentication, CSRF, and per-user isolation design |
 | [CONFIGURATION.md](CONFIGURATION.md) | Configuration options |
-| [SETUP.md](SETUP.md) | Quick setup guide |
+| [../../docs/SETUP.md](../../docs/SETUP.md) | Full fresh-clone setup guide |
+| [SETUP.md](SETUP.md) | Backend-only setup notes |
 
 ## Feature Documentation
 
@@ -32,7 +33,7 @@ This directory contains detailed documentation for the VassilFlow backend.
 
 ## Getting Started
 
-1. **New to VassilFlow?** Start with [SETUP.md](SETUP.md) for quick installation
+1. **New to VassilFlow?** Start with [../../docs/SETUP.md](../../docs/SETUP.md) for fresh-clone setup
 2. **Configuring the system?** See [CONFIGURATION.md](CONFIGURATION.md)
 3. **Understanding the architecture?** Read [ARCHITECTURE.md](ARCHITECTURE.md)
 4. **Building integrations?** Check [API.md](API.md) for API reference
@@ -46,7 +47,7 @@ docs/
 |-- API.md                     # API reference
 |-- AUTH_DESIGN.md             # User authentication and isolation design
 |-- CONFIGURATION.md           # Configuration guide
-|-- SETUP.md                   # Setup instructions
+|-- SETUP.md                   # Backend-only setup notes
 |-- FILE_UPLOAD.md             # File upload feature
 |-- PATH_EXAMPLES.md           # Path usage examples
 |-- summarization.md           # Summarization feature

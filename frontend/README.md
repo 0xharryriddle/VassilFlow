@@ -2,6 +2,9 @@
 
 VassilFlow keeps the original minimal, easy-to-use web interface direction while moving the product surface toward a modern super agent harness.
 
+For a fresh clone or full-stack setup, start with the repository-level guide:
+[../docs/SETUP.md](../docs/SETUP.md). This README is for frontend-only work.
+
 ## Tech Stack
 
 - **Framework**: [Next.js 16](https://nextjs.org/) with [App Router](https://nextjs.org/docs/app)
@@ -25,6 +28,10 @@ pnpm install
 cp .env.example .env
 # Edit .env with your configuration
 ```
+
+When running through root commands such as `make dev`, most frontend variables
+can stay commented out because nginx and the Next.js server use the default
+local Gateway wiring.
 
 ### Development
 

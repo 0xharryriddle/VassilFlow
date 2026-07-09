@@ -19,6 +19,7 @@ https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
   - [Table of Contents](#table-of-contents)
   - [One-Line Agent Setup](#one-line-agent-setup)
   - [Quick Start](#quick-start)
+    - [Fresh Clone Checklist](#fresh-clone-checklist)
     - [Configuration](#configuration)
     - [Running the Application](#running-the-application)
       - [Deployment Sizing](#deployment-sizing)
@@ -60,6 +61,65 @@ Help me bootstrap this VassilFlow checkout for local development. Follow the set
 That prompt is intended for coding agents. It tells the agent to clone the repo if needed, choose Docker when available, and stop with the exact next command plus any missing config the user still needs to provide.
 
 ## Quick Start
+
+### Fresh Clone Checklist
+
+Use this checklist on a clean machine before reading the longer sections below.
+
+**Required tools**
+
+- Git
+- GNU Make
+- Python 3.12+
+- uv
+- Node.js 22+
+- pnpm 10.26.2+ through Corepack or a standalone install
+- Docker Desktop or Docker Engine if you want the recommended Docker path or container sandbox
+- nginx if you want the local non-Docker path
+
+On Windows, use Git Bash for local development commands. Docker commands also work best from Git Bash because the service scripts are bash-based.
+If `make` is not available yet, install GNU Make first or use the direct script
+fallbacks in [docs/SETUP.md#6-without-gnu-make](docs/SETUP.md#6-without-gnu-make).
+
+**Clone and configure**
+
+```bash
+git clone https://github.com/linhlln1104/VassilFlow.git
+cd VassilFlow
+make check
+make setup
+make doctor
+```
+
+`make setup` creates `config.yaml`, `.env`, and `frontend/.env`. You need at least one working LLM provider key or a CLI-backed provider login before the agent can answer real prompts. Web search/fetch keys are optional unless you enable those tools.
+
+**Run with Docker, recommended for a new machine**
+
+```bash
+make docker-init
+make docker-start
+```
+
+Open http://localhost:2026. Stop with:
+
+```bash
+make docker-stop
+```
+
+**Run locally without Docker**
+
+```bash
+make install
+make dev
+```
+
+Open http://localhost:2026. Stop with:
+
+```bash
+make stop
+```
+
+For a more detailed machine setup guide, see [docs/SETUP.md](docs/SETUP.md).
 
 ### Configuration
 
@@ -689,6 +749,7 @@ All dict-returning methods are validated against Gateway Pydantic response model
 
 ## Documentation
 
+- [Fresh Clone Setup Guide](docs/SETUP.md) - Step-by-step setup for a new machine
 - [Contributing Guide](CONTRIBUTING.md) - Development environment setup and workflow
 - [Configuration Guide](backend/docs/CONFIGURATION.md) - Setup and configuration instructions
 - [Architecture Overview](backend/CLAUDE.md) - Technical architecture details

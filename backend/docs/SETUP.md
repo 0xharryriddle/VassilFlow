@@ -1,99 +1,88 @@
-# Setup Guide
+# Backend Setup Notes
 
-Quick setup instructions for VassilFlow.
+For a fresh clone or full-stack setup, start with the repository-level guide:
 
-## Configuration Setup
+- [../../docs/SETUP.md](../../docs/SETUP.md)
 
-VassilFlow uses a YAML configuration file that should be placed in the **project root directory**.
+This page only covers backend-specific checks after the root setup is complete.
 
-### Steps
+## Backend Configuration Location
 
-1. **Navigate to project root**:
-   ```bash
-   cd /path/to/VassilFlow
-   ```
+The backend expects `config.yaml` in the repository root by default:
 
-2. **Copy example configuration**:
-   ```bash
-   cp config.example.yaml config.yaml
-   ```
+```text
+VassilFlow/config.yaml
+```
 
-3. **Edit configuration**:
-   ```bash
-   # Option A: Set environment variables (recommended)
-   export OPENAI_API_KEY="your-key-here"
+You can override that location with:
 
-   # Optional: pin the project root when running from another directory
-   export VASSILFLOW_PROJECT_ROOT="/path/to/VassilFlow"
+- `VASSILFLOW_PROJECT_ROOT`: points to the repository root
+- `VASSILFLOW_CONFIG_PATH`: points to one exact config file
+- `VASSILFLOW_HOME`: moves runtime state away from `.vassilflow/`
+- `VASSILFLOW_SKILLS_PATH`: moves the skills directory
 
-   # Option B: Edit config.yaml directly
-   vim config.yaml  # or your preferred editor
-   ```
+`config.yaml`, `.env`, and runtime state are local files and should not be
+committed.
 
-4. **Verify configuration**:
-   ```bash
-   cd backend
-   python -c "from vassilflow.config import get_app_config; print('✓ Config loaded:', get_app_config().models[0].name)"
-   ```
+## Backend-Only Install
 
-## Important Notes
-
-- **Location**: `config.yaml` should be in `VassilFlow/` (project root)
-- **Git**: `config.yaml` is automatically ignored by git (contains secrets)
-- **Runtime variables**: Use `VASSILFLOW_*` variables.
-- **Runtime root**: Set `VASSILFLOW_PROJECT_ROOT` if VassilFlow may start from outside the project root
-- **Runtime data**: State defaults to `.vassilflow` under the project root. Set `VASSILFLOW_HOME` to move it
-- **Skills**: Skills default to `skills/` under the project root; set `VASSILFLOW_SKILLS_PATH` or `skills.path` to move them
-
-## Configuration File Locations
-
-The backend searches for `config.yaml` in this order:
-
-1. Explicit `config_path` argument from code
-2. `VASSILFLOW_CONFIG_PATH` environment variable
-3. `config.yaml` under `VASSILFLOW_PROJECT_ROOT` or the current working directory
-4. Backend/repository-root locations for monorepo compatibility
-
-**Recommended**: Place `config.yaml` in project root (`VassilFlow/config.yaml`).
-
-## Sandbox Setup (Optional but Recommended)
-
-If you plan to use Docker/Container-based sandbox (configured in `config.yaml` under `sandbox.use: vassilflow.community.aio_sandbox:AioSandboxProvider`), it's highly recommended to pre-pull the container image:
+From the repository root:
 
 ```bash
-# From project root
+cd backend
+make install
+```
+
+Run only the Gateway API:
+
+```bash
+cd backend
+make dev
+```
+
+Direct Gateway URL:
+
+```text
+http://localhost:8001
+```
+
+The normal product entrypoint is still the root command:
+
+```bash
+make dev
+```
+
+That starts Gateway, frontend, and nginx together at `http://localhost:2026`.
+
+## Backend Config Smoke Test
+
+After `make setup`, run:
+
+```bash
+cd backend
+uv run python -c "from vassilflow.config import get_app_config; print(get_app_config().models[0].name)"
+```
+
+If this fails, run from the repository root:
+
+```bash
+make doctor
+```
+
+## Sandbox Image
+
+If `config.yaml` uses the container sandbox provider, pre-pull the sandbox image
+from the repository root:
+
+```bash
 make setup-sandbox
 ```
 
-**Why pre-pull?**
-- The sandbox image (~500MB+) is pulled on first use, causing a long wait
-- Pre-pulling provides clear progress indication
-- Avoids confusion when first using the agent
-
-If you skip this step, the image will be automatically pulled on first agent execution, which may take several minutes depending on your network speed.
-
-## Troubleshooting
-
-### Config file not found
-
-```bash
-# Check where the backend is looking
-cd VassilFlow/backend
-python -c "from vassilflow.config import AppConfig; print(AppConfig.resolve_config_path())"
-```
-
-If it can't find the config:
-1. Ensure you've copied `config.example.yaml` to `config.yaml`
-2. Verify you're in the project root, or set `VASSILFLOW_PROJECT_ROOT`
-3. Check the file exists: `ls -la config.yaml`
-
-### Permission denied
-
-```bash
-chmod 600 ../config.yaml  # Protect sensitive configuration
-```
+Skipping this is allowed, but the first agent run may pause while Docker pulls
+the image.
 
 ## See Also
 
-- [Configuration Guide](CONFIGURATION.md) - Detailed configuration options
-- [Architecture Overview](../CLAUDE.md) - System architecture
+- [Configuration Guide](CONFIGURATION.md)
+- [Architecture Overview](ARCHITECTURE.md)
+- [API Reference](API.md)
