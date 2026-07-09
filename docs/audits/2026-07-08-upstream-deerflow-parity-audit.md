@@ -8,8 +8,52 @@ which still need a VassilFlow-native port, and which do not apply.
 
 - `DA CO`: equivalent behavior already exists in VassilFlow.
 - `CAN PORT`: upstream behavior is missing or only partially present and should be ported.
+- `DEFER`: useful direction, but should wait for a separate VassilFlow-native design/review.
 - `KHONG PHU HOP`: upstream change does not apply cleanly to the current VassilFlow product
   surface, or depends on a subsystem that VassilFlow has not adopted.
+
+## 2026-07-09 Upstream Delta Review
+
+Upstream reference: `research/superagent-harness/deer-flow` at `dc38d2d0`.
+
+| Commit | Status | Decision |
+| --- | --- | --- |
+| `c30c8ef7` | DA CO | Ported as VassilFlow dangling-tool recovery for empty structured/raw/invalid tool-call names. The AIMessage payload and matching ToolMessage name are normalized to `unknown_tool`, with regression coverage for strict OpenAI-compatible serialization. |
+| `b36d7194` | DA CO | Ported as VassilFlow remote tool-result sanitization. `web_fetch`, `web_search`, and `image_search` outputs now share the input guardrail neutralization primitive before entering model context; local tool output remains exact. |
+| `b3282aea` | DA CO | Current lockfile already pins `langsmith==0.8.18`; no code port needed. |
+| `5ba25b06` | DA CO | Ported as VassilFlow-native soft MCP routing hints across config, metadata, tool loading, lead/embedded/subagent prompts, typed Gateway round-trip, docs, and tests. Arbitrary extra-field API passthrough remains a separate deferred concern. |
+| `c9fb9768` | DEFER | Subagent caps and `token_budget` are relevant runtime guards, but touch subagent contracts, config, and result semantics; audit separately. |
+| `c640b52a` | DEFER | Slash-skill chips are frontend product polish, lower priority than runtime stability. |
+| `01dc0679` | DEFER | Composer input polish is product/UI behavior and should be evaluated with VassilFlow UI expectations. |
+| `e3137b13` | DEFER | Provisioner legacy skills mount by user visibility could be relevant, but needs storage/provisioner audit before porting. |
+| `790b13fe` | KHONG PHU HOP | CI bake/postgres extra change is upstream deployment plumbing and does not map to current VassilFlow runtime batch. |
+| `bc9ee964` | KHONG PHU HOP | Helm chart surface is not adopted by VassilFlow today. |
+| `dc38d2d0` | DEFER | BoxLite warm-pool reclaim tuning is provider-specific and should wait until/if BoxLite is a VassilFlow provider. |
+
+### 2026-07-10 MCP Routing Hints Classification
+
+| Upstream subgroup | Status | Decision |
+| --- | --- | --- |
+| Existing MCP source tags and deferred `tool_search` flow | DA CO | VassilFlow already tags MCP tools and defers their schemas consistently across lead, embedded-client, and subagent builds. |
+| Server/per-tool soft routing config and effective override resolution | DA CO | Strict VassilFlow config models, bounded priority, and explicit-field inheritance are keyed by the original MCP tool name. Routing keywords do not resolve environment placeholders. |
+| Routing metadata and prompt hints | DA CO | Loaded tools carry VassilFlow-owned metadata. Policy-filtered hints reach normal/bootstrap lead, embedded-client, and subagent prompts, including deferred-tool promotion guidance. Prompt atoms and section size are bounded. |
+| Typed MCP Gateway round-trip | DA CO | GET/PUT preserves routing, per-tool routing, and `tool_call_timeout`, so a partial admin update cannot silently erase these fields. |
+| Arbitrary MCP extra-field passthrough and recursive secret masking | DEFER | This expands the management API contract beyond routing. Audit it separately against VassilFlow's extension and secret model before accepting arbitrary per-tool extras. |
+| Upstream-branded public copy and direct documentation reuse | KHONG PHU HOP | Write concise VassilFlow-native config/docs text; do not copy identity-bearing wording or examples. |
+
+Implementation review notes:
+
+- VassilFlow intentionally keeps per-tool overrides strict instead of accepting arbitrary
+  extras. This avoids the upstream secret-redaction gap where nested tool extras can be
+  returned by the management API without complete masking.
+- Routing keywords skip environment substitution, reject prompt delimiters/control
+  characters, and are size-bounded. Defensive rendering also skips unsafe metadata and
+  caps the total hint section.
+- `routing` and `tools` are now reserved typed fields. A pre-existing custom extension
+  that used either name for another shape must be migrated.
+- An already-built embedded client does not automatically rebuild solely because another
+  process edits the extensions file. Treat cross-process cache invalidation as a separate
+  lifecycle audit; Gateway-managed runtime builds reset the MCP tool cache after PUT.
 
 ## Highest Priority Port Candidates
 
@@ -85,7 +129,7 @@ which still need a VassilFlow-native port, and which do not apply.
 | `4fc08b4f` | CAN PORT | Scheduled tasks are absent. |
 | `b85c672c` | DA CO | WeChat constructor/start/auth/state/file staging paths are now IO-safe on async paths. |
 | `e9161ff1` | DA CO | Discord startup thread mapping, persistence, and file upload reads are IO-safe on async paths. |
-| `7a6c4a99` | CAN PORT | Per-chat thread creation serialization should be rechecked against current channel repository behavior. |
+| `7a6c4a99` | DA CO | Ported as VassilFlow-native per-conversation thread creation serialization. The lock key follows the active storage identity, including connection-scoped repositories when present. |
 | `69cf4f4d` | DA CO | Notification hook behavior appears present in the current channel/runtime layer. |
 
 ### Frontend And UX
@@ -184,7 +228,8 @@ which still need a VassilFlow-native port, and which do not apply.
 
 ## Recommended Port Order
 
-1. Larger product surfaces requiring an explicit VassilFlow decision: `4fc08b4f`, `dcb2e687`, `e5424cba`, `358bacad`, `67c8ade3`, `ef5f54c5`.
+1. Runtime safety batches needing deeper audit: `c9fb9768`, `e3e5c73b`, `25ea6970`.
+2. Larger product surfaces requiring an explicit VassilFlow decision: `4fc08b4f`, `dcb2e687`, `e5424cba`, `358bacad`, `67c8ade3`, `ef5f54c5`.
 
 ## Notes For The Next Fix Batch
 
@@ -217,5 +262,22 @@ which still need a VassilFlow-native port, and which do not apply.
   workspace/output changes, exposes `/workspace-changes`, renders assistant-turn
   file-change review in the workspace UI, and covers scanner/API/UI helpers with
   regression tests.
+- Batch 10 has been ported: empty tool-call-name recovery from `c30c8ef7` and
+  remote tool-result sanitization from `b36d7194`. The implementation uses
+  VassilFlow-native middleware, shared input/tool-result neutralization, and
+  regression tests for provider serialization, SDK/runtime middleware ordering,
+  and remote-content injection.
+- Batch 11 has been ported: per-chat thread creation serialization from
+  `7a6c4a99`. VassilFlow now serializes lookup/create per conversation and
+  re-checks storage inside the lock so concurrent inbound channel messages reuse
+  one thread instead of creating duplicate Gateway threads.
+- Batch 12 has been ported: soft MCP routing hints from `5ba25b06`, adapted with
+  VassilFlow metadata/config naming, strict per-tool schema, policy-filtered lead
+  and subagent prompts, typed Gateway round-trip, prompt-injection/token bounds,
+  and regression coverage. Backend tests now also force auth bypass off by default
+  so a developer's local auth-disabled setting cannot change test identity results.
+- Public README media audit: the opaque GitHub user-attachment URL was traced to
+  the upstream README video and removed. No replacement is published until a
+  VassilFlow-owned product recording exists.
 - After each port batch, run backend tests first, then targeted frontend tests if the batch
   touches UI state or streaming behavior.

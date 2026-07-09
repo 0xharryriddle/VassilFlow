@@ -807,6 +807,7 @@ class ChannelManager:
         self._require_bound_identity = require_bound_identity
         self._client = None  # lazy init — langgraph_sdk async client
         self._channel_metadata_synced: set[str] = set()
+        self._thread_create_locks: dict[tuple[str, str, str, str | None], asyncio.Lock] = {}
         self._skill_storage: SkillStorage | None = None
         self._csrf_token = generate_csrf_token()
         self._semaphore: asyncio.Semaphore | None = None
@@ -1212,6 +1213,31 @@ class ChannelManager:
         logger.info("[Manager] new thread created through Gateway: thread_id=%s for chat_id=%s topic_id=%s", thread_id, msg.chat_id, msg.topic_id)
         return thread_id
 
+    def _thread_create_lock_key(self, msg: InboundMessage) -> tuple[str, str, str, str | None]:
+        if msg.connection_id and self._connection_repo is not None:
+            return ("connection", msg.connection_id, msg.chat_id, msg.topic_id)
+        return ("channel", msg.channel_name, msg.chat_id, msg.topic_id)
+
+    async def _get_or_create_thread(self, client, msg: InboundMessage) -> tuple[str, bool]:
+        """Return ``(thread_id, created)``, creating at most one thread per conversation."""
+        thread_id = await self._lookup_thread_id(msg)
+        if thread_id:
+            return thread_id, False
+
+        key = self._thread_create_lock_key(msg)
+        lock = self._thread_create_locks.setdefault(key, asyncio.Lock())
+        try:
+            async with lock:
+                # A concurrent inbound message for the same conversation may
+                # have created and stored the thread while this task waited.
+                thread_id = await self._lookup_thread_id(msg)
+                if thread_id:
+                    return thread_id, False
+                return await self._create_thread(client, msg), True
+        finally:
+            if self._thread_create_locks.get(key) is lock:
+                self._thread_create_locks.pop(key, None)
+
     async def _update_thread_channel_metadata(self, client, msg: InboundMessage, thread_id: str) -> None:
         """Best-effort source metadata backfill for existing IM-created threads."""
         # The metadata (provider/chat/topic) is constant for a thread, so one
@@ -1249,17 +1275,13 @@ class ChannelManager:
         client = self._get_client()
         storage_user_id = _channel_storage_user_id(msg)
 
-        # Look up existing VassilFlow thread.
+        # Look up or create the VassilFlow thread with a per-conversation lock.
         # topic_id may be None (e.g. Telegram private chats) — the store
         # handles this by using the "channel:chat_id" key without a topic suffix.
-        thread_id = await self._lookup_thread_id(msg)
-        if thread_id:
+        thread_id, created = await self._get_or_create_thread(client, msg)
+        if not created:
             logger.info("[Manager] reusing thread: thread_id=%s for topic_id=%s", thread_id, msg.topic_id)
             await self._update_thread_channel_metadata(client, msg, thread_id)
-
-        # No existing thread found — create a new one
-        if thread_id is None:
-            thread_id = await self._create_thread(client, msg)
 
         assistant_id, run_config, run_context = self._resolve_run_params(msg, thread_id)
 

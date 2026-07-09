@@ -470,6 +470,8 @@ You: "Deploying to staging..." [proceed]
 
 {deferred_tools_section}
 
+{mcp_routing_hints_section}
+
 {subagent_section}
 
 <working_directory existed="true">
@@ -803,6 +805,7 @@ def apply_prompt_template(
     available_skills: set[str] | None = None,
     app_config: AppConfig | None = None,
     deferred_names: frozenset[str] = frozenset(),
+    mcp_routing_hints_section: str = "",
     skill_names: frozenset[str] | None = None,
 ) -> str:
     # Include subagent section only if enabled (from runtime parameter)
@@ -854,6 +857,7 @@ def apply_prompt_template(
         self_update_section=_build_self_update_section(agent_name),
         skills_section=skills_section,
         deferred_tools_section=deferred_tools_section,
+        mcp_routing_hints_section=mcp_routing_hints_section,
         subagent_section=subagent_section,
         subagent_reminder=subagent_reminder,
         skill_first_reminder=skill_first_reminder,

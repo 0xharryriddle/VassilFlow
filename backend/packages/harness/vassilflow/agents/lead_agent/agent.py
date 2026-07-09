@@ -381,7 +381,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
     # Lazy import to avoid circular dependency
     from vassilflow.tools import get_available_tools
     from vassilflow.tools.builtins import setup_agent, update_agent
-    from vassilflow.tools.builtins.tool_search import assemble_deferred_tools
+    from vassilflow.tools.builtins.tool_search import assemble_deferred_tools, get_mcp_routing_hints_prompt_section
 
     cfg = _get_runtime_config(config)
     resolved_app_config = app_config
@@ -471,6 +471,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
         raw_tools = get_available_tools(model_name=model_name, subagent_enabled=subagent_enabled, app_config=resolved_app_config) + [setup_agent]
         filtered = filter_tools_by_skill_allowed_tools(raw_tools, skills_for_tool_policy, always_allowed_tool_names=SKILL_LOADING_TOOL_NAMES)
         final_tools, setup = assemble_deferred_tools(filtered, enabled=resolved_app_config.tool_search.enabled)
+        mcp_routing_hints_section = get_mcp_routing_hints_prompt_section(filtered, deferred_names=setup.deferred_names)
         if skill_setup.describe_skill_tool is not None:
             final_tools.append(skill_setup.describe_skill_tool)
         return create_agent(
@@ -489,6 +490,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
                 available_skills=set(_BOOTSTRAP_SKILL_NAMES),
                 app_config=resolved_app_config,
                 deferred_names=setup.deferred_names,
+                mcp_routing_hints_section=mcp_routing_hints_section,
                 skill_names=skill_setup.skill_names or None,
             ),
             state_schema=ThreadState,
@@ -506,6 +508,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
     raw_tools = get_available_tools(model_name=model_name, groups=agent_config.tool_groups if agent_config else None, subagent_enabled=subagent_enabled, app_config=resolved_app_config)
     filtered = filter_tools_by_skill_allowed_tools(raw_tools + extra_tools, skills_for_tool_policy, always_allowed_tool_names=SKILL_LOADING_TOOL_NAMES)
     final_tools, setup = assemble_deferred_tools(filtered, enabled=resolved_app_config.tool_search.enabled)
+    mcp_routing_hints_section = get_mcp_routing_hints_prompt_section(filtered, deferred_names=setup.deferred_names)
     if skill_setup.describe_skill_tool is not None:
         final_tools.append(skill_setup.describe_skill_tool)
     return create_agent(
@@ -526,6 +529,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
             available_skills=available_skills,
             app_config=resolved_app_config,
             deferred_names=setup.deferred_names,
+            mcp_routing_hints_section=mcp_routing_hints_section,
             skill_names=skill_setup.skill_names or None,
         ),
         state_schema=ThreadState,

@@ -21,6 +21,8 @@ You can override that location with:
 - `VASSILFLOW_HOME`: moves runtime state away from `.vassilflow/`
 - `VASSILFLOW_SKILLS_PATH`: moves the skills directory
 
+All VassilFlow-owned environment variables use the `VASSILFLOW_*` namespace.
+
 `config.yaml`, `.env`, and runtime state are local files and should not be
 committed.
 

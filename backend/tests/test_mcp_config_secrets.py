@@ -7,6 +7,7 @@ preserves existing secrets when the frontend round-trips masked values.
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -201,6 +202,36 @@ def test_merge_does_not_mutate_original():
     assert merged.env["KEY"] == "secret"
 
 
+def test_merge_preserves_omitted_routing_tools_and_timeout():
+    incoming = McpServerConfigResponse(enabled=False)
+    existing = McpServerConfigResponse(
+        routing={"mode": "prefer", "priority": 80, "keywords": ["orders"]},
+        tools={"query": {"routing": {"priority": 100}}},
+        tool_call_timeout=45,
+    )
+
+    merged = _merge_preserving_secrets(incoming, existing)
+
+    assert merged.enabled is False
+    assert merged.routing.priority == 80
+    assert merged.tools["query"].routing.priority == 100
+    assert merged.tool_call_timeout == 45
+
+
+def test_merge_accepts_explicit_routing_update():
+    incoming = McpServerConfigResponse(
+        routing={"mode": "prefer", "priority": 25, "keywords": ["analytics"]}
+    )
+    existing = McpServerConfigResponse(
+        routing={"mode": "prefer", "priority": 80, "keywords": ["orders"]}
+    )
+
+    merged = _merge_preserving_secrets(incoming, existing)
+
+    assert merged.routing.priority == 25
+    assert merged.routing.keywords == ["analytics"]
+
+
 # ---------------------------------------------------------------------------
 # Comment 2 fix: masked value for new key is rejected
 # ---------------------------------------------------------------------------
@@ -369,15 +400,37 @@ async def test_reset_mcp_tools_cache_endpoint_requires_admin_user(monkeypatch):
 async def test_update_mcp_configuration_resets_tools_cache(monkeypatch, tmp_path):
     reset_calls = 0
     config_path = tmp_path / "extensions_config.json"
-    config_path.write_text('{"mcpServers": {}, "skills": {}}', encoding="utf-8")
+    config_path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "github": {
+                        "enabled": True,
+                        "type": "stdio",
+                        "command": "npx",
+                        "args": ["-y", "@modelcontextprotocol/server-github"],
+                        "routing": {"mode": "prefer", "priority": 80, "keywords": ["repositories"]},
+                        "tools": {"search": {"routing": {"priority": 100}}},
+                        "tool_call_timeout": 45,
+                    }
+                },
+                "skills": {},
+            }
+        ),
+        encoding="utf-8",
+    )
 
     current_config = SimpleNamespace(skills={}, mcp_servers={})
     reloaded_config = SimpleNamespace(
         mcp_servers={
             "github": McpServerConfigResponse(
+                enabled=False,
                 type="stdio",
                 command="npx",
                 args=["-y", "@modelcontextprotocol/server-github"],
+                routing={"mode": "prefer", "priority": 80, "keywords": ["repositories"]},
+                tools={"search": {"routing": {"priority": 100}}},
+                tool_call_timeout=45,
             )
         }
     )
@@ -396,6 +449,7 @@ async def test_update_mcp_configuration_resets_tools_cache(monkeypatch, tmp_path
         McpConfigUpdateRequest(
             mcp_servers={
                 "github": McpServerConfigResponse(
+                    enabled=False,
                     type="stdio",
                     command="npx",
                     args=["-y", "@modelcontextprotocol/server-github"],
@@ -406,6 +460,11 @@ async def test_update_mcp_configuration_resets_tools_cache(monkeypatch, tmp_path
 
     assert reset_calls == 1
     assert list(response.mcp_servers) == ["github"]
+    saved_server = json.loads(config_path.read_text(encoding="utf-8"))["mcpServers"]["github"]
+    assert saved_server["enabled"] is False
+    assert saved_server["routing"]["priority"] == 80
+    assert saved_server["tools"]["search"]["routing"]["priority"] == 100
+    assert saved_server["tool_call_timeout"] == 45
 
 
 def test_validate_mcp_update_allows_default_npx_stdio_command(monkeypatch):

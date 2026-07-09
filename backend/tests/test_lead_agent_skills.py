@@ -225,6 +225,75 @@ def test_make_lead_agent_filters_tools_from_available_skills(monkeypatch):
     assert [tool.name for tool in agent_kwargs["tools"]] == ["read_file", "web_search"]
 
 
+def test_make_lead_agent_passes_policy_filtered_mcp_routing_hints(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from langchain_core.tools import tool as as_tool
+
+    from vassilflow.agents.lead_agent import agent as lead_agent_module
+    from vassilflow.tools.mcp_metadata import tag_mcp_routing, tag_mcp_tool
+
+    @as_tool
+    def warehouse_query(query: str) -> str:
+        "Query internal data."
+        return query
+
+    @as_tool
+    def private_query(query: str) -> str:
+        "Query restricted data."
+        return query
+
+    routed_tool = tag_mcp_routing(
+        tag_mcp_tool(warehouse_query),
+        {"mode": "prefer", "priority": 90, "keywords": ["orders"]},
+    )
+    denied_tool = tag_mcp_routing(
+        tag_mcp_tool(private_query),
+        {"mode": "prefer", "priority": 100, "keywords": ["private records"]},
+    )
+    captured_prompt_kwargs = {}
+
+    def capture_prompt(**kwargs):
+        captured_prompt_kwargs.update(kwargs)
+        return "mock_prompt"
+
+    monkeypatch.setattr(lead_agent_module, "_resolve_model_name", lambda x=None, **kwargs: "default-model")
+    monkeypatch.setattr(lead_agent_module, "create_chat_model", lambda **kwargs: "model")
+    monkeypatch.setattr(lead_agent_module, "build_middlewares", lambda *args, **kwargs: [])
+    monkeypatch.setattr(lead_agent_module, "apply_prompt_template", capture_prompt)
+    monkeypatch.setattr(lead_agent_module, "create_agent", lambda **kwargs: kwargs)
+    monkeypatch.setattr(lead_agent_module, "load_agent_config", lambda x: None)
+    monkeypatch.setattr(
+        lead_agent_module,
+        "_load_enabled_skills_for_tool_policy",
+        lambda available_skills, *, app_config: [_make_skill("restricted", ["warehouse_query"])],
+    )
+    monkeypatch.setattr("vassilflow.tools.get_available_tools", lambda **kwargs: [routed_tool, denied_tool])
+
+    mock_app_config = MagicMock()
+    mock_app_config.get_model_config.return_value = SimpleNamespace(supports_thinking=False, supports_vision=False)
+    mock_app_config.tool_search.enabled = True
+    mock_app_config.skills.deferred_discovery = False
+    mock_app_config.skills.container_path = "/mnt/skills"
+    monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: mock_app_config)
+
+    agent_kwargs = lead_agent_module.make_lead_agent({"configurable": {}})
+
+    section = captured_prompt_kwargs["mcp_routing_hints_section"]
+    assert "<mcp_routing_hints>" in section
+    assert "use `tool_search` to fetch `warehouse_query`" in section
+    assert "private_query" not in section
+    assert "tool_search" in [tool.name for tool in agent_kwargs["tools"]]
+
+    captured_prompt_kwargs.clear()
+    bootstrap_kwargs = lead_agent_module.make_lead_agent({"configurable": {"is_bootstrap": True}})
+
+    bootstrap_section = captured_prompt_kwargs["mcp_routing_hints_section"]
+    assert "use `tool_search` to fetch `warehouse_query`" in bootstrap_section
+    assert "private_query" not in bootstrap_section
+    assert "tool_search" in [tool.name for tool in bootstrap_kwargs["tools"]]
+
+
 def test_make_lead_agent_wires_describe_skill_when_deferred_discovery_enabled(monkeypatch):
     from unittest.mock import MagicMock
 

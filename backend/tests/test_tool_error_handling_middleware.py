@@ -151,17 +151,19 @@ def test_build_subagent_runtime_middlewares_threads_app_config_to_llm_middleware
     middlewares = build_subagent_runtime_middlewares(app_config=app_config, lazy_init=False)
 
     assert captured["app_config"] is app_config
-    # 9 baseline (InputSanitization, ToolOutputBudget, ThreadData, Sandbox,
-    # DanglingToolCall, LLMErrorHandling, SandboxAudit, ReadBeforeWrite,
-    # ToolErrorHandling)
+    # 10 baseline (InputSanitization, ToolOutputBudget,
+    # ToolResultSanitization, ThreadData, Sandbox, DanglingToolCall,
+    # LLMErrorHandling, SandboxAudit, ReadBeforeWrite, ToolErrorHandling)
     # + 1 LoopDetectionMiddleware and + 1 SafetyFinishReasonMiddleware (enabled by default).
     from vassilflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
     from vassilflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
     from vassilflow.agents.middlewares.tool_output_budget_middleware import ToolOutputBudgetMiddleware
+    from vassilflow.agents.middlewares.tool_result_sanitization_middleware import ToolResultSanitizationMiddleware
 
-    assert len(middlewares) == 11
+    assert len(middlewares) == 12
     assert isinstance(middlewares[0], FakeMiddleware)  # InputSanitizationMiddleware stub
     assert isinstance(middlewares[1], ToolOutputBudgetMiddleware)
+    assert isinstance(middlewares[2], ToolResultSanitizationMiddleware)
     assert any(isinstance(m, ToolErrorHandlingMiddleware) for m in middlewares)
     assert isinstance(middlewares[-2], LoopDetectionMiddleware)
     assert isinstance(middlewares[-1], SafetyFinishReasonMiddleware)

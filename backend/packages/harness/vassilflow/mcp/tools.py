@@ -15,13 +15,14 @@ from urllib.parse import unquote, urlparse
 from langchain_core.tools import BaseTool, StructuredTool
 from langgraph.config import get_config
 
-from vassilflow.config.extensions_config import ExtensionsConfig
+from vassilflow.config.extensions_config import ExtensionsConfig, resolve_effective_mcp_routing
 from vassilflow.config.paths import VIRTUAL_PATH_PREFIX, Paths, get_paths
 from vassilflow.mcp.client import build_servers_config
 from vassilflow.mcp.oauth import build_oauth_tool_interceptor, get_initial_oauth_headers
 from vassilflow.mcp.session_pool import get_session_pool
 from vassilflow.reflection import resolve_variable
 from vassilflow.runtime.user_context import resolve_runtime_user_id
+from vassilflow.tools.mcp_metadata import tag_mcp_routing, tag_mcp_tool
 from vassilflow.tools.sync import make_sync_tool_wrapper
 from vassilflow.tools.types import Runtime
 
@@ -672,6 +673,12 @@ async def get_mcp_tools() -> list[BaseTool]:
             transport = servers_config[source_name].get("transport", "stdio")
             server_cfg = configured_servers.get(source_name) if isinstance(configured_servers, Mapping) else None
             for tool in server_tools:
+                tag_mcp_tool(tool)
+                prefix = f"{source_name}_"
+                original_name = tool.name[len(prefix) :] if tool.name.startswith(prefix) else tool.name
+                routing = resolve_effective_mcp_routing(server_cfg, original_name)
+                if routing.get("mode") != "off":
+                    tag_mcp_routing(tool, routing)
                 if tool.name.startswith(f"{source_name}_") and transport == "stdio":
                     timeout = server_cfg.tool_call_timeout if server_cfg else None
                     wrapped_tools.append(

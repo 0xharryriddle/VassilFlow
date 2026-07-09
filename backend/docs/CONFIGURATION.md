@@ -17,6 +17,13 @@ Run `make config-upgrade` to merge new fields into your config.
 
 ## Configuration Sections
 
+### Extensions
+
+MCP servers and skill enabled states live in `extensions_config.json`. A server
+or individual MCP tool can define soft `routing` hints for requests that should
+prefer it. See [MCP Configuration](MCP_SERVER.md#routing-hints) for the schema
+and the boundary between routing hints and hard tool policy.
+
 ### Models
 
 Configure the LLM models available to the agent:

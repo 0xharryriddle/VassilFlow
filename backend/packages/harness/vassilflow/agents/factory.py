@@ -22,6 +22,7 @@ from vassilflow.agents.features import RuntimeFeatures
 from vassilflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
 from vassilflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 from vassilflow.agents.middlewares.tool_error_handling_middleware import ToolErrorHandlingMiddleware
+from vassilflow.agents.middlewares.tool_result_sanitization_middleware import ToolResultSanitizationMiddleware
 from vassilflow.agents.thread_state import ThreadState
 from vassilflow.tools.builtins import ask_clarification_tool
 
@@ -166,15 +167,17 @@ def _assemble_from_features(
       0-2. Sandbox infrastructure (ThreadData → Uploads → Sandbox)
       3.   DanglingToolCallMiddleware (always)
       4.   GuardrailMiddleware (guardrail feature)
-      5.   ToolErrorHandlingMiddleware (always)
-      6.   SummarizationMiddleware (summarization feature)
-      7.   TodoMiddleware (plan_mode parameter)
-      8.   TitleMiddleware (auto_title feature)
-      9.   MemoryMiddleware (memory feature)
-      10.  ViewImageMiddleware (vision feature)
-      11.  SubagentLimitMiddleware (subagent feature)
-      12.  LoopDetectionMiddleware (loop_detection feature)
-      13.  ClarificationMiddleware (always last)
+      5.   ToolResultSanitizationMiddleware (always)
+      6.   ToolErrorHandlingMiddleware (always)
+      7.   SummarizationMiddleware (summarization feature)
+      8.   TodoMiddleware (plan_mode parameter)
+      9.   TitleMiddleware (auto_title feature)
+      10.  MemoryMiddleware (memory feature)
+      11.  ViewImageMiddleware (vision feature)
+      12.  SubagentLimitMiddleware (subagent feature)
+      13.  LoopDetectionMiddleware (loop_detection feature)
+      14.  TokenBudgetMiddleware (token_budget feature)
+      15.  ClarificationMiddleware (always last)
 
     Two-phase ordering:
       1. Built-in chain — fixed sequential append.
@@ -212,23 +215,26 @@ def _assemble_from_features(
         else:
             raise ValueError("guardrail=True requires a custom AgentMiddleware instance (no built-in GuardrailMiddleware yet)")
 
-    # --- [5] ToolErrorHandling (always) ---
+    # --- [5] Remote tool-result sanitization (always) ---
+    chain.append(ToolResultSanitizationMiddleware())
+
+    # --- [6] ToolErrorHandling (always) ---
     chain.append(ToolErrorHandlingMiddleware())
 
-    # --- [6] Summarization ---
+    # --- [7] Summarization ---
     if feat.summarization is not False:
         if isinstance(feat.summarization, AgentMiddleware):
             chain.append(feat.summarization)
         else:
             raise ValueError("summarization=True requires a custom AgentMiddleware instance (SummarizationMiddleware needs a model argument)")
 
-    # --- [7] TodoMiddleware (plan_mode) ---
+    # --- [8] TodoMiddleware (plan_mode) ---
     if plan_mode:
         from vassilflow.agents.middlewares.todo_middleware import TodoMiddleware
 
         chain.append(TodoMiddleware(system_prompt=_TODO_SYSTEM_PROMPT, tool_description=_TODO_TOOL_DESCRIPTION))
 
-    # --- [8] Auto Title ---
+    # --- [9] Auto Title ---
     if feat.auto_title is not False:
         if isinstance(feat.auto_title, AgentMiddleware):
             chain.append(feat.auto_title)
@@ -237,7 +243,7 @@ def _assemble_from_features(
 
             chain.append(TitleMiddleware())
 
-    # --- [9] Memory ---
+    # --- [10] Memory ---
     if feat.memory is not False:
         if isinstance(feat.memory, AgentMiddleware):
             chain.append(feat.memory)
@@ -246,7 +252,7 @@ def _assemble_from_features(
 
             chain.append(MemoryMiddleware(agent_name=name))
 
-    # --- [10] Vision ---
+    # --- [11] Vision ---
     if feat.vision is not False:
         if isinstance(feat.vision, AgentMiddleware):
             chain.append(feat.vision)
@@ -260,7 +266,7 @@ def _assemble_from_features(
 
             extra_tools.append(view_image_tool)
 
-    # --- [11] Subagent ---
+    # --- [12] Subagent ---
     if feat.subagent is not False:
         if isinstance(feat.subagent, AgentMiddleware):
             chain.append(feat.subagent)
@@ -272,7 +278,7 @@ def _assemble_from_features(
 
         extra_tools.append(task_tool)
 
-    # --- [12] LoopDetection ---
+    # --- [13] LoopDetection ---
     if feat.loop_detection is not False:
         if isinstance(feat.loop_detection, AgentMiddleware):
             chain.append(feat.loop_detection)
@@ -282,7 +288,7 @@ def _assemble_from_features(
 
             chain.append(LoopDetectionMiddleware.from_config(LoopDetectionConfig()))
 
-    # --- [13] TokenBudget ---
+    # --- [14] TokenBudget ---
     if feat.token_budget is not False:
         if isinstance(feat.token_budget, AgentMiddleware):
             chain.append(feat.token_budget)
@@ -292,7 +298,7 @@ def _assemble_from_features(
 
             chain.append(TokenBudgetMiddleware.from_config(TokenBudgetConfig()))
 
-    # --- [14] Clarification (always last among built-ins) ---
+    # --- [15] Clarification (always last among built-ins) ---
     chain.append(ClarificationMiddleware())
     extra_tools.append(ask_clarification_tool)
 

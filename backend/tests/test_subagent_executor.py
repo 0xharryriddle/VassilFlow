@@ -493,7 +493,7 @@ class TestAgentConstruction:
         from langchain_core.tools import tool as as_tool
 
         from vassilflow.subagents import executor as executor_module
-        from vassilflow.tools.mcp_metadata import tag_mcp_tool
+        from vassilflow.tools.mcp_metadata import tag_mcp_routing, tag_mcp_tool
 
         SubagentExecutor = classes["SubagentExecutor"]
 
@@ -509,7 +509,11 @@ class TestAgentConstruction:
             "Evaluate arithmetic."
             return expression
 
-        executor = SubagentExecutor(config=base_config, tools=[tag_mcp_tool(mcp_calc)], thread_id="test-thread")
+        routed_tool = tag_mcp_routing(
+            tag_mcp_tool(mcp_calc),
+            {"mode": "prefer", "priority": 90, "keywords": ["calculation"]},
+        )
+        executor = SubagentExecutor(config=base_config, tools=[routed_tool], thread_id="test-thread")
 
         state, final_tools, deferred_setup = await executor._build_initial_state("Do the task")
 
@@ -519,6 +523,8 @@ class TestAgentConstruction:
         system_message = state["messages"][0]
         assert "<available-deferred-tools>" in system_message.content
         assert "mcp_calc" in system_message.content
+        assert "<mcp_routing_hints>" in system_message.content
+        assert "use `tool_search` to fetch `mcp_calc`" in system_message.content
         # The base system_prompt is still present alongside the injected section.
         assert base_config.system_prompt in system_message.content
 

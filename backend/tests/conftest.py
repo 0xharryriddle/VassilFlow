@@ -40,6 +40,12 @@ _executor_mock.get_background_task_result = MagicMock()
 sys.modules["vassilflow.subagents.executor"] = _executor_mock
 
 
+@pytest.fixture(autouse=True)
+def _disable_auth_bypass_by_default(monkeypatch):
+    """Keep local auth-bypass settings from changing the backend test baseline."""
+    monkeypatch.setenv("VASSILFLOW_AUTH_DISABLED", "0")
+
+
 @pytest.fixture()
 def provisioner_module():
     """Load docker/provisioner/app.py as an importable test module.

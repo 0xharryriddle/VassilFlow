@@ -190,6 +190,7 @@ def _build_runtime_middlewares(
     from vassilflow.agents.middlewares.llm_error_handling_middleware import LLMErrorHandlingMiddleware
     from vassilflow.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
     from vassilflow.agents.middlewares.tool_output_budget_middleware import ToolOutputBudgetMiddleware
+    from vassilflow.agents.middlewares.tool_result_sanitization_middleware import ToolResultSanitizationMiddleware
     from vassilflow.sandbox.middleware import SandboxMiddleware
 
     # InputSanitizationMiddleware is first so it becomes the outermost
@@ -198,6 +199,7 @@ def _build_runtime_middlewares(
     middlewares: list[AgentMiddleware] = [
         InputSanitizationMiddleware(),
         ToolOutputBudgetMiddleware.from_app_config(app_config),
+        ToolResultSanitizationMiddleware(),
         ThreadDataMiddleware(lazy_init=lazy_init),
         SandboxMiddleware(lazy_init=lazy_init),
     ]
@@ -205,7 +207,7 @@ def _build_runtime_middlewares(
     if include_uploads:
         from vassilflow.agents.middlewares.uploads_middleware import UploadsMiddleware
 
-        middlewares.insert(2, UploadsMiddleware())
+        middlewares.insert(3, UploadsMiddleware())
 
     if include_dangling_tool_call_patch:
         from vassilflow.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware

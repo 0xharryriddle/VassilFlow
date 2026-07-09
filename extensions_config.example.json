@@ -27,7 +27,28 @@
         "postgresql://localhost/mydb"
       ],
       "env": {},
-      "description": "PostgreSQL database access"
+      "description": "PostgreSQL database access",
+      "routing": {
+        "mode": "prefer",
+        "priority": 50,
+        "keywords": [
+          "database",
+          "SQL",
+          "table"
+        ]
+      },
+      "tools": {
+        "query": {
+          "routing": {
+            "priority": 100,
+            "keywords": [
+              "query database",
+              "orders table",
+              "internal metrics"
+            ]
+          }
+        }
+      }
     }
   },
   "skills": {}

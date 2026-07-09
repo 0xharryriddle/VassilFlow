@@ -964,6 +964,38 @@ class TestEnsureAgent:
         assert mock_apply_prompt.call_args.kwargs.get("skill_names") == frozenset({"deep-research"})
         assert [tool.name for tool in mock_create_agent.call_args.kwargs["tools"]] == ["describe_skill"]
 
+    def test_mcp_routing_hints_are_passed_to_embedded_prompt(self, client, mock_app_config):
+        from langchain_core.tools import tool as as_tool
+
+        from vassilflow.tools.mcp_metadata import tag_mcp_routing, tag_mcp_tool
+
+        @as_tool
+        def warehouse_query(query: str) -> str:
+            "Query internal data."
+            return query
+
+        routed_tool = tag_mcp_routing(
+            tag_mcp_tool(warehouse_query),
+            {"mode": "prefer", "priority": 90, "keywords": ["orders"]},
+        )
+        mock_app_config.tool_search.enabled = True
+        client._app_config = mock_app_config
+        config = client._get_runnable_config("t1")
+
+        with (
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=MagicMock()),
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt") as mock_apply_prompt,
+            patch.object(client, "_get_tools", return_value=[routed_tool]),
+            patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=None),
+        ):
+            client._ensure_agent(config)
+
+        section = mock_apply_prompt.call_args.kwargs["mcp_routing_hints_section"]
+        assert "<mcp_routing_hints>" in section
+        assert "use `tool_search` to fetch `warehouse_query`" in section
+
     def test_deferred_skill_discovery_not_wired_when_disabled(self, client, mock_app_config):
         mock_app_config.skills.deferred_discovery = False
         client._app_config = mock_app_config

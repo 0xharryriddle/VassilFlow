@@ -18,6 +18,7 @@ import hashlib
 import json
 import logging
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Annotated
@@ -28,11 +29,17 @@ from langchain_core.tools import InjectedToolCallId, tool
 from langchain_core.utils.function_calling import convert_to_openai_function
 from langgraph.types import Command
 
-from vassilflow.tools.mcp_metadata import is_mcp_tool
+from vassilflow.tools.mcp_metadata import get_mcp_routing, is_mcp_tool
 
 logger = logging.getLogger(__name__)
 
 MAX_RESULTS = 5  # Max tools returned per search
+MAX_MCP_ROUTING_HINTS = 32
+MAX_MCP_ROUTING_KEYWORDS = 16
+MAX_MCP_ROUTING_PROMPT_CHARS = 8000
+_MAX_MCP_ROUTING_KEYWORD_LENGTH = 80
+_SAFE_MCP_ROUTING_TOOL_NAME_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
+_MCP_ROUTING_PROMPT_DELIMITERS = frozenset("`<>")
 
 
 def _compile_catalog_regex(pattern: str) -> re.Pattern[str]:
@@ -219,3 +226,70 @@ def get_deferred_tools_prompt_section(*, deferred_names: frozenset[str] = frozen
         return ""
     names = "\n".join(sorted(deferred_names))
     return f"<available-deferred-tools>\n{names}\n</available-deferred-tools>"
+
+
+def _format_keyword_list(keywords: list[str]) -> str:
+    if len(keywords) == 1:
+        return keywords[0]
+    return f"{', '.join(keywords[:-1])}, or {keywords[-1]}"
+
+
+def _safe_routing_keywords(values: object) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    safe: list[str] = []
+    for value in values:
+        keyword = str(value).strip()
+        if not keyword or len(keyword) > _MAX_MCP_ROUTING_KEYWORD_LENGTH:
+            continue
+        if any(ord(char) < 32 or ord(char) == 127 for char in keyword) or any(char in keyword for char in _MCP_ROUTING_PROMPT_DELIMITERS):
+            continue
+        if keyword not in safe:
+            safe.append(keyword)
+        if len(safe) >= MAX_MCP_ROUTING_KEYWORDS:
+            break
+    return safe
+
+
+def _safe_routing_priority(value: object) -> int:
+    try:
+        priority = int(value)
+    except (TypeError, ValueError):
+        return 0
+    return max(0, min(priority, 100))
+
+
+def get_mcp_routing_hints_prompt_section(
+    tools: Iterable[BaseTool],
+    *,
+    deferred_names: frozenset[str] = frozenset(),
+) -> str:
+    """Render soft MCP preferences for policy-filtered tools."""
+    hints: list[tuple[int, str, list[str]]] = []
+    for candidate in tools:
+        routing = get_mcp_routing(candidate)
+        if routing is None or routing.get("mode") != "prefer":
+            continue
+        keywords = _safe_routing_keywords(routing.get("keywords"))
+        if not keywords or _SAFE_MCP_ROUTING_TOOL_NAME_RE.fullmatch(candidate.name) is None:
+            continue
+        hints.append((_safe_routing_priority(routing.get("priority", 0)), candidate.name, keywords))
+
+    if not hints:
+        return ""
+
+    lines = ["<mcp_routing_hints>"]
+    for _priority, tool_name, keywords in sorted(hints, key=lambda item: (-item[0], item[1]))[:MAX_MCP_ROUTING_HINTS]:
+        hint_lines = [f"When the user's request involves {_format_keyword_list(keywords)}:"]
+        if tool_name in deferred_names:
+            hint_lines.append(f"  use `tool_search` to fetch `{tool_name}`, then prefer that MCP tool.")
+        else:
+            hint_lines.append(f"  prefer the `{tool_name}` tool.")
+        projected = "\n".join([*lines, *hint_lines, "</mcp_routing_hints>"])
+        if len(projected) > MAX_MCP_ROUTING_PROMPT_CHARS:
+            break
+        lines.extend(hint_lines)
+    if len(lines) == 1:
+        return ""
+    lines.append("</mcp_routing_hints>")
+    return "\n".join(lines)

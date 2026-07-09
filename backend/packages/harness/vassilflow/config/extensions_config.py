@@ -1,13 +1,73 @@
 """Unified extensions configuration for MCP servers and skills."""
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from vassilflow.config.env_aliases import env_value
 from vassilflow.config.runtime_paths import existing_project_file
+
+logger = logging.getLogger(__name__)
+
+_MAX_MCP_ROUTING_KEYWORDS = 16
+_MAX_MCP_ROUTING_KEYWORD_LENGTH = 80
+_MCP_ROUTING_PROMPT_DELIMITERS = frozenset("`<>")
+
+
+class McpRoutingConfig(BaseModel):
+    """Soft model-routing hints for MCP tools."""
+
+    mode: Literal["off", "prefer"] = Field(
+        default="off",
+        description="Whether matching requests should prefer this MCP tool.",
+    )
+    priority: int = Field(
+        default=0,
+        description="Hint ordering key; higher values are rendered first.",
+    )
+    keywords: list[str] = Field(
+        default_factory=list,
+        max_length=_MAX_MCP_ROUTING_KEYWORDS,
+        description="Operator-authored terms describing requests that match this tool.",
+    )
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("priority")
+    @classmethod
+    def _clamp_priority(cls, value: int) -> int:
+        if value < 0:
+            logger.warning("MCP routing priority %s is below 0; clamping to 0.", value)
+            return 0
+        if value > 100:
+            logger.warning("MCP routing priority %s is above 100; clamping to 100.", value)
+            return 100
+        return value
+
+    @field_validator("keywords")
+    @classmethod
+    def _validate_keywords(cls, values: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for value in values:
+            keyword = value.strip()
+            if not keyword:
+                continue
+            if len(keyword) > _MAX_MCP_ROUTING_KEYWORD_LENGTH:
+                raise ValueError(f"MCP routing keywords must be at most {_MAX_MCP_ROUTING_KEYWORD_LENGTH} characters")
+            if any(ord(char) < 32 or ord(char) == 127 for char in keyword) or any(char in keyword for char in _MCP_ROUTING_PROMPT_DELIMITERS):
+                raise ValueError("MCP routing keywords cannot contain control characters or prompt delimiters")
+            if keyword not in normalized:
+                normalized.append(keyword)
+        return normalized
+
+
+class McpToolOverride(BaseModel):
+    """Supported per-tool MCP configuration overrides."""
+
+    routing: McpRoutingConfig = Field(default_factory=McpRoutingConfig)
+    model_config = ConfigDict(extra="forbid")
 
 
 def _skill_config_key(name: str, category: str) -> str:
@@ -49,6 +109,8 @@ class McpServerConfig(BaseModel):
     headers: dict[str, str] = Field(default_factory=dict, description="HTTP headers to send (for sse or http type)")
     oauth: McpOAuthConfig | None = Field(default=None, description="OAuth configuration (for sse or http type)")
     description: str = Field(default="", description="Human-readable description of what this MCP server provides")
+    routing: McpRoutingConfig = Field(default_factory=McpRoutingConfig, description="Soft routing hints for tools from this MCP server")
+    tools: dict[str, McpToolOverride] = Field(default_factory=dict, description="Per-original-tool MCP configuration overrides")
     tool_call_timeout: float | None = Field(
         default=None,
         description="Timeout in seconds for individual stdio MCP tool calls. HTTP/SSE servers use transport-level timeouts. None means no timeout.",
@@ -72,6 +134,18 @@ class McpServerConfig(BaseModel):
             if transport and not data.get("type"):
                 data = {**data, "type": transport}
         return data
+
+
+def resolve_effective_mcp_routing(server_config: McpServerConfig | None, original_tool_name: str) -> dict[str, Any]:
+    """Merge server routing with explicitly configured fields for one tool."""
+    if server_config is None:
+        return McpRoutingConfig().model_dump(mode="json")
+
+    effective = server_config.routing.model_dump(mode="json")
+    override = server_config.tools.get(original_tool_name)
+    if override is not None and "routing" in override.model_fields_set:
+        effective.update(override.routing.model_dump(mode="json", exclude_unset=True))
+    return effective
 
 
 class SkillStateConfig(BaseModel):
@@ -198,7 +272,16 @@ class ExtensionsConfig(BaseModel):
             return resolved_env_value
 
         if isinstance(config, dict):
-            return {key: cls.resolve_env_variables(value) for key, value in config.items()}
+            resolved: dict[Any, Any] = {}
+            for key, value in config.items():
+                if key == "routing" and isinstance(value, dict):
+                    resolved[key] = {
+                        routing_key: routing_value if routing_key == "keywords" else cls.resolve_env_variables(routing_value)
+                        for routing_key, routing_value in value.items()
+                    }
+                else:
+                    resolved[key] = cls.resolve_env_variables(value)
+            return resolved
 
         if isinstance(config, list):
             return [cls.resolve_env_variables(item) for item in config]

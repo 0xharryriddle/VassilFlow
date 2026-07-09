@@ -46,7 +46,7 @@ from vassilflow.runtime.user_context import get_effective_user_id
 from vassilflow.skills.describe import build_skill_search_setup
 from vassilflow.skills.storage import get_or_new_skill_storage
 from vassilflow.skills.types import skill_config_key, skill_reference_matches
-from vassilflow.tools.builtins.tool_search import assemble_deferred_tools
+from vassilflow.tools.builtins.tool_search import assemble_deferred_tools, get_mcp_routing_hints_prompt_section
 from vassilflow.tracing import build_tracing_callbacks, inject_langfuse_metadata
 from vassilflow.uploads.manager import (
     claim_unique_filename,
@@ -248,6 +248,7 @@ class VassilFlowClient:
 
         tools = self._get_tools(model_name=model_name, subagent_enabled=subagent_enabled)
         final_tools, deferred_setup = assemble_deferred_tools(tools, enabled=self._app_config.tool_search.enabled)
+        mcp_routing_hints_section = get_mcp_routing_hints_prompt_section(tools, deferred_names=deferred_setup.deferred_names)
         skills_for_discovery = get_enabled_skills_for_config(self._app_config) if skill_discovery_enabled else []
         if self._available_skills is not None:
             skills_for_discovery = [skill for skill in skills_for_discovery if any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills)]
@@ -281,6 +282,7 @@ class VassilFlowClient:
                 available_skills=self._available_skills,
                 app_config=self._app_config,
                 deferred_names=deferred_setup.deferred_names,
+                mcp_routing_hints_section=mcp_routing_hints_section,
                 skill_names=skill_setup.skill_names or None,
             ),
             "state_schema": ThreadState,

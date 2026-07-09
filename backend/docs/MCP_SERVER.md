@@ -14,6 +14,49 @@ VassilFlow supports configurable MCP servers and skills to extend its capabiliti
 3. Configure each server’s command, arguments, and environment variables as needed.
 4. Restart the application to load and register MCP tools.
 
+## Routing Hints
+
+Use `routing` to tell the model when it should prefer an MCP server or one of
+its tools. These are soft preferences: VassilFlow may still choose another tool
+when the request requires it. Use agent tool policy for hard allow/deny rules.
+
+```json
+{
+   "mcpServers": {
+      "warehouse": {
+         "enabled": true,
+         "type": "stdio",
+         "command": "npx",
+         "args": ["-y", "@example/warehouse-mcp"],
+         "routing": {
+            "mode": "prefer",
+            "priority": 50,
+            "keywords": ["database", "SQL", "orders"]
+         },
+         "tools": {
+            "query": {
+               "routing": {
+                  "priority": 100,
+                  "keywords": ["orders table", "internal metrics"]
+               }
+            }
+         }
+      }
+   }
+}
+```
+
+- `routing.mode`: `off` disables the hint; `prefer` enables it.
+- `routing.priority`: hint order from `0` to `100`; higher values appear first.
+- `routing.keywords`: terms that describe matching requests. Empty lists do not
+  produce prompt hints. Keep them short and descriptive; do not put secrets,
+  environment placeholders, markup, or instructions in this field.
+- `tools.<original_tool_name>.routing`: overrides only fields explicitly set
+  for that tool. Use the MCP tool name before VassilFlow adds the server prefix.
+
+When deferred MCP discovery is enabled, routing hints direct the model through
+`tool_search` before preferring a tool whose schema is not yet loaded.
+
 ## Per-Tool Timeout (Stdio MCP Servers)
 
 For `stdio` MCP servers, set `tool_call_timeout` to limit each individual MCP

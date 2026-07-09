@@ -862,9 +862,11 @@ class TestMiddlewareChainIntegration:
         # InputSanitizationMiddleware is the outermost wrap_model_call wrapper;
         # ToolOutputBudgetMiddleware is the first wrap_tool_call handler.
         from vassilflow.agents.middlewares.input_sanitization_middleware import InputSanitizationMiddleware
+        from vassilflow.agents.middlewares.tool_result_sanitization_middleware import ToolResultSanitizationMiddleware
 
         assert isinstance(middlewares[0], InputSanitizationMiddleware)
         assert isinstance(middlewares[1], ToolOutputBudgetMiddleware)
+        assert isinstance(middlewares[2], ToolResultSanitizationMiddleware)
 
     def test_budget_middleware_in_lead_chain(self):
         from vassilflow.agents.middlewares.tool_error_handling_middleware import build_lead_runtime_middlewares
@@ -873,9 +875,11 @@ class TestMiddlewareChainIntegration:
         middlewares = build_lead_runtime_middlewares(app_config=app_config, lazy_init=False)
 
         from vassilflow.agents.middlewares.input_sanitization_middleware import InputSanitizationMiddleware
+        from vassilflow.agents.middlewares.tool_result_sanitization_middleware import ToolResultSanitizationMiddleware
 
         assert isinstance(middlewares[0], InputSanitizationMiddleware)
         assert isinstance(middlewares[1], ToolOutputBudgetMiddleware)
+        assert isinstance(middlewares[2], ToolResultSanitizationMiddleware)
 
 
 # ===========================================================================

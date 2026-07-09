@@ -310,6 +310,7 @@ def test_always_on_error_handling(mock_create_agent):
     call_kwargs = mock_create_agent.call_args[1]
     mw_types = [type(m).__name__ for m in call_kwargs["middleware"]]
     assert "DanglingToolCallMiddleware" in mw_types
+    assert "ToolResultSanitizationMiddleware" in mw_types
     assert "ToolErrorHandlingMiddleware" in mw_types
 
 
@@ -797,6 +798,7 @@ def test_full_chain_order(mock_create_agent):
         "SandboxMiddleware",
         "DanglingToolCallMiddleware",
         "MyGuardrail",
+        "ToolResultSanitizationMiddleware",
         "ToolErrorHandlingMiddleware",
         "MySummarization",
         "TodoMiddleware",
