@@ -19,6 +19,7 @@ from app.gateway.routers import (
     auth,
     channel_connections,
     channels,
+    console,
     feedback,
     mcp,
     memory,
@@ -330,6 +331,10 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
                 "description": "Manage IM channel integrations (Feishu, Slack, Telegram)",
             },
             {
+                "name": "console",
+                "description": "Read-only operations console metrics for runs, usage, and cost",
+            },
+            {
                 "name": "assistants-compat",
                 "description": "LangGraph Platform-compatible assistants API (stub)",
             },
@@ -396,6 +401,9 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
 
     # Channels API is mounted at /api/channels
     app.include_router(channels.router)
+
+    # Console API is mounted at /api/console
+    app.include_router(console.router)
 
     # Assistants compatibility API (LangGraph Platform stub)
     app.include_router(assistants_compat.router)

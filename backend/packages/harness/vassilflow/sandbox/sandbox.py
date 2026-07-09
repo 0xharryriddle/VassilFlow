@@ -1,6 +1,23 @@
+import re
 from abc import ABC, abstractmethod
 
 from vassilflow.sandbox.search import GrepMatch
+
+# POSIX env-var name rule: letter or underscore, then letters/digits/underscores.
+# Used to validate ``env`` keys before they reach a sandbox implementation.
+_ENV_NAME_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_extra_env(extra_env: dict[str, str] | None) -> None:
+    """Reject ``env`` keys that are not valid POSIX env-var names."""
+    if not extra_env:
+        return
+    for key in extra_env:
+        if not isinstance(key, str) or not _ENV_NAME_PATTERN.fullmatch(key):
+            raise ValueError(
+                f"extra_env key {key!r} is not a valid POSIX environment variable name "
+                "(must match ^[A-Za-z_][A-Za-z0-9_]*$)."
+            )
 
 
 class Sandbox(ABC):
@@ -16,14 +33,28 @@ class Sandbox(ABC):
         return self._id
 
     @abstractmethod
-    def execute_command(self, command: str) -> str:
+    def execute_command(
+        self,
+        command: str,
+        env: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> str:
         """Execute bash command in sandbox.
 
         Args:
             command: The command to execute.
+            env: Optional per-call environment variables to inject into the
+                command process. Keys must be valid POSIX environment-variable
+                names (``^[A-Za-z_][A-Za-z0-9_]*$``).
+            timeout: Optional per-call wall-clock timeout in seconds. Sandboxes
+                may ignore it when their backend does not expose a separate
+                command timeout.
 
         Returns:
             The standard or error output of the command.
+
+        Raises:
+            ValueError: when an ``env`` key is not a valid env-var name.
         """
         pass
 

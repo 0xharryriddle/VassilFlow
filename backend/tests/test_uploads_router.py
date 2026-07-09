@@ -178,7 +178,8 @@ def test_upload_files_syncs_non_local_sandbox_and_marks_markdown_file(tmp_path):
 
     provider = MagicMock()
     provider.uses_thread_data_mounts = False
-    provider.acquire.return_value = "aio-1"
+    provider.acquire.side_effect = AssertionError("upload route should use acquire_async")
+    provider.acquire_async = AsyncMock(return_value="aio-1")
     sandbox = MagicMock()
     provider.get.return_value = sandbox
 
@@ -216,7 +217,8 @@ def test_upload_files_makes_non_local_files_sandbox_writable(tmp_path):
 
     provider = MagicMock()
     provider.uses_thread_data_mounts = False
-    provider.acquire.return_value = "aio-1"
+    provider.acquire.side_effect = AssertionError("upload route should use acquire_async")
+    provider.acquire_async = AsyncMock(return_value="aio-1")
     sandbox = MagicMock()
     provider.get.return_value = sandbox
 
@@ -284,7 +286,8 @@ def test_upload_files_acquires_non_local_sandbox_before_writing(tmp_path):
         assert user_id == "owner-upload"
         return "aio-1"
 
-    provider.acquire.side_effect = acquire_before_writes
+    provider.acquire.side_effect = AssertionError("upload route should use acquire_async")
+    provider.acquire_async = AsyncMock(side_effect=acquire_before_writes)
 
     with (
         patch.object(uploads, "get_effective_user_id", return_value="owner-upload"),
@@ -295,7 +298,8 @@ def test_upload_files_acquires_non_local_sandbox_before_writing(tmp_path):
         result = asyncio.run(call_unwrapped(uploads.upload_files, "thread-aio", request=MagicMock(), files=[file], config=SimpleNamespace()))
 
     assert result.success is True
-    provider.acquire.assert_called_once_with("thread-aio", user_id="owner-upload")
+    provider.acquire.assert_not_called()
+    provider.acquire_async.assert_awaited_once_with("thread-aio", user_id="owner-upload")
     sandbox.update_file.assert_called_once_with("/mnt/user-data/uploads/notes.txt", b"hello uploads")
 
 
@@ -305,7 +309,8 @@ def test_upload_files_fails_before_writing_when_non_local_sandbox_unavailable(tm
 
     provider = MagicMock()
     provider.uses_thread_data_mounts = False
-    provider.acquire.side_effect = RuntimeError("sandbox unavailable")
+    provider.acquire.side_effect = AssertionError("upload route should use acquire_async")
+    provider.acquire_async = AsyncMock(side_effect=RuntimeError("sandbox unavailable"))
     file = ChunkedUpload("notes.txt", [b"hello uploads"])
 
     with (
@@ -317,6 +322,7 @@ def test_upload_files_fails_before_writing_when_non_local_sandbox_unavailable(tm
 
     assert list(thread_uploads_dir.iterdir()) == []
     assert file.read_calls == []
+    provider.acquire.assert_not_called()
     provider.get.assert_not_called()
 
 
@@ -363,6 +369,28 @@ def test_upload_files_rejects_oversized_single_file_and_removes_partial_file(tmp
     provider.acquire.assert_not_called()
 
 
+def test_upload_files_oversized_replacement_preserves_existing_regular_file(tmp_path):
+    thread_uploads_dir = tmp_path / "uploads"
+    thread_uploads_dir.mkdir(parents=True)
+    existing_file = thread_uploads_dir / "big.txt"
+    existing_file.write_bytes(b"original bytes")
+
+    provider = _mounted_provider()
+    file = ChunkedUpload("big.txt", [b"123456"])
+
+    with (
+        patch.object(uploads, "ensure_uploads_dir", return_value=thread_uploads_dir),
+        patch.object(uploads, "get_sandbox_provider", return_value=provider),
+        patch.object(uploads, "_get_upload_limits", return_value=uploads.UploadLimits(max_files=10, max_file_size=5, max_total_size=20)),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(call_unwrapped(uploads.upload_files, "thread-local", request=MagicMock(), files=[file], config=SimpleNamespace()))
+
+    assert exc_info.value.status_code == 413
+    assert existing_file.read_bytes() == b"original bytes"
+    assert not any(path.name.startswith(".upload-") for path in thread_uploads_dir.iterdir())
+
+
 def test_upload_files_rejects_total_size_over_limit_and_cleans_request_files(tmp_path):
     thread_uploads_dir = tmp_path / "uploads"
     thread_uploads_dir.mkdir(parents=True)
@@ -390,7 +418,8 @@ def test_upload_files_does_not_sync_non_local_sandbox_when_total_size_exceeds_li
 
     provider = MagicMock()
     provider.uses_thread_data_mounts = False
-    provider.acquire.return_value = "aio-1"
+    provider.acquire.side_effect = AssertionError("upload route should use acquire_async")
+    provider.acquire_async = AsyncMock(return_value="aio-1")
     sandbox = MagicMock()
     provider.get.return_value = sandbox
 
@@ -408,7 +437,8 @@ def test_upload_files_does_not_sync_non_local_sandbox_when_total_size_exceeds_li
             asyncio.run(call_unwrapped(uploads.upload_files, "thread-aio", request=MagicMock(), files=files, config=SimpleNamespace()))
 
     assert exc_info.value.status_code == 413
-    provider.acquire.assert_called_once_with("thread-aio", user_id="owner-upload")
+    provider.acquire.assert_not_called()
+    provider.acquire_async.assert_awaited_once_with("thread-aio", user_id="owner-upload")
     provider.get.assert_called_once_with("aio-1")
     sandbox.update_file.assert_not_called()
 
@@ -419,7 +449,8 @@ def test_upload_files_does_not_sync_non_local_sandbox_when_conversion_fails(tmp_
 
     provider = MagicMock()
     provider.uses_thread_data_mounts = False
-    provider.acquire.return_value = "aio-1"
+    provider.acquire.side_effect = AssertionError("upload route should use acquire_async")
+    provider.acquire_async = AsyncMock(return_value="aio-1")
     sandbox = MagicMock()
     provider.get.return_value = sandbox
 
@@ -435,7 +466,8 @@ def test_upload_files_does_not_sync_non_local_sandbox_when_conversion_fails(tmp_
             asyncio.run(call_unwrapped(uploads.upload_files, "thread-aio", request=MagicMock(), files=[file], config=SimpleNamespace()))
 
     assert exc_info.value.status_code == 500
-    provider.acquire.assert_called_once_with("thread-aio", user_id="owner-upload")
+    provider.acquire.assert_not_called()
+    provider.acquire_async.assert_awaited_once_with("thread-aio", user_id="owner-upload")
     provider.get.assert_called_once_with("aio-1")
     sandbox.update_file.assert_not_called()
     assert not (thread_uploads_dir / "report.pdf").exists()

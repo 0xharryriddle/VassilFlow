@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 
@@ -27,6 +27,14 @@ def skill_reference_matches(name: str, category: str | SkillCategory, reference:
     return reference == name or reference == skill_config_key(name, category)
 
 
+@dataclass(frozen=True)
+class SecretRequirement:
+    """A request-scoped secret declared by a skill."""
+
+    name: str
+    optional: bool = False
+
+
 @dataclass
 class Skill:
     """Represents a skill with its metadata and file path"""
@@ -40,6 +48,8 @@ class Skill:
     category: SkillCategory  # 'public' or 'custom'
     allowed_tools: list[str] | None = None
     enabled: bool = False  # Whether this skill is enabled
+    required_secrets: list[SecretRequirement] = field(default_factory=list)
+    secrets_autonomous: bool = True
 
     @property
     def id(self) -> str:

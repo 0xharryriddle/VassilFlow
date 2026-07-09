@@ -31,6 +31,12 @@ def _vllm_disable_chat_template_kwargs(chat_template_kwargs: dict) -> dict:
     return disable_kwargs
 
 
+_OPENAI_COMPAT_USE_PATHS = (
+    "langchain_openai:ChatOpenAI",
+    "vassilflow.models.patched_openai:PatchedChatOpenAI",
+)
+
+
 def _enable_stream_usage_by_default(model_use_path: str, model_settings_from_config: dict) -> None:
     """Enable stream usage for OpenAI-compatible models unless explicitly configured.
 
@@ -39,12 +45,58 @@ def _enable_stream_usage_by_default(model_use_path: str, model_settings_from_con
     gateways, so token usage tracking would otherwise stay empty and the
     TokenUsageMiddleware would have nothing to log.
     """
-    if model_use_path != "langchain_openai:ChatOpenAI":
+    if model_use_path not in _OPENAI_COMPAT_USE_PATHS:
         return
     if "stream_usage" in model_settings_from_config:
         return
     if "base_url" in model_settings_from_config or "openai_api_base" in model_settings_from_config:
         model_settings_from_config["stream_usage"] = True
+
+
+def _normalize_openai_base_url(model_use_path: str, model_settings_from_config: dict) -> None:
+    """Map the common api_base alias to base_url for OpenAI-compatible clients."""
+    if model_use_path not in _OPENAI_COMPAT_USE_PATHS:
+        return
+    if "api_base" not in model_settings_from_config:
+        return
+    if "base_url" in model_settings_from_config or "openai_api_base" in model_settings_from_config:
+        model_settings_from_config.pop("api_base", None)
+        logger.warning("Model config sets both an endpoint key (base_url/openai_api_base) and 'api_base'; using the former and ignoring 'api_base'.")
+        return
+    model_settings_from_config["base_url"] = model_settings_from_config.pop("api_base")
+    logger.debug("Normalized model config key 'api_base' -> 'base_url' for OpenAI-compatible client.")
+
+
+def _warn_unknown_model_settings(model_use_path: str, model_class, model_name: str, model_settings_from_config: dict) -> None:
+    """Warn about OpenAI-compatible config keys that may later fail at request time."""
+    if model_use_path not in _OPENAI_COMPAT_USE_PATHS:
+        return
+    known = getattr(model_class, "model_fields", None)
+    if not known:
+        return
+    valid_names = set(known.keys())
+    for field in known.values():
+        alias = getattr(field, "alias", None)
+        if alias:
+            valid_names.add(alias)
+    valid_names |= {
+        "model",
+        "model_kwargs",
+        "extra_body",
+        "default_headers",
+        "default_query",
+        "stream_usage",
+        "stream_chunk_timeout",
+        "reasoning_effort",
+    }
+    unknown = sorted(k for k in model_settings_from_config if k not in valid_names)
+    if unknown:
+        logger.warning(
+            "Model '%s' (%s): config key(s) %s are not recognized parameters of the model class and will be forwarded as-is; this may raise at request time. Check for typos.",
+            model_name,
+            getattr(model_class, "__name__", "?"),
+            unknown,
+        )
 
 
 # Default chunk-gap budget for OpenAI-compatible streaming responses.
@@ -71,7 +123,7 @@ def _apply_stream_chunk_timeout_default(model_use_path: str, model_settings_from
     * Non-OpenAI path: drop the key so it is never forwarded to an incompatible
       constructor (which would raise ``TypeError: unexpected keyword argument``).
     """
-    if model_use_path != "langchain_openai:ChatOpenAI":
+    if model_use_path not in _OPENAI_COMPAT_USE_PATHS:
         model_settings_from_config.pop("stream_chunk_timeout", None)
         return
     if "stream_chunk_timeout" in model_settings_from_config:
@@ -121,6 +173,9 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
             "when_thinking_disabled",
             "thinking",
             "supports_vision",
+            # Console-only metadata. Providers must not receive it as a client
+            # constructor kwarg or request payload field.
+            "pricing",
         },
     )
     # Compute effective when_thinking_enabled by merging in the `thinking` shortcut field.
@@ -159,6 +214,7 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
         kwargs.pop("reasoning_effort", None)
         model_settings_from_config.pop("reasoning_effort", None)
 
+    _normalize_openai_base_url(model_config.use, model_settings_from_config)
     _enable_stream_usage_by_default(model_config.use, model_settings_from_config)
     _apply_stream_chunk_timeout_default(model_config.use, model_settings_from_config)
 
@@ -172,7 +228,9 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
         # Use explicit reasoning_effort from frontend if provided (low/medium/high)
         explicit_effort = kwargs.pop("reasoning_effort", None)
         if not thinking_enabled:
-            model_settings_from_config["reasoning_effort"] = "none"
+            # ChatGPT Codex models currently reject reasoning.effort="none".
+            # Use the lowest supported effort for flash/background calls.
+            model_settings_from_config["reasoning_effort"] = "low"
         elif explicit_effort and explicit_effort in ("low", "medium", "high", "xhigh"):
             model_settings_from_config["reasoning_effort"] = explicit_effort
         elif "reasoning_effort" not in model_settings_from_config:
@@ -192,6 +250,8 @@ def create_chat_model(name: str | None = None, thinking_enabled: bool = False, *
     if "stream_usage" not in model_settings_from_config and "stream_usage" not in kwargs:
         if "stream_usage" in getattr(model_class, "model_fields", {}):
             model_settings_from_config["stream_usage"] = True
+
+    _warn_unknown_model_settings(model_config.use, model_class, name, model_settings_from_config)
 
     model_instance = model_class(**kwargs, **model_settings_from_config)
 

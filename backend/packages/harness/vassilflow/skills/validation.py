@@ -8,11 +8,22 @@ from pathlib import Path
 
 import yaml
 
-from vassilflow.skills.parser import parse_allowed_tools
+from vassilflow.skills.parser import parse_allowed_tools, parse_required_secrets, parse_secrets_autonomous
 from vassilflow.skills.types import SKILL_MD_FILE
 
 # Allowed properties in SKILL.md frontmatter
-ALLOWED_FRONTMATTER_PROPERTIES = {"name", "description", "license", "allowed-tools", "metadata", "compatibility", "version", "author"}
+ALLOWED_FRONTMATTER_PROPERTIES = {
+    "name",
+    "description",
+    "license",
+    "allowed-tools",
+    "required-secrets",
+    "secrets-autonomous",
+    "metadata",
+    "compatibility",
+    "version",
+    "author",
+}
 
 
 def _validate_skill_frontmatter(skill_dir: Path) -> tuple[bool, str, str | None]:
@@ -89,5 +100,12 @@ def _validate_skill_frontmatter(skill_dir: Path) -> tuple[bool, str, str | None]
         parse_allowed_tools(frontmatter.get("allowed-tools"), skill_md)
     except ValueError as e:
         return False, str(e).replace(str(skill_md), SKILL_MD_FILE), None
+
+    try:
+        parse_required_secrets(frontmatter.get("required-secrets"), skill_md)
+    except ValueError as e:
+        return False, str(e).replace(str(skill_md), SKILL_MD_FILE), None
+
+    parse_secrets_autonomous(frontmatter.get("secrets-autonomous"), skill_md)
 
     return True, "Skill is valid!", name

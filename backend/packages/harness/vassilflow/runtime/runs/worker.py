@@ -30,8 +30,10 @@ from vassilflow.config.app_config import AppConfig
 from vassilflow.config.env_aliases import env_value
 from vassilflow.runtime.serialization import serialize
 from vassilflow.runtime.stream_bridge import StreamBridge
-from vassilflow.runtime.user_context import get_effective_user_id
+from vassilflow.runtime.user_context import resolve_runtime_user_id
 from vassilflow.tracing import inject_langfuse_metadata
+from vassilflow.workspace_changes import capture_workspace_snapshot, record_workspace_changes
+from vassilflow.workspace_changes.types import WorkspaceSnapshot
 
 from .manager import RunManager, RunRecord
 from .naming import resolve_root_run_name
@@ -147,6 +149,8 @@ async def run_agent(
     requested_modes: set[str] = set(stream_modes or ["values"])
     pre_run_checkpoint_id: str | None = None
     pre_run_snapshot: dict[str, Any] | None = None
+    pre_run_workspace_snapshot: WorkspaceSnapshot | None = None
+    workspace_changes_user_id: str | None = None
     snapshot_capture_failed = False
     llm_error_fallback_message: str | None = None
 
@@ -226,6 +230,16 @@ async def run_agent(
         _install_runtime_context(config, runtime_ctx)
         runtime = Runtime(context=cast(Any, runtime_ctx), store=store)
         config.setdefault("configurable", {})["__pregel_runtime"] = runtime
+        workspace_changes_user_id = resolve_runtime_user_id(runtime)
+
+        if event_store is not None:
+            try:
+                pre_run_workspace_snapshot = await capture_workspace_snapshot(
+                    thread_id,
+                    user_id=workspace_changes_user_id,
+                )
+            except Exception:
+                logger.warning("Could not capture pre-run workspace snapshot for run %s", run_id, exc_info=True)
 
         # Inject RunJournal as a LangChain callback handler.
         # on_llm_end captures token usage; on_chain_start/end captures lifecycle.
@@ -239,7 +253,7 @@ async def run_agent(
         inject_langfuse_metadata(
             config,
             thread_id=thread_id,
-            user_id=get_effective_user_id(),
+            user_id=workspace_changes_user_id,
             assistant_id=record.assistant_id,
             model_name=record.model_name,
             environment=env_value("VASSILFLOW_ENV") or os.environ.get("ENVIRONMENT"),
@@ -396,6 +410,18 @@ async def run_agent(
         )
 
     finally:
+        if event_store is not None and pre_run_workspace_snapshot is not None:
+            try:
+                await record_workspace_changes(
+                    event_store,
+                    thread_id,
+                    run_id,
+                    pre_run_workspace_snapshot,
+                    user_id=workspace_changes_user_id,
+                )
+            except Exception:
+                logger.warning("Failed to record workspace changes for run %s", run_id, exc_info=True)
+
         # Flush any buffered journal events and persist completion data
         if journal is not None:
             try:

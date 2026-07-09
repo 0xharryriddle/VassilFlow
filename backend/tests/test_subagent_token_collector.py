@@ -51,6 +51,32 @@ class TestSubagentTokenCollector:
         assert records[0]["total_tokens"] == 150
         assert "source_run_id" in records[0]
 
+    def test_collects_cache_read_tokens_when_reported(self):
+        collector = SubagentTokenCollector(caller="subagent:test")
+        usage = {
+            "input_tokens": 1000,
+            "output_tokens": 50,
+            "total_tokens": 1050,
+            "input_token_details": {"cache_read": 800},
+        }
+        collector.on_llm_end(_make_llm_response("Hi", usage=usage), run_id=uuid4())
+        records = collector.snapshot_records()
+        assert len(records) == 1
+        assert records[0]["cache_read_tokens"] == 800
+
+    def test_zero_cache_read_tokens_are_sparse(self):
+        collector = SubagentTokenCollector(caller="subagent:test")
+        usage = {
+            "input_tokens": 1000,
+            "output_tokens": 50,
+            "total_tokens": 1050,
+            "input_token_details": {"cache_read": 0},
+        }
+        collector.on_llm_end(_make_llm_response("Hi", usage=usage), run_id=uuid4())
+        records = collector.snapshot_records()
+        assert len(records) == 1
+        assert "cache_read_tokens" not in records[0]
+
     def test_collects_model_name_from_response_metadata(self):
         collector = SubagentTokenCollector(caller="subagent:test")
         usage = {"input_tokens": 100, "output_tokens": 50, "total_tokens": 150}

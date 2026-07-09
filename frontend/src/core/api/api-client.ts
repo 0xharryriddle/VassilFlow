@@ -38,7 +38,14 @@ function injectCsrfHeader(_url: URL, init: RequestInit): RequestInit {
   return { ...init, headers };
 }
 
-export function isInactiveRunStreamError(error: unknown): boolean {
+const TERMINAL_RUN_STATUSES = new Set([
+  "success",
+  "error",
+  "timeout",
+  "interrupted",
+]);
+
+function isRunConflictError(error: unknown, ...needles: string[]): boolean {
   const status =
     typeof error === "object" && error !== null
       ? Reflect.get(error, "status")
@@ -52,14 +59,35 @@ export function isInactiveRunStreamError(error: unknown): boolean {
           ? String(Reflect.get(error, "message") ?? "")
           : "";
 
-  // Match the gateway's store-only run response in
-  // backend/app/gateway/routers/thread_runs.py until the API exposes a
-  // structured error code for inactive run streams.
   return (
     (status === 409 || message.includes("HTTP 409")) &&
-    message.includes("not active on this worker") &&
-    message.includes("cannot be streamed")
+    needles.every((needle) => message.includes(needle))
   );
+}
+
+export function isInactiveRunStreamError(error: unknown): boolean {
+  return isRunConflictError(
+    error,
+    "not active on this worker",
+    "cannot be streamed",
+  );
+}
+
+export function isRunNotCancellableError(error: unknown): boolean {
+  return isRunConflictError(error, "is not cancellable");
+}
+
+async function shouldSkipReconnect(
+  client: LangGraphClient,
+  threadId: string,
+  runId: string,
+): Promise<boolean> {
+  try {
+    const run = await client.runs.get(threadId, runId);
+    return TERMINAL_RUN_STATUSES.has(run.status);
+  } catch {
+    return false;
+  }
 }
 
 export function clearReconnectRun(
@@ -99,8 +127,25 @@ function createCompatibleClient(isMock?: boolean): LangGraphClient {
       sanitizeRunStreamOptions(payload),
     )) as typeof client.runs.stream;
 
+  const originalCancel = client.runs.cancel.bind(client.runs);
+  client.runs.cancel = (async (threadId, runId, wait, action, options) => {
+    try {
+      return await originalCancel(threadId, runId, wait, action, options);
+    } catch (error) {
+      if (isRunNotCancellableError(error)) {
+        clearReconnectRun(threadId, runId);
+        return;
+      }
+      throw error;
+    }
+  }) as typeof client.runs.cancel;
+
   const originalJoinStream = client.runs.joinStream.bind(client.runs);
   client.runs.joinStream = async function* (threadId, runId, options) {
+    if (threadId && (await shouldSkipReconnect(client, threadId, runId))) {
+      clearReconnectRun(threadId, runId);
+      return;
+    }
     try {
       yield* originalJoinStream(
         threadId,

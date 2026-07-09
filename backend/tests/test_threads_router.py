@@ -13,6 +13,8 @@ from app.gateway.routers import threads
 from vassilflow.config.paths import Paths
 from vassilflow.persistence.thread_meta import InvalidMetadataFilterError
 from vassilflow.persistence.thread_meta.memory import THREADS_NS, MemoryThreadMetaStore
+from vassilflow.runtime import RunManager
+from vassilflow.runtime.context_compaction import ThreadCompactionResult
 
 _ISO_TIMESTAMP_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
@@ -60,6 +62,7 @@ def _build_thread_app() -> tuple[FastAPI, InMemoryStore, InMemorySaver]:
     checkpointer = InMemorySaver()
     app.state.store = store
     app.state.checkpointer = checkpointer
+    app.state.run_manager = RunManager()
     app.state.thread_store = _PermissiveThreadMetaStore(store)
     app.include_router(threads.router)
     return app, store, checkpointer
@@ -217,6 +220,88 @@ def test_create_thread_returns_iso_timestamps() -> None:
     assert _ISO_TIMESTAMP_RE.match(body["created_at"]), body["created_at"]
     assert _ISO_TIMESTAMP_RE.match(body["updated_at"]), body["updated_at"]
     assert body["created_at"] == body["updated_at"]
+
+
+def test_compact_thread_route_returns_compaction_result(monkeypatch) -> None:
+    app, _store, _checkpointer = _build_thread_app()
+    captured: dict[str, object] = {}
+
+    async def _fake_compact_thread_context(checkpointer, thread_id, *, keep=None, force=True, user_id=None, agent_name=None):
+        captured.update(
+            {
+                "checkpointer": checkpointer,
+                "thread_id": thread_id,
+                "keep": keep,
+                "force": force,
+                "user_id": user_id,
+                "agent_name": agent_name,
+            }
+        )
+        return ThreadCompactionResult(
+            thread_id=thread_id,
+            compacted=True,
+            removed_message_count=4,
+            preserved_message_count=2,
+            summary_updated=True,
+            checkpoint_id="ckpt-new",
+            total_tokens=123,
+        )
+
+    monkeypatch.setattr(threads, "compact_thread_context", _fake_compact_thread_context)
+
+    with TestClient(app) as client:
+        create_response = client.post("/api/threads", json={"thread_id": "thread-compact", "metadata": {}})
+        assert create_response.status_code == 200, create_response.text
+        response = client.post(
+            "/api/threads/thread-compact/compact",
+            json={
+                "force": False,
+                "keep": {"type": "messages", "value": 3},
+                "agent_name": "research-agent",
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.json() == {
+        "thread_id": "thread-compact",
+        "compacted": True,
+        "reason": None,
+        "removed_message_count": 4,
+        "preserved_message_count": 2,
+        "summary_updated": True,
+        "checkpoint_id": "ckpt-new",
+        "total_tokens": 123,
+    }
+    assert captured["checkpointer"] is _checkpointer
+    assert captured["thread_id"] == "thread-compact"
+    assert captured["keep"] == ("messages", 3)
+    assert captured["force"] is False
+    assert captured["agent_name"] == "research-agent"
+    assert isinstance(captured["user_id"], str)
+
+
+def test_compact_thread_route_rejects_inflight_run(monkeypatch) -> None:
+    import asyncio
+
+    app, _store, _checkpointer = _build_thread_app()
+    called = False
+
+    async def _fake_compact_thread_context(*args, **kwargs):
+        nonlocal called
+        called = True
+        return ThreadCompactionResult(thread_id="thread-compact", compacted=True)
+
+    monkeypatch.setattr(threads, "compact_thread_context", _fake_compact_thread_context)
+    asyncio.run(app.state.run_manager.create_or_reject("thread-compact"))
+
+    with TestClient(app) as client:
+        create_response = client.post("/api/threads", json={"thread_id": "thread-compact", "metadata": {}})
+        assert create_response.status_code == 200, create_response.text
+        response = client.post("/api/threads/thread-compact/compact", json={})
+
+    assert response.status_code == 409
+    assert "run in flight" in response.json()["detail"]
+    assert called is False
 
 
 def test_internal_owner_header_assigns_thread_to_owner() -> None:
@@ -517,6 +602,156 @@ def test_search_threads_succeeds_with_valid_metadata() -> None:
         response = client.post("/api/threads/search", json={"metadata": {"env": "prod"}})
 
     assert response.status_code == 200
+
+
+async def _seed_branch_checkpoint(
+    app: FastAPI,
+    checkpointer: InMemorySaver,
+    thread_id: str,
+    messages: list[dict],
+    *,
+    title: str = "Source thread",
+    metadata: dict | None = None,
+) -> str:
+    from langgraph.checkpoint.base import empty_checkpoint, uuid6
+
+    if await app.state.thread_store.get(thread_id) is None:
+        await app.state.thread_store.create(thread_id, display_name=title, metadata=metadata or {})
+
+    checkpoint = empty_checkpoint()
+    channel_version = str(len(messages))
+    checkpoint["id"] = str(uuid6())
+    checkpoint["channel_values"] = {
+        "messages": messages,
+        "title": title,
+    }
+    checkpoint["channel_versions"] = {
+        "messages": channel_version,
+        "title": channel_version,
+    }
+    checkpoint_metadata = {
+        "source": "loop",
+        "step": len(messages),
+        "created_at": "2026-07-01T00:00:00Z",
+        **(metadata or {}),
+    }
+    config = await checkpointer.aput(
+        {"configurable": {"thread_id": thread_id, "checkpoint_ns": ""}},
+        checkpoint,
+        checkpoint_metadata,
+        {"messages": channel_version, "title": channel_version},
+    )
+    return config["configurable"]["checkpoint_id"]
+
+
+def test_branch_thread_creates_checkpoint_from_assistant_turn(tmp_path) -> None:
+    import asyncio
+    from vassilflow.runtime.user_context import get_effective_user_id
+
+    app, _store, checkpointer = _build_thread_app()
+    paths = Paths(tmp_path)
+    user_id = get_effective_user_id()
+    source_user_data = paths.sandbox_user_data_dir("thread-source", user_id=user_id)
+    source_user_data.mkdir(parents=True)
+    (source_user_data / "notes.txt").write_text("source workspace", encoding="utf-8")
+
+    messages = [
+        {"id": "human-1", "type": "human", "content": "Research VassilFlow"},
+        {"id": "ai-1", "type": "ai", "content": "Initial answer"},
+    ]
+    parent_checkpoint_id = asyncio.run(_seed_branch_checkpoint(app, checkpointer, "thread-source", messages, title="Research thread"))
+
+    with patch("app.gateway.routers.threads.get_paths", return_value=paths):
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/threads/thread-source/branches",
+                json={"message_id": "ai-1", "title": "Branch: refined research"},
+            )
+            assert response.status_code == 200, response.text
+            body = response.json()
+            branch_id = body["thread_id"]
+            state = client.get(f"/api/threads/{branch_id}/state")
+
+    assert body["parent_thread_id"] == "thread-source"
+    assert body["parent_checkpoint_id"] == parent_checkpoint_id
+    assert body["branched_from_message_id"] == "ai-1"
+    assert body["workspace_clone_mode"] == "current_thread_best_effort"
+    assert state.status_code == 200, state.text
+    assert [message["id"] for message in state.json()["values"]["messages"]] == ["human-1", "ai-1"]
+    assert (paths.sandbox_user_data_dir(branch_id, user_id=user_id) / "notes.txt").read_text(encoding="utf-8") == "source workspace"
+
+
+def test_branch_thread_rejects_non_assistant_message() -> None:
+    import asyncio
+
+    app, _store, checkpointer = _build_thread_app()
+    messages = [
+        {"id": "human-1", "type": "human", "content": "Hello"},
+        {"id": "ai-1", "type": "ai", "content": "Hi"},
+    ]
+    asyncio.run(_seed_branch_checkpoint(app, checkpointer, "thread-source", messages))
+
+    with TestClient(app) as client:
+        response = client.post("/api/threads/thread-source/branches", json={"message_id": "human-1"})
+
+    assert response.status_code == 409
+    assert "can no longer be branched" in response.json()["detail"]
+
+
+def test_branch_thread_rejects_turn_with_visible_future_messages() -> None:
+    import asyncio
+
+    app, _store, checkpointer = _build_thread_app()
+    messages = [
+        {"id": "human-1", "type": "human", "content": "First"},
+        {"id": "ai-1", "type": "ai", "content": "First answer"},
+        {"id": "human-2", "type": "human", "content": "Follow up"},
+        {"id": "ai-2", "type": "ai", "content": "Second answer"},
+    ]
+    asyncio.run(_seed_branch_checkpoint(app, checkpointer, "thread-source", messages))
+
+    with TestClient(app) as client:
+        response = client.post("/api/threads/thread-source/branches", json={"message_id": "ai-1"})
+
+    assert response.status_code == 409
+
+
+def test_branch_thread_skips_workspace_clone_for_historical_turn(tmp_path) -> None:
+    import asyncio
+    from vassilflow.runtime.user_context import get_effective_user_id
+
+    app, _store, checkpointer = _build_thread_app()
+    paths = Paths(tmp_path)
+    user_id = get_effective_user_id()
+    source_user_data = paths.sandbox_user_data_dir("thread-source", user_id=user_id)
+    source_user_data.mkdir(parents=True)
+    (source_user_data / "later.txt").write_text("created after first turn", encoding="utf-8")
+
+    first_turn = [
+        {"id": "human-1", "type": "human", "content": "First"},
+        {"id": "ai-1", "type": "ai", "content": "First answer"},
+    ]
+    later_turn = [
+        *first_turn,
+        {"id": "human-2", "type": "human", "content": "Follow up"},
+        {"id": "ai-2", "type": "ai", "content": "Second answer"},
+    ]
+    parent_checkpoint_id = asyncio.run(_seed_branch_checkpoint(app, checkpointer, "thread-source", first_turn))
+    asyncio.run(_seed_branch_checkpoint(app, checkpointer, "thread-source", later_turn))
+
+    with patch("app.gateway.routers.threads.get_paths", return_value=paths):
+        with TestClient(app) as client:
+            response = client.post("/api/threads/thread-source/branches", json={"message_id": "ai-1"})
+            assert response.status_code == 200, response.text
+            body = response.json()
+            branch_id = body["thread_id"]
+            state = client.get(f"/api/threads/{branch_id}/state")
+
+    assert body["parent_checkpoint_id"] == parent_checkpoint_id
+    assert body["workspace_clone_mode"] == "skipped_historical_turn"
+    assert state.status_code == 200, state.text
+    assert [message["id"] for message in state.json()["values"]["messages"]] == ["human-1", "ai-1"]
+    assert not paths.sandbox_user_data_dir(branch_id, user_id=user_id).exists()
 
 
 # ── update_thread_state: each call inserts a new checkpoint (regression) ───────

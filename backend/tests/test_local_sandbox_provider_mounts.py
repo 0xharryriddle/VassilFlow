@@ -504,7 +504,7 @@ class TestMultipleMounts:
         # Verify the command received the resolved local path
         command = captured.get("command", [])
         assert isinstance(command, list) and len(command) >= 3
-        assert str(data_dir) in command[2]
+        assert str(data_dir).replace("\\", "/") in command[2]
 
     def test_reverse_resolve_path_does_not_match_partial_prefix(self, tmp_path):
         foo_dir = tmp_path / "foo"
@@ -698,6 +698,19 @@ class TestLocalSandboxProviderMounts:
         written = (data_dir / "config.py").read_text()
         # Must not contain backslashes that could break escape sequences
         assert "\\" not in written.split("DATA_DIR = ")[1].split("\n")[0]
+
+    def test_resolve_paths_in_command_uses_forward_slashes_for_windows_mounts(self):
+        sandbox = LocalSandbox(
+            "test",
+            [
+                PathMapping(container_path="/mnt/models", local_path=r"C:\Users\admin\models", read_only=True),
+            ],
+        )
+
+        result = sandbox._resolve_paths_in_command("cat /mnt/models/weights.bin")
+
+        assert "\\" not in result
+        assert "C:/Users/admin/models/weights.bin" in result
 
     def test_read_file_reverse_resolves_local_paths_in_agent_written_files(self, tmp_path):
         """read_file should convert local paths back to container paths in agent-written files."""

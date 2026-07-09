@@ -65,6 +65,13 @@ SKILLS_HOST_PATH = os.environ.get("SKILLS_HOST_PATH", "/skills")
 THREADS_HOST_PATH = os.environ.get("THREADS_HOST_PATH", "/.vassilflow/threads")
 SKILLS_PVC_NAME = os.environ.get("SKILLS_PVC_NAME", "")
 USERDATA_PVC_NAME = os.environ.get("USERDATA_PVC_NAME", "")
+SANDBOX_CONTAINER_PORT_RAW = os.environ.get("SANDBOX_CONTAINER_PORT", "8080")
+try:
+    SANDBOX_CONTAINER_PORT = int(SANDBOX_CONTAINER_PORT_RAW)
+except ValueError as exc:
+    raise RuntimeError(f"Invalid SANDBOX_CONTAINER_PORT={SANDBOX_CONTAINER_PORT_RAW!r}; expected an integer TCP port") from exc
+if not (1 <= SANDBOX_CONTAINER_PORT <= 65535):
+    raise RuntimeError(f"Invalid SANDBOX_CONTAINER_PORT={SANDBOX_CONTAINER_PORT}; expected a value in [1, 65535]")
 SAFE_THREAD_ID_PATTERN = r"^[A-Za-z0-9_\-]+$"
 SAFE_USER_ID_PATTERN = r"^[A-Za-z0-9_\-]+$"
 DEFAULT_USER_ID = "default"
@@ -113,27 +120,18 @@ def _init_k8s_client() -> k8s_client.CoreV1Api:
     """
     if os.path.exists(KUBECONFIG_PATH):
         if os.path.isdir(KUBECONFIG_PATH):
-            raise RuntimeError(
-                f"KUBECONFIG_PATH points to a directory, expected a file: {KUBECONFIG_PATH}"
-            )
+            raise RuntimeError(f"KUBECONFIG_PATH points to a directory, expected a file: {KUBECONFIG_PATH}")
         try:
             k8s_config.load_kube_config(config_file=KUBECONFIG_PATH)
             logger.info(f"Loaded kubeconfig from {KUBECONFIG_PATH}")
         except Exception as exc:
-            raise RuntimeError(
-                f"Failed to load kubeconfig from {KUBECONFIG_PATH}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to load kubeconfig from {KUBECONFIG_PATH}: {exc}") from exc
     else:
-        logger.warning(
-            f"Kubeconfig not found at {KUBECONFIG_PATH}; trying in-cluster config"
-        )
+        logger.warning(f"Kubeconfig not found at {KUBECONFIG_PATH}; trying in-cluster config")
         try:
             k8s_config.load_incluster_config()
         except Exception as exc:
-            raise RuntimeError(
-                "Failed to initialize Kubernetes client. "
-                f"No kubeconfig at {KUBECONFIG_PATH}, and in-cluster config is unavailable: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to initialize Kubernetes client. No kubeconfig at {KUBECONFIG_PATH}, and in-cluster config is unavailable: {exc}") from exc
 
     # When connecting from inside Docker to the host's K8s API, the
     # kubeconfig may reference ``localhost`` or ``127.0.0.1``.  We
@@ -159,19 +157,11 @@ def _wait_for_kubeconfig(timeout: int = 30) -> None:
                 logger.info(f"Found kubeconfig file at {KUBECONFIG_PATH}")
                 return
             if os.path.isdir(KUBECONFIG_PATH):
-                raise RuntimeError(
-                    "Kubeconfig path is a directory. "
-                    f"Please mount a kubeconfig file at {KUBECONFIG_PATH}."
-                )
-            raise RuntimeError(
-                f"Kubeconfig path exists but is not a regular file: {KUBECONFIG_PATH}"
-            )
+                raise RuntimeError(f"Kubeconfig path is a directory. Please mount a kubeconfig file at {KUBECONFIG_PATH}.")
+            raise RuntimeError(f"Kubeconfig path exists but is not a regular file: {KUBECONFIG_PATH}")
         logger.info(f"Waiting for kubeconfig at {KUBECONFIG_PATH} …")
         time.sleep(2)
-    logger.warning(
-        f"Kubeconfig not found at {KUBECONFIG_PATH} after {timeout}s; "
-        "will attempt in-cluster Kubernetes config"
-    )
+    logger.warning(f"Kubeconfig not found at {KUBECONFIG_PATH} after {timeout}s; will attempt in-cluster Kubernetes config")
 
 
 def _ensure_namespace() -> None:
@@ -323,14 +313,14 @@ def _build_pod(sandbox_id: str, thread_id: str, user_id: str = DEFAULT_USER_ID) 
                     ports=[
                         k8s_client.V1ContainerPort(
                             name="http",
-                            container_port=8080,
+                            container_port=SANDBOX_CONTAINER_PORT,
                             protocol="TCP",
                         )
                     ],
                     readiness_probe=k8s_client.V1Probe(
                         http_get=k8s_client.V1HTTPGetAction(
                             path="/v1/sandbox",
-                            port=8080,
+                            port=SANDBOX_CONTAINER_PORT,
                         ),
                         initial_delay_seconds=5,
                         period_seconds=5,
@@ -340,7 +330,7 @@ def _build_pod(sandbox_id: str, thread_id: str, user_id: str = DEFAULT_USER_ID) 
                     liveness_probe=k8s_client.V1Probe(
                         http_get=k8s_client.V1HTTPGetAction(
                             path="/v1/sandbox",
-                            port=8080,
+                            port=SANDBOX_CONTAINER_PORT,
                         ),
                         initial_delay_seconds=10,
                         period_seconds=10,
@@ -390,8 +380,8 @@ def _build_service(sandbox_id: str) -> k8s_client.V1Service:
             ports=[
                 k8s_client.V1ServicePort(
                     name="http",
-                    port=8080,
-                    target_port=8080,
+                    port=SANDBOX_CONTAINER_PORT,
+                    target_port=SANDBOX_CONTAINER_PORT,
                     protocol="TCP",
                     # nodePort omitted → K8s auto-allocates from the range
                 )
@@ -434,7 +424,7 @@ async def health():
 
 
 @app.post("/api/sandboxes", response_model=SandboxResponse)
-async def create_sandbox(req: CreateSandboxRequest):
+def create_sandbox(req: CreateSandboxRequest):
     """Create a sandbox Pod + NodePort Service for *sandbox_id*.
 
     If the sandbox already exists, returns the existing information
@@ -500,7 +490,7 @@ async def create_sandbox(req: CreateSandboxRequest):
 
 
 @app.delete("/api/sandboxes/{sandbox_id}")
-async def destroy_sandbox(sandbox_id: str):
+def destroy_sandbox(sandbox_id: str):
     """Destroy a sandbox Pod + Service."""
     errors: list[str] = []
 
@@ -527,7 +517,7 @@ async def destroy_sandbox(sandbox_id: str):
 
 
 @app.get("/api/sandboxes/{sandbox_id}", response_model=SandboxResponse)
-async def get_sandbox(sandbox_id: str):
+def get_sandbox(sandbox_id: str):
     """Return current status and URL for a sandbox."""
     node_port = _get_node_port(sandbox_id)
     if not node_port:
@@ -541,7 +531,7 @@ async def get_sandbox(sandbox_id: str):
 
 
 @app.get("/api/sandboxes")
-async def list_sandboxes():
+def list_sandboxes():
     """List every sandbox currently managed in the namespace."""
     try:
         services = core_v1.list_namespaced_service(

@@ -18,7 +18,7 @@ const THREADS = [
     updated_at: "2025-06-02T12:00:00Z",
   },
 ];
-const DEMO_THREAD_ID = "7cfa5f8f-a2f8-47ad-acbd-da7137baf990";
+const DEMO_THREAD_ID = "vf-demo-orchestrator-run";
 const SVG_PROMPT_THREAD_ID = "00000000-0000-0000-0000-000000000777";
 const SVG_PROMPT_MARKER = "LEAK-STRICT-SVG-PROMPT-SHOULD-DISAPPEAR";
 const OPTIMISTIC_PROMPT_MARKER = "LEAK-OPTIMISTIC-SVG-PROMPT-SHOULD-DISAPPEAR";
@@ -451,10 +451,12 @@ test.describe("Thread history", () => {
     await page.goto(`/workspace/chats/${DEMO_THREAD_ID}?mock=true`);
 
     await expect(
-      page.getByText("What might be the trends and opportunities in 2026?"),
+      page.getByText(
+        "Coordinate a VassilFlow superagent run for a release-readiness review.",
+      ),
     ).toBeVisible({ timeout: 15_000 });
     await expect(
-      page.getByText("I've created a modern, minimalist website"),
+      page.getByTestId("chat").getByText("orchestrator-runbook.md"),
     ).toBeVisible();
     expect(backendRunHistoryUrls).toEqual([]);
   });

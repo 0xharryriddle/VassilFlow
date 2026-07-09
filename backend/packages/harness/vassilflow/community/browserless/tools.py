@@ -3,6 +3,8 @@ import logging
 
 from langchain.tools import tool
 
+from vassilflow.community.url_safety import resolve_host_addresses as _resolve_host_addresses
+from vassilflow.community.url_safety import validate_public_http_url
 from vassilflow.config import get_app_config
 from vassilflow.utils.readability import ReadabilityExtractor
 
@@ -36,6 +38,18 @@ def _get_browserless_client() -> BrowserlessClient:
     return BrowserlessClient(base_url=base_url, token=token, timeout_s=timeout_s)
 
 
+def _coerce_bool(value: object, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+    return default
+
+
 @tool("web_fetch", parse_docstring=True)
 async def web_fetch_tool(url: str) -> str:
     """Fetch the contents of a web page at a given URL using Browserless (headless Chrome).
@@ -48,7 +62,15 @@ async def web_fetch_tool(url: str) -> str:
         url: The URL to fetch the contents of.
     """
     try:
-        cfg = _get_tool_config("web_fetch")
+        cfg = _get_tool_config("web_fetch") or {}
+        allow_private_addresses = _coerce_bool(cfg.get("allow_private_addresses"), False)
+        url_error = validate_public_http_url(
+            url,
+            allow_private_addresses=allow_private_addresses,
+            resolver=_resolve_host_addresses,
+        )
+        if url_error:
+            return url_error
 
         wait_for_event = ""
         wait_for_timeout_ms = 0
@@ -57,11 +79,10 @@ async def web_fetch_tool(url: str) -> str:
         reject_resource_types: list[str] | None = None
         reject_request_pattern: list[str] | None = None
 
-        if cfg is not None:
-            wait_for_event = cfg.get("wait_for_event", wait_for_event)
-            raw_wait = cfg.get("wait_for_timeout_ms", wait_for_timeout_ms)
-            wait_for_timeout_ms = int(raw_wait) if not isinstance(raw_wait, int) else raw_wait
-            wait_for_selector = cfg.get("wait_for_selector", wait_for_selector)
+        wait_for_event = cfg.get("wait_for_event", wait_for_event)
+        raw_wait = cfg.get("wait_for_timeout_ms", wait_for_timeout_ms)
+        wait_for_timeout_ms = int(raw_wait) if not isinstance(raw_wait, int) else raw_wait
+        wait_for_selector = cfg.get("wait_for_selector", wait_for_selector)
 
         client = _get_browserless_client()
         html = await client.fetch_html(

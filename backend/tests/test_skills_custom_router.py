@@ -73,7 +73,7 @@ def test_install_skill_archive_runs_security_scan(monkeypatch, tmp_path):
     scan_calls = []
     refresh_calls = []
 
-    async def _scan(content, *, executable, location, app_config=None):
+    async def _scan(content, *, executable, location, app_config=None, static_findings=None):
         from vassilflow.skills.security_scanner import ScanResult
 
         scan_calls.append({"content": content, "executable": executable, "location": location})

@@ -34,6 +34,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+def _prepare_sqlite_store_path(raw: str) -> str:
+    conn_str = resolve_sqlite_conn_str(raw)
+    ensure_sqlite_parent_dir(conn_str)
+    return conn_str
+
+
 @contextlib.asynccontextmanager
 async def _async_store(config) -> AsyncIterator[BaseStore]:
     """Async context manager that constructs and tears down a Store.
@@ -54,8 +60,7 @@ async def _async_store(config) -> AsyncIterator[BaseStore]:
         except ImportError as exc:
             raise ImportError(SQLITE_STORE_INSTALL) from exc
 
-        conn_str = resolve_sqlite_conn_str(config.connection_string or "store.db")
-        ensure_sqlite_parent_dir(conn_str)
+        conn_str = await asyncio.to_thread(_prepare_sqlite_store_path, config.connection_string or "store.db")
 
         async with AsyncSqliteStore.from_conn_string(conn_str) as store:
             await store.setup()

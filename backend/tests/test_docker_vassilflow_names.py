@@ -53,6 +53,7 @@ def test_compose_provisioner_defaults_use_vassilflow_labels(compose_file: str):
     assert "K8S_NAMESPACE=${VASSILFLOW_K8S_NAMESPACE:-vassilflow}" in environment
     assert "SANDBOX_APP_LABEL=${VASSILFLOW_SANDBOX_APP_LABEL:-vassilflow-sandbox}" in environment
     assert "USERDATA_PVC_SUBPATH_ROOT=${VASSILFLOW_USERDATA_PVC_SUBPATH_ROOT:-vassilflow}" in environment
+    assert "SANDBOX_CONTAINER_PORT=${VASSILFLOW_SANDBOX_CONTAINER_PORT:-8080}" in environment
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for docker.sh naming tests")

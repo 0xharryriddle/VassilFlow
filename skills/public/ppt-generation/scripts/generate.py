@@ -24,7 +24,7 @@ def generate_ppt(
         Status message
     """
     # Load presentation plan
-    with open(plan_file, "r", encoding="utf-8") as f:
+    with open(plan_file, encoding="utf-8-sig") as f:
         plan = json.load(f)
 
     # Determine slide dimensions based on aspect ratio

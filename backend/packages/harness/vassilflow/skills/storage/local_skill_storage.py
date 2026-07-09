@@ -48,8 +48,13 @@ class LocalSkillStorage(SkillStorage):
             from vassilflow.config import get_app_config
 
             config = app_config or get_app_config()
+            self._app_config = config
             self._host_root: Path = config.skills.get_skills_path()
         else:
+            # Keep app_config as-is (may be None). Tests and config-free callers
+            # use the host_path constructor; the SkillScan kill switch resolves
+            # lazily at scan time when app_config is not supplied.
+            self._app_config = app_config
             self._host_root = resolve_path(host_path)
 
     # ------------------------------------------------------------------
@@ -111,7 +116,7 @@ class LocalSkillStorage(SkillStorage):
         try:
             skill_dir, skill_name, target = await asyncio.to_thread(self._prepare_skill_archive, path, Path(tmp), custom_dir, archive_path)
 
-            await _scan_skill_archive_contents_or_raise(skill_dir, skill_name)
+            await _scan_skill_archive_contents_or_raise(skill_dir, skill_name, app_config=self._app_config)
 
             await asyncio.to_thread(self._commit_skill_install, skill_dir, skill_name, custom_dir, target)
             logger.info("Skill %r installed to %s", skill_name, target)
@@ -146,6 +151,7 @@ class LocalSkillStorage(SkillStorage):
             SkillAlreadyExistsError,
             resolve_skill_dir_from_archive,
             safe_extract_skill_archive,
+            scan_archive_preflight_or_raise,
         )
         from vassilflow.skills.validation import _validate_skill_frontmatter
 
@@ -166,6 +172,7 @@ class LocalSkillStorage(SkillStorage):
             raise ValueError("File is not a valid ZIP archive") from None
 
         with zf:
+            scan_archive_preflight_or_raise(path, app_config=self._app_config)
             safe_extract_skill_archive(zf, tmp_path)
 
         skill_dir = resolve_skill_dir_from_archive(tmp_path)

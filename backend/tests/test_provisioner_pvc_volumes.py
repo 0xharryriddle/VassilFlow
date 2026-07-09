@@ -162,3 +162,16 @@ class TestBuildPodVolumes:
         assert pod.spec.volumes[1].persistent_volume_claim is not None
         userdata_mount = pod.spec.containers[0].volume_mounts[1]
         assert userdata_mount.sub_path == "vassilflow/users/user-7/threads/thread-1/user-data"
+
+    def test_pod_and_service_use_configured_container_port(self, provisioner_module):
+        provisioner_module.SANDBOX_CONTAINER_PORT = 18080
+
+        pod = provisioner_module._build_pod("sandbox-1", "thread-1")
+        service = provisioner_module._build_service("sandbox-1")
+        container = pod.spec.containers[0]
+
+        assert container.ports[0].container_port == 18080
+        assert container.readiness_probe.http_get.port == 18080
+        assert container.liveness_probe.http_get.port == 18080
+        assert service.spec.ports[0].port == 18080
+        assert service.spec.ports[0].target_port == 18080

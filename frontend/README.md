@@ -129,6 +129,7 @@ src/
 | Command             | Description                             |
 | ------------------- | --------------------------------------- |
 | `pnpm dev`          | Start development server with Turbopack |
+| `pnpm dev:webpack`  | Start development server with webpack   |
 | `pnpm build`        | Build for production                    |
 | `pnpm start`        | Start production server                 |
 | `pnpm test`         | Run unit tests with Rstest              |
@@ -143,7 +144,8 @@ src/
 ## Development Notes
 
 - Uses pnpm workspaces (see `packageManager` in package.json)
-- Turbopack enabled by default in development for faster builds
+- Development uses Turbopack by default for fast rebuilds.
+- Webpack remains available with `pnpm dev:webpack` when testing bundler-specific behavior.
 - Environment validation can be skipped with `SKIP_ENV_VALIDATION=1` (useful for Docker)
 - Backend API URLs are optional; nginx proxy is used by default in development
 

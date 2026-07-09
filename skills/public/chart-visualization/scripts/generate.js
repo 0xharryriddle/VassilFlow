@@ -2,6 +2,10 @@
 
 const fs = require("fs");
 
+function stripBom(text) {
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
 // Chart type mapping, consistent with src/utils/callTool.ts
 const CHART_TYPE_MAP = {
   generate_area_chart: "area",
@@ -106,9 +110,9 @@ async function main() {
   try {
     if (fs.existsSync(specArg)) {
       const fileContent = fs.readFileSync(specArg, "utf-8");
-      spec = JSON.parse(fileContent);
+      spec = JSON.parse(stripBom(fileContent));
     } else {
-      spec = JSON.parse(specArg);
+      spec = JSON.parse(stripBom(specArg));
     }
   } catch (e) {
     console.error(`Error parsing spec: ${e.message}`);

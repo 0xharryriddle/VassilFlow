@@ -74,6 +74,14 @@ describe("parseSubtaskResult", () => {
     expect(parsed.error).toContain("polling timed out");
   });
 
+  it("recognises the max-turns prefix and keeps the partial-result text", () => {
+    const parsed = parseSubtaskResult(
+      "Task reached max turns. Reached max_turns=50. Partial result: inspected sources",
+    );
+    expect(parsed.status).toBe("failed");
+    expect(parsed.error).toContain("Partial result");
+  });
+
   it("recognises polling-timed-out with different durations", () => {
     // `task_tool` emits `Task polling timed out after {N} minutes` where N
     // varies with the configured subagent timeout. Guard against the regex
@@ -205,11 +213,12 @@ describe("parseSubtaskResult — structured additional_kwargs (preferred path)",
     expect(parsed.status).toBe("completed");
   });
 
-  it("collapses cancelled / timed_out / polling_timed_out to failed for the card UI", () => {
+  it("collapses non-success terminal statuses to failed for the card UI", () => {
     for (const backendStatus of [
       "cancelled",
       "timed_out",
       "polling_timed_out",
+      "max_turns_reached",
     ]) {
       const parsed = parseSubtaskResult("anything at all", {
         [SUBAGENT_STATUS_KEY]: backendStatus,

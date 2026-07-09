@@ -26,8 +26,8 @@ export function SandboxSection({ className }: { className?: string }) {
         </p>
       }
     >
-      <div className="container-md mx-auto mt-10 flex w-full flex-col items-stretch gap-10 px-4 lg:flex-row">
-        <div className="w-full flex-1">
+      <div className="container-md mx-auto mt-10 flex w-full min-w-0 flex-col items-stretch gap-10 lg:flex-row">
+        <div className="w-full min-w-0 flex-1">
           <Terminal
             sequence={false}
             className="h-[360px] w-full rounded-md border-white/10 bg-black/45"
@@ -59,11 +59,11 @@ export function SandboxSection({ className }: { className?: string }) {
           </Terminal>
         </div>
 
-        <div className="flex w-full flex-1 flex-col justify-center">
+        <div className="flex w-full min-w-0 flex-1 flex-col justify-center">
           <p className="text-sm font-medium text-cyan-200 uppercase">
             Runtime Boundary
           </p>
-          <h2 className="mt-4 max-w-xl text-4xl font-semibold text-white lg:text-5xl">
+          <h2 className="mt-4 max-w-xl text-3xl font-semibold break-words text-white sm:text-4xl lg:text-5xl">
             Work happens inside a controlled VassilFlow workspace.
           </h2>
           <p className="mt-5 max-w-xl text-lg leading-8 text-white/60">

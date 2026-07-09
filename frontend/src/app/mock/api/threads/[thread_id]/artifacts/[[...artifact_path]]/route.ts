@@ -1,7 +1,14 @@
-import fs from "fs";
-import path from "path";
-
 import type { NextRequest } from "next/server";
+
+function hasUnsafePathSegment(value: string) {
+  return value
+    .split(/[\\/]/)
+    .some((segment) => segment === "." || segment === "..");
+}
+
+function encodePath(value: string) {
+  return value.split("/").map(encodeURIComponent).join("/");
+}
 
 export async function GET(
   request: NextRequest,
@@ -16,34 +23,31 @@ export async function GET(
 ) {
   const threadId = (await params).thread_id;
   let artifactPath = (await params).artifact_path?.join("/") ?? "";
-  if (artifactPath.startsWith("mnt/")) {
-    artifactPath = path.resolve(
-      process.cwd(),
-      artifactPath.replace("mnt/", `public/demo/threads/${threadId}/`),
-    );
-    if (fs.existsSync(artifactPath)) {
-      if (request.nextUrl.searchParams.get("download") === "true") {
-        // Attach the file to the response
-        const headers = new Headers();
-        headers.set(
-          "Content-Disposition",
-          `attachment; filename="${artifactPath}"`,
-        );
-        return new Response(fs.readFileSync(artifactPath), {
-          status: 200,
-          headers,
-        });
-      }
-      if (artifactPath.endsWith(".mp4")) {
-        return new Response(fs.readFileSync(artifactPath), {
-          status: 200,
-          headers: {
-            "Content-Type": "video/mp4",
-          },
-        });
-      }
-      return new Response(fs.readFileSync(artifactPath), { status: 200 });
-    }
+  if (
+    !artifactPath.startsWith("mnt/") ||
+    hasUnsafePathSegment(threadId) ||
+    hasUnsafePathSegment(artifactPath)
+  ) {
+    return new Response("File not found", { status: 404 });
   }
-  return new Response("File not found", { status: 404 });
+
+  artifactPath = artifactPath.replace(/^mnt\//, "");
+  const publicArtifactURL = new URL(
+    `/demo/threads/${encodeURIComponent(threadId)}/${encodePath(artifactPath)}`,
+    request.url,
+  );
+  const response = await fetch(publicArtifactURL);
+  if (!response.ok) {
+    return new Response("File not found", { status: 404 });
+  }
+
+  const headers = new Headers(response.headers);
+  if (request.nextUrl.searchParams.get("download") === "true") {
+    const filename = artifactPath.split("/").at(-1) ?? "artifact";
+    headers.set("Content-Disposition", `attachment; filename="${filename}"`);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    headers,
+  });
 }

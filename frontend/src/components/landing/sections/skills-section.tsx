@@ -55,7 +55,7 @@ const routingSteps = [
 export function SkillsSection({ className }: { className?: string }) {
   return (
     <Section
-      className={cn("w-full bg-[#0b0d10] px-4", className)}
+      className={cn("w-full bg-[#0b0d10]", className)}
       title="Skill Routing Without Name Collisions"
       subtitle="VassilFlow treats skills as stable capabilities. Display names can be friendly; execution stays bound to explicit IDs, policies, and run metadata."
     >
@@ -75,7 +75,7 @@ export function SkillsSection({ className }: { className?: string }) {
                   {step.label}
                 </span>
               </div>
-              <h3 className="mt-7 font-mono text-base text-white">
+              <h3 className="mt-7 font-mono text-base break-words text-white">
                 {step.value}
               </h3>
               <p className="mt-3 text-sm leading-7 text-white/60">

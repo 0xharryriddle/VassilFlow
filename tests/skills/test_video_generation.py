@@ -75,6 +75,33 @@ def test_minimax_full_flow(monkeypatch, tmp_path):
     assert "successfully" in msg.lower()
 
 
+def test_minimax_prompt_file_with_bom(monkeypatch, tmp_path):
+    monkeypatch.setenv("MINIMAX_API_KEY", "m")
+    posts = {}
+
+    def fake_post(url, headers=None, json=None, **kw):
+        posts["json"] = json
+        return FakeResp({"task_id": "T1", "base_resp": {"status_code": 0}})
+
+    def fake_get(url, headers=None, params=None, **kw):
+        if url.endswith("/v1/query/video_generation"):
+            return FakeResp({"status": "Success", "file_id": "F1",
+                             "base_resp": {"status_code": 0}})
+        if url.endswith("/v1/files/retrieve"):
+            return FakeResp({"file": {"download_url": "https://dl/v.mp4"},
+                             "base_resp": {"status_code": 0}})
+        return FakeResp(content=b"MP4DATA")
+
+    monkeypatch.setattr(vid.requests, "post", fake_post)
+    monkeypatch.setattr(vid.requests, "get", fake_get)
+    pf = tmp_path / "p.txt"
+    pf.write_text("a clean verification clip", encoding="utf-8-sig")
+
+    vid.generate_video(str(pf), [], str(tmp_path / "v.mp4"), "16:9")
+
+    assert posts["json"]["prompt"] == "a clean verification clip"
+
+
 def test_minimax_reference_first_frame(monkeypatch, tmp_path):
     monkeypatch.setenv("MINIMAX_API_KEY", "m")
     posts = {}

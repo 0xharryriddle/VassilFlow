@@ -11,6 +11,15 @@ from langgraph.errors import GraphBubbleUp
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
 
+from vassilflow.agents.middlewares.skill_context import (
+    SKILL_CONTEXT_ENTRY_KEY,
+    _tool_call_path,
+    build_skill_entry_metadata_from_read,
+)
+from vassilflow.agents.middlewares.tool_result_meta import (
+    normalize_tool_result,
+    stamp_exception_meta,
+)
 from vassilflow.config.app_config import AppConfig
 from vassilflow.subagents.status_contract import (
     extract_subagent_status,
@@ -24,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 _MISSING_TOOL_CALL_ID = "missing_tool_call_id"
 _TASK_TOOL_NAME = "task"
+_DEFAULT_SKILLS_CONTAINER_PATH = "/mnt/skills"
 
 
 def _stamp_task_subagent_status(message: ToolMessage, *, tool_name: str, error: str | None = None) -> ToolMessage:
@@ -59,6 +69,16 @@ def _stamp_task_subagent_status(message: ToolMessage, *, tool_name: str, error: 
 class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
     """Convert tool exceptions into error ToolMessages so the run can continue."""
 
+    def __init__(self, *, app_config: AppConfig | None = None) -> None:
+        super().__init__()
+        self._app_config = app_config
+        if app_config is None:
+            self._skill_read_tool_names = frozenset({"read_file", "read", "view", "cat"})
+            self._skills_root = _DEFAULT_SKILLS_CONTAINER_PATH
+        else:
+            self._skill_read_tool_names = frozenset(app_config.summarization.skill_file_read_tool_names)
+            self._skills_root = app_config.skills.container_path
+
     def _build_error_message(self, request: ToolCallRequest, exc: Exception) -> ToolMessage:
         tool_name = str(request.tool_call.get("name") or "unknown_tool")
         tool_call_id = str(request.tool_call.get("id") or _MISSING_TOOL_CALL_ID)
@@ -79,7 +99,39 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
         # carries the same ``ExcClass: detail`` shape the wrapper string
         # uses so debugging artifacts stay aligned.
         structured_error = f"{exc.__class__.__name__}: {detail}"
-        return _stamp_task_subagent_status(message, tool_name=tool_name, error=structured_error)
+        message = _stamp_task_subagent_status(message, tool_name=tool_name, error=structured_error)
+        return stamp_exception_meta(message, structured_error)
+
+    def _stamp_skill_read_metadata(
+        self,
+        message: ToolMessage,
+        request: ToolCallRequest,
+        *,
+        tool_name: str,
+    ) -> ToolMessage:
+        if tool_name not in self._skill_read_tool_names:
+            return message
+        if getattr(message, "status", "success") == "error":
+            return message
+        content = message.content if isinstance(message.content, str) else None
+        if content is None:
+            return message
+        path = _tool_call_path(request.tool_call)
+        if path is None:
+            return message
+        entry = build_skill_entry_metadata_from_read(path, content, skills_root=self._skills_root)
+        if entry is None:
+            return message
+        existing = dict(message.additional_kwargs or {})
+        existing[SKILL_CONTEXT_ENTRY_KEY] = dict(entry)
+        message.additional_kwargs = existing
+        return message
+
+    def _maybe_stamp_skill_read(self, result: ToolMessage | Command, request: ToolCallRequest) -> ToolMessage | Command:
+        if not isinstance(result, ToolMessage):
+            return result
+        tool_name = str(request.tool_call.get("name") or "")
+        return self._stamp_skill_read_metadata(result, request, tool_name=tool_name)
 
     @staticmethod
     def _maybe_stamp(result: ToolMessage | Command, request: ToolCallRequest) -> ToolMessage | Command:
@@ -107,7 +159,7 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
         except Exception as exc:
             logger.exception("Tool execution failed (sync): name=%s id=%s", request.tool_call.get("name"), request.tool_call.get("id"))
             return self._build_error_message(request, exc)
-        return self._maybe_stamp(result, request)
+        return normalize_tool_result(self._maybe_stamp_skill_read(self._maybe_stamp(result, request), request))
 
     @override
     async def awrap_tool_call(
@@ -123,7 +175,7 @@ class ToolErrorHandlingMiddleware(AgentMiddleware[AgentState]):
         except Exception as exc:
             logger.exception("Tool execution failed (async): name=%s id=%s", request.tool_call.get("name"), request.tool_call.get("id"))
             return self._build_error_message(request, exc)
-        return self._maybe_stamp(result, request)
+        return normalize_tool_result(self._maybe_stamp_skill_read(self._maybe_stamp(result, request), request))
 
 
 def _build_runtime_middlewares(
@@ -188,7 +240,26 @@ def _build_runtime_middlewares(
     from vassilflow.agents.middlewares.sandbox_audit_middleware import SandboxAuditMiddleware
 
     middlewares.append(SandboxAuditMiddleware())
-    middlewares.append(ToolErrorHandlingMiddleware())
+
+    if app_config.read_before_write.enabled:
+        from vassilflow.agents.middlewares.read_before_write_middleware import ReadBeforeWriteMiddleware
+
+        middlewares.append(ReadBeforeWriteMiddleware())
+
+    tool_progress_config = app_config.tool_progress
+    _ToolProgressMiddleware = None
+    if tool_progress_config.enabled:
+        from vassilflow.agents.middlewares.tool_progress_middleware import ToolProgressMiddleware as _ToolProgressMiddleware
+
+        middlewares.append(_ToolProgressMiddleware.from_config(tool_progress_config))
+
+    middlewares.append(ToolErrorHandlingMiddleware(app_config=app_config))
+
+    if _ToolProgressMiddleware is not None:
+        progress_idx = next((i for i, m in enumerate(middlewares) if isinstance(m, _ToolProgressMiddleware)), None)
+        error_idx = next((i for i, m in enumerate(middlewares) if isinstance(m, ToolErrorHandlingMiddleware)), None)
+        if progress_idx is not None and error_idx is not None and progress_idx > error_idx:
+            raise RuntimeError(f"ToolProgressMiddleware must be outer (index {progress_idx}) of ToolErrorHandlingMiddleware (index {error_idx}); check middleware append order")
     return middlewares
 
 
@@ -240,6 +311,15 @@ def build_subagent_runtime_middlewares(
         from vassilflow.agents.middlewares.deferred_tool_filter_middleware import DeferredToolFilterMiddleware
 
         middlewares.append(DeferredToolFilterMiddleware(deferred_setup.deferred_names, deferred_setup.catalog_hash))
+
+    # Subagents inherit none of the lead agent's runaway guards unless they are
+    # wired here. Add loop detection before SafetyFinishReasonMiddleware so
+    # degenerate tool loops stop before they burn through max_turns.
+    loop_detection_config = app_config.loop_detection
+    if loop_detection_config.enabled:
+        from vassilflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
+
+        middlewares.append(LoopDetectionMiddleware.from_config(loop_detection_config))
 
     # Same provider safety-termination guard the lead agent uses — subagents
     # are equally exposed to truncated tool_calls returned with

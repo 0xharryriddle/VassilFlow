@@ -1,5 +1,7 @@
 "use client";
 
+import type { Message } from "@langchain/langgraph-sdk";
+import { useQueryClient } from "@tanstack/react-query";
 import type { ChatStatus } from "ai";
 import {
   CheckIcon,
@@ -22,6 +24,7 @@ import {
   type ComponentProps,
   type KeyboardEvent,
 } from "react";
+import { toast } from "sonner";
 
 import {
   PromptInput,
@@ -34,6 +37,7 @@ import {
   PromptInputBody,
   PromptInputButton,
   PromptInputFooter,
+  PromptInputHeader,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputTools,
@@ -61,10 +65,17 @@ import { getBackendBaseURL } from "@/core/config";
 import { useI18n } from "@/core/i18n/hooks";
 import { isHiddenFromUIMessage } from "@/core/messages/utils";
 import { useModels } from "@/core/models/hooks";
+import {
+  buildReferenceMessageMetadata,
+  type SidecarContext,
+} from "@/core/sidecar";
 import type { Skill } from "@/core/skills";
 import { useSkills } from "@/core/skills/hooks";
 import { useSuggestionsConfig } from "@/core/suggestions/hooks";
+import { findSuggestionTemplatePlaceholder } from "@/core/suggestions/placeholders";
 import type { AgentThreadContext } from "@/core/threads";
+import { compactThreadContext } from "@/core/threads/api";
+import { threadTokenUsageQueryKey } from "@/core/threads/token-usage";
 import { textOfMessage } from "@/core/threads/utils";
 import { isIMEComposing } from "@/lib/ime";
 import { cn } from "@/lib/utils";
@@ -88,11 +99,19 @@ import {
 
 import { useThread } from "./messages/context";
 import { ModeHoverGuide } from "./mode-hover-guide";
+import { ReferenceAttachmentSummary, useMaybeSidecar } from "./sidecar";
 import { Tooltip } from "./tooltip";
 
 type InputMode = "flash" | "thinking" | "pro" | "ultra";
 
 const MAX_SKILL_SUGGESTIONS = 6;
+
+type SlashSuggestion = {
+  name: string;
+  description?: string;
+  applyValue: string;
+  kind: "command" | "skill";
+};
 
 function getLeadingSlashSkillQuery(value: string): string | null {
   if (!value.startsWith("/")) {
@@ -134,6 +153,41 @@ function getMatchingSkillSuggestions(skills: Skill[], query: string): Skill[] {
     .map(({ skill }) => skill);
 }
 
+function getMatchingSlashSuggestions(
+  skills: Skill[],
+  commands: SlashSuggestion[],
+  query: string,
+): SlashSuggestion[] {
+  const normalizedQuery = query.toLowerCase();
+  const commandSuggestions = commands.filter(({ name }) =>
+    !normalizedQuery ? true : name.toLowerCase().includes(normalizedQuery),
+  );
+  const skillSuggestions = getMatchingSkillSuggestions(skills, query).map(
+    (skill): SlashSuggestion => ({
+      name: skill.name,
+      description: skill.description,
+      applyValue: `/${skill.name}`,
+      kind: "skill",
+    }),
+  );
+
+  return [...commandSuggestions, ...skillSuggestions].slice(
+    0,
+    MAX_SKILL_SUGGESTIONS,
+  );
+}
+
+function parseCompactCommand(value: string): boolean {
+  return /^\/(?:compact|context\s+compact)\s*$/i.test(value.trim());
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    error instanceof DOMException &&
+    (error.name === "AbortError" || error.name === "CanceledError")
+  );
+}
+
 function getResolvedMode(
   mode: InputMode | undefined,
   supportsThinking: boolean,
@@ -145,6 +199,66 @@ function getResolvedMode(
     return mode;
   }
   return supportsThinking ? "pro" : "flash";
+}
+
+function escapeXmlAttribute(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export type InputBoxSubmitOptions = {
+  additionalKwargs?: Record<string, unknown>;
+  additionalInputMessages?: Message[];
+  onSent?: () => void;
+};
+
+function buildHiddenConversationQuoteMessage({
+  contexts,
+}: {
+  contexts: SidecarContext[];
+}): Message {
+  return {
+    type: "human",
+    content: [
+      {
+        type: "text",
+        text: [
+          contexts.length === 1
+            ? "The user added the following quoted context to this conversation."
+            : `The user added the following ${contexts.length} quoted contexts to this conversation.`,
+          "Use the referenced_message blocks as reference material for the user's next message.",
+          "",
+          ...contexts.flatMap((context, index) =>
+            [
+              `<referenced_message index="${index + 1}" label="${escapeXmlAttribute(
+                context.label,
+              )}">`,
+              `Role: ${context.role === "user" ? "User" : "Assistant"}`,
+              context.messageId ? `Message ID: ${context.messageId}` : null,
+              "",
+              context.content,
+              "</referenced_message>",
+              "",
+            ].filter((line): line is string => line !== null),
+          ),
+        ]
+          .filter((line): line is string => line !== null)
+          .join("\n"),
+      },
+    ],
+    additional_kwargs: {
+      hide_from_ui: true,
+      conversation_quote_context: true,
+      referenced_message_ids: contexts.map(
+        (context) => context.messageId ?? "",
+      ),
+      referenced_message_roles: contexts.map((context) => context.role),
+      quote_context_count: contexts.length,
+    },
+  } as Message;
 }
 
 export function InputBox({
@@ -192,23 +306,31 @@ export function InputBox({
     },
   ) => void;
   onFollowupsVisibilityChange?: (visible: boolean) => void;
-  onSubmit?: (message: PromptInputMessage) => void | Promise<void>;
+  onSubmit?: (
+    message: PromptInputMessage,
+    options?: InputBoxSubmitOptions,
+  ) => void | Promise<void>;
   onStop?: () => void;
 }) {
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const { models } = useModels();
   const { thread, isMock } = useThread();
   const { textInput } = usePromptInputController();
+  const sidecar = useMaybeSidecar();
   const { skills } = useSkills();
   const promptRootRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const compactAbortControllerRef = useRef<AbortController | null>(null);
   const promptHistoryIndexRef = useRef<number | null>(null);
   const promptHistoryDraftRef = useRef("");
 
   const [followups, setFollowups] = useState<string[]>([]);
   const { data: suggestionsConfig } = useSuggestionsConfig();
+  const suggestionsConfigLoaded = suggestionsConfig !== undefined;
+  const suggestionsEnabled = suggestionsConfig?.enabled;
   const [followupsHidden, setFollowupsHidden] = useState(false);
   const [followupsLoading, setFollowupsLoading] = useState(false);
   const [textareaFocused, setTextareaFocused] = useState(false);
@@ -264,6 +386,18 @@ export function InputBox({
     [selectedModel],
   );
 
+  const builtinSlashCommands = useMemo<SlashSuggestion[]>(
+    () => [
+      {
+        name: "compact",
+        description: t.inputBox.compactCommandDescription,
+        applyValue: "/compact",
+        kind: "command",
+      },
+    ],
+    [t.inputBox.compactCommandDescription],
+  );
+
   const promptHistory = useMemo(() => {
     const history: string[] = [];
     for (const message of thread.messages) {
@@ -292,7 +426,16 @@ export function InputBox({
   useEffect(() => {
     promptHistoryIndexRef.current = null;
     promptHistoryDraftRef.current = "";
+    compactAbortControllerRef.current?.abort();
+    compactAbortControllerRef.current = null;
   }, [threadId]);
+
+  useEffect(() => {
+    return () => {
+      compactAbortControllerRef.current?.abort();
+      compactAbortControllerRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     const currentIndex = promptHistoryIndexRef.current;
@@ -347,6 +490,71 @@ export function InputBox({
     [onContextChange, context],
   );
 
+  const handleCompactCommand = useCallback(async (): Promise<void> => {
+    if (isWelcomeMode) {
+      textInput.setInput("");
+      toast.info(t.inputBox.compactSkipped);
+      return;
+    }
+
+    compactAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    compactAbortControllerRef.current = controller;
+
+    try {
+      const result = await compactThreadContext(threadId, {
+        signal: controller.signal,
+        agentName:
+          typeof context.agent_name === "string" ? context.agent_name : null,
+      });
+
+      if (compactAbortControllerRef.current !== controller) {
+        return;
+      }
+
+      textInput.setInput("");
+      promptHistoryIndexRef.current = null;
+      promptHistoryDraftRef.current = "";
+      setFollowups([]);
+      setFollowupsHidden(false);
+      setFollowupsLoading(false);
+
+      void queryClient.invalidateQueries({ queryKey: ["thread", threadId] });
+      void queryClient.invalidateQueries({
+        queryKey: threadTokenUsageQueryKey(threadId),
+      });
+
+      if (result.compacted) {
+        toast.success(t.inputBox.compactSuccess);
+      } else {
+        toast.info(t.inputBox.compactSkipped);
+      }
+    } catch (error) {
+      if (
+        isAbortError(error) ||
+        compactAbortControllerRef.current !== controller
+      ) {
+        return;
+      }
+      toast.error(
+        error instanceof Error ? error.message : t.inputBox.compactFailed,
+      );
+    } finally {
+      if (compactAbortControllerRef.current === controller) {
+        compactAbortControllerRef.current = null;
+      }
+    }
+  }, [
+    context.agent_name,
+    isWelcomeMode,
+    queryClient,
+    t.inputBox.compactFailed,
+    t.inputBox.compactSkipped,
+    t.inputBox.compactSuccess,
+    textInput,
+    threadId,
+  ]);
+
   const handleSubmit = useCallback(
     (message: PromptInputMessage) => {
       if (status === "streaming") {
@@ -356,11 +564,46 @@ export function InputBox({
       if (!message.text.trim() && message.files.length === 0) {
         return;
       }
+      if (message.files.length === 0 && parseCompactCommand(message.text)) {
+        return handleCompactCommand();
+      }
+      const placeholder = findSuggestionTemplatePlaceholder(message.text);
+      if (placeholder) {
+        toast.warning(t.inputBox.suggestionPlaceholderRequired);
+        requestAnimationFrame(() => {
+          const textarea = textareaRef.current;
+          if (!textarea) {
+            return;
+          }
+          textarea.focus();
+          textarea.setSelectionRange(placeholder.start, placeholder.end);
+        });
+        return Promise.reject(
+          new Error("Suggestion template placeholder is unresolved."),
+        );
+      }
       promptHistoryIndexRef.current = null;
       promptHistoryDraftRef.current = "";
       setFollowups([]);
       setFollowupsHidden(false);
       setFollowupsLoading(false);
+      const quotes = sidecar?.conversationQuotes ?? [];
+      const quoteIds = quotes.map((quote) => quote.id);
+      const quoteContexts = quotes.map((quote) => quote.context);
+      const submitOptions: InputBoxSubmitOptions | undefined = quotes.length
+        ? {
+            additionalKwargs: buildReferenceMessageMetadata(quoteContexts),
+            additionalInputMessages: [
+              buildHiddenConversationQuoteMessage({
+                contexts: quoteContexts,
+              }),
+            ],
+            onSent: () => {
+              sidecar?.clearConversationQuotes(quoteIds);
+            },
+          }
+        : undefined;
+      const submit = () => onSubmit?.(message, submitOptions);
 
       // Guard against submitting before the initial model auto-selection
       // effect has flushed thread settings to storage/state.
@@ -375,21 +618,24 @@ export function InputBox({
         });
         return new Promise<void>((resolve, reject) => {
           setTimeout(() => {
-            Promise.resolve(onSubmit?.(message)).then(resolve).catch(reject);
+            Promise.resolve(submit()).then(resolve).catch(reject);
           }, 0);
         });
       }
 
-      return onSubmit?.(message);
+      return submit();
     },
     [
       context,
+      handleCompactCommand,
       onContextChange,
       onSubmit,
       onStop,
       resolvedModelName,
       selectedModel?.supports_thinking,
+      sidecar,
       status,
+      t.inputBox.suggestionPlaceholderRequired,
     ],
   );
 
@@ -448,27 +694,31 @@ export function InputBox({
     () => getLeadingSlashSkillQuery(textInput.value ?? ""),
     [textInput.value],
   );
-  const skillSuggestions = useMemo(
+  const slashSuggestions = useMemo(
     () =>
       slashSkillQuery === null
         ? []
-        : getMatchingSkillSuggestions(skills, slashSkillQuery),
-    [skills, slashSkillQuery],
+        : getMatchingSlashSuggestions(
+            skills,
+            builtinSlashCommands,
+            slashSkillQuery,
+          ),
+    [builtinSlashCommands, skills, slashSkillQuery],
   );
   const showSkillSuggestions =
     !disabled &&
     textareaFocused &&
     slashSkillQuery !== null &&
-    skillSuggestions.length > 0 &&
+    slashSuggestions.length > 0 &&
     dismissedSkillSuggestionValue !== textInput.value;
 
   useEffect(() => {
     setSkillSuggestionIndex(0);
-  }, [slashSkillQuery, skillSuggestions.length]);
+  }, [slashSkillQuery, slashSuggestions.length]);
 
   const applySkillSuggestion = useCallback(
-    (skill: Skill) => {
-      const nextValue = `/${skill.name} `;
+    (suggestion: SlashSuggestion) => {
+      const nextValue = `${suggestion.applyValue} `;
       textInput.setInput(nextValue);
       setDismissedSkillSuggestionValue(nextValue);
       requestAnimationFrame(() => {
@@ -492,7 +742,7 @@ export function InputBox({
       if (event.key === "ArrowDown") {
         event.preventDefault();
         setSkillSuggestionIndex(
-          (index) => (index + 1) % skillSuggestions.length,
+          (index) => (index + 1) % slashSuggestions.length,
         );
         return;
       }
@@ -501,7 +751,7 @@ export function InputBox({
         event.preventDefault();
         setSkillSuggestionIndex(
           (index) =>
-            (index - 1 + skillSuggestions.length) % skillSuggestions.length,
+            (index - 1 + slashSuggestions.length) % slashSuggestions.length,
         );
         return;
       }
@@ -511,9 +761,9 @@ export function InputBox({
           return;
         }
         event.preventDefault();
-        const selectedSkill = skillSuggestions[skillSuggestionIndex];
-        if (selectedSkill) {
-          applySkillSuggestion(selectedSkill);
+        const selectedSuggestion = slashSuggestions[skillSuggestionIndex];
+        if (selectedSuggestion) {
+          applySkillSuggestion(selectedSuggestion);
         }
         return;
       }
@@ -527,7 +777,7 @@ export function InputBox({
       applySkillSuggestion,
       showSkillSuggestions,
       skillSuggestionIndex,
-      skillSuggestions,
+      slashSuggestions,
       textInput.value,
     ],
   );
@@ -655,7 +905,7 @@ export function InputBox({
     if (!lastAiId || lastAiId === lastGeneratedForAiIdRef.current) {
       return;
     }
-    if (suggestionsConfig === undefined) {
+    if (!suggestionsConfigLoaded) {
       return;
     }
     lastGeneratedForAiIdRef.current = lastAiId;
@@ -675,7 +925,7 @@ export function InputBox({
       return;
     }
 
-    if (!suggestionsConfig?.enabled) {
+    if (!suggestionsEnabled) {
       setFollowups([]);
       return;
     }
@@ -721,9 +971,22 @@ export function InputBox({
     disabled,
     isMock,
     status,
+    suggestionsConfigLoaded,
+    suggestionsEnabled,
     threadId,
-    suggestionsConfig?.enabled,
   ]);
+
+  const onSelectPlaceholder = useCallback((newText: string) => {
+    const placeholder = findSuggestionTemplatePlaceholder(newText);
+    if (placeholder) {
+      requestAnimationFrame(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+        textarea.focus();
+        textarea.setSelectionRange(placeholder.start, placeholder.end);
+      });
+    }
+  }, []);
 
   return (
     <div
@@ -772,7 +1035,7 @@ export function InputBox({
             className="bg-popover/95 text-popover-foreground border-border max-h-72 overflow-y-auto rounded-xl border p-1 shadow-lg backdrop-blur-sm"
             role="listbox"
           >
-            {skillSuggestions.map((skill, index) => {
+            {slashSuggestions.map((suggestion, index) => {
               const selected = index === skillSuggestionIndex;
               return (
                 <button
@@ -783,8 +1046,8 @@ export function InputBox({
                       ? "bg-accent text-accent-foreground"
                       : "text-popover-foreground hover:bg-accent/70 hover:text-accent-foreground",
                   )}
-                  key={skill.name}
-                  onClick={() => applySkillSuggestion(skill)}
+                  key={`${suggestion.kind}:${suggestion.name}`}
+                  onClick={() => applySkillSuggestion(suggestion)}
                   onMouseDown={(event) => event.preventDefault()}
                   onMouseEnter={() => setSkillSuggestionIndex(index)}
                   role="option"
@@ -793,11 +1056,11 @@ export function InputBox({
                   <SparklesIcon className="text-muted-foreground size-4 shrink-0" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">
-                      /{skill.name}
+                      /{suggestion.name}
                     </span>
-                    {skill.description && (
+                    {suggestion.description && (
                       <span className="text-muted-foreground block truncate text-xs">
-                        {skill.description}
+                        {suggestion.description}
                       </span>
                     )}
                   </span>
@@ -809,7 +1072,7 @@ export function InputBox({
       )}
       <PromptInput
         className={cn(
-          "bg-background/85 rounded-2xl backdrop-blur-sm transition-all duration-300 ease-out *:data-[slot='input-group']:rounded-2xl",
+          "bg-background/85 relative z-10 rounded-2xl backdrop-blur-sm transition-all duration-300 ease-out *:data-[slot='input-group']:rounded-2xl",
           className,
         )}
         disabled={disabled}
@@ -825,9 +1088,22 @@ export function InputBox({
             </div>
           </div>
         )}
-        <PromptInputAttachments>
-          {(attachment) => <PromptInputAttachment data={attachment} />}
-        </PromptInputAttachments>
+        <PromptInputHeader className="flex-wrap px-3 pt-3 pb-0 empty:hidden">
+          <PromptInputAttachments className="contents p-0">
+            {(attachment) => (
+              <div className="max-w-60">
+                <PromptInputAttachment data={attachment} />
+              </div>
+            )}
+          </PromptInputAttachments>
+          {sidecar && sidecar.conversationQuotes.length > 0 && (
+            <ReferenceAttachmentSummary
+              references={sidecar.conversationQuotes}
+              testId="conversation-quote-attachment"
+              onClear={() => sidecar.clearConversationQuotes()}
+            />
+          )}
+        </PromptInputHeader>
         <PromptInputBody className="absolute top-0 right-0 left-0 z-3">
           <PromptInputTextarea
             className={cn("size-full")}
@@ -1189,16 +1465,16 @@ export function InputBox({
             />
           </PromptInputTools>
         </PromptInputFooter>
-        {!isWelcomeMode && (
-          <div className="bg-background absolute right-0 -bottom-[17px] left-0 z-0 h-4"></div>
-        )}
       </PromptInput>
+      {!isWelcomeMode && (
+        <div className="bg-background absolute right-0 -bottom-[17px] left-0 z-0 h-4"></div>
+      )}
 
       {isWelcomeMode &&
         searchParams.get("mode") !== "skill" &&
         !showSkillSuggestions && (
           <div className="flex items-center justify-center pt-2">
-            <SuggestionList />
+            <SuggestionList onSelectPlaceholder={onSelectPlaceholder} />
           </div>
         )}
 
@@ -1227,28 +1503,20 @@ export function InputBox({
   );
 }
 
-function SuggestionList() {
+function SuggestionList({
+  onSelectPlaceholder,
+}: {
+  onSelectPlaceholder: (newText: string) => void;
+}) {
   const { t } = useI18n();
   const { textInput } = usePromptInputController();
   const handleSuggestionClick = useCallback(
     (prompt: string | undefined) => {
       if (!prompt) return;
       textInput.setInput(prompt);
-      setTimeout(() => {
-        const textarea = document.querySelector<HTMLTextAreaElement>(
-          "textarea[name='message']",
-        );
-        if (textarea) {
-          const selStart = prompt.indexOf("[");
-          const selEnd = prompt.indexOf("]");
-          if (selStart !== -1 && selEnd !== -1) {
-            textarea.setSelectionRange(selStart, selEnd + 1);
-            textarea.focus();
-          }
-        }
-      }, 500);
+      onSelectPlaceholder(prompt);
     },
-    [textInput],
+    [textInput, onSelectPlaceholder],
   );
   return (
     <Suggestions className="min-h-16 w-full max-w-full justify-center px-4 sm:w-fit sm:px-0">

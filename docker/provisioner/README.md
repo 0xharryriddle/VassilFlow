@@ -138,6 +138,7 @@ The provisioner is configured via environment variables (set in [docker-compose-
 |----------|---------|-------------|
 | `K8S_NAMESPACE` | `vassilflow` | Kubernetes namespace for sandbox resources |
 | `SANDBOX_IMAGE` | `enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest` | AIO-compatible container image for sandbox Pods |
+| `SANDBOX_CONTAINER_PORT` | `8080` | TCP port exposed by sandbox Pods and targeted by their NodePort Service |
 | `SKILLS_HOST_PATH` | - | **Host machine** path to skills directory (must be absolute) |
 | `THREADS_HOST_PATH` | - | **Host machine** path to threads data directory (must be absolute) |
 | `SKILLS_PVC_NAME` | empty (use hostPath) | PVC name for skills volume; when set, sandbox Pods use PVC instead of hostPath |

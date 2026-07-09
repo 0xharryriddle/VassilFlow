@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from vassilflow.agents.lead_agent import agent as lead_agent_module
+from vassilflow.agents.middlewares import summarization_middleware as summarization_middleware_module
 from vassilflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
 from vassilflow.config.app_config import AppConfig
 from vassilflow.config.loop_detection_config import LoopDetectionConfig
@@ -463,9 +464,9 @@ def test_create_summarization_middleware_uses_configured_model_alias(monkeypatch
     def _raise_get_app_config():
         raise AssertionError("ambient get_app_config() must not be used when app_config is explicit")
 
-    monkeypatch.setattr(lead_agent_module, "get_app_config", _raise_get_app_config)
-    monkeypatch.setattr(lead_agent_module, "create_chat_model", _fake_create_chat_model)
-    monkeypatch.setattr(lead_agent_module, "VassilFlowSummarizationMiddleware", lambda **kwargs: kwargs)
+    monkeypatch.setattr(summarization_middleware_module, "get_app_config", _raise_get_app_config)
+    monkeypatch.setattr(summarization_middleware_module, "create_chat_model", _fake_create_chat_model)
+    monkeypatch.setattr(summarization_middleware_module, "VassilFlowSummarizationMiddleware", lambda **kwargs: kwargs)
 
     middleware = lead_agent_module._create_summarization_middleware(app_config=app_config)
 
@@ -485,7 +486,7 @@ def test_create_summarization_middleware_uses_frontend_supported_update_key(monk
 
     fake_model = MagicMock()
     fake_model.with_config.return_value = fake_model
-    monkeypatch.setattr(lead_agent_module, "create_chat_model", lambda **kwargs: fake_model)
+    monkeypatch.setattr(summarization_middleware_module, "create_chat_model", lambda **kwargs: fake_model)
 
     middleware = lead_agent_module._create_summarization_middleware(app_config=app_config)
 
@@ -509,9 +510,9 @@ def test_create_summarization_middleware_threads_resolved_app_config_to_model(mo
         captured["app_config"] = app_config
         return fake_model
 
-    monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: fallback_app_config)
-    monkeypatch.setattr(lead_agent_module, "create_chat_model", _fake_create_chat_model)
-    monkeypatch.setattr(lead_agent_module, "VassilFlowSummarizationMiddleware", lambda **kwargs: kwargs)
+    monkeypatch.setattr(summarization_middleware_module, "get_app_config", lambda: fallback_app_config)
+    monkeypatch.setattr(summarization_middleware_module, "create_chat_model", _fake_create_chat_model)
+    monkeypatch.setattr(summarization_middleware_module, "VassilFlowSummarizationMiddleware", lambda **kwargs: kwargs)
 
     lead_agent_module._create_summarization_middleware()
 

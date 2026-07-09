@@ -2,7 +2,12 @@
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
  * for Docker builds.
  */
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import "./src/env.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function getInternalServiceURL(envKey, fallbackURL) {
   const configured = process.env[envKey]?.trim();
@@ -16,6 +21,7 @@ const withNextra = nextra({});
 
 /** @type {import("next").NextConfig} */
 const config = {
+  outputFileTracingRoot: __dirname,
   output:
     process.env.NEXT_CONFIG_BUILD_OUTPUT === "standalone"
       ? "standalone"

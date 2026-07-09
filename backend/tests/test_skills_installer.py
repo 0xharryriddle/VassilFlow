@@ -224,7 +224,7 @@ class TestInstallSkillFromArchive:
         skills_root.mkdir()
         calls = []
 
-        async def _scan(content, *, executable, location):
+        async def _scan(content, *, executable, location, static_findings=None):
             calls.append({"content": content, "executable": executable, "location": location})
             return ScanResult(decision="allow", reason="ok")
 
@@ -254,7 +254,7 @@ class TestInstallSkillFromArchive:
         skills_root.mkdir()
         calls = []
 
-        async def _scan(content, *, executable, location):
+        async def _scan(content, *, executable, location, static_findings=None):
             calls.append({"content": content, "executable": executable, "location": location})
             return ScanResult(decision="allow", reason="ok")
 

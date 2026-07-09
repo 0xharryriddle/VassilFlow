@@ -9,10 +9,12 @@ import logging
 import math
 import re
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from vassilflow.agents.memory.prompt import (
     MEMORY_UPDATE_PROMPT,
+    STALENESS_REVIEW_PROMPT,
     format_conversation_for_update,
 )
 from vassilflow.agents.memory.storage import (
@@ -297,11 +299,29 @@ def _normalize_memory_update_data(update_data: dict[str, Any]) -> dict[str, Any]
             0,
         )
 
+    stale_removals_raw = update_data.get("staleFactsToRemove")
+    normalized_stale_removals: list[dict[str, str]] = []
+    if isinstance(stale_removals_raw, list):
+        for entry in stale_removals_raw:
+            if not isinstance(entry, dict):
+                continue
+            fact_id = entry.get("id")
+            if not isinstance(fact_id, str) or not fact_id:
+                continue
+            reason = entry.get("reason", "")
+            normalized_stale_removals.append(
+                {
+                    "id": fact_id,
+                    "reason": reason if isinstance(reason, str) else "",
+                }
+            )
+
     return {
         "user": user if isinstance(user, dict) else {},
         "history": history if isinstance(history, dict) else {},
         "newFacts": normalized_new_facts,
         "factsToRemove": normalized_facts_to_remove,
+        "staleFactsToRemove": normalized_stale_removals,
     }
 
 
@@ -372,6 +392,63 @@ def _fact_content_key(content: Any) -> str | None:
     return stripped.casefold()
 
 
+def _parse_fact_datetime(raw: str) -> datetime | None:
+    """Parse an ISO-8601 datetime string from a fact's createdAt field."""
+    if not raw:
+        return None
+    try:
+        result = datetime.fromisoformat(raw)
+        if result.tzinfo is None:
+            result = result.replace(tzinfo=UTC)
+        return result
+    except (TypeError, ValueError):
+        return None
+
+
+def _select_stale_candidates(
+    current_memory: dict[str, Any],
+    config: Any,
+) -> list[dict[str, Any]]:
+    """Return aged facts that are eligible for staleness review."""
+    cutoff = datetime.now(UTC) - timedelta(days=config.staleness_age_days)
+    protected = frozenset(config.staleness_protected_categories)
+    candidates: list[dict[str, Any]] = []
+    for fact in current_memory.get("facts", []):
+        if not isinstance(fact, dict):
+            continue
+        category = fact.get("category", "")
+        if isinstance(category, str) and category in protected:
+            continue
+        created_at = _parse_fact_datetime(fact.get("createdAt", ""))
+        if created_at is not None and created_at < cutoff:
+            candidates.append(fact)
+    return candidates
+
+
+def _build_staleness_section(
+    stale_candidates: list[dict[str, Any]],
+    age_days: int,
+) -> str:
+    """Format the staleness review prompt section from candidate facts."""
+    if not stale_candidates:
+        return ""
+
+    lines: list[str] = []
+    for fact in stale_candidates:
+        fid = fact.get("id", "?")
+        cat = str(fact.get("category", "context")).strip() or "context"
+        conf = fact.get("confidence", 0.0)
+        created_raw = fact.get("createdAt", "")
+        created_short = created_raw[:10] if isinstance(created_raw, str) and len(created_raw) >= 10 else created_raw
+        content = str(fact.get("content", ""))
+        lines.append(f'- [{fid} | {cat} | {conf:.2f} | {created_short}] "{content}"')
+
+    return STALENESS_REVIEW_PROMPT.format(
+        stale_facts="\n".join(lines),
+        age_days=age_days,
+    )
+
+
 class MemoryUpdater:
     """Updates memory using LLM based on conversation context."""
 
@@ -436,10 +513,21 @@ class MemoryUpdater:
             correction_detected=correction_detected,
             reinforcement_detected=reinforcement_detected,
         )
+
+        staleness_section = ""
+        if config.staleness_review_enabled:
+            stale_candidates = _select_stale_candidates(current_memory, config)
+            if len(stale_candidates) >= config.staleness_min_candidates:
+                staleness_section = _build_staleness_section(
+                    stale_candidates,
+                    config.staleness_age_days,
+                )
+
         prompt = MEMORY_UPDATE_PROMPT.format(
             current_memory=json.dumps(current_memory, indent=2, ensure_ascii=False),
             conversation=conversation_text,
             correction_hint=correction_hint,
+            staleness_review_section=staleness_section,
         )
         return current_memory, prompt
 
@@ -631,10 +719,36 @@ class MemoryUpdater:
                     "updatedAt": now,
                 }
 
-        # Remove facts
+        # Remove facts (contradiction-based)
         facts_to_remove = set(update_data.get("factsToRemove", []))
         if facts_to_remove:
             current_memory["facts"] = [f for f in current_memory.get("facts", []) if f.get("id") not in facts_to_remove]
+
+        stale_removals = update_data.get("staleFactsToRemove", [])
+        if isinstance(stale_removals, list) and stale_removals:
+            stale_ids_to_remove = {entry["id"] for entry in stale_removals if isinstance(entry, dict) and "id" in entry}
+
+            candidate_ids = {f["id"] for f in _select_stale_candidates(current_memory, config)}
+            stale_ids_to_remove &= candidate_ids
+
+            if not stale_ids_to_remove:
+                stale_removals = []
+            else:
+                max_stale = config.staleness_max_removals_per_cycle
+                if len(stale_ids_to_remove) > max_stale:
+                    stale_facts = [f for f in current_memory.get("facts", []) if f.get("id") in stale_ids_to_remove]
+                    stale_facts.sort(key=lambda f: f.get("confidence", 0))
+                    stale_ids_to_remove = {f["id"] for f in stale_facts[:max_stale]}
+
+                current_memory["facts"] = [f for f in current_memory.get("facts", []) if f.get("id") not in stale_ids_to_remove]
+
+            for entry in stale_removals:
+                if isinstance(entry, dict) and entry.get("id") in stale_ids_to_remove:
+                    logger.info(
+                        "Staleness review removed fact %s: %s",
+                        entry["id"],
+                        entry.get("reason", "no reason provided"),
+                    )
 
         # Add new facts
         existing_fact_keys = {fact_key for fact_key in (_fact_content_key(fact.get("content")) for fact in current_memory.get("facts", [])) if fact_key is not None}

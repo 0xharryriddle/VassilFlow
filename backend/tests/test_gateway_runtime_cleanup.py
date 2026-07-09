@@ -43,6 +43,16 @@ def test_service_launchers_always_use_gateway_runtime():
         assert "LANGGRAPH_REWRITE" not in content, path
 
 
+def test_docker_dev_mounts_mutable_configs_through_project_directory():
+    compose = _read("docker/docker-compose-dev.yaml")
+
+    assert re.search(r"^\s*-\s*\.\./:/app/project(?:\:\S+)?\s*$", compose, re.M)
+    assert not re.search(r"^\s*-\s*[^\n#]*config\.yaml\s*:\s*[^\n#]*$", compose, re.M)
+    assert not re.search(r"^\s*-\s*[^\n#]*extensions_config\.json\s*:\s*[^\n#]*$", compose, re.M)
+    assert "VASSILFLOW_CONFIG_PATH=/app/project/config.yaml" in compose
+    assert "VASSILFLOW_EXTENSIONS_CONFIG_PATH=/app/project/extensions_config.json" in compose
+
+
 def test_local_dev_gateway_reload_excludes_runtime_state_with_absolute_dirs():
     serve_sh = _read("scripts/serve.sh")
 
@@ -160,6 +170,15 @@ def test_nginx_defers_cors_to_gateway_allowlist():
         assert "Access-Control-Allow-Credentials" not in content
         assert "proxy_hide_header 'Access-Control-Allow-" not in content
         assert "if ($request_method = 'OPTIONS')" not in content
+
+
+def test_nginx_preserves_forwarded_proto_from_outer_proxy():
+    for path in ("docker/nginx/nginx.local.conf", "docker/nginx/nginx.conf"):
+        content = _read(path)
+
+        assert "map $http_x_forwarded_proto $forwarded_proto" in content
+        assert "proxy_set_header X-Forwarded-Proto $forwarded_proto;" in content
+        assert "proxy_set_header X-Forwarded-Proto $scheme;" not in content
 
 
 def test_gateway_cors_configuration_uses_gateway_allowlist():

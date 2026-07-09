@@ -338,6 +338,19 @@ Every pull request triggers the following CI workflows:
 - [Architecture Overview](backend/CLAUDE.md) - Technical architecture
 - [MCP Setup Guide](backend/docs/MCP_SERVER.md) - Model Context Protocol configuration
 
+## Troubleshooting Bundle
+
+For setup, sandbox, runtime, or configuration issues, run:
+
+```bash
+make support-bundle
+```
+
+The command writes a redacted zip plus `*-issue-summary.md` and `*-issue-draft.md`
+under `.vassilflow/support-bundles/`. Paste the issue summary into the bug report.
+Attach the zip only when a maintainer asks for the evidence bundle, or when the
+summary alone is not enough to diagnose the issue.
+
 ## Need Help?
 
 - Read the [Documentation](backend/docs/)

@@ -51,6 +51,8 @@ export const enUS: Translations = {
     exportAsJSON: "Export as JSON",
     exportSuccess: "Conversation exported",
     regenerate: "Regenerate",
+    branch: "Branch conversation",
+    showArtifacts: "Show artifacts of this conversation",
   },
 
   // Home
@@ -76,6 +78,35 @@ export const enUS: Translations = {
     copiedToClipboard: "Copied to clipboard",
     failedToCopyToClipboard: "Failed to copy to clipboard",
     linkCopied: "Link copied to clipboard",
+  },
+
+  citations: {
+    sourcesSummary: (count: number) =>
+      `Used ${count} source${count === 1 ? "" : "s"}`,
+    citeCount: (count: number) => `${count} cite${count === 1 ? "" : "s"}`,
+    copyReference: (title: string) => `Copy ${title} reference`,
+    copiedReference: (title: string) => `Copied ${title} reference`,
+  },
+
+  workspaceChanges: {
+    title: "Workspace changes",
+    editedTitle: (count: number) =>
+      `Edited ${count} ${count === 1 ? "file" : "files"}`,
+    badge: (count: number, additions: number, deletions: number) =>
+      `${count} ${count === 1 ? "file" : "files"} changed +${additions} -${deletions}`,
+    viewChanges: "View changes",
+    created: "Created",
+    modified: "Modified",
+    deleted: "Deleted",
+    openFile: "Open file",
+    loading: "Loading workspace changes...",
+    noChanges: "No workspace changes recorded.",
+    diffUnavailable: "Diff unavailable",
+    binaryUnavailable: "Binary file. Diff unavailable.",
+    largeUnavailable: "Large file. Diff omitted.",
+    sensitiveUnavailable: "Sensitive path. Content hidden.",
+    truncatedUnavailable: "Diff omitted because the change set is too large.",
+    truncatedSummary: "Some changes were truncated.",
   },
 
   // Input Box
@@ -116,6 +147,14 @@ export const enUS: Translations = {
       "You already have text in the input. Choose how to send it.",
     followupConfirmAppend: "Append & send",
     followupConfirmReplace: "Replace & send",
+    suggestionPlaceholderRequired:
+      "Replace the suggestion placeholder before sending.",
+    compactCommandDescription:
+      "Compact earlier context while keeping the full chat visible",
+    compactSuccess:
+      "Earlier context compacted. Future model calls will use the summary and recent messages.",
+    compactSkipped: "The current context does not need compaction yet.",
+    compactFailed: "Context compaction failed.",
     suggestions: [
       {
         suggestion: "Write",
@@ -251,6 +290,8 @@ export const enUS: Translations = {
   conversation: {
     noMessages: "No messages yet",
     startConversation: "Start a conversation to see messages here",
+    branchCreated: "Conversation branch created",
+    branchFailed: "Failed to branch conversation.",
   },
 
   // Chats
@@ -325,6 +366,17 @@ export const enUS: Translations = {
     skillInstallTooltip: "Install skill and make it available to VassilFlow",
   },
 
+  humanInput: {
+    answered: "Answered",
+    pending: "Sending...",
+    readOnly: "Read-only",
+    submit: "Submit",
+    otherLabel: "Your answer",
+    otherPlaceholder: "Type your answer...",
+    emptyError: "Please enter an answer.",
+    answeredValue: (value: string) => `You answered: ${value}`,
+  },
+
   // Subtasks
   uploads: {
     uploading: "Uploading...",
@@ -385,6 +437,33 @@ export const enUS: Translations = {
       "Navigate VassilFlow faster with keyboard shortcuts.",
     openCommandPalette: "Open Command Palette",
     toggleSidebar: "Toggle Sidebar",
+  },
+
+  // Sidecar
+  sidecar: {
+    title: "Side chat",
+    open: "Open side chat",
+    close: "Close side chat",
+    delete: "Delete side chat",
+    deleteConfirm:
+      "Are you sure you want to delete this side chat? This action cannot be undone. To hide it without deleting, use the side chat toggle in the header.",
+    deleteSuccess: "Side chat deleted",
+    deleteFailed: "Failed to delete side chat.",
+    addToConversation: "Add to conversation",
+    askInSideChat: "Ask in side chat",
+    reference: "Reference",
+    selectedTextFragment: "{count} selected text fragment",
+    selectedTextFragments: "{count} selected text fragments",
+    clearReferences: "Clear selected references",
+    emptyTitle: "Ask a follow-up",
+    emptyDescription: "Ask a follow-up grounded in the referenced text.",
+    placeholder: "Ask a deeper follow-up...",
+    send: "Send",
+    sendFailed: "Failed to send side chat message.",
+    noContext: "No context selected",
+    continuing: "Continue in this side chat",
+    selectionCrossesMessages:
+      "Selection spans multiple messages. Select text within one message to quote it.",
   },
 
   // Settings

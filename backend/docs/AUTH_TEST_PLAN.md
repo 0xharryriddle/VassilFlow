@@ -363,8 +363,8 @@ curl -s -X POST $BASE/api/threads \
 ### 3.3 Cookie 安全
 
 > HTTP 与 HTTPS 行为差异通过 `X-Forwarded-Proto: https` 模拟。
-> **注意：** 经 nginx 代理时，nginx 的 `proxy_set_header X-Forwarded-Proto $scheme` 会覆盖
-> 客户端发的值（`$scheme` = nginx 监听端口的 scheme），因此 HTTPS 模拟必须**直连 Gateway（端口 8001）**。
+> **注意：** nginx 会保留外层代理传入的 `X-Forwarded-Proto`，没有该 header 时才回退到 `$scheme`。
+> HTTPS 模拟可直连 Gateway（端口 8001），也可通过已更新的 nginx 入口验证。
 > 每个 case 需在 **login** 和 **register** 两个端点各验证一次。
 
 #### TC-ATK-06: HTTP 模式 Cookie 属性
@@ -390,7 +390,7 @@ curl -s -D - -X POST $BASE/api/v1/auth/register \
 
 #### TC-ATK-07: HTTPS 模式 Cookie 属性
 
-> **必须直连 Gateway**（`GW=http://localhost:8001`），经 nginx 会被 `$scheme` 覆盖。
+> 可直连 Gateway（`GW=http://localhost:8001`），也可通过保留 `X-Forwarded-Proto` 的 nginx 入口验证。
 
 ```bash
 GW=http://localhost:8001
@@ -403,7 +403,7 @@ curl -s -D - -X POST $GW/api/v1/auth/login/local \
 
 **预期：**
 - `access_token`: `HttpOnly; Secure; Path=/; SameSite=lax; Max-Age=604800`
-- `csrf_token`: `Secure; Path=/; SameSite=strict`，无 `HttpOnly`
+- `csrf_token`: `Secure; Path=/; SameSite=strict; Max-Age=604800`，无 `HttpOnly`
 
 ```bash
 # 注册（模拟 HTTPS）
@@ -417,7 +417,7 @@ curl -s -D - -X POST $GW/api/v1/auth/register \
 
 #### TC-ATK-07a: HTTP/HTTPS 差异对比
 
-> 直连 Gateway 执行，避免 nginx 覆盖 `X-Forwarded-Proto`。
+> 可直连 Gateway 执行，也可通过已保留 `X-Forwarded-Proto` 的 nginx 入口执行。
 
 ```bash
 GW=http://localhost:8001
@@ -458,7 +458,7 @@ done
 | HttpOnly | Yes | Yes | No | No |
 | Secure | No | **Yes** | No | **Yes** |
 | SameSite | Lax | Lax | Strict | Strict |
-| Max-Age | 无（session cookie） | **604800**（7天） | 无 | 无 |
+| Max-Age | 无（session cookie） | **604800**（7天） | 无 | **604800**（7天） |
 
 ### 3.4 越权访问
 
@@ -1615,16 +1615,16 @@ GW=http://localhost:8001
 # HTTP
 curl -s -D - -X POST $GW/api/v1/auth/login/local \
   -d "username=admin@example.com&password=正确密码" 2>/dev/null \
-  | grep "access_token=" | grep -oi "max-age=[0-9]*" || echo "NO max-age (HTTP session cookie)"
+  | grep -E "access_token=|csrf_token=" | grep -oi "max-age=[0-9]*" || echo "NO max-age (HTTP session cookies)"
 
-# HTTPS：直连 Gateway 才能用 X-Forwarded-Proto 模拟 HTTPS；nginx 会覆盖该 header
+# HTTPS：直连 Gateway 或经过保留 X-Forwarded-Proto 的 nginx 均可模拟 HTTPS
 curl -s -D - -X POST $GW/api/v1/auth/login/local \
   -H "X-Forwarded-Proto: https" \
   -d "username=admin@example.com&password=正确密码" 2>/dev/null \
-  | grep "access_token=" | grep -oi "max-age=[0-9]*"
+  | grep -E "access_token=|csrf_token=" | grep -oi "max-age=[0-9]*"
 ```
 
-**预期：** HTTP 无 `Max-Age`（session cookie，浏览器关闭即失效），HTTPS 有 `Max-Age=604800`（7 天）
+**预期：** HTTP 无 `Max-Age`（session cookie，浏览器关闭即失效），HTTPS 的 `access_token` 与 `csrf_token` 都有 `Max-Age=604800`（7 天）
 
 #### TC-EDGE-06: public 路径 trailing slash
 

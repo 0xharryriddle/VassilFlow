@@ -554,6 +554,8 @@ def _set_csrf_cookie(response: Response, request: Request) -> None:
         httponly=False,  # Must be JS-readable for Double Submit Cookie pattern
         secure=is_https,
         samesite="strict",
+        # Keep the OIDC callback CSRF cookie aligned with access_token.
+        max_age=get_auth_config().token_expiry_days * 24 * 3600 if is_https else None,
     )
 
 

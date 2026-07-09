@@ -157,7 +157,10 @@ class TestBrowserlessTools:
         mock_client.fetch_html = AsyncMock(return_value="<html><body><article><h1>Title</h1><p>Content</p></article></body></html>")
         mock_get_client.return_value = mock_client
 
-        with patch("vassilflow.community.browserless.tools._get_tool_config", return_value=None):
+        with (
+            patch("vassilflow.community.browserless.tools._get_tool_config", return_value=None),
+            patch("vassilflow.community.browserless.tools.validate_public_http_url", return_value=None),
+        ):
             result = await tools.web_fetch_tool.ainvoke("https://example.com/article")
 
         assert "Error:" not in result
@@ -169,7 +172,10 @@ class TestBrowserlessTools:
         mock_client.fetch_html = AsyncMock(return_value="Error: Browserless returned empty response")
         mock_get_client.return_value = mock_client
 
-        with patch("vassilflow.community.browserless.tools._get_tool_config", return_value=None):
+        with (
+            patch("vassilflow.community.browserless.tools._get_tool_config", return_value=None),
+            patch("vassilflow.community.browserless.tools.validate_public_http_url", return_value=None),
+        ):
             result = await tools.web_fetch_tool.ainvoke("https://example.com")
 
         assert result.startswith("Error:")
@@ -181,7 +187,32 @@ class TestBrowserlessTools:
         mock_client.fetch_html = AsyncMock(side_effect=Exception("Unexpected error"))
         mock_get_client.return_value = mock_client
 
-        with patch("vassilflow.community.browserless.tools._get_tool_config", return_value=None):
+        with (
+            patch("vassilflow.community.browserless.tools._get_tool_config", return_value=None),
+            patch("vassilflow.community.browserless.tools.validate_public_http_url", return_value=None),
+        ):
             result = await tools.web_fetch_tool.ainvoke("https://example.com")
 
         assert result.startswith("Error:")
+
+    @patch("vassilflow.community.browserless.tools._get_browserless_client")
+    async def test_web_fetch_tool_rejects_private_url_by_default(self, mock_get_client):
+        """web_fetch_tool rejects private URLs before invoking Browserless."""
+        with patch("vassilflow.community.browserless.tools._get_tool_config", return_value=None):
+            result = await tools.web_fetch_tool.ainvoke("http://127.0.0.1:8080/admin")
+
+        assert result.startswith("Error: Refusing to fetch")
+        mock_get_client.assert_not_called()
+
+    @patch("vassilflow.community.browserless.tools._get_browserless_client")
+    async def test_web_fetch_tool_allows_private_url_when_explicitly_configured(self, mock_get_client):
+        """allow_private_addresses opt-in permits intentionally internal targets."""
+        mock_client = MagicMock()
+        mock_client.fetch_html = AsyncMock(return_value="<html><body><article><h1>Private</h1><p>Content</p></article></body></html>")
+        mock_get_client.return_value = mock_client
+
+        with patch("vassilflow.community.browserless.tools._get_tool_config", return_value={"allow_private_addresses": "true"}):
+            result = await tools.web_fetch_tool.ainvoke("http://127.0.0.1:8080/page")
+
+        assert "Error:" not in result
+        mock_get_client.assert_called_once()

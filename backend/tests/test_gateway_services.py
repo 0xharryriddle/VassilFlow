@@ -132,6 +132,37 @@ def test_normalize_input_preserves_additional_kwargs_and_id():
     assert msg.additional_kwargs == {"files": files, "custom": "keep-me"}
 
 
+def test_normalize_input_preserves_human_input_response_metadata():
+    from langchain_core.messages import HumanMessage
+
+    from app.gateway.services import normalize_input
+
+    response = {
+        "version": 1,
+        "kind": "human_input_response",
+        "source": "ask_clarification",
+        "request_id": "clarification:call-abc",
+        "response_kind": "option",
+        "option_id": "option-2",
+        "value": "staging",
+    }
+    result = normalize_input(
+        {
+            "messages": [
+                {
+                    "type": "human",
+                    "content": [{"type": "text", "text": "For your clarification, my answer is: staging"}],
+                    "additional_kwargs": {"human_input_response": response},
+                }
+            ]
+        }
+    )
+
+    msg = result["messages"][0]
+    assert isinstance(msg, HumanMessage)
+    assert msg.additional_kwargs["human_input_response"] == response
+
+
 def test_normalize_input_passes_through_basemessage_instances():
     from langchain_core.messages import HumanMessage
 
@@ -206,6 +237,91 @@ def test_build_run_config_with_overrides():
     assert config["configurable"]["model_name"] == "gpt-4"
     assert config["tags"] == ["test"]
     assert config["metadata"]["user"] == "alice"
+
+
+def test_build_run_config_clamps_excessive_recursion_limit(_stub_app_config):
+    from app.gateway.services import build_run_config
+
+    config = build_run_config("thread-1", {"recursion_limit": 100_000_000}, None)
+
+    assert config["recursion_limit"] == 1000
+
+
+def test_build_run_config_ceiling_is_configurable():
+    from app.gateway.services import build_run_config
+
+    set_app_config(
+        AppConfig.model_validate(
+            {
+                "sandbox": {"use": "vassilflow.sandbox.local:LocalSandboxProvider"},
+                "max_recursion_limit": 300,
+            }
+        )
+    )
+    try:
+        config = build_run_config("thread-1", {"recursion_limit": 100_000_000}, None)
+        assert config["recursion_limit"] == 300
+    finally:
+        reset_app_config()
+
+
+def test_build_run_config_preserves_reasonable_recursion_limit(_stub_app_config):
+    from app.gateway.services import build_run_config
+
+    config = build_run_config("thread-1", {"recursion_limit": 250}, None)
+
+    assert config["recursion_limit"] == 250
+
+
+def test_build_run_config_rejects_invalid_recursion_limit(_stub_app_config):
+    from app.gateway.services import _DEFAULT_RECURSION_LIMIT, build_run_config
+
+    for bad in (0, -5, "1000", 3.5, True, None):
+        config = build_run_config("thread-1", {"recursion_limit": bad}, None)
+        assert config["recursion_limit"] == _DEFAULT_RECURSION_LIMIT, bad
+
+
+def test_build_run_config_clamps_recursion_limit_with_context(_stub_app_config):
+    from app.gateway.services import build_run_config
+
+    config = build_run_config(
+        "thread-1",
+        {"context": {"thread_id": "thread-1"}, "recursion_limit": 999_999},
+        None,
+    )
+
+    assert config["recursion_limit"] == 1000
+
+
+def test_build_run_config_context_also_sets_configurable_thread_id(_stub_app_config):
+    from app.gateway.services import build_run_config
+
+    config = build_run_config(
+        "thread-1",
+        {"context": {"secrets": {"API_TOKEN": "secret-value"}}},
+        None,
+    )
+
+    assert config["context"]["thread_id"] == "thread-1"
+    assert config["configurable"] == {"thread_id": "thread-1"}
+
+
+def test_redact_config_secrets_removes_secret_context_keys():
+    from vassilflow.runtime.secret_context import ACTIVE_SECRETS_CONTEXT_KEY, redact_config_secrets
+
+    config = {
+        "context": {
+            "thread_id": "thread-1",
+            "secrets": {"API_TOKEN": "secret-value"},
+            ACTIVE_SECRETS_CONTEXT_KEY: {"API_TOKEN": "active-secret"},
+        },
+        "tags": ["test"],
+    }
+
+    redacted = redact_config_secrets(config)
+
+    assert redacted == {"context": {"thread_id": "thread-1"}, "tags": ["test"]}
+    assert config["context"]["secrets"]["API_TOKEN"] == "secret-value"
 
 
 # ---------------------------------------------------------------------------
@@ -514,6 +630,40 @@ def test_merge_run_context_overrides_propagates_to_runtime_context():
     assert "thread_id" not in config["context"]
 
 
+def test_merge_run_context_overrides_runtime_only_keys_stay_out_of_configurable():
+    """Request-scoped secrets and runtime flags belong only in runtime context."""
+    from app.gateway.services import build_run_config, merge_run_context_overrides
+
+    config = build_run_config("thread-1", None, None)
+    merge_run_context_overrides(
+        config,
+        {
+            "github_token": "ghs_installation_token",
+            "disable_clarification": True,
+        },
+    )
+
+    assert config["context"]["github_token"] == "ghs_installation_token"
+    assert config["context"]["disable_clarification"] is True
+    assert "github_token" not in config.get("configurable", {})
+    assert "disable_clarification" not in config.get("configurable", {})
+
+
+def test_merge_run_context_overrides_internal_keys_require_internal_flag():
+    from app.gateway.services import build_run_config, merge_run_context_overrides
+
+    public_config = build_run_config("thread-1", None, None)
+    merge_run_context_overrides(public_config, {"non_interactive": True})
+
+    internal_config = build_run_config("thread-2", None, None)
+    merge_run_context_overrides(internal_config, {"non_interactive": True}, internal=True)
+
+    assert "non_interactive" not in public_config["context"]
+    assert "non_interactive" not in public_config["configurable"]
+    assert internal_config["context"]["non_interactive"] is True
+    assert internal_config["configurable"]["non_interactive"] is True
+
+
 def test_merge_run_context_overrides_noop_for_empty_context():
     from app.gateway.services import build_run_config, merge_run_context_overrides
 
@@ -617,6 +767,47 @@ def test_inject_authenticated_user_context_skips_internal_role():
     inject_authenticated_user_context(config, request)
 
     assert config["context"]["user_id"] == "channel-user-7"
+
+
+def test_inject_authenticated_user_context_strips_internal_spoofed_attribution():
+    """Internal callers need a server-resolved owner before role/oauth policy applies."""
+    from types import SimpleNamespace
+
+    from app.gateway.services import build_run_config, inject_authenticated_user_context
+
+    config = build_run_config(
+        "thread-1",
+        {
+            "context": {
+                "user_id": "channel-user-7",
+                "user_role": "admin",
+                "oauth_provider": "spoofed-provider",
+                "oauth_id": "spoofed-subject",
+            }
+        },
+        None,
+    )
+    request = SimpleNamespace(state=SimpleNamespace(user=SimpleNamespace(id="internal-bot", system_role="internal")))
+
+    inject_authenticated_user_context(config, request)
+
+    assert config["context"]["user_id"] == "channel-user-7"
+    assert "user_role" not in config["context"]
+    assert "oauth_provider" not in config["context"]
+    assert "oauth_id" not in config["context"]
+
+
+def test_strip_internal_context_keys_scrubs_config_smuggled_non_interactive():
+    from app.gateway.services import build_run_config, strip_internal_context_keys
+
+    via_context = build_run_config("thread-1", {"context": {"non_interactive": True}}, None)
+    via_configurable = build_run_config("thread-2", {"configurable": {"non_interactive": True}}, None)
+
+    strip_internal_context_keys(via_context)
+    strip_internal_context_keys(via_configurable)
+
+    assert "non_interactive" not in via_context["context"]
+    assert "non_interactive" not in via_configurable["configurable"]
 
 
 async def _capture_start_run_graph_input(body):
@@ -779,6 +970,94 @@ def test_start_run_uses_internal_owner_header_for_persistence(_stub_app_config):
     assert task_context["user_id"] == "owner-1"
 
 
+def test_start_run_stamps_internal_owner_guardrail_attribution(_stub_app_config):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from langgraph.checkpoint.memory import InMemorySaver
+    from langgraph.store.memory import InMemoryStore
+
+    from app.gateway.auth_disabled import AUTH_SOURCE_INTERNAL
+    from app.gateway.internal_auth import INTERNAL_OWNER_USER_ID_HEADER_NAME, INTERNAL_SYSTEM_ROLE
+    from app.gateway.services import start_run
+    from vassilflow.persistence.thread_meta.memory import MemoryThreadMetaStore
+    from vassilflow.runtime import RunManager
+    from vassilflow.runtime.runs.store.memory import MemoryRunStore
+
+    class _Provider:
+        async def get_user(self, user_id: str):
+            assert user_id == "owner-1"
+            return SimpleNamespace(
+                id="owner-1",
+                system_role="user",
+                oauth_provider="keycloak",
+                oauth_id="subject-123",
+            )
+
+    async def _scenario():
+        thread_store = MemoryThreadMetaStore(InMemoryStore())
+        await thread_store.create("channel-thread", user_id="owner-1", metadata={})
+        run_manager = RunManager(store=MemoryRunStore())
+        state = SimpleNamespace(
+            stream_bridge=SimpleNamespace(),
+            run_manager=run_manager,
+            checkpointer=InMemorySaver(),
+            store=InMemoryStore(),
+            run_event_store=SimpleNamespace(),
+            run_events_config=None,
+            thread_store=thread_store,
+        )
+        request = SimpleNamespace(
+            headers={INTERNAL_OWNER_USER_ID_HEADER_NAME: "owner-1"},
+            state=SimpleNamespace(
+                user=SimpleNamespace(id="default", system_role=INTERNAL_SYSTEM_ROLE),
+                auth_source=AUTH_SOURCE_INTERNAL,
+            ),
+            app=SimpleNamespace(state=state),
+        )
+        body = SimpleNamespace(
+            assistant_id="lead_agent",
+            input={"messages": [{"role": "human", "content": "hi"}]},
+            metadata={},
+            config={
+                "context": {
+                    "user_role": "admin",
+                    "oauth_provider": "spoofed-provider",
+                    "oauth_id": "spoofed-subject",
+                }
+            },
+            context={"user_id": "spoofed-client"},
+            on_disconnect="cancel",
+            multitask_strategy="reject",
+            stream_mode=None,
+            stream_subgraphs=False,
+            interrupt_before=None,
+            interrupt_after=None,
+        )
+        captured_context: dict[str, object] = {}
+
+        async def fake_run_agent(*args, **kwargs):
+            captured_context.update(kwargs["config"]["context"])
+
+        with (
+            patch("app.gateway.services.get_local_provider", return_value=_Provider()),
+            patch("app.gateway.services.resolve_agent_factory", return_value=object()),
+            patch("app.gateway.services.run_agent", side_effect=fake_run_agent),
+        ):
+            record = await start_run(body, "channel-thread", request)
+            await record.task
+
+        return captured_context
+
+    context = asyncio.run(_scenario())
+
+    assert context["user_id"] == "owner-1"
+    assert context["user_role"] == "user"
+    assert context["oauth_provider"] == "keycloak"
+    assert context["oauth_id"] == "subject-123"
+
+
 # ---------------------------------------------------------------------------
 # build_run_config — context / configurable precedence (LangGraph >= 0.6.0)
 # ---------------------------------------------------------------------------
@@ -796,7 +1075,7 @@ def test_build_run_config_with_context():
     assert "context" in config
     assert config["context"]["user_id"] == "u-42"
     assert config["context"]["thread_id"] == "thread-1"
-    assert "configurable" not in config
+    assert config["configurable"] == {"thread_id": "thread-1"}
     assert config["recursion_limit"] == 100
 
 
@@ -812,7 +1091,7 @@ def test_build_run_config_context_injects_thread_id():
     assert config["context"]["user_id"] == "u-1"
     assert config["context"]["thinking_enabled"] is True
     assert config["context"]["thread_id"] == "T-deadbeef-42"
-    assert "configurable" not in config
+    assert config["configurable"] == {"thread_id": "T-deadbeef-42"}
 
 
 def test_build_run_config_null_context_becomes_empty_context():
@@ -822,7 +1101,7 @@ def test_build_run_config_null_context_becomes_empty_context():
     config = build_run_config("thread-1", {"context": None}, None)
 
     assert config["context"] == {"thread_id": "thread-1"}
-    assert "configurable" not in config
+    assert config["configurable"] == {"thread_id": "thread-1"}
 
 
 def test_build_run_config_rejects_non_mapping_context():
@@ -861,10 +1140,10 @@ def test_build_run_config_context_plus_configurable_warns(caplog):
                 "configurable": {"model_name": "gpt-4"},
             },
             None,
-        )
+    )
     assert "context" in config
     assert config["context"]["user_id"] == "u-42"
-    assert "configurable" not in config
+    assert config["configurable"] == {"thread_id": "thread-1"}
     assert any("both 'context' and 'configurable'" in r.message for r in caplog.records)
 
 
@@ -878,7 +1157,7 @@ def test_build_run_config_context_passthrough_other_keys():
         None,
     )
     assert config["context"]["thread_id"] == "thread-1"
-    assert "configurable" not in config
+    assert config["configurable"] == {"thread_id": "thread-1"}
     assert config["tags"] == ["prod"]
 
 

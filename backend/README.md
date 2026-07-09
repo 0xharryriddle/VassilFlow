@@ -120,6 +120,9 @@ FastAPI application providing REST endpoints for frontend integration:
 | `POST /api/memory/reload` | Force memory reload |
 | `GET /api/memory/config` | Memory configuration |
 | `GET /api/memory/status` | Combined config + data |
+| `GET /api/console/stats` | Read-only run/thread/token headline metrics |
+| `GET /api/console/runs` | Cross-thread run history for the current user |
+| `GET /api/console/usage` | Daily token usage and per-model cost breakdown |
 | `POST /api/threads/{id}/uploads` | Upload files (auto-converts PDF/PPT/Excel/Word to Markdown, rejects directory paths, auto-renames duplicate filenames in one request) |
 | `GET /api/threads/{id}/uploads/list` | List uploaded files |
 | `DELETE /api/threads/{id}` | Delete VassilFlow-managed local thread data after LangGraph thread deletion; unexpected failures are logged server-side and return a generic 500 detail |
@@ -282,7 +285,8 @@ MCP servers and skill states in a single file:
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {"GITHUB_TOKEN": "$GITHUB_TOKEN"}
+      "env": {"GITHUB_TOKEN": "$GITHUB_TOKEN"},
+      "tool_call_timeout": 60
     },
     "secure-http": {
       "enabled": true,

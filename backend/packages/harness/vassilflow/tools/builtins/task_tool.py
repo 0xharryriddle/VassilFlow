@@ -53,7 +53,13 @@ def pop_cached_subagent_usage(tool_call_id: str) -> dict | None:
 
 def _is_subagent_terminal(result: Any) -> bool:
     """Return whether a background subagent result is safe to clean up."""
-    return result.status in {SubagentStatus.COMPLETED, SubagentStatus.FAILED, SubagentStatus.CANCELLED, SubagentStatus.TIMED_OUT} or getattr(result, "completed_at", None) is not None
+    return result.status in {
+        SubagentStatus.COMPLETED,
+        SubagentStatus.FAILED,
+        SubagentStatus.CANCELLED,
+        SubagentStatus.TIMED_OUT,
+        SubagentStatus.MAX_TURNS_REACHED,
+    } or getattr(result, "completed_at", None) is not None
 
 
 async def _await_subagent_terminal(task_id: str, max_polls: int) -> Any | None:
@@ -287,6 +293,7 @@ async def task_tool(
     oauth_provider = parent_context.get("oauth_provider")
     oauth_id = parent_context.get("oauth_id")
     run_id = parent_context.get("run_id")
+    channel_user_id = parent_context.get("channel_user_id")
 
     parent_available_skills = metadata.get("available_skills")
     if parent_available_skills is not None:
@@ -330,6 +337,7 @@ async def task_tool(
         "oauth_provider": oauth_provider,
         "oauth_id": oauth_id,
         "run_id": run_id,
+        "channel_user_id": channel_user_id,
     }
     if resolved_app_config is not None:
         executor_kwargs["app_config"] = resolved_app_config
@@ -416,6 +424,14 @@ async def task_tool(
                 logger.warning(f"[trace={trace_id}] Task {task_id} timed out: {result.error}")
                 cleanup_background_task(task_id)
                 return f"Task timed out. Error: {result.error}"
+            elif result.status == SubagentStatus.MAX_TURNS_REACHED:
+                _cache_subagent_usage(tool_call_id, usage, enabled=cache_token_usage)
+                _report_subagent_usage(runtime, result)
+                writer({"type": "task_failed", "task_id": task_id, "error": f"Reached max_turns={config.max_turns}", "usage": usage})
+                logger.warning(f"[trace={trace_id}] Task {task_id} reached max_turns={config.max_turns}; returning partial result")
+                cleanup_background_task(task_id)
+                partial = result.result or "No partial result was produced before the turn budget was reached."
+                return f"Task reached max turns. Reached max_turns={config.max_turns}. Partial result: {partial}"
 
             # Still running, wait before next poll
             await asyncio.sleep(5)

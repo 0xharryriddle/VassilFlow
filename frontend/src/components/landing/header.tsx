@@ -7,6 +7,8 @@ import type { Locale } from "@/core/i18n/locale";
 import { getI18n } from "@/core/i18n/server";
 import { cn } from "@/lib/utils";
 
+import { MobileNav } from "./mobile-nav";
+
 export type HeaderProps = {
   className?: string;
   homeURL?: string;
@@ -91,6 +93,18 @@ export async function Header({ className, homeURL, locale }: HeaderProps) {
         <Button size="sm" asChild className="rounded-md">
           <Link href="/workspace">Open</Link>
         </Button>
+        <MobileNav
+          links={[
+            { href: "/workspace", label: "Workspace" },
+            {
+              href: "/workspace/chats/vf-demo-orchestrator-run",
+              label: "Demo",
+            },
+            { href: `/${lang}/docs`, label: t.home.docs },
+            { href: "/blog/posts", label: t.home.blog },
+            { href: APP_REPOSITORY_URL, label: "Source" },
+          ]}
+        />
       </div>
 
       <hr className="absolute top-16 right-0 left-0 z-10 m-0 h-px w-full border-none bg-white/10" />

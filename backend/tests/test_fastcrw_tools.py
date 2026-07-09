@@ -86,7 +86,8 @@ class TestWebFetchTool:
 
         from vassilflow.community.fastcrw.tools import web_fetch_tool
 
-        result = web_fetch_tool.invoke({"url": "https://example.com"})
+        with patch("vassilflow.community.fastcrw.tools.validate_public_http_url", return_value=None):
+            result = web_fetch_tool.invoke({"url": "https://example.com"})
 
         assert result == "# Fetched Page\n\nFetched markdown"
         mock_get_app_config.return_value.get_tool_config.assert_any_call("web_fetch")
@@ -109,7 +110,8 @@ class TestWebFetchTool:
 
         from vassilflow.community.fastcrw.tools import web_fetch_tool
 
-        assert web_fetch_tool.invoke({"url": "https://example.com"}) == "Error: No content found"
+        with patch("vassilflow.community.fastcrw.tools.validate_public_http_url", return_value=None):
+            assert web_fetch_tool.invoke({"url": "https://example.com"}) == "Error: No content found"
 
     @patch.dict("os.environ", {}, clear=True)
     @patch("vassilflow.community.fastcrw.tools.FirecrawlApp")
@@ -120,4 +122,36 @@ class TestWebFetchTool:
 
         from vassilflow.community.fastcrw.tools import web_fetch_tool
 
-        assert web_fetch_tool.invoke({"url": "https://example.com"}) == "Error: scrape failed"
+        with patch("vassilflow.community.fastcrw.tools.validate_public_http_url", return_value=None):
+            assert web_fetch_tool.invoke({"url": "https://example.com"}) == "Error: scrape failed"
+
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("vassilflow.community.fastcrw.tools.FirecrawlApp")
+    @patch("vassilflow.community.fastcrw.tools.get_app_config")
+    def test_fetch_rejects_private_url_by_default(self, mock_get_app_config, mock_fastcrw_cls):
+        mock_get_app_config.return_value.get_tool_config.return_value = None
+
+        from vassilflow.community.fastcrw.tools import web_fetch_tool
+
+        result = web_fetch_tool.invoke({"url": "http://127.0.0.1:8080/admin"})
+
+        assert result.startswith("Error: Refusing to fetch")
+        mock_fastcrw_cls.assert_not_called()
+
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("vassilflow.community.fastcrw.tools.FirecrawlApp")
+    @patch("vassilflow.community.fastcrw.tools.get_app_config")
+    def test_fetch_allows_private_url_when_explicitly_configured(self, mock_get_app_config, mock_fastcrw_cls):
+        fetch_config = MagicMock()
+        fetch_config.model_extra = {"allow_private_addresses": "true"}
+        mock_get_app_config.return_value.get_tool_config.return_value = fetch_config
+        mock_scrape_result = MagicMock()
+        mock_scrape_result.markdown = "Private markdown"
+        mock_scrape_result.metadata = MagicMock(title="Private")
+        mock_fastcrw_cls.return_value.scrape.return_value = mock_scrape_result
+
+        from vassilflow.community.fastcrw.tools import web_fetch_tool
+
+        result = web_fetch_tool.invoke({"url": "http://127.0.0.1:8080/page"})
+
+        assert result == "# Private\n\nPrivate markdown"

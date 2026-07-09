@@ -714,3 +714,66 @@ def test_csrf_cookie_not_secure_on_http():
     assert csrf_cookies, "csrf_token cookie not set on HTTP register"
     csrf_header = csrf_cookies[0]
     assert "secure" not in csrf_header.lower().replace("samesite", "")
+
+
+def test_csrf_cookie_persistent_on_https():
+    """HTTPS register → csrf_token is persistent, matching access_token."""
+    _setup_config()
+    client = _get_auth_client()
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={"email": _unique_email("csrf-persist"), "password": "Tr0ub4dor3a"},
+        headers={"x-forwarded-proto": "https"},
+    )
+
+    assert resp.status_code == 201
+    set_cookies = _get_set_cookie_headers(resp)
+    csrf_cookies = [h for h in set_cookies if "csrf_token=" in h]
+    access_cookies = [h for h in set_cookies if "access_token=" in h]
+
+    assert csrf_cookies, "csrf_token cookie not set on HTTPS register"
+    assert access_cookies, "access_token cookie not set on HTTPS register"
+    assert "max-age" in csrf_cookies[0].lower()
+    assert "max-age" in access_cookies[0].lower()
+
+
+def test_csrf_cookie_session_only_on_http():
+    """HTTP register → csrf_token remains session-only, matching access_token."""
+    _setup_config()
+    client = _get_auth_client()
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={"email": _unique_email("csrf-session"), "password": "Tr0ub4dor3a"},
+    )
+
+    assert resp.status_code == 201
+    csrf_cookies = [h for h in _get_set_cookie_headers(resp) if "csrf_token=" in h]
+    assert csrf_cookies, "csrf_token cookie not set on HTTP register"
+    assert "max-age" not in csrf_cookies[0].lower()
+
+
+def test_oidc_callback_csrf_cookie_persistent_on_https():
+    """OIDC callback CSRF cookie helper is persistent over HTTPS too."""
+    from starlette.requests import Request
+    from starlette.responses import Response
+
+    from app.gateway.routers.auth import _set_csrf_cookie
+
+    _setup_config()
+    scope = {
+        "type": "http",
+        "method": "GET",
+        "path": "/api/v1/auth/callback/example",
+        "headers": [(b"x-forwarded-proto", b"https")],
+        "scheme": "http",
+        "server": ("internal", 8000),
+        "query_string": b"",
+    }
+
+    response = Response()
+    _set_csrf_cookie(response, Request(scope))
+    set_cookie = response.headers.get("set-cookie", "").lower()
+
+    assert "csrf_token=" in set_cookie
+    assert "secure" in set_cookie
+    assert "max-age" in set_cookie

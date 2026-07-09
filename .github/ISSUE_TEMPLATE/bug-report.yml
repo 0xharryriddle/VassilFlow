@@ -154,6 +154,16 @@ body:
         commit: abcdef1
 
   - type: textarea
+    id: support_bundle
+    attributes:
+      label: Support bundle summary
+      description: For setup, sandbox, runtime, or configuration issues, run `make support-bundle` and paste the generated `*-issue-summary.md` here. Attach the zip only if a maintainer asks for it.
+      placeholder: |
+        ## VassilFlow support bundle summary
+        - Triage status: ...
+        - Active signals: ...
+
+  - type: textarea
     id: additional
     attributes:
       label: Additional context

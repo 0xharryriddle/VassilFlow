@@ -21,12 +21,14 @@ from vassilflow.config.guardrails_config import GuardrailsConfig, load_guardrail
 from vassilflow.config.loop_detection_config import LoopDetectionConfig
 from vassilflow.config.memory_config import MemoryConfig, load_memory_config_from_dict
 from vassilflow.config.model_config import ModelConfig
+from vassilflow.config.read_before_write_config import ReadBeforeWriteConfig
 from vassilflow.config.reload_boundary import format_field_description
 from vassilflow.config.run_events_config import RunEventsConfig
 from vassilflow.config.runtime_paths import existing_project_file
 from vassilflow.config.safety_finish_reason_config import SafetyFinishReasonConfig
 from vassilflow.config.sandbox_config import SandboxConfig
 from vassilflow.config.skill_evolution_config import SkillEvolutionConfig
+from vassilflow.config.skill_scan_config import SkillScanConfig
 from vassilflow.config.skills_config import SkillsConfig
 from vassilflow.config.stream_bridge_config import StreamBridgeConfig, load_stream_bridge_config_from_dict
 from vassilflow.config.subagents_config import SubagentsAppConfig, load_subagents_config_from_dict
@@ -37,6 +39,7 @@ from vassilflow.config.token_budget_config import TokenBudgetConfig
 from vassilflow.config.token_usage_config import TokenUsageConfig
 from vassilflow.config.tool_config import ToolConfig, ToolGroupConfig
 from vassilflow.config.tool_output_config import ToolOutputConfig
+from vassilflow.config.tool_progress_config import ToolProgressConfig
 from vassilflow.config.tool_search_config import ToolSearchConfig, load_tool_search_config_from_dict
 
 load_dotenv()
@@ -97,6 +100,11 @@ class AppConfig(BaseModel):
             field_doc="Logging level for vassilflow and app modules (debug/info/warning/error); third-party libraries are not affected.",
         ),
     )
+    max_recursion_limit: int = Field(
+        default=1000,
+        ge=1,
+        description="Hard server-side ceiling for a client-supplied run recursion_limit. Client values above this are clamped; invalid values fall back to the server default.",
+    )
     token_usage: TokenUsageConfig = Field(default_factory=TokenUsageConfig, description="Token usage tracking configuration")
     token_budget: TokenBudgetConfig = Field(default_factory=TokenBudgetConfig, description="Token Budget tracking and limits configuration.")
     models: list[ModelConfig] = Field(default_factory=list, description="Available models")
@@ -109,6 +117,7 @@ class AppConfig(BaseModel):
     tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")
     tool_groups: list[ToolGroupConfig] = Field(default_factory=list, description="Available tool groups")
     skills: SkillsConfig = Field(default_factory=SkillsConfig, description="Skills configuration")
+    skill_scan: SkillScanConfig = Field(default_factory=SkillScanConfig, description="Native deterministic skill safety scanning configuration")
     skill_evolution: SkillEvolutionConfig = Field(default_factory=SkillEvolutionConfig, description="Agent-managed skill evolution configuration")
     extensions: ExtensionsConfig = Field(default_factory=ExtensionsConfig, description="Extensions configuration (MCP servers and skills state)")
     tool_output: ToolOutputConfig = Field(default_factory=ToolOutputConfig, description="Tool output budget protection configuration")
@@ -130,6 +139,8 @@ class AppConfig(BaseModel):
         ),
     )
     loop_detection: LoopDetectionConfig = Field(default_factory=LoopDetectionConfig, description="Loop detection middleware configuration")
+    read_before_write: ReadBeforeWriteConfig = Field(default_factory=ReadBeforeWriteConfig, description="Read-before-write file mutation guard configuration")
+    tool_progress: ToolProgressConfig = Field(default_factory=ToolProgressConfig, description="Tool progress state machine middleware configuration")
     safety_finish_reason: SafetyFinishReasonConfig = Field(default_factory=SafetyFinishReasonConfig, description="Provider safety-filter finish_reason interception middleware configuration")
     auth: AuthAppConfig = Field(default_factory=AuthAppConfig, description="Authentication configuration (local + OIDC SSO)")
     model_config = ConfigDict(extra="allow")

@@ -43,6 +43,20 @@ def test_with_lyrics_payload_and_writes(monkeypatch, tmp_path):
     assert "Successfully generated music" in msg
 
 
+def test_reads_bom_json_spec(monkeypatch, tmp_path):
+    monkeypatch.setenv("MINIMAX_API_KEY", "m")
+    captured = {}
+    monkeypatch.setattr(mus.requests, "post", _post_ok(captured))
+    spec = tmp_path / "s.json"
+    spec.write_text('{"prompt":"lofi verification","is_instrumental":true}', encoding="utf-8-sig")
+    out = tmp_path / "o.mp3"
+
+    mus.generate_music(str(spec), str(out))
+
+    assert captured["json"]["prompt"] == "lofi verification"
+    assert out.read_bytes() == b"songbytes"
+
+
 def test_instrumental_sets_flag(monkeypatch, tmp_path):
     monkeypatch.setenv("MINIMAX_API_KEY", "m")
     captured = {}

@@ -21,7 +21,7 @@ def generate_music(prompt_file: str, output_file: str) -> str:
     - is_instrumental true -> pure music, no lyrics needed
     - otherwise           -> lyrics_optimizer auto-writes lyrics from prompt
     """
-    with open(prompt_file, "r", encoding="utf-8") as f:
+    with open(prompt_file, encoding="utf-8-sig") as f:
         spec = json.load(f)
 
     api_key = os.getenv("MINIMAX_API_KEY")

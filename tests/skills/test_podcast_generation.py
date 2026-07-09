@@ -100,6 +100,27 @@ def test_generate_podcast_minimax_end_to_end(monkeypatch, tmp_path):
     assert "Successfully generated podcast" in msg
 
 
+def test_generate_podcast_reads_bom_json(monkeypatch, tmp_path):
+    monkeypatch.setenv("MINIMAX_API_KEY", "m")
+
+    def fake_post(url, headers=None, json=None, **kw):
+        return FakeResp({"data": {"audio": b"chunk".hex(), "status": 2},
+                         "base_resp": {"status_code": 0}})
+
+    monkeypatch.setattr(pod.requests, "post", fake_post)
+    script = tmp_path / "s.json"
+    script.write_text(
+        '{"title":"T","locale":"en","lines":[{"speaker":"male","paragraph":"a"}]}',
+        encoding="utf-8-sig",
+    )
+    out = tmp_path / "o.mp3"
+
+    msg = pod.generate_podcast(str(script), str(out), None)
+
+    assert out.read_bytes() == b"chunk"
+    assert "Successfully generated podcast" in msg
+
+
 def test_volcengine_tts_decodes_base64(monkeypatch):
     import base64
     monkeypatch.setenv("VOLCENGINE_TTS_APPID", "a")

@@ -252,3 +252,15 @@ class TestResolveVirtualPathWithUserId:
         result = paths.resolve_virtual_path("t1", "/mnt/user-data/workspace/file.txt")
         expected_base = paths.sandbox_user_data_dir("t1").resolve()
         assert str(result).startswith(str(expected_base))
+
+    def test_resolve_virtual_path_rejects_parent_segments_within_user_data(self, paths: Paths):
+        paths.ensure_thread_dirs("t1", user_id="u1")
+
+        with pytest.raises(ValueError, match="path traversal"):
+            paths.resolve_virtual_path("t1", "/mnt/user-data/outputs/../uploads/file.txt", user_id="u1")
+
+    def test_resolve_virtual_path_rejects_backslash_parent_segments(self, paths: Paths):
+        paths.ensure_thread_dirs("t1", user_id="u1")
+
+        with pytest.raises(ValueError, match="path traversal"):
+            paths.resolve_virtual_path("t1", "/mnt/user-data/outputs\\..\\uploads\\file.txt", user_id="u1")

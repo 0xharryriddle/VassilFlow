@@ -7,7 +7,7 @@ import random
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Literal, Optional
+from typing import Literal
 
 import requests
 
@@ -29,7 +29,7 @@ class ScriptLine:
 
 
 class Script:
-    def __init__(self, locale: Literal["en", "zh"] = "en", lines: Optional[list[ScriptLine]] = None):
+    def __init__(self, locale: Literal["en", "zh"] = "en", lines: list[ScriptLine] | None = None):
         self.locale = locale
         self.lines = lines or []
 
@@ -90,7 +90,7 @@ def _default_max_workers(provider: str) -> int:
     return DEFAULT_MAX_WORKERS
 
 
-def _parse_retry_after(response) -> Optional[float]:
+def _parse_retry_after(response) -> float | None:
     """Return the server-provided Retry-After (seconds), if any."""
     headers = getattr(response, "headers", None) or {}
     value = headers.get("Retry-After")
@@ -100,7 +100,7 @@ def _parse_retry_after(response) -> Optional[float]:
         return None
 
 
-def _backoff_sleep(attempt: int, retry_after: Optional[float]) -> None:
+def _backoff_sleep(attempt: int, retry_after: float | None) -> None:
     """Sleep with exponential backoff + jitter, honoring Retry-After when present.
 
     Jitter de-synchronizes concurrent workers that all got rate-limited at once,
@@ -111,8 +111,8 @@ def _backoff_sleep(attempt: int, retry_after: Optional[float]) -> None:
 
 
 def text_to_speech_volcengine(
-    text: str, voice_type: str, max_retries: Optional[int] = None
-) -> Optional[bytes]:
+    text: str, voice_type: str, max_retries: int | None = None
+) -> bytes | None:
     """Convert text to speech using Volcengine TTS (returns base64-decoded mp3 bytes).
 
     Retries with exponential backoff on transient HTTP errors (429 / 5xx).
@@ -167,8 +167,8 @@ def text_to_speech_volcengine(
 
 
 def text_to_speech_minimax(
-    text: str, voice_id: str, max_retries: Optional[int] = None
-) -> Optional[bytes]:
+    text: str, voice_id: str, max_retries: int | None = None
+) -> bytes | None:
     """Convert text to speech using MiniMax t2a_v2 (returns hex-decoded mp3 bytes).
 
     Retries with exponential backoff on HTTP 429/5xx and on retryable base_resp
@@ -234,7 +234,7 @@ def text_to_speech_minimax(
     return None
 
 
-def _process_line(args: tuple[int, ScriptLine, int, str]) -> tuple[int, Optional[bytes]]:
+def _process_line(args: tuple[int, ScriptLine, int, str]) -> tuple[int, bytes | None]:
     """Process a single script line for TTS. Returns (index, audio_bytes)."""
     i, line, total, provider = args
     logger.info(f"Processing line {i + 1}/{total} ({line.speaker}) via {provider}")
@@ -283,7 +283,7 @@ def tts_node(script: Script) -> list[bytes]:
     logger.info(f"Converting script to audio using {max_workers} workers (provider={provider})...")
     tasks = [(i, line, total, provider) for i, line in enumerate(script.lines)]
 
-    results: dict[int, Optional[bytes]] = {}
+    results: dict[int, bytes | None] = {}
     failed_indices: list[int] = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_process_line, task): task[0] for task in tasks}
@@ -326,8 +326,8 @@ def generate_markdown(script: Script, title: str = "Podcast Script") -> str:
 
 
 def generate_podcast(script_file: str, output_file: str,
-                     transcript_file: Optional[str] = None) -> str:
-    with open(script_file, "r", encoding="utf-8") as f:
+                     transcript_file: str | None = None) -> str:
+    with open(script_file, encoding="utf-8-sig") as f:
         script_json = json.load(f)
     if "lines" not in script_json:
         raise ValueError(
@@ -376,6 +376,4 @@ if __name__ == "__main__":
                                   args.transcript_file)
         print(result)
     except Exception as e:
-        import traceback
         print(f"Error generating podcast: {e}")
-        traceback.print_exc()

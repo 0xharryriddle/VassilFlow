@@ -71,11 +71,12 @@ def test_config_upgrade_preserves_vassilflow_runtime_defaults(tmp_path: Path):
 
     upgraded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
-    assert "version 16 -> 17" in result.stdout
+    assert "version 16 -> 18" in result.stdout
     assert "Applied" not in result.stdout
     assert (tmp_path / "config.yaml.bak").exists()
-    assert upgraded["config_version"] == 17
+    assert upgraded["config_version"] == 18
     assert upgraded["database"]["sqlite_dir"] == ".vassilflow/data"
     assert upgraded["channel_connections"]["wechat"]["state_dir"] == "./.vassilflow/wechat/state"
     assert upgraded["memory"]["storage_path"] == ".vassilflow/memory.json"
     assert upgraded["checkpointer"]["connection_string"] == "./.vassilflow/checkpoints.db"
+    assert upgraded["tool_progress"]["enabled"] is False

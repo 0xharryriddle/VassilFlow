@@ -146,3 +146,22 @@ def test_build_servers_config_skips_invalid_server_and_keeps_valid_ones():
     assert result["valid-stdio"]["transport"] == "stdio"
     assert "invalid-stdio" not in result
     assert "disabled-http" not in result
+
+
+def test_build_server_params_excludes_tool_call_timeout():
+    """tool_call_timeout is consumed by the tool wrapper, not session creation."""
+    config = McpServerConfig(
+        type="stdio",
+        command="npx",
+        args=["-y", "my-mcp-server"],
+        tool_call_timeout=30.0,
+    )
+
+    params = build_server_params("my-server", config)
+
+    assert "tool_call_timeout" not in params
+    assert params == {
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "my-mcp-server"],
+    }

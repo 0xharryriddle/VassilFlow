@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from collections.abc import AsyncGenerator, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from typing import TYPE_CHECKING, TypeVar, cast
@@ -43,6 +44,24 @@ logger = logging.getLogger(__name__)
 # them together if their sum must stay within the server's graceful-shutdown
 # timeout.
 _RUN_DRAIN_TIMEOUT_SECONDS = 5.0
+
+
+def _enforce_postgres_for_multi_worker(config: AppConfig) -> None:
+    """Reject unsafe multi-process startup when persistence is not Postgres."""
+    try:
+        workers = int(os.environ.get("GATEWAY_WORKERS", "1"))
+    except (TypeError, ValueError):
+        workers = 1
+
+    if workers <= 1:
+        return
+
+    backend = getattr(config.database, "backend", None)
+    if backend != "postgres":
+        raise SystemExit(
+            f"GATEWAY_WORKERS={workers} requires database.backend='postgres', "
+            f"but database.backend is {backend!r}. Set GATEWAY_WORKERS=1 or switch to Postgres."
+        )
 
 
 async def _drain_inflight_runs(run_manager: RunManager) -> None:
@@ -170,6 +189,8 @@ async def langgraph_runtime(app: FastAPI, startup_config: AppConfig) -> AsyncGen
     from vassilflow.runtime import make_store, make_stream_bridge
     from vassilflow.runtime.checkpointer.async_provider import make_checkpointer
     from vassilflow.runtime.events.store import make_run_event_store
+
+    _enforce_postgres_for_multi_worker(startup_config)
 
     async with AsyncExitStack() as stack:
         config = startup_config

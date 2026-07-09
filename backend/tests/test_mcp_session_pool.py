@@ -1,6 +1,7 @@
 """Tests for the MCP persistent-session pool."""
 
 import asyncio
+import logging
 import os
 import stat
 import threading
@@ -833,6 +834,59 @@ def test_session_pool_tool_sync_wrapper_path_is_safe():
     mock_session.call_tool.assert_called_once_with("navigate", {"url": "https://example.com"})
 
 
+@pytest.mark.asyncio
+async def test_session_pool_tool_applies_stdio_tool_call_timeout(tmp_path):
+    """Configured stdio timeouts are passed to each MCP tool call."""
+    from datetime import timedelta
+
+    from langchain_core.tools import StructuredTool
+    from pydantic import BaseModel, Field
+
+    from vassilflow.config.paths import Paths
+    from vassilflow.mcp.tools import _make_session_pool_tool
+
+    class Args(BaseModel):
+        url: str = Field(..., description="url")
+
+    original_tool = StructuredTool(
+        name="playwright_navigate",
+        description="Navigate browser",
+        args_schema=Args,
+        coroutine=AsyncMock(),
+        response_format="content_and_artifact",
+    )
+
+    mock_session = AsyncMock()
+    mock_session.call_tool = AsyncMock(return_value=MagicMock(content=[], isError=False, structuredContent=None))
+    mock_cm = MagicMock()
+    mock_cm.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_cm.__aexit__ = AsyncMock(return_value=False)
+
+    paths = Paths(tmp_path)
+    connection = {"transport": "stdio", "command": "pw", "args": []}
+    mock_runtime = MagicMock()
+    mock_runtime.context = {"thread_id": "thread-42", "user_id": "user-7"}
+    mock_runtime.config = {}
+
+    with (
+        patch("vassilflow.mcp.tools.get_paths", return_value=paths),
+        patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm),
+    ):
+        wrapped = _make_session_pool_tool(
+            original_tool,
+            "playwright",
+            connection,
+            tool_call_timeout=30.0,
+        )
+        await wrapped.coroutine(runtime=mock_runtime, url="https://example.com")
+
+    mock_session.call_tool.assert_awaited_once_with(
+        "navigate",
+        {"url": "https://example.com"},
+        read_timeout_seconds=timedelta(seconds=30.0),
+    )
+
+
 # ---------------------------------------------------------------------------
 # get_mcp_tools: HTTP transport should NOT be pooled
 # ---------------------------------------------------------------------------
@@ -891,7 +945,15 @@ async def test_http_transport_tools_not_pooled():
         patch("langchain_mcp_adapters.sessions.create_session", return_value=mock_cm),
     ):
         mock_client_instance = MockClient.return_value
-        mock_client_instance.get_tools = AsyncMock(return_value=[http_tool, stdio_tool])
+
+        async def _get_tools(*, server_name: str | None = None):
+            if server_name == "myserver":
+                return [http_tool]
+            if server_name == "playwright":
+                return [stdio_tool]
+            return []
+
+        mock_client_instance.get_tools = AsyncMock(side_effect=_get_tools)
 
         tools = await get_mcp_tools()
 
@@ -908,6 +970,179 @@ async def test_http_transport_tools_not_pooled():
     stdio_tools = [t for t in tools if t.name == "playwright_navigate"]
     assert len(stdio_tools) == 1
     assert stdio_tools[0].coroutine is not stdio_tool.coroutine
+
+
+@pytest.mark.asyncio
+async def test_stdio_tool_call_timeout_is_passed_to_session_pool_wrapper():
+    """get_mcp_tools wires per-server stdio timeout into the pooled wrapper."""
+    from langchain_core.tools import StructuredTool
+    from pydantic import BaseModel, Field
+
+    from vassilflow.config.extensions_config import McpServerConfig
+    from vassilflow.mcp.tools import get_mcp_tools
+
+    class Args(BaseModel):
+        query: str = Field(..., description="query")
+
+    stdio_tool = StructuredTool(
+        name="biomcp_search",
+        description="Search biomedical data",
+        args_schema=Args,
+        coroutine=AsyncMock(),
+        response_format="content_and_artifact",
+    )
+
+    server_cfg = McpServerConfig(
+        type="stdio",
+        command="biomcp",
+        args=["serve"],
+        tool_call_timeout=60.0,
+    )
+    extensions_config = MagicMock()
+    extensions_config.get_enabled_mcp_servers.return_value = {"biomcp": server_cfg}
+    extensions_config.mcp_servers = {"biomcp": server_cfg}
+    extensions_config.model_extra = {}
+
+    servers_config = {
+        "biomcp": {"transport": "stdio", "command": "biomcp", "args": ["serve"]},
+    }
+
+    with (
+        patch("vassilflow.mcp.tools.ExtensionsConfig.from_file", return_value=extensions_config),
+        patch("vassilflow.mcp.tools.build_servers_config", return_value=servers_config),
+        patch("vassilflow.mcp.tools.get_initial_oauth_headers", return_value={}),
+        patch("vassilflow.mcp.tools.build_oauth_tool_interceptor", return_value=None),
+        patch("vassilflow.mcp.tools._make_session_pool_tool", side_effect=lambda tool, *_args, **_kwargs: tool) as make_pool_tool,
+        patch("langchain_mcp_adapters.client.MultiServerMCPClient") as MockClient,
+    ):
+        MockClient.return_value.get_tools = AsyncMock(return_value=[stdio_tool])
+
+        tools = await get_mcp_tools()
+
+    assert tools == [stdio_tool]
+    make_pool_tool.assert_called_once()
+    assert make_pool_tool.call_args.kwargs["tool_call_timeout"] == 60.0
+
+
+@pytest.mark.asyncio
+async def test_non_stdio_tool_call_timeout_warns_that_it_is_ignored(caplog):
+    """HTTP/SSE servers should not silently ignore stdio-only tool_call_timeout."""
+    from langchain_core.tools import StructuredTool
+    from pydantic import BaseModel, Field
+
+    from vassilflow.config.extensions_config import McpServerConfig
+    from vassilflow.mcp.tools import get_mcp_tools
+
+    class Args(BaseModel):
+        query: str = Field(..., description="query")
+
+    http_tool = StructuredTool(
+        name="remote_search",
+        description="Search tool",
+        args_schema=Args,
+        coroutine=AsyncMock(),
+        response_format="content_and_artifact",
+    )
+
+    server_cfg = McpServerConfig(
+        type="http",
+        url="https://example.com/mcp",
+        tool_call_timeout=30.0,
+    )
+    extensions_config = MagicMock()
+    extensions_config.get_enabled_mcp_servers.return_value = {"remote": server_cfg}
+    extensions_config.mcp_servers = {"remote": server_cfg}
+    extensions_config.model_extra = {}
+
+    servers_config = {
+        "remote": {"transport": "http", "url": "https://example.com/mcp"},
+    }
+
+    with (
+        patch("vassilflow.mcp.tools.ExtensionsConfig.from_file", return_value=extensions_config),
+        patch("vassilflow.mcp.tools.build_servers_config", return_value=servers_config),
+        patch("vassilflow.mcp.tools.get_initial_oauth_headers", return_value={}),
+        patch("vassilflow.mcp.tools.build_oauth_tool_interceptor", return_value=None),
+        patch("langchain_mcp_adapters.client.MultiServerMCPClient") as MockClient,
+        caplog.at_level(logging.WARNING, logger="vassilflow.mcp.tools"),
+    ):
+        MockClient.return_value.get_tools = AsyncMock(return_value=[http_tool])
+
+        tools = await get_mcp_tools()
+
+    assert tools == [http_tool]
+    assert any(record.levelno == logging.WARNING and "remote" in record.getMessage() and "tool_call_timeout" in record.getMessage() and "stdio" in record.getMessage() for record in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_mcp_tools_route_by_source_server_not_prefix_guess():
+    """Overlapping server-name prefixes must not wrap tools under the wrong server."""
+    from langchain_core.tools import StructuredTool
+    from pydantic import BaseModel, Field
+
+    from vassilflow.mcp.tools import get_mcp_tools
+
+    class Args(BaseModel):
+        query: str = Field(..., description="query")
+
+    web_tool = StructuredTool(
+        name="web_lookup",
+        description="Lookup",
+        args_schema=Args,
+        coroutine=AsyncMock(),
+        response_format="content_and_artifact",
+    )
+    web_scraper_tool = StructuredTool(
+        name="web_scraper_search",
+        description="Search",
+        args_schema=Args,
+        coroutine=AsyncMock(),
+        response_format="content_and_artifact",
+    )
+
+    extensions_config = MagicMock()
+    extensions_config.get_enabled_mcp_servers.return_value = {
+        "web": MagicMock(type="stdio", command="web", args=[], env=None, url=None, headers=None),
+        "web_scraper": MagicMock(type="stdio", command="scraper", args=[], env=None, url=None, headers=None),
+    }
+    extensions_config.model_extra = {}
+    servers_config = {
+        "web": {"transport": "stdio", "command": "web", "args": []},
+        "web_scraper": {"transport": "stdio", "command": "scraper", "args": []},
+    }
+
+    with (
+        patch("vassilflow.mcp.tools.ExtensionsConfig.from_file", return_value=extensions_config),
+        patch("vassilflow.mcp.tools.build_servers_config", return_value=servers_config),
+        patch("vassilflow.mcp.tools.get_initial_oauth_headers", return_value={}),
+        patch("vassilflow.mcp.tools.build_oauth_tool_interceptor", return_value=None),
+        patch("vassilflow.mcp.tools._make_session_pool_tool") as make_pool_tool,
+        patch("langchain_mcp_adapters.client.MultiServerMCPClient") as MockClient,
+    ):
+
+        def _wrap(tool, server_name, *_args, **_kwargs):
+            wrapped = MagicMock(wraps=tool)
+            wrapped.name = tool.name
+            wrapped.coroutine = tool.coroutine
+            wrapped.source_server = server_name
+            return wrapped
+
+        make_pool_tool.side_effect = _wrap
+
+        async def _get_tools(*, server_name: str | None = None):
+            if server_name == "web":
+                return [web_tool]
+            if server_name == "web_scraper":
+                return [web_scraper_tool]
+            return []
+
+        MockClient.return_value.get_tools = AsyncMock(side_effect=_get_tools)
+
+        tools = await get_mcp_tools()
+
+    by_name = {tool.name: tool for tool in tools}
+    assert by_name["web_lookup"].source_server == "web"
+    assert by_name["web_scraper_search"].source_server == "web_scraper"
 
 
 # ---------------------------------------------------------------------------

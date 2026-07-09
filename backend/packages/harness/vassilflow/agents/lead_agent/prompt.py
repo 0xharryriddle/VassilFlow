@@ -560,8 +560,7 @@ combined with a FastAPI gateway for REST API access [citation:FastAPI](https://f
 
 <critical_reminders>
 - **Clarification First**: ALWAYS clarify unclear/missing/ambiguous requirements BEFORE starting work - never assume or guess
-{subagent_reminder}- Skill First: Always load the relevant skill before starting **complex** tasks.
-- Progressive Loading: Load resources incrementally as referenced in skills
+{subagent_reminder}{skill_first_reminder}- Progressive Loading: Load resources incrementally as referenced in skills
 - Output Files: Final deliverables must be in `/mnt/user-data/outputs`
 - File Editing Workflow: When revising an existing file, prefer
   `str_replace` over `write_file` — it sends only the diff and avoids
@@ -663,10 +662,18 @@ You have access to skills that provide optimized workflows for specific tasks. E
 </skill_system>"""
 
 
-def get_skills_prompt_section(available_skills: set[str] | None = None, *, app_config: AppConfig | None = None) -> str:
-    """Generate the skills prompt section with available skills list."""
-    skills = get_enabled_skills_for_config(app_config)
+def get_skills_prompt_section(
+    available_skills: set[str] | None = None,
+    *,
+    app_config: AppConfig | None = None,
+    skill_names: frozenset[str] | None = None,
+) -> str:
+    """Generate the skills prompt section.
 
+    When ``skill_names`` is supplied, render a compact skill index for
+    describe_skill-based discovery. Otherwise render the legacy full metadata
+    section.
+    """
     if app_config is None:
         try:
             from vassilflow.config import get_app_config
@@ -682,6 +689,19 @@ def get_skills_prompt_section(available_skills: set[str] | None = None, *, app_c
         container_base_path = config.skills.container_path
         skill_evolution_enabled = config.skill_evolution.enabled
 
+    skill_evolution_section = _build_skill_evolution_section(skill_evolution_enabled)
+
+    if skill_names is not None:
+        from vassilflow.skills.describe import get_skill_index_prompt_section
+
+        return get_skill_index_prompt_section(
+            skill_names=skill_names,
+            container_base_path=container_base_path,
+            skill_evolution_section=skill_evolution_section,
+        )
+
+    skills = get_enabled_skills_for_config(app_config)
+
     if not skills and not skill_evolution_enabled:
         return ""
 
@@ -692,7 +712,6 @@ def get_skills_prompt_section(available_skills: set[str] | None = None, *, app_c
     available_key = tuple(sorted(available_skills)) if available_skills is not None else None
     if not skill_signature and available_key is not None:
         return ""
-    skill_evolution_section = _build_skill_evolution_section(skill_evolution_enabled)
     return _get_cached_skills_prompt_section(skill_signature, available_key, container_base_path, skill_evolution_section)
 
 
@@ -784,6 +803,7 @@ def apply_prompt_template(
     available_skills: set[str] | None = None,
     app_config: AppConfig | None = None,
     deferred_names: frozenset[str] = frozenset(),
+    skill_names: frozenset[str] | None = None,
 ) -> str:
     # Include subagent section only if enabled (from runtime parameter)
     n = max_concurrent_subagents
@@ -808,7 +828,7 @@ def apply_prompt_template(
     )
 
     # Get skills section
-    skills_section = get_skills_prompt_section(available_skills, app_config=app_config)
+    skills_section = get_skills_prompt_section(available_skills, app_config=app_config, skill_names=skill_names)
 
     # Get deferred tools section (tool_search)
     deferred_tools_section = get_deferred_tools_prompt_section(deferred_names=deferred_names)
@@ -817,6 +837,12 @@ def apply_prompt_template(
     acp_section = _build_acp_section(app_config=app_config)
     custom_mounts_section = _build_custom_mounts_section(app_config=app_config)
     acp_and_mounts_section = "\n".join(section for section in (acp_section, custom_mounts_section) if section)
+
+    skill_first_reminder = (
+        "- Skill First: For complex tasks, call describe_skill(name) to check if a matching skill exists, then read_file to load it.\n"
+        if skill_names is not None
+        else "- Skill First: Always load the relevant skill before starting **complex** tasks.\n"
+    )
 
     # Build and return the fully static system prompt.
     # Memory and current date are injected per-turn via DynamicContextMiddleware
@@ -830,6 +856,7 @@ def apply_prompt_template(
         deferred_tools_section=deferred_tools_section,
         subagent_section=subagent_section,
         subagent_reminder=subagent_reminder,
+        skill_first_reminder=skill_first_reminder,
         subagent_thinking=subagent_thinking,
         acp_section=acp_and_mounts_section,
     )

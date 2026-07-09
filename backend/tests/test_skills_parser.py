@@ -14,6 +14,7 @@ import logging
 from pathlib import Path
 
 from vassilflow.skills.parser import parse_skill_file
+from vassilflow.skills.types import SecretRequirement
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -112,6 +113,45 @@ def test_parse_invalid_allowed_tools_returns_none(tmp_path):
     skill_file = _write_skill(tmp_path, "name: my-skill\ndescription: Test\nallowed-tools: bash")
     skill = parse_skill_file(skill_file, category="custom")
     assert skill is None
+
+
+def test_parse_required_secrets_accepts_strings_and_mappings(tmp_path):
+    skill_file = _write_skill(
+        tmp_path,
+        "name: my-skill\n"
+        "description: Test\n"
+        "required-secrets:\n"
+        "  - API_TOKEN\n"
+        "  - name: OPTIONAL_DSN\n"
+        "    optional: true\n",
+    )
+    skill = parse_skill_file(skill_file, category="custom")
+
+    assert skill is not None
+    assert skill.required_secrets == [
+        SecretRequirement(name="API_TOKEN", optional=False),
+        SecretRequirement(name="OPTIONAL_DSN", optional=True),
+    ]
+
+
+def test_parse_required_secrets_rejects_non_list(tmp_path):
+    skill_file = _write_skill(tmp_path, "name: my-skill\ndescription: Test\nrequired-secrets: API_TOKEN")
+    skill = parse_skill_file(skill_file, category="custom")
+    assert skill is None
+
+
+def test_parse_secrets_autonomous_defaults_true(tmp_path):
+    skill_file = _write_skill(tmp_path, "name: my-skill\ndescription: Test")
+    skill = parse_skill_file(skill_file, category="custom")
+    assert skill is not None
+    assert skill.secrets_autonomous is True
+
+
+def test_parse_secrets_autonomous_false(tmp_path):
+    skill_file = _write_skill(tmp_path, "name: my-skill\ndescription: Test\nsecrets-autonomous: false")
+    skill = parse_skill_file(skill_file, category="custom")
+    assert skill is not None
+    assert skill.secrets_autonomous is False
 
 
 def test_parse_missing_name_returns_none(tmp_path):

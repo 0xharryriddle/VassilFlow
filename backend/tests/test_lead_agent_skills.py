@@ -60,6 +60,24 @@ def test_get_skills_prompt_section_returns_all_when_available_skills_is_none(mon
     assert "skill2" in result
 
 
+def test_get_skills_prompt_section_renders_deferred_skill_index(monkeypatch):
+    def fail_load_skills(*args, **kwargs):
+        raise AssertionError("deferred skill index must not load full skill storage")
+
+    monkeypatch.setattr("vassilflow.agents.lead_agent.prompt._get_enabled_skills", fail_load_skills)
+    config = SimpleNamespace(
+        skills=SimpleNamespace(container_path="/mnt/skills"),
+        skill_evolution=SimpleNamespace(enabled=False),
+    )
+
+    result = get_skills_prompt_section(app_config=config, skill_names=frozenset({"skill2", "skill1"}))
+
+    assert "<skill_index>" in result
+    assert "skill1, skill2" in result
+    assert "describe_skill" in result
+    assert "<available_skills>" not in result
+
+
 def test_get_skills_prompt_section_includes_slash_activation_guidance(monkeypatch):
     skills = [_make_skill("data-analysis")]
     monkeypatch.setattr("vassilflow.agents.lead_agent.prompt._get_enabled_skills", lambda: skills)
@@ -195,7 +213,7 @@ def test_make_lead_agent_filters_tools_from_available_skills(monkeypatch):
     monkeypatch.setattr(lead_agent_module, "apply_prompt_template", lambda **kwargs: "mock_prompt")
     monkeypatch.setattr(lead_agent_module, "create_agent", lambda **kwargs: kwargs)
     monkeypatch.setattr(lead_agent_module, "load_agent_config", lambda x: AgentConfig(name="test", skills=["restricted", "legacy"]))
-    monkeypatch.setattr(lead_agent_module, "_load_enabled_skills_for_tool_policy", lambda available_skills, *, app_config: [_make_skill("restricted", ["read_file"]), _make_skill("legacy", None)])
+    monkeypatch.setattr(lead_agent_module, "_load_enabled_skills_for_tool_policy", lambda available_skills, *, app_config: [_make_skill("restricted", ["web_search"]), _make_skill("legacy", None)])
     monkeypatch.setattr("vassilflow.tools.get_available_tools", lambda **kwargs: [NamedTool("bash"), NamedTool("read_file"), NamedTool("web_search")])
 
     mock_app_config = MagicMock()
@@ -204,7 +222,47 @@ def test_make_lead_agent_filters_tools_from_available_skills(monkeypatch):
 
     agent_kwargs = lead_agent_module.make_lead_agent({"configurable": {"agent_name": "test"}})
 
-    assert [tool.name for tool in agent_kwargs["tools"]] == ["read_file"]
+    assert [tool.name for tool in agent_kwargs["tools"]] == ["read_file", "web_search"]
+
+
+def test_make_lead_agent_wires_describe_skill_when_deferred_discovery_enabled(monkeypatch):
+    from unittest.mock import MagicMock
+
+    from vassilflow.agents.lead_agent import agent as lead_agent_module
+
+    monkeypatch.setattr(lead_agent_module, "_resolve_model_name", lambda x=None, **kwargs: "default-model")
+    monkeypatch.setattr(lead_agent_module, "create_chat_model", lambda **kwargs: "model")
+    monkeypatch.setattr(lead_agent_module, "build_middlewares", lambda *args, **kwargs: [])
+    monkeypatch.setattr(lead_agent_module, "create_agent", lambda **kwargs: kwargs)
+    monkeypatch.setattr(lead_agent_module, "load_agent_config", lambda x: None)
+    monkeypatch.setattr(lead_agent_module, "_load_enabled_skills_for_tool_policy", lambda available_skills, *, app_config: [_make_skill("deep-research", None)])
+    monkeypatch.setattr("vassilflow.tools.get_available_tools", lambda **kwargs: [NamedTool("read_file")])
+
+    mock_apply_prompt = MagicMock(return_value="mock_prompt")
+    monkeypatch.setattr(lead_agent_module, "apply_prompt_template", mock_apply_prompt)
+
+    mock_app_config = MagicMock()
+    mock_app_config.get_model_config.return_value = SimpleNamespace(supports_thinking=False, supports_vision=False)
+    mock_app_config.tool_search.enabled = False
+    mock_app_config.skills.deferred_discovery = True
+    mock_app_config.skills.container_path = "/mnt/skills"
+    monkeypatch.setattr(lead_agent_module, "get_app_config", lambda: mock_app_config)
+
+    agent_kwargs = lead_agent_module.make_lead_agent({"configurable": {}})
+
+    assert [tool.name for tool in agent_kwargs["tools"]] == ["read_file", "describe_skill"]
+    assert mock_apply_prompt.call_args.kwargs["skill_names"] == frozenset({"deep-research"})
+
+
+def test_skill_allowed_tools_default_does_not_preserve_read_file_for_subagents():
+    from vassilflow.skills.tool_policy import filter_tools_by_skill_allowed_tools
+
+    tools = [NamedTool("read_file"), NamedTool("dataagent_query"), NamedTool("bash")]
+    skills = [_make_skill("data-query", ["dataagent_query"])]
+
+    filtered = filter_tools_by_skill_allowed_tools(tools, skills)
+
+    assert [tool.name for tool in filtered] == ["dataagent_query"]
 
 
 def test_make_lead_agent_all_legacy_skills_preserve_all_tools(monkeypatch):

@@ -32,6 +32,7 @@ services:
       - SANDBOX_APP_NAME_LABEL=${VASSILFLOW_SANDBOX_APP_NAME_LABEL:-vassilflow}
       - USERDATA_PVC_SUBPATH_ROOT=${VASSILFLOW_USERDATA_PVC_SUBPATH_ROOT:-vassilflow}
       - SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
+      - SANDBOX_CONTAINER_PORT=${VASSILFLOW_SANDBOX_CONTAINER_PORT:-8080}
       # Host paths for K8s HostPath volumes (must be absolute paths accessible by K8s node)
       # On Docker Desktop/OrbStack, use your actual host paths like /Users/username/...
       # Set these in your shell before running docker-compose:
@@ -141,8 +142,10 @@ services:
       # Preserve the .venv built during Docker image build — mounting the full backend/
       # directory above would otherwise shadow it with the (empty) host directory.
       - gateway-venv:/app/backend/.venv
-      - ../config.yaml:/app/config.yaml
-      - ../extensions_config.json:/app/extensions_config.json
+      # Mount the project directory instead of mutable config files individually.
+      # Host editors commonly replace files on save; a directory bind keeps those
+      # replacements visible inside Docker Desktop/WSL containers.
+      - ../:/app/project
       - ../skills:/app/skills
       - ../logs:/app/logs
       # Use a Docker-managed uv cache volume instead of a host bind mount.
@@ -164,6 +167,8 @@ services:
       - CI=true
       - VASSILFLOW_PROJECT_ROOT=/app
       - VASSILFLOW_HOME=${VASSILFLOW_CONTAINER_HOME:-/app/backend/.vassilflow}
+      - VASSILFLOW_CONFIG_PATH=/app/project/config.yaml
+      - VASSILFLOW_EXTENSIONS_CONFIG_PATH=/app/project/extensions_config.json
       - VASSILFLOW_CHANNELS_LANGGRAPH_URL=${VASSILFLOW_CHANNELS_LANGGRAPH_URL:-http://gateway:8001/api}
       - VASSILFLOW_CHANNELS_GATEWAY_URL=${VASSILFLOW_CHANNELS_GATEWAY_URL:-http://gateway:8001}
       - VASSILFLOW_INTERNAL_AUTH_TOKEN=${VASSILFLOW_INTERNAL_AUTH_TOKEN:-}

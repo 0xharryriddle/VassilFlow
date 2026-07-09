@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Annotated, NotRequired, TypedDict
 
 from langchain.agents import AgentState
@@ -108,6 +109,55 @@ def merge_promoted(existing: PromotedTools | None, new: PromotedTools | None) ->
     }
 
 
+_SKILL_CONTEXT_MAX_ENTRIES = 8
+_SKILL_DESCRIPTION_MAX_CHARS = 500
+
+
+class SkillEntry(TypedDict):
+    name: str
+    path: str
+    description: str
+    loaded_at: int
+
+
+def _normalize_skill_entry(entry: Mapping[str, object]) -> SkillEntry:
+    description = entry.get("description")
+    loaded_at = entry.get("loaded_at")
+    return {
+        "name": str(entry.get("name") or ""),
+        "path": str(entry["path"]),
+        "description": " ".join(description.split())[:_SKILL_DESCRIPTION_MAX_CHARS] if isinstance(description, str) else "",
+        "loaded_at": loaded_at if isinstance(loaded_at, int) else 0,
+    }
+
+
+def merge_skill_context(existing: list[SkillEntry] | None, new: list[SkillEntry] | None) -> list[SkillEntry]:
+    """Reducer for loaded skill references."""
+    normalized_existing = [_normalize_skill_entry(entry) for entry in existing or []]
+    if not new:
+        return normalized_existing
+
+    by_path: dict[str, SkillEntry] = {}
+    order: list[str] = []
+    for entry in normalized_existing:
+        path = entry["path"]
+        if path not in by_path:
+            order.append(path)
+        by_path[path] = entry
+
+    for entry in (_normalize_skill_entry(entry) for entry in new):
+        path = entry["path"]
+        if path in by_path:
+            order.remove(path)
+        order.append(path)
+        by_path[path] = entry
+
+    merged = [by_path[path] for path in order]
+    if len(merged) > _SKILL_CONTEXT_MAX_ENTRIES:
+        merged = merged[-_SKILL_CONTEXT_MAX_ENTRIES:]
+    return merged
+
+
 class ThreadState(AgentState):
     sandbox: SandboxStateField
     thread_data: NotRequired[ThreadDataState | None]
@@ -117,3 +167,4 @@ class ThreadState(AgentState):
     uploaded_files: NotRequired[list[dict] | None]
     viewed_images: Annotated[dict[str, ViewedImageData], merge_viewed_images]  # image_path -> {base64, mime_type}
     promoted: Annotated[PromotedTools | None, merge_promoted]
+    skill_context: Annotated[list[SkillEntry], merge_skill_context]

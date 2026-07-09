@@ -140,6 +140,43 @@ def test_before_summarization_hook_receives_messages_before_compression() -> Non
     assert result["messages"][1].content.startswith("Here is a summary")
 
 
+def test_resolved_clarification_transcript_is_preserved_across_summarization() -> None:
+    captured: list[SummarizationEvent] = []
+    middleware = _middleware(before_summarization=[captured.append], trigger=("messages", 6), keep=("messages", 2))
+    clarify_ai = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "ask_clarification",
+                "id": "clarify-1",
+                "args": {"question": "Which harness do you mean?"},
+            }
+        ],
+    )
+    clarify_tool = ToolMessage(
+        content="Which harness do you mean?",
+        tool_call_id="clarify-1",
+        name="ask_clarification",
+    )
+    answer = HumanMessage(content="harness agent")
+    messages = [
+        HumanMessage(content="Deep research harness"),
+        clarify_ai,
+        clarify_tool,
+        answer,
+        AIMessage(content="Researching harness agents..."),
+        AIMessage(content="Final answer"),
+    ]
+
+    result = middleware.before_model({"messages": messages}, _runtime())
+
+    assert result is not None
+    assert [message.content for message in captured[0].messages_to_summarize] == ["Deep research harness"]
+    assert captured[0].preserved_messages[:3] == (clarify_ai, clarify_tool, answer)
+    emitted = result["messages"]
+    assert emitted[2:5] == [clarify_ai, clarify_tool, answer]
+
+
 def test_summarization_middleware_emits_frontend_update_key_in_agent_stream() -> None:
     middleware = VassilFlowSummarizationMiddleware(
         model=_StaticChatModel(text="compressed summary"),
@@ -320,6 +357,24 @@ def test_before_summarization_hook_not_called_when_threshold_not_met() -> None:
 
     assert captured == []
     assert result is None
+
+
+def test_compact_state_force_ignores_trigger_threshold() -> None:
+    middleware = VassilFlowSummarizationMiddleware(
+        model=_StaticChatModel(text="forced summary"),
+        trigger=("messages", 100),
+        keep=("messages", 2),
+        token_counter=len,
+    )
+
+    result = middleware.compact_state({"messages": _messages()}, _runtime(), force=True)
+
+    assert result is not None
+    assert result.summary_text == "forced summary"
+    assert [message.content for message in result.messages_to_summarize] == ["user-1", "assistant-1"]
+    assert [message.content for message in result.preserved_messages] == ["user-2", "assistant-2"]
+    assert result.summary_messages[0].name == "summary"
+    assert list(result.compacted_messages[1:]) == list(result.preserved_messages)
 
 
 def test_before_summarization_hook_exception_does_not_block_compression(caplog: pytest.LogCaptureFixture) -> None:

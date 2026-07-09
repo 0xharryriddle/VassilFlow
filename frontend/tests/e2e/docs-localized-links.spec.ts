@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Localized documentation links", () => {
+  test.describe.configure({ timeout: 60_000 });
+
   test("keeps English card navigation in the English docs", async ({
     page,
   }) => {

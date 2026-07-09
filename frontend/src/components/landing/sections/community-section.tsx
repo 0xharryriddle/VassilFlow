@@ -11,7 +11,7 @@ import { Section } from "../section";
 export function CommunitySection() {
   return (
     <Section
-      className="bg-[#0b0d10] px-4"
+      className="bg-[#0b0d10]"
       title="Start From a Working Harness"
       subtitle={`${APP_BRAND_NAME} is ready to be extended into domain-specific superagent systems with real files, policies, skills, and review loops.`}
     >

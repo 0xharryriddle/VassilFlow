@@ -148,7 +148,7 @@ Some models support "thinking" mode for complex reasoning:
 
 ```yaml
 models:
-  - name: deepseek-v3
+  - name: deepseek-v4
     supports_thinking: true
     when_thinking_enabled:
       extra_body:
@@ -216,6 +216,30 @@ models:
 ```
 
 `PatchedChatMiMo` preserves MiMo's `choices[].message.reasoning_content`, streaming `delta.reasoning_content`, and request-history assistant `reasoning_content` fields. It does not reuse the DeepSeek provider.
+
+**Optional Pricing Metadata**:
+
+The operations console can estimate spend when model entries include a
+`pricing` metadata block. This block is consumed by `/api/console/*` only; it is
+not forwarded to the model provider.
+
+```yaml
+models:
+  - name: minimax-m2
+    display_name: MiniMax M2
+    use: langchain_openai:ChatOpenAI
+    model: MiniMax-M2
+    api_key: $MINIMAX_API_KEY
+    base_url: https://api.minimax.io/v1
+    pricing:
+      currency: CNY
+      input_per_million: 8
+      output_per_million: 32
+      input_cache_hit_per_million: 0.8
+```
+
+`input_cache_hit_per_million` is optional. If it is omitted, cache-hit input
+tokens are conservatively billed at the normal input price.
 
 ### Tool Groups
 

@@ -6,9 +6,10 @@ import threading
 import uuid
 
 from agent_sandbox import Sandbox as AioSandboxClient
+from agent_sandbox.core.api_error import ApiError
 
 from vassilflow.config.paths import VIRTUAL_PATH_PREFIX
-from vassilflow.sandbox.sandbox import Sandbox
+from vassilflow.sandbox.sandbox import Sandbox, _validate_extra_env
 from vassilflow.sandbox.search import GrepMatch, path_matches, should_ignore_path, truncate_line
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,17 @@ logger = logging.getLogger(__name__)
 _MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024  # 100 MB
 
 _ERROR_OBSERVATION_SIGNATURE = "'ErrorObservation' object has no attribute 'exit_code'"
+
+# Env-bearing commands require the bash.exec API (POST /v1/bash/exec), which
+# older all-in-one sandbox images do not expose. There is no safe fallback
+# through the legacy shell path because it has no structured env parameter.
+_BASH_EXEC_UNSUPPORTED_ERROR = (
+    "Error: this sandbox image does not support per-command environment injection "
+    "(POST /v1/bash/exec returned 404), which is required to run skills that declare "
+    "required-secrets. This is a deployment issue that retrying cannot fix: upgrade the "
+    "sandbox image to all-in-one-sandbox >= 1.9.3 (set `sandbox.image` in config.yaml, "
+    "e.g. pin the tag `1.11.0`) and recreate the sandbox container, then try again."
+)
 
 
 class AioSandbox(Sandbox):
@@ -40,6 +52,9 @@ class AioSandbox(Sandbox):
         self._home_dir = home_dir
         self._lock = threading.Lock()
         self._closed = False
+        # Set to True after bash.exec answers 404, so later env-bearing calls
+        # fail fast instead of re-hitting HTTP.
+        self._bash_exec_unsupported = False
 
     @property
     def base_url(self) -> str:
@@ -110,7 +125,15 @@ class AioSandbox(Sandbox):
     # default.
     _DEFAULT_NO_CHANGE_TIMEOUT = 600
 
-    def execute_command(self, command: str) -> str:
+    # Wall-clock hard timeout for env-bearing commands routed through bash.exec.
+    _DEFAULT_HARD_TIMEOUT = 600.0
+
+    def execute_command(
+        self,
+        command: str,
+        env: dict[str, str] | None = None,
+        timeout: float | None = None,
+    ) -> str:
         """Execute a shell command in the sandbox.
 
         Uses a lock to serialize concurrent requests. The AIO sandbox
@@ -122,10 +145,21 @@ class AioSandbox(Sandbox):
 
         Args:
             command: The command to execute.
+            env: Optional per-call environment variables. When provided, the
+                command runs via bash.exec on a fresh session so values are
+                passed through the structured env field instead of the command
+                string.
+            timeout: Optional per-call timeout. The current AIO shell path uses
+                the backend default timeout; env-bearing bash.exec uses the
+                class hard-timeout default.
 
         Returns:
             The output of the command.
         """
+        del timeout
+        _validate_extra_env(env)
+        if env:
+            return self._execute_with_env(command, env)
         with self._lock:
             try:
                 result = self._client.shell.exec_command(command=command, no_change_timeout=self._DEFAULT_NO_CHANGE_TIMEOUT)
@@ -152,6 +186,50 @@ class AioSandbox(Sandbox):
                 return output if output else "(no output)"
             except Exception as e:
                 logger.error(f"Failed to execute command in sandbox: {e}")
+                return f"Error: {e}"
+
+    def _execute_with_env(self, command: str, env: dict[str, str]) -> str:
+        """Execute a command with per-call environment variables injected."""
+        if self._bash_exec_unsupported:
+            return _BASH_EXEC_UNSUPPORTED_ERROR
+        output = self._run_bash_exec(command, env)
+        if output and _ERROR_OBSERVATION_SIGNATURE in output:
+            logger.warning("ErrorObservation detected in bash.exec output, retrying on a fresh session")
+            retried = self._run_bash_exec(command, env)
+            if retried and _ERROR_OBSERVATION_SIGNATURE not in retried:
+                return retried
+        return output
+
+    def _run_bash_exec(self, command: str, env: dict[str, str]) -> str:
+        """Single bash.exec invocation with injected env."""
+        with self._lock:
+            try:
+                result = self._client.bash.exec(
+                    command=command,
+                    env=env,
+                    hard_timeout=self._DEFAULT_HARD_TIMEOUT,
+                )
+                data = result.data if result else None
+                stdout = (data.stdout or "") if data else ""
+                stderr = (data.stderr or "") if data else ""
+                output = stdout
+                if stderr:
+                    output += f"\nStd Error:\n{stderr}" if output else stderr
+                return output if output else "(no output)"
+            except ApiError as e:
+                if e.status_code == 404:
+                    self._bash_exec_unsupported = True
+                    logger.error(
+                        "Sandbox %s does not support bash.exec (/v1/bash/exec returned 404); "
+                        "env-bearing commands are unavailable until the sandbox image is upgraded "
+                        "to all-in-one-sandbox >= 1.9.3",
+                        self.id,
+                    )
+                    return _BASH_EXEC_UNSUPPORTED_ERROR
+                logger.error(f"Failed to execute command with injected env in sandbox: {e}")
+                return f"Error: {e}"
+            except Exception as e:
+                logger.error(f"Failed to execute command with injected env in sandbox: {e}")
                 return f"Error: {e}"
 
     def read_file(self, path: str) -> str:

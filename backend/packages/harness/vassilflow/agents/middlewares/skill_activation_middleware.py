@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import html
 import logging
+import posixpath
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
@@ -16,10 +17,16 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.types import ModelRequest, ModelResponse
 from langchain_core.messages import AIMessage, HumanMessage
 
+from vassilflow.runtime.secret_context import (
+    _SECRETS_BINDING_AUDIT_KEY,
+    _SLASH_SECRET_SOURCE_KEY,
+    ACTIVE_SECRETS_CONTEXT_KEY,
+    extract_request_secrets,
+)
 from vassilflow.skills.slash import parse_slash_skill_reference, resolve_slash_skill
 from vassilflow.skills.storage import get_or_new_skill_storage
 from vassilflow.skills.storage.skill_storage import SkillStorage
-from vassilflow.skills.types import SKILL_MD_FILE, skill_reference_matches
+from vassilflow.skills.types import SKILL_MD_FILE, SecretRequirement, Skill, skill_reference_matches
 from vassilflow.utils.messages import get_original_user_content_text
 
 if TYPE_CHECKING:
@@ -40,6 +47,7 @@ class _Activation:
     skill_content: str
     content_hash: str
     remaining_text: str
+    required_secrets: tuple[SecretRequirement, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -138,6 +146,7 @@ class SkillActivationMiddleware(AgentMiddleware):
                 skill_content=skill_content,
                 content_hash=content_hash,
                 remaining_text=resolved.remaining_text,
+                required_secrets=tuple(resolved.skill.required_secrets or ()),
             )
         )
 
@@ -225,18 +234,18 @@ Follow this skill before choosing a general workflow. Load supporting resources 
         except Exception:
             logger.debug("Failed to record slash skill activation audit event", exc_info=True)
 
-    def _prepare_model_request(self, request: ModelRequest, *, hook: str) -> ModelRequest | AIMessage | None:
+    def _prepare_model_request(self, request: ModelRequest, *, hook: str) -> tuple[ModelRequest | AIMessage | None, _Activation | None]:
         target_and_resolution = self._find_activation_target(list(request.messages))
         if target_and_resolution is None:
-            return None
+            return None, None
 
         target_index, target, resolution = target_and_resolution
         if resolution.failure_message:
-            return AIMessage(content=resolution.failure_message)
+            return AIMessage(content=resolution.failure_message), None
 
         activation = resolution.activation
         if activation is None:
-            return None
+            return None, None
 
         logger.info(
             "SkillActivationMiddleware: activating slash skill %s category=%s path=%s hash=%s",
@@ -249,7 +258,129 @@ Follow this skill before choosing a general workflow. Load supporting resources 
         activation_msg = self._make_activation_message(target, self._build_activation_reminder(activation))
         messages = list(request.messages)
         messages.insert(target_index, activation_msg)
-        return request.override(messages=messages)
+        return request.override(messages=messages), activation
+
+    def _handle_model_request(self, request: ModelRequest, *, hook: str) -> ModelRequest | AIMessage:
+        prepared, activation = self._prepare_model_request(request, hook=hook)
+        if isinstance(prepared, AIMessage):
+            return prepared
+        effective = prepared if prepared is not None else request
+        self._resolve_secret_bindings(effective, activation, hook=hook)
+        return effective
+
+    def _resolve_secret_bindings(self, request: ModelRequest, activation: _Activation | None, *, hook: str) -> None:
+        """Recompute active skill secrets from slash activation and skill_context."""
+        runtime = getattr(request, "runtime", None)
+        context = getattr(runtime, "context", None)
+        if not isinstance(context, dict):
+            return
+
+        if activation is not None:
+            context[_SLASH_SECRET_SOURCE_KEY] = {"path": activation.container_file_path}
+
+        request_secrets = extract_request_secrets(context)
+        sources: list[tuple[str, tuple[SecretRequirement, ...]]] = []
+        if request_secrets:
+            registry = self._load_skill_registry_by_path()
+            if registry is not None:
+                slash_source = context.get(_SLASH_SECRET_SOURCE_KEY)
+                slash_path = slash_source.get("path") if isinstance(slash_source, dict) else None
+                slash_skill = self._resolve_registry_skill(registry, slash_path, require_autonomous=False)
+                if slash_skill is not None:
+                    sources.append((slash_skill.name, tuple(slash_skill.required_secrets)))
+                sources.extend(self._in_context_secret_sources(request, registry))
+
+        injected: dict[str, str] = {}
+        bound_skills: set[str] = set()
+        missing: dict[str, list[str]] = {}
+        for skill_name, requirements in sources:
+            for requirement in requirements:
+                if requirement.name in request_secrets:
+                    injected[requirement.name] = request_secrets[requirement.name]
+                    bound_skills.add(skill_name)
+                elif not requirement.optional:
+                    missing.setdefault(skill_name, []).append(requirement.name)
+
+        if injected:
+            context[ACTIVE_SECRETS_CONTEXT_KEY] = injected
+        else:
+            context.pop(ACTIVE_SECRETS_CONTEXT_KEY, None)
+
+        audit_state = {
+            "skills": sorted(bound_skills),
+            "secrets": sorted(injected),
+            "missing": {name: sorted(values) for name, values in sorted(missing.items())},
+        }
+        previous = context.get(_SECRETS_BINDING_AUDIT_KEY)
+        if previous == audit_state:
+            return
+        if previous is None and not injected and not missing:
+            return
+        context[_SECRETS_BINDING_AUDIT_KEY] = audit_state
+        for skill_name, names in sorted(missing.items()):
+            logger.warning(
+                "Skill %s is active but required secrets are missing from the request context: %s",
+                skill_name,
+                ", ".join(names),
+            )
+        self._record_secret_binding(context, audit_state, hook=hook)
+
+    def _load_skill_registry_by_path(self) -> dict[str, Skill] | None:
+        try:
+            storage = self._storage()
+            skills = storage.load_skills(enabled_only=False)
+            container_root = storage.get_container_root()
+        except Exception:
+            logger.exception("Failed to load skills while resolving secret bindings")
+            return None
+        return {posixpath.normpath(skill.get_container_file_path(container_root)): skill for skill in skills}
+
+    def _resolve_registry_skill(self, registry: dict[str, Skill], path: object, *, require_autonomous: bool) -> Skill | None:
+        if not isinstance(path, str) or not path:
+            return None
+        skill = registry.get(posixpath.normpath(path))
+        if skill is None or not skill.enabled or not skill.required_secrets:
+            return None
+        if require_autonomous and not skill.secrets_autonomous:
+            return None
+        if self._available_skills is not None and not any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills):
+            return None
+        return skill
+
+    def _in_context_secret_sources(self, request: ModelRequest, registry: dict[str, Skill]) -> list[tuple[str, tuple[SecretRequirement, ...]]]:
+        state = getattr(request, "state", None) or {}
+        try:
+            entries = state.get("skill_context") or []
+        except AttributeError:
+            return []
+
+        sources: list[tuple[str, tuple[SecretRequirement, ...]]] = []
+        seen: set[str] = set()
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            skill = self._resolve_registry_skill(registry, entry.get("path"), require_autonomous=True)
+            if skill is None or skill.name in seen:
+                continue
+            seen.add(skill.name)
+            sources.append((skill.name, tuple(skill.required_secrets)))
+        return sources
+
+    @staticmethod
+    def _record_secret_binding(context: dict, audit_state: dict, *, hook: str) -> None:
+        journal = context.get("__run_journal")
+        if journal is None:
+            return
+        try:
+            journal.record_middleware(
+                "skill_secrets",
+                name="SkillActivationMiddleware",
+                hook=hook,
+                action="bind_secrets",
+                changes=audit_state,
+            )
+        except Exception:
+            logger.debug("Failed to record skill secret binding audit event", exc_info=True)
 
     @staticmethod
     def _make_activation_message(target: HumanMessage, activation_content: str) -> HumanMessage:
@@ -272,9 +403,7 @@ Follow this skill before choosing a general workflow. Load supporting resources 
         request: ModelRequest,
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse | AIMessage:
-        prepared = self._prepare_model_request(request, hook="wrap_model_call")
-        if prepared is None:
-            return handler(request)
+        prepared = self._handle_model_request(request, hook="wrap_model_call")
         if isinstance(prepared, AIMessage):
             return prepared
         return handler(prepared)
@@ -285,9 +414,7 @@ Follow this skill before choosing a general workflow. Load supporting resources 
         request: ModelRequest,
         handler: Callable[[ModelRequest], Awaitable[ModelResponse]],
     ) -> ModelResponse | AIMessage:
-        prepared = await asyncio.to_thread(self._prepare_model_request, request, hook="awrap_model_call")
-        if prepared is None:
-            return await handler(request)
+        prepared = await asyncio.to_thread(self._handle_model_request, request, hook="awrap_model_call")
         if isinstance(prepared, AIMessage):
             return prepared
         return await handler(prepared)

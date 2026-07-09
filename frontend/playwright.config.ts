@@ -1,5 +1,14 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const chromeExecutablePath = process.env.PLAYWRIGHT_CHROME_EXECUTABLE_PATH;
+const webServerCommand =
+  process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ?? "pnpm build && pnpm start";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+const webServerTimeout = Number.parseInt(
+  process.env.PLAYWRIGHT_WEB_SERVER_TIMEOUT_MS ?? "",
+  10,
+);
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
@@ -10,22 +19,27 @@ export default defineConfig({
   timeout: 30_000,
 
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
     trace: "on-first-retry",
   },
 
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        ...(chromeExecutablePath
+          ? { launchOptions: { executablePath: chromeExecutablePath } }
+          : {}),
+      },
     },
   ],
 
   webServer: {
-    command: "pnpm build && pnpm start",
-    url: "http://localhost:3000",
+    command: webServerCommand,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: Number.isFinite(webServerTimeout) ? webServerTimeout : 120_000,
     env: {
       SKIP_ENV_VALIDATION: "1",
       VASSILFLOW_AUTH_DISABLED: "1",

@@ -119,6 +119,48 @@ async def test_run_agent_injects_langfuse_metadata(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_run_agent_uses_context_user_id_over_contextvar(monkeypatch):
+    """A run carrying context.user_id traces to that user, not the contextvar."""
+    monkeypatch.setenv("LANGFUSE_TRACING", "true")
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
+    from vassilflow.config.tracing_config import reset_tracing_config
+
+    reset_tracing_config()
+
+    fake_agent = _FakeAgent()
+
+    def agent_factory(config):
+        return fake_agent
+
+    record = RunRecord(
+        run_id="run-ctx-user",
+        thread_id="thread-ctx",
+        assistant_id="lead-agent",
+        status=RunStatus.pending,
+        on_disconnect=DisconnectMode.cancel,
+    )
+    record.abort_event = asyncio.Event()
+    ctx = RunContext(checkpointer=None)
+
+    await run_agent(
+        _FakeBridge(),
+        _FakeRunManager(),
+        record,
+        ctx=ctx,
+        agent_factory=agent_factory,
+        graph_input={"messages": []},
+        config={
+            "configurable": {"thread_id": "thread-ctx"},
+            "context": {"user_id": "real-end-user"},
+        },
+    )
+
+    metadata = fake_agent.captured_config.get("metadata") or {}
+    assert metadata.get("langfuse_user_id") == "real-end-user"
+
+
+@pytest.mark.asyncio
 async def test_run_agent_falls_back_to_default_user_when_unset(monkeypatch):
     """When no user is in the contextvar, langfuse_user_id falls back to 'default'.
 
@@ -131,11 +173,11 @@ async def test_run_agent_falls_back_to_default_user_when_unset(monkeypatch):
     monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-lf-test")
     monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-test")
     from vassilflow.config.tracing_config import reset_tracing_config
-    from vassilflow.runtime.runs import worker as worker_module
+    from vassilflow.runtime import user_context as user_context_module
     from vassilflow.runtime.user_context import DEFAULT_USER_ID
 
     reset_tracing_config()
-    monkeypatch.setattr(worker_module, "get_effective_user_id", lambda: DEFAULT_USER_ID)
+    monkeypatch.setattr(user_context_module, "get_effective_user_id", lambda: DEFAULT_USER_ID)
 
     fake_agent = _FakeAgent()
 

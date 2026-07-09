@@ -62,7 +62,7 @@ const foundations = [
 export function WhatsNewSection({ className }: { className?: string }) {
   return (
     <Section
-      className={cn("bg-[#07090b] px-4", className)}
+      className={cn("bg-[#07090b]", className)}
       title={`${APP_BRAND_NAME} Runtime Foundation`}
       subtitle="A standalone base for agent products that need traceable runs, durable state, controlled execution, and extensible skills."
     >

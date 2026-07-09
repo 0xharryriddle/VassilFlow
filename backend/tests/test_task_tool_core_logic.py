@@ -22,6 +22,7 @@ class FakeSubagentStatus(Enum):
     FAILED = "failed"
     CANCELLED = "cancelled"
     TIMED_OUT = "timed_out"
+    MAX_TURNS_REACHED = "max_turns_reached"
 
 
 def _make_runtime(*, app_config=None) -> SimpleNamespace:
@@ -1164,6 +1165,7 @@ def test_cancellation_reports_subagent_usage(monkeypatch):
         (FakeSubagentStatus.FAILED, "task_failed"),
         (FakeSubagentStatus.CANCELLED, "task_cancelled"),
         (FakeSubagentStatus.TIMED_OUT, "task_timed_out"),
+        (FakeSubagentStatus.MAX_TURNS_REACHED, "task_failed"),
     ],
 )
 def test_terminal_events_include_usage(monkeypatch, status, expected_type):
@@ -1202,6 +1204,45 @@ def test_terminal_events_include_usage(monkeypatch, status, expected_type):
         "output_tokens": 130,
         "total_tokens": 430,
     }
+
+
+def test_task_tool_returns_partial_result_when_max_turns_reached(monkeypatch):
+    config = _make_subagent_config()
+    runtime = _make_runtime()
+    events = []
+    cleanup_calls = []
+    result = _make_result(
+        FakeSubagentStatus.MAX_TURNS_REACHED,
+        result="partial research summary",
+        error="Reached max_turns=50",
+    )
+
+    monkeypatch.setattr(task_tool_module, "SubagentStatus", FakeSubagentStatus)
+    monkeypatch.setattr(
+        task_tool_module,
+        "SubagentExecutor",
+        type("DummyExecutor", (), {"__init__": lambda self, **kwargs: None, "execute_async": lambda self, prompt, task_id=None: task_id}),
+    )
+    monkeypatch.setattr(task_tool_module, "get_subagent_config", lambda _: config)
+    monkeypatch.setattr(task_tool_module, "get_background_task_result", lambda _: result)
+    monkeypatch.setattr(task_tool_module, "get_stream_writer", lambda: events.append)
+    monkeypatch.setattr(task_tool_module.asyncio, "sleep", _no_sleep)
+    monkeypatch.setattr(task_tool_module, "_report_subagent_usage", lambda *_: None)
+    monkeypatch.setattr(task_tool_module, "cleanup_background_task", lambda task_id: cleanup_calls.append(task_id))
+    monkeypatch.setattr("vassilflow.tools.get_available_tools", MagicMock(return_value=[]))
+
+    output = _run_task_tool(
+        runtime=runtime,
+        description="test",
+        prompt="do work",
+        subagent_type="general-purpose",
+        tool_call_id="tc-max-turns",
+    )
+
+    assert output == "Task reached max turns. Reached max_turns=50. Partial result: partial research summary"
+    assert [e["type"] for e in events] == ["task_started", "task_failed"]
+    assert events[-1]["error"] == "Reached max_turns=50"
+    assert cleanup_calls == ["tc-max-turns"]
 
 
 def test_terminal_event_usage_none_when_no_records(monkeypatch):

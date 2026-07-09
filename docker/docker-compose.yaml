@@ -137,6 +137,7 @@ services:
       - SANDBOX_APP_NAME_LABEL=${VASSILFLOW_SANDBOX_APP_NAME_LABEL:-vassilflow}
       - USERDATA_PVC_SUBPATH_ROOT=${VASSILFLOW_USERDATA_PVC_SUBPATH_ROOT:-vassilflow}
       - SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
+      - SANDBOX_CONTAINER_PORT=${VASSILFLOW_SANDBOX_CONTAINER_PORT:-8080}
       - SKILLS_HOST_PATH=${VASSILFLOW_REPO_ROOT:-..}/skills
       - THREADS_HOST_PATH=${VASSILFLOW_HOME:-../backend/.vassilflow}/threads
       - KUBECONFIG_PATH=/root/.kube/config

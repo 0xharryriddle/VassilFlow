@@ -47,6 +47,36 @@ class TestValidateSkillFrontmatter:
         assert msg == "Skill is valid!"
         assert name == "my-skill"
 
+    def test_allows_required_secrets(self, tmp_path):
+        skill_dir = _write_skill(
+            tmp_path,
+            "---\nname: my-skill\ndescription: A skill\nrequired-secrets: [API_TOKEN]\n---\n\nBody\n",
+        )
+        valid, msg, name = _validate_skill_frontmatter(skill_dir)
+        assert valid is True
+        assert msg == "Skill is valid!"
+        assert name == "my-skill"
+
+    def test_allows_secrets_autonomous(self, tmp_path):
+        skill_dir = _write_skill(
+            tmp_path,
+            "---\nname: my-skill\ndescription: A skill\nsecrets-autonomous: false\n---\n\nBody\n",
+        )
+        valid, msg, name = _validate_skill_frontmatter(skill_dir)
+        assert valid is True
+        assert msg == "Skill is valid!"
+        assert name == "my-skill"
+
+    def test_rejects_required_secrets_string(self, tmp_path):
+        skill_dir = _write_skill(
+            tmp_path,
+            "---\nname: my-skill\ndescription: A skill\nrequired-secrets: API_TOKEN\n---\n\nBody\n",
+        )
+        valid, msg, name = _validate_skill_frontmatter(skill_dir)
+        assert valid is False
+        assert "required-secrets" in msg
+        assert name is None
+
     def test_rejects_allowed_tools_string(self, tmp_path):
         skill_dir = _write_skill(
             tmp_path,

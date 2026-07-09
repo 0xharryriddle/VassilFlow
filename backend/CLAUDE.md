@@ -223,7 +223,7 @@ Lead-agent middlewares are assembled in strict append order across `packages/har
 17. **SystemMessageCoalescingMiddleware** - Merges `request.system_message` and every in-`request.messages` SystemMessage into a single leading SystemMessage in `wrap_model_call`; provider-agnostic fix for strict backends (vLLM/SGLang/Qwen/Anthropic) that reject non-leading system messages. Touches the per-request payload only — checkpoint state is unchanged so `is_dynamic_context_reminder` history scanners keep working. On midnight crossings, earlier `dynamic_context_reminder`-tagged SystemMessages are dropped and only the latest (most recent date) survives, avoiding two contradictory `<current_date>` blocks appearing adjacent with no temporal anchor.
 18. **SubagentLimitMiddleware** - Truncates excess `task` tool calls from model response to enforce `MAX_CONCURRENT_SUBAGENTS` limit (optional, if `subagent_enabled`)
 19. **LoopDetectionMiddleware** - Detects repeated tool-call loops; hard-stop responses clear both structured `tool_calls` and raw provider tool-call metadata before forcing a final text answer
-20. **ClarificationMiddleware** - Intercepts `ask_clarification` tool calls, interrupts via `Command(goto=END)` (must be last)
+20. **ClarificationMiddleware** - Intercepts `ask_clarification` tool calls, writes a structured human-input request payload, and interrupts via `Command(goto=END)` (must be last). Because this path can short-circuit normal tool callbacks, `RunJournal` reconciles allowlisted clarification tool messages at root run completion and persists allowlisted hidden human-input replies so answered cards survive checkpoint compaction.
 
 ### Configuration System
 
@@ -465,7 +465,8 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 2. Queue debounces (30s default), batches updates, deduplicates per-thread
 3. Background thread invokes LLM to extract context updates and facts, using the stored `user_id` (not the contextvar, which is unavailable on timer threads)
 4. Applies updates atomically (temp file + rename) with cache invalidation, skipping duplicate fact content before append
-5. Next interaction injects top 15 facts + context into `<memory>` tags in system prompt
+5. When enough aged facts exist, staleness review surfaces eligible facts in the same update prompt; the apply layer only removes facts that are still aged, unprotected candidates and caps removals per cycle
+6. Next interaction injects top 15 facts + context into `<memory>` tags in system prompt
 
 **Token counting** (`packages/harness/vassilflow/agents/memory/prompt.py`):
 - `_count_tokens` budgets the injection. In default `tiktoken` mode, the encoding is loaded lazily and cached.
@@ -473,7 +474,7 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 - In-flight loads are cached as a LOADING sentinel so concurrent callers fall back instead of spawning more blocking threads.
 - Set `memory.token_counting: char` to skip tiktoken entirely and use the network-free CJK-aware char estimate.
 
-Focused regression coverage for the updater lives in `backend/tests/test_memory_updater.py`.
+Focused regression coverage for the updater lives in `backend/tests/test_memory_updater.py` and `backend/tests/test_memory_staleness_review.py`.
 
 **Configuration** (`config.yaml` → `memory`):
 - `enabled` / `injection_enabled` - Master switches
@@ -482,6 +483,11 @@ Focused regression coverage for the updater lives in `backend/tests/test_memory_
 - `model_name` - LLM for updates (null = default model)
 - `max_facts` / `fact_confidence_threshold` - Fact storage limits (100 / 0.7)
 - `max_injection_tokens` - Token limit for prompt injection (2000)
+- `staleness_review_enabled` - Enable review of aged facts during normal memory updates
+- `staleness_age_days` - Age threshold before a fact becomes a staleness candidate (default: 90)
+- `staleness_min_candidates` - Minimum candidate count needed before injecting the review section
+- `staleness_max_removals_per_cycle` - Per-cycle safety cap for staleness removals
+- `staleness_protected_categories` - Fact categories exempt from staleness review (default: `["correction"]`)
 - `token_counting` - Token counting strategy for the injection budget: `tiktoken` (default, accurate but may download BPE data from a public endpoint on first use — can block for a long time in network-restricted environments, see issues #3402/#3429) or `char` (network-free CJK-aware char estimate, never touches tiktoken)
 
 ### Reflection System (`packages/harness/vassilflow/reflection/`)
@@ -554,7 +560,7 @@ Returns `{}` when Langfuse is not in the enabled providers — LangSmith-only de
 - `title` - Auto-title generation (enabled, max_words, max_chars, prompt_template)
 - `summarization` - Context summarization (enabled, trigger conditions, keep policy)
 - `subagents.enabled` - Master switch for subagent delegation
-- `memory` - Memory system (enabled, storage_path, debounce_seconds, model_name, max_facts, fact_confidence_threshold, injection_enabled, max_injection_tokens)
+- `memory` - Memory system (enabled, storage_path, debounce_seconds, model_name, max_facts, fact_confidence_threshold, injection_enabled, max_injection_tokens, staleness review fields)
 
 **`extensions_config.json`**:
 - `mcpServers` - Map of server name → config (enabled, type, command, args, env, url, headers, oauth, description)

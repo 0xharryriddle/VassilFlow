@@ -51,6 +51,8 @@ export const zhCN: Translations = {
     exportAsJSON: "导出为 JSON",
     exportSuccess: "对话已导出",
     regenerate: "重新生成",
+    branch: "分叉对话",
+    showArtifacts: "查看此对话的文件",
   },
 
   // Home
@@ -76,6 +78,33 @@ export const zhCN: Translations = {
     copiedToClipboard: "已复制到剪贴板",
     failedToCopyToClipboard: "复制到剪贴板失败",
     linkCopied: "链接已复制到剪贴板",
+  },
+
+  citations: {
+    sourcesSummary: (count: number) => `使用了 ${count} 个来源`,
+    citeCount: (count: number) => `${count} 次引用`,
+    copyReference: (title: string) => `复制 ${title} 引用`,
+    copiedReference: (title: string) => `已复制 ${title} 引用`,
+  },
+
+  workspaceChanges: {
+    title: "工作区变更",
+    editedTitle: (count: number) => `已编辑 ${count} 个文件`,
+    badge: (count: number, additions: number, deletions: number) =>
+      `${count} 个文件已更改 +${additions} -${deletions}`,
+    viewChanges: "查看更改",
+    created: "新增",
+    modified: "修改",
+    deleted: "删除",
+    openFile: "打开文件",
+    loading: "正在加载工作区变更...",
+    noChanges: "没有记录到工作区变更。",
+    diffUnavailable: "无法展示 diff",
+    binaryUnavailable: "二进制文件，无法展示 diff。",
+    largeUnavailable: "文件过大，已省略 diff。",
+    sensitiveUnavailable: "敏感路径，已隐藏内容。",
+    truncatedUnavailable: "变更集过大，已省略 diff。",
+    truncatedSummary: "部分变更已被截断。",
   },
 
   // Input Box
@@ -111,6 +140,11 @@ export const zhCN: Translations = {
     followupConfirmDescription: "当前输入框已有内容，选择发送方式。",
     followupConfirmAppend: "追加并发送",
     followupConfirmReplace: "替换并发送",
+    suggestionPlaceholderRequired: "发送前请先填写建议模板中的占位内容。",
+    compactCommandDescription: "压缩早期上下文，保留完整聊天记录",
+    compactSuccess: "已压缩早期上下文。后续模型将基于摘要和最近消息继续。",
+    compactSkipped: "当前上下文还不需要压缩。",
+    compactFailed: "上下文压缩失败。",
     suggestions: [
       {
         suggestion: "写作",
@@ -239,6 +273,8 @@ export const zhCN: Translations = {
   conversation: {
     noMessages: "还没有消息",
     startConversation: "开始新的对话以查看消息",
+    branchCreated: "已创建分叉对话",
+    branchFailed: "创建分叉对话失败。",
   },
 
   // Chats
@@ -312,6 +348,17 @@ export const zhCN: Translations = {
     skillInstallTooltip: "安装技能并使其可在 VassilFlow 中使用",
   },
 
+  humanInput: {
+    answered: "已回答",
+    pending: "发送中...",
+    readOnly: "只读",
+    submit: "提交",
+    otherLabel: "你的回答",
+    otherPlaceholder: "输入你的回答...",
+    emptyError: "请输入回答。",
+    answeredValue: (value: string) => `你的回答：${value}`,
+  },
+
   uploads: {
     uploading: "上传中...",
     uploadingFiles: "文件上传中，请稍候...",
@@ -369,6 +416,33 @@ export const zhCN: Translations = {
     keyboardShortcutsDescription: "使用键盘快捷键更快地操作 VassilFlow。",
     openCommandPalette: "打开命令面板",
     toggleSidebar: "切换侧边栏",
+  },
+
+  // Sidecar
+  sidecar: {
+    title: "侧边对话",
+    open: "打开侧边对话",
+    close: "关闭侧边对话",
+    delete: "删除侧边对话",
+    deleteConfirm:
+      "确定要删除此侧边对话吗？此操作不可撤销。如只想隐藏它，请使用顶部的侧边对话开关。",
+    deleteSuccess: "侧边对话已删除",
+    deleteFailed: "删除侧边对话失败。",
+    addToConversation: "添加到对话",
+    askInSideChat: "在侧边对话中提问",
+    reference: "引用",
+    selectedTextFragment: "{count} 个已选文本片段",
+    selectedTextFragments: "{count} 个已选文本片段",
+    clearReferences: "清除已选引用",
+    emptyTitle: "继续深入追问",
+    emptyDescription: "基于引用内容单独追问。",
+    placeholder: "继续深入追问...",
+    send: "发送",
+    sendFailed: "侧边对话发送失败。",
+    noContext: "未选择上下文",
+    continuing: "继续当前侧边对话",
+    selectionCrossesMessages:
+      "选区跨越了多条消息，请在同一条消息内选择要引用的文本。",
   },
 
   // Settings

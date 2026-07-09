@@ -46,9 +46,9 @@ def test_empty_mappings_yield_no_pattern(tmp_path):
 
 def test_command_paths_resolved_to_local(tmp_path):
     sb = _make_sandbox(tmp_path)
-    expected_path = str((tmp_path / "workspace" / "foo.txt").resolve())
+    ws_local = str((tmp_path / "workspace").resolve()).replace("\\", "/")
     out = sb._resolve_paths_in_command("cat /mnt/user-data/workspace/foo.txt")
-    assert out == f"cat {expected_path}"
+    assert out == f"cat {ws_local}/foo.txt"
     # Calling again uses the cached pattern and produces the same result.
     assert sb._resolve_paths_in_command("cat /mnt/user-data/workspace/foo.txt") == out
 

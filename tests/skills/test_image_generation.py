@@ -129,6 +129,24 @@ def test_minimax_extracts_json_prompt_field(monkeypatch, tmp_path):
     assert captured["json"]["prompt_optimizer"] is True
 
 
+def test_minimax_extracts_json_prompt_field_with_bom(monkeypatch, tmp_path):
+    monkeypatch.setenv("MINIMAX_API_KEY", "m")
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, **kw):
+        captured["json"] = json
+        return FakeResp({"data": {"image_base64": [base64.b64encode(b"x").decode()]},
+                         "base_resp": {"status_code": 0}})
+
+    monkeypatch.setattr(img.requests, "post", fake_post)
+    prompt_file = tmp_path / "p.json"
+    prompt_file.write_text('{"prompt": "a sharp product photo"}', encoding="utf-8-sig")
+
+    img.generate_image(str(prompt_file), [], str(tmp_path / "o.jpg"), "16:9")
+
+    assert captured["json"]["prompt"] == "a sharp product photo"
+
+
 def test_minimax_plaintext_prompt_passes_through(monkeypatch, tmp_path):
     monkeypatch.setenv("MINIMAX_API_KEY", "m")
     captured = {}

@@ -39,6 +39,13 @@ import {
 } from "@/core/agents/api";
 import { useI18n } from "@/core/i18n/hooks";
 import {
+  buildHumanInputResponseText,
+  hasOpenHumanInputRequest,
+  type HumanInputRequest,
+  type HumanInputResponse,
+} from "@/core/messages/human-input";
+import { isHiddenFromUIMessage } from "@/core/messages/utils";
+import {
   hasSeenAgentCreateSaveHint,
   markAgentCreateSaveHintSeen,
 } from "@/core/settings/local";
@@ -221,6 +228,29 @@ export default function NewAgentPage() {
     [agentName, sendMessage, thread.isLoading, threadId],
   );
 
+  const handleSubmitHumanInput = useCallback(
+    async (request: HumanInputRequest, response: HumanInputResponse) => {
+      if (!agentName) {
+        return false;
+      }
+      await sendMessage(
+        threadId,
+        {
+          text: buildHumanInputResponseText(request, response),
+          files: [],
+        },
+        { agent_name: agentName },
+        {
+          additionalKwargs: {
+            hide_from_ui: true,
+            human_input_response: response,
+          },
+        },
+      );
+    },
+    [agentName, sendMessage, threadId],
+  );
+
   const handleSaveAgent = useCallback(async () => {
     if (
       !agentName ||
@@ -345,6 +375,11 @@ export default function NewAgentPage() {
     );
   }
 
+  const hasOpenHumanInput = hasOpenHumanInputRequest(
+    thread.messages,
+    (message) => !isHiddenFromUIMessage(message),
+  );
+
   return (
     <ThreadContext.Provider value={{ thread }}>
       <ArtifactsProvider>
@@ -368,6 +403,7 @@ export default function NewAgentPage() {
                 className={cn("size-full", showSaveHint ? "pt-4" : "pt-10")}
                 threadId={threadId}
                 thread={thread}
+                onSubmitHumanInput={handleSubmitHumanInput}
               />
             </div>
 
@@ -402,10 +438,12 @@ export default function NewAgentPage() {
                     <PromptInputTextarea
                       autoFocus
                       placeholder={t.agents.createPageSubtitle}
-                      disabled={thread.isLoading}
+                      disabled={thread.isLoading || hasOpenHumanInput}
                     />
                     <PromptInputFooter className="justify-end">
-                      <PromptInputSubmit disabled={thread.isLoading} />
+                      <PromptInputSubmit
+                        disabled={thread.isLoading || hasOpenHumanInput}
+                      />
                     </PromptInputFooter>
                   </PromptInput>
                 )}

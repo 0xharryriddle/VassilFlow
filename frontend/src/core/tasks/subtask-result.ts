@@ -37,6 +37,7 @@ const STRUCTURED_STATUS_TO_SUBTASK: Record<string, SubtaskStatus> = {
   cancelled: "failed",
   timed_out: "failed",
   polling_timed_out: "failed",
+  max_turns_reached: "failed",
 };
 
 /**
@@ -62,6 +63,7 @@ export const FAILURE_PREFIX = "Task failed.";
 export const TIMEOUT_PREFIX = "Task timed out";
 export const CANCELLED_PREFIX = "Task cancelled by user.";
 export const POLLING_TIMEOUT_PREFIX = "Task polling timed out";
+export const MAX_TURNS_PREFIX = "Task reached max turns";
 export const ERROR_WRAPPER_PATTERN = /^Error\b/i;
 
 /**
@@ -173,6 +175,10 @@ function parseFromText(trimmed: string): SubtaskResultUpdate {
   }
 
   if (trimmed.startsWith(POLLING_TIMEOUT_PREFIX)) {
+    return { status: "failed", error: trimmed };
+  }
+
+  if (trimmed.startsWith(MAX_TURNS_PREFIX)) {
     return { status: "failed", error: trimmed };
   }
 

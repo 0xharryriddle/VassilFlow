@@ -161,6 +161,110 @@ class TestErrorObservationRetry:
         assert call_count == 1
 
 
+class TestBashExecEnvPath:
+    """Verify AIO env-bearing commands use bash.exec safely."""
+
+    def test_bash_exec_receives_structured_env(self, sandbox):
+        sandbox._client.bash.exec = MagicMock(return_value=SimpleNamespace(data=SimpleNamespace(stdout="ok", stderr=None)))
+
+        out = sandbox.execute_command("echo $TOK", env={"TOK": "secret-v"})
+
+        assert out == "ok"
+        sandbox._client.bash.exec.assert_called_once_with(
+            command="echo $TOK",
+            env={"TOK": "secret-v"},
+            hard_timeout=sandbox._DEFAULT_HARD_TIMEOUT,
+        )
+        sandbox._client.shell.exec_command.assert_not_called()
+
+    def test_bash_exec_combines_stdout_and_stderr(self, sandbox):
+        sandbox._client.bash.exec = MagicMock(return_value=SimpleNamespace(data=SimpleNamespace(stdout="out", stderr="err")))
+
+        assert sandbox.execute_command("cmd", env={"TOK": "v"}) == "out\nStd Error:\nerr"
+
+    def test_bash_exec_retries_error_observation_once(self, sandbox):
+        sandbox._client.bash.exec = MagicMock(
+            side_effect=[
+                SimpleNamespace(data=SimpleNamespace(stdout="'ErrorObservation' object has no attribute 'exit_code'", stderr=None)),
+                SimpleNamespace(data=SimpleNamespace(stdout="recovered", stderr=None)),
+            ]
+        )
+
+        assert sandbox.execute_command("cmd", env={"TOK": "v"}) == "recovered"
+        assert sandbox._client.bash.exec.call_count == 2
+
+    def test_invalid_env_key_is_rejected(self, sandbox):
+        with pytest.raises(ValueError, match="valid POSIX environment variable name"):
+            sandbox.execute_command("cmd", env={"BAD;KEY": "v"})
+
+
+class TestBashExecUnsupportedFailFast:
+    """Regression tests for sandbox images that lack /v1/bash/exec."""
+
+    def _api_error_404(self):
+        from agent_sandbox.core.api_error import ApiError
+
+        return ApiError(
+            headers={"server": "nginx/1.18.0 (Ubuntu)"},
+            status_code=404,
+            body={"success": False, "message": "Not Found", "data": None},
+        )
+
+    def test_bash_exec_404_returns_actionable_error(self, sandbox):
+        sandbox._client.bash.exec = MagicMock(side_effect=self._api_error_404())
+
+        out = sandbox.execute_command("echo $TOK", env={"TOK": "secret-v"})
+
+        assert out.startswith("Error:")
+        assert "/v1/bash/exec" in out
+        assert "1.9.3" in out
+        assert "required-secrets" in out
+        assert "nginx" not in out
+
+    def test_bash_exec_404_is_cached_and_stops_retry_storm(self, sandbox):
+        sandbox._client.bash.exec = MagicMock(side_effect=self._api_error_404())
+
+        first = sandbox.execute_command("cmd-1", env={"TOK": "v"})
+        second = sandbox.execute_command("cmd-2", env={"TOK": "v"})
+
+        assert sandbox._client.bash.exec.call_count == 1
+        assert first == second
+        assert "1.9.3" in second
+
+    def test_bash_exec_non_404_error_is_not_cached(self, sandbox):
+        from agent_sandbox.core.api_error import ApiError
+
+        sandbox._client.bash.exec = MagicMock(side_effect=ApiError(status_code=500, body="boom"))
+
+        first = sandbox.execute_command("cmd-1", env={"TOK": "v"})
+        second = sandbox.execute_command("cmd-2", env={"TOK": "v"})
+
+        assert sandbox._client.bash.exec.call_count == 2
+        assert first.startswith("Error:")
+        assert "1.9.3" not in first
+        assert second.startswith("Error:")
+
+    def test_env_less_path_unaffected_after_404(self, sandbox):
+        sandbox._client.bash.exec = MagicMock(side_effect=self._api_error_404())
+        sandbox._client.shell.exec_command = MagicMock(return_value=SimpleNamespace(data=SimpleNamespace(output="plain ok")))
+
+        sandbox.execute_command("cmd", env={"TOK": "v"})
+        out = sandbox.execute_command("echo plain")
+
+        assert out == "plain ok"
+        sandbox._client.shell.exec_command.assert_called_once()
+
+    def test_bash_exec_success_does_not_mark_unsupported(self, sandbox):
+        sandbox._client.bash.exec = MagicMock(return_value=SimpleNamespace(data=SimpleNamespace(stdout="ok", stderr=None)))
+
+        first = sandbox.execute_command("cmd-1", env={"TOK": "v"})
+        second = sandbox.execute_command("cmd-2", env={"TOK": "v"})
+
+        assert first == "ok"
+        assert second == "ok"
+        assert sandbox._client.bash.exec.call_count == 2
+
+
 class TestListDirSerialization:
     """Verify that list_dir also acquires the lock."""
 

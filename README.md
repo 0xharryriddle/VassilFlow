@@ -1,4 +1,4 @@
-# 🦌 VassilFlow - 2.0
+# VassilFlow
 
 English
 
@@ -15,7 +15,7 @@ https://github.com/user-attachments/assets/a8bcadc4-e040-4cf2-8fda-dd768b999c18
 
 ## Table of Contents
 
-- [🦌 VassilFlow - 2.0](#-vassilflow---20)
+- [VassilFlow](#-vassilflow---20)
   - [Table of Contents](#table-of-contents)
   - [One-Line Agent Setup](#one-line-agent-setup)
   - [Quick Start](#quick-start)
@@ -83,6 +83,7 @@ That prompt is intended for coding agents. It tells the agent to clone the repo 
    The wizard also lets you configure an optional web search provider, or skip it for now.
 
    Run `make doctor` at any time to verify your setup and get actionable fix hints.
+   When you need to file a setup or runtime issue, run `make support-bundle` to generate a redacted issue summary, AI-ready issue draft, and evidence bundle under `.vassilflow/support-bundles/`.
 
    > **Advanced / manual configuration**: If you prefer to edit `config.yaml` directly, run `make config` instead to copy the full template. See `config.example.yaml` for the complete reference including CLI-backed providers (Codex CLI, Claude Code OAuth), OpenRouter, Responses API, and more.
 
@@ -303,6 +304,7 @@ See the [Sandbox Configuration Guide](backend/docs/CONFIGURATION.md#sandbox) to 
 
 VassilFlow supports configurable MCP servers and skills to extend its capabilities.
 For HTTP/SSE MCP servers, OAuth token flows are supported (`client_credentials`, `refresh_token`).
+For stdio MCP servers, per-tool call timeouts can be configured with `tool_call_timeout`.
 See the [MCP Server Guide](backend/docs/MCP_SERVER.md) for detailed instructions.
 
 #### IM Channels
@@ -617,6 +619,8 @@ This is how VassilFlow handles tasks that take minutes to hours: a research task
 VassilFlow doesn't just *talk* about doing things. It has its own computer.
 
 Each task gets its own execution environment with a full filesystem view — skills, workspace, uploads, outputs. The agent reads, writes, and edits files. It can view images and, when configured safely, execute shell commands.
+
+After each run, VassilFlow records a workspace change summary for the run-owned `workspace` and `outputs` directories. The workspace UI shows a compact files-changed badge on the assistant turn; opening it reveals created, modified, and deleted files with text diffs when safe to display. Uploads are excluded because they are user inputs, not agent-generated changes. Large, binary, or sensitive-looking files are shown as metadata only.
 
 With `AioSandboxProvider`, shell execution runs inside isolated containers. With `LocalSandboxProvider`, file tools still map to per-thread directories on the host, but host `bash` is disabled by default because it is not a secure isolation boundary. Re-enable host bash only for fully trusted local workflows.
 

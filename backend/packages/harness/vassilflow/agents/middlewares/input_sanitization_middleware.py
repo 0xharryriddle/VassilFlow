@@ -31,6 +31,9 @@ from langchain.agents.middleware.types import (
 from langchain_core.messages import HumanMessage
 from langgraph.errors import GraphBubbleUp
 
+from vassilflow.agents.human_input import read_human_input_response
+from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY, message_content_to_text
+
 logger = logging.getLogger(__name__)
 
 _SUMMARY_MESSAGE_NAME = "summary"
@@ -93,7 +96,7 @@ def _is_genuine_user_message(message: object) -> bool:
     """
     if not isinstance(message, HumanMessage):
         return False
-    if message.additional_kwargs.get("hide_from_ui"):
+    if message.additional_kwargs.get("hide_from_ui") and read_human_input_response(message.additional_kwargs) is None:
         return False
     if message.name == _SUMMARY_MESSAGE_NAME:
         return False
@@ -233,11 +236,13 @@ class InputSanitizationMiddleware(AgentMiddleware[AgentState]):
             else:
                 new_content = processed
 
+            preserved_kwargs = dict(msg.additional_kwargs or {})
+            preserved_kwargs.setdefault(ORIGINAL_USER_CONTENT_KEY, message_content_to_text(content))
             messages[i] = HumanMessage(
                 content=new_content,
                 id=msg.id,
                 name=msg.name,
-                additional_kwargs=msg.additional_kwargs,
+                additional_kwargs=preserved_kwargs,
             )
             logger.debug(
                 "InputSanitizationMiddleware: original=%r -> processed=%r",

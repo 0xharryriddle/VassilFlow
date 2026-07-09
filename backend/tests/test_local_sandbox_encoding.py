@@ -86,6 +86,7 @@ def test_execute_command_uses_powershell_command_mode_on_windows(monkeypatch):
         return SimpleNamespace(stdout="ok", stderr="", returncode=0)
 
     monkeypatch.setattr(local_sandbox.os, "name", "nt")
+    monkeypatch.setattr(local_sandbox.os, "environ", {"PATH": r"C:\Windows", "OPENAI_API_KEY": "secret"})
     monkeypatch.setattr(LocalSandbox, "_get_shell", staticmethod(lambda: r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"))
     monkeypatch.setattr(local_sandbox.subprocess, "run", fake_run)
 
@@ -105,7 +106,7 @@ def test_execute_command_uses_powershell_command_mode_on_windows(monkeypatch):
                 "capture_output": True,
                 "text": True,
                 "timeout": 600,
-                "env": None,
+                "env": {"PATH": r"C:\Windows"},
             },
         )
     ]
@@ -152,13 +153,14 @@ def test_execute_command_does_not_set_msys_env_for_non_msys_posix_shell_on_windo
         return SimpleNamespace(stdout="ok", stderr="", returncode=0)
 
     monkeypatch.setattr(local_sandbox.os, "name", "nt")
+    monkeypatch.setattr(local_sandbox.os, "environ", {"PATH": r"C:\tools", "GITHUB_TOKEN": "secret"})
     monkeypatch.setattr(LocalSandbox, "_get_shell", staticmethod(lambda: r"C:\tools\busybox\sh.exe"))
     monkeypatch.setattr(local_sandbox.subprocess, "run", fake_run)
 
     output = LocalSandbox("t").execute_command("echo /mnt/skills/demo")
 
     assert output == "ok"
-    assert calls[0][1]["env"] is None
+    assert calls[0][1]["env"] == {"PATH": r"C:\tools"}
 
 
 def test_execute_command_uses_cmd_command_mode_on_windows(monkeypatch):
@@ -169,6 +171,7 @@ def test_execute_command_uses_cmd_command_mode_on_windows(monkeypatch):
         return SimpleNamespace(stdout="ok", stderr="", returncode=0)
 
     monkeypatch.setattr(local_sandbox.os, "name", "nt")
+    monkeypatch.setattr(local_sandbox.os, "environ", {"PATH": r"C:\Windows", "DATABASE_URL": "postgres://user:pass@host/db"})
     monkeypatch.setattr(LocalSandbox, "_get_shell", staticmethod(lambda: r"C:\Windows\System32\cmd.exe"))
     monkeypatch.setattr(local_sandbox.subprocess, "run", fake_run)
 
@@ -183,7 +186,37 @@ def test_execute_command_uses_cmd_command_mode_on_windows(monkeypatch):
                 "capture_output": True,
                 "text": True,
                 "timeout": 600,
-                "env": None,
+                "env": {"PATH": r"C:\Windows"},
             },
         )
     ]
+
+
+def test_execute_command_injected_env_overrides_scrubbed_host_secret(monkeypatch):
+    calls: list[tuple[object, dict]] = []
+
+    def fake_run(*args, **kwargs):
+        calls.append((args[0], kwargs))
+        return SimpleNamespace(stdout="ok", stderr="", returncode=0)
+
+    monkeypatch.setattr(local_sandbox.os, "name", "nt")
+    monkeypatch.setattr(local_sandbox.os, "environ", {"PATH": r"C:\Windows", "API_TOKEN": "host-secret"})
+    monkeypatch.setattr(LocalSandbox, "_get_shell", staticmethod(lambda: r"C:\Windows\System32\cmd.exe"))
+    monkeypatch.setattr(local_sandbox.subprocess, "run", fake_run)
+
+    output = LocalSandbox("t").execute_command("echo token", env={"API_TOKEN": "request-secret"})
+
+    assert output == "ok"
+    assert calls[0][1]["env"] == {"PATH": r"C:\Windows", "API_TOKEN": "request-secret"}
+
+
+def test_execute_command_rejects_invalid_env_key(monkeypatch):
+    monkeypatch.setattr(local_sandbox.os, "name", "nt")
+    monkeypatch.setattr(LocalSandbox, "_get_shell", staticmethod(lambda: r"C:\Windows\System32\cmd.exe"))
+
+    try:
+        LocalSandbox("t").execute_command("echo bad", env={"BAD;KEY": "value"})
+    except ValueError as exc:
+        assert "valid POSIX environment variable name" in str(exc)
+    else:
+        raise AssertionError("invalid env key should raise ValueError")

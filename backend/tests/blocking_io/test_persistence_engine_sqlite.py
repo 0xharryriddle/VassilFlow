@@ -29,6 +29,7 @@ import pytest
 # Pre-import so `init_engine`'s lazy model import is a
 # cached no-op rather than a file read under the strict gate.
 import vassilflow.persistence.models  # noqa: E402,F401
+from vassilflow.persistence import bootstrap as bootstrap_mod  # noqa: E402
 from vassilflow.persistence import engine as engine_mod  # noqa: E402
 
 pytestmark = pytest.mark.asyncio
@@ -62,10 +63,7 @@ async def test_init_engine_sqlite_dir_setup_does_not_block_event_loop(tmp_path: 
         patch.object(engine_mod, "create_async_engine", return_value=mock_engine),
         patch.object(engine_mod, "async_sessionmaker", return_value=MagicMock()),
         patch("sqlalchemy.event.listens_for", _noop_listens_for),
-        patch(
-            "vassilflow.persistence.bootstrap.bootstrap_schema",
-            new=_noop_bootstrap,
-        ),
+        patch.object(bootstrap_mod, "bootstrap_schema", new=_noop_bootstrap),
     ):
         await engine_mod.init_engine(
             backend="sqlite",

@@ -34,7 +34,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, Tool
 from langchain_core.runnables import RunnableConfig
 
 from vassilflow.agents.lead_agent.agent import build_middlewares
-from vassilflow.agents.lead_agent.prompt import apply_prompt_template
+from vassilflow.agents.lead_agent.prompt import apply_prompt_template, get_enabled_skills_for_config
 from vassilflow.agents.thread_state import ThreadState
 from vassilflow.config.agents_config import AGENT_NAME_PATTERN
 from vassilflow.config.app_config import get_app_config, reload_app_config
@@ -43,8 +43,9 @@ from vassilflow.config.extensions_config import ExtensionsConfig, SkillStateConf
 from vassilflow.config.paths import get_paths
 from vassilflow.models import create_chat_model
 from vassilflow.runtime.user_context import get_effective_user_id
+from vassilflow.skills.describe import build_skill_search_setup
 from vassilflow.skills.storage import get_or_new_skill_storage
-from vassilflow.skills.types import skill_config_key
+from vassilflow.skills.types import skill_config_key, skill_reference_matches
 from vassilflow.tools.builtins.tool_search import assemble_deferred_tools
 from vassilflow.tracing import build_tracing_callbacks, inject_langfuse_metadata
 from vassilflow.uploads.manager import (
@@ -223,6 +224,9 @@ class VassilFlowClient:
     def _ensure_agent(self, config: RunnableConfig):
         """Create (or recreate) the agent when config-dependent params change."""
         cfg = config.get("configurable", {})
+        skills_config = getattr(self._app_config, "skills", None)
+        skill_discovery_enabled = getattr(skills_config, "deferred_discovery", False) is True
+        skills_container_path = str(getattr(skills_config, "container_path", "/mnt/skills") or "/mnt/skills")
         key = (
             cfg.get("model_name"),
             cfg.get("thinking_enabled"),
@@ -230,6 +234,8 @@ class VassilFlowClient:
             cfg.get("subagent_enabled"),
             self._agent_name,
             frozenset(self._available_skills) if self._available_skills is not None else None,
+            skill_discovery_enabled,
+            skills_container_path,
         )
 
         if self._agent is not None and self._agent_config_key == key:
@@ -242,6 +248,16 @@ class VassilFlowClient:
 
         tools = self._get_tools(model_name=model_name, subagent_enabled=subagent_enabled)
         final_tools, deferred_setup = assemble_deferred_tools(tools, enabled=self._app_config.tool_search.enabled)
+        skills_for_discovery = get_enabled_skills_for_config(self._app_config) if skill_discovery_enabled else []
+        if self._available_skills is not None:
+            skills_for_discovery = [skill for skill in skills_for_discovery if any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills)]
+        skill_setup = build_skill_search_setup(
+            skills_for_discovery,
+            enabled=skill_discovery_enabled,
+            container_base_path=skills_container_path,
+        )
+        if skill_setup.describe_skill_tool is not None:
+            final_tools.append(skill_setup.describe_skill_tool)
         kwargs: dict[str, Any] = {
             # attach_tracing=False because ``stream()`` injects tracing
             # callbacks at the graph invocation root so a single embedded run
@@ -263,7 +279,9 @@ class VassilFlowClient:
                 max_concurrent_subagents=max_concurrent_subagents,
                 agent_name=self._agent_name,
                 available_skills=self._available_skills,
+                app_config=self._app_config,
                 deferred_names=deferred_setup.deferred_names,
+                skill_names=skill_setup.skill_names or None,
             ),
             "state_schema": ThreadState,
         }
@@ -300,6 +318,12 @@ class VassilFlowClient:
         return None
 
     @staticmethod
+    def _serialize_artifact(msg) -> Any | None:
+        """Copy structured message artifact payloads when present."""
+        artifact = getattr(msg, "artifact", None)
+        return artifact if artifact is not None else None
+
+    @staticmethod
     def _ai_text_event(msg_id: str | None, text: str, usage: dict | None, additional_kwargs: dict[str, Any] | None = None) -> "StreamEvent":
         """Build a ``messages-tuple`` AI text event."""
         data: dict[str, Any] = {"type": "ai", "content": text, "id": msg_id}
@@ -325,15 +349,18 @@ class VassilFlowClient:
     @staticmethod
     def _tool_message_event(msg: ToolMessage) -> "StreamEvent":
         """Build a ``messages-tuple`` tool-result event from a ToolMessage."""
+        data: dict[str, Any] = {
+            "type": "tool",
+            "content": VassilFlowClient._extract_text(msg.content),
+            "name": msg.name,
+            "tool_call_id": msg.tool_call_id,
+            "id": msg.id,
+        }
+        if artifact := VassilFlowClient._serialize_artifact(msg):
+            data["artifact"] = artifact
         return StreamEvent(
             type="messages-tuple",
-            data={
-                "type": "tool",
-                "content": VassilFlowClient._extract_text(msg.content),
-                "name": msg.name,
-                "tool_call_id": msg.tool_call_id,
-                "id": msg.id,
-            },
+            data=data,
         )
 
     @staticmethod
@@ -356,6 +383,8 @@ class VassilFlowClient:
                 "tool_call_id": getattr(msg, "tool_call_id", None),
                 "id": getattr(msg, "id", None),
             }
+            if artifact := VassilFlowClient._serialize_artifact(msg):
+                d["artifact"] = artifact
             if additional_kwargs := VassilFlowClient._serialize_additional_kwargs(msg):
                 d["additional_kwargs"] = additional_kwargs
             return d
@@ -1163,6 +1192,11 @@ class VassilFlowClient:
             "token_counting": config.token_counting,
             "guaranteed_categories": config.guaranteed_categories,
             "guaranteed_token_budget": config.guaranteed_token_budget,
+            "staleness_review_enabled": config.staleness_review_enabled,
+            "staleness_age_days": config.staleness_age_days,
+            "staleness_min_candidates": config.staleness_min_candidates,
+            "staleness_max_removals_per_cycle": config.staleness_max_removals_per_cycle,
+            "staleness_protected_categories": config.staleness_protected_categories,
         }
 
     def get_memory_status(self) -> dict:

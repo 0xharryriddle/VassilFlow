@@ -88,6 +88,53 @@ class TestJournalByModel:
         assert data["lead_agent_tokens"] == 15
         assert data["total_tokens"] == 15
 
+    def test_lead_agent_cache_read_tokens_are_recorded_sparsely(self) -> None:
+        j = _journal()
+        j.on_llm_end(
+            _make_llm_response(
+                usage={
+                    "input_tokens": 1000,
+                    "output_tokens": 200,
+                    "total_tokens": 1200,
+                    "input_token_details": {"cache_read": 750},
+                },
+                model_name="cached-model",
+            ),
+            run_id=uuid4(),
+            parent_run_id=None,
+            tags=["lead_agent"],
+        )
+        data = j.get_completion_data()
+        assert data["token_usage_by_model"] == {
+            "cached-model": {
+                "input_tokens": 1000,
+                "output_tokens": 200,
+                "total_tokens": 1200,
+                "cache_read_tokens": 750,
+            },
+        }
+
+    def test_zero_cache_read_keeps_historical_bucket_shape(self) -> None:
+        j = _journal()
+        j.on_llm_end(
+            _make_llm_response(
+                usage={
+                    "input_tokens": 10,
+                    "output_tokens": 5,
+                    "total_tokens": 15,
+                    "input_token_details": {"cache_read": 0},
+                },
+                model_name="lead-model",
+            ),
+            run_id=uuid4(),
+            parent_run_id=None,
+            tags=["lead_agent"],
+        )
+        data = j.get_completion_data()
+        assert data["token_usage_by_model"] == {
+            "lead-model": {"input_tokens": 10, "output_tokens": 5, "total_tokens": 15},
+        }
+
     def test_middleware_call_lands_on_its_own_model(self) -> None:
         """A middleware (e.g. title/summarization) on a different model gets its own bucket."""
         j = _journal()
@@ -174,6 +221,31 @@ class TestJournalByModel:
         assert data["subagent_tokens"] == 25
         # Invariant the issue calls out: by_model sums to total_tokens.
         assert sum(b["total_tokens"] for b in data["token_usage_by_model"].values()) == data["total_tokens"]
+
+    def test_subagent_external_records_preserve_cache_read_tokens(self) -> None:
+        j = _journal()
+        j.record_external_llm_usage_records(
+            [
+                {
+                    "source_run_id": "sub-1",
+                    "caller": "subagent:general-purpose",
+                    "model_name": "subagent-model",
+                    "input_tokens": 1000,
+                    "output_tokens": 250,
+                    "total_tokens": 1250,
+                    "cache_read_tokens": 900,
+                },
+            ],
+        )
+        data = j.get_completion_data()
+        assert data["token_usage_by_model"] == {
+            "subagent-model": {
+                "input_tokens": 1000,
+                "output_tokens": 250,
+                "total_tokens": 1250,
+                "cache_read_tokens": 900,
+            },
+        }
 
     def test_subagent_record_without_model_falls_back_to_unknown(self) -> None:
         j = _journal()

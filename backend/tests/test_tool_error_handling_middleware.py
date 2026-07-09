@@ -9,11 +9,15 @@ from vassilflow.agents.middlewares.tool_error_handling_middleware import (
     ToolErrorHandlingMiddleware,
     build_subagent_runtime_middlewares,
 )
+from vassilflow.agents.middlewares.tool_progress_middleware import ToolProgressMiddleware
+from vassilflow.agents.middlewares.tool_result_meta import TOOL_META_KEY
 from vassilflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from vassilflow.config.app_config import AppConfig, CircuitBreakerConfig
 from vassilflow.config.guardrails_config import GuardrailsConfig
+from vassilflow.config.loop_detection_config import LoopDetectionConfig
 from vassilflow.config.model_config import ModelConfig
 from vassilflow.config.sandbox_config import SandboxConfig
+from vassilflow.config.tool_progress_config import ToolProgressConfig
 
 
 def _request(name: str = "web_search", tool_call_id: str | None = "tc-1"):
@@ -30,7 +34,13 @@ def _module(name: str, **attrs):
     return module
 
 
-def _make_app_config(*, supports_vision: bool = False, guardrails: GuardrailsConfig | None = None) -> AppConfig:
+def _make_app_config(
+    *,
+    supports_vision: bool = False,
+    guardrails: GuardrailsConfig | None = None,
+    loop_detection: LoopDetectionConfig | None = None,
+    tool_progress: ToolProgressConfig | None = None,
+) -> AppConfig:
     return AppConfig(
         models=[
             ModelConfig(
@@ -44,6 +54,8 @@ def _make_app_config(*, supports_vision: bool = False, guardrails: GuardrailsCon
         ],
         sandbox=SandboxConfig(use="test"),
         guardrails=guardrails or GuardrailsConfig(enabled=False),
+        loop_detection=loop_detection or LoopDetectionConfig(),
+        tool_progress=tool_progress or ToolProgressConfig(),
         circuit_breaker=CircuitBreakerConfig(failure_threshold=7, recovery_timeout_sec=11),
     )
 
@@ -139,17 +151,31 @@ def test_build_subagent_runtime_middlewares_threads_app_config_to_llm_middleware
     middlewares = build_subagent_runtime_middlewares(app_config=app_config, lazy_init=False)
 
     assert captured["app_config"] is app_config
-    # 8 baseline (InputSanitization, ToolOutputBudget, ThreadData, Sandbox,
-    # DanglingToolCall, LLMErrorHandling, SandboxAudit, ToolErrorHandling)
-    # + 1 SafetyFinishReasonMiddleware (enabled by default).
+    # 9 baseline (InputSanitization, ToolOutputBudget, ThreadData, Sandbox,
+    # DanglingToolCall, LLMErrorHandling, SandboxAudit, ReadBeforeWrite,
+    # ToolErrorHandling)
+    # + 1 LoopDetectionMiddleware and + 1 SafetyFinishReasonMiddleware (enabled by default).
+    from vassilflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
     from vassilflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
     from vassilflow.agents.middlewares.tool_output_budget_middleware import ToolOutputBudgetMiddleware
 
-    assert len(middlewares) == 9
+    assert len(middlewares) == 11
     assert isinstance(middlewares[0], FakeMiddleware)  # InputSanitizationMiddleware stub
     assert isinstance(middlewares[1], ToolOutputBudgetMiddleware)
     assert any(isinstance(m, ToolErrorHandlingMiddleware) for m in middlewares)
+    assert isinstance(middlewares[-2], LoopDetectionMiddleware)
     assert isinstance(middlewares[-1], SafetyFinishReasonMiddleware)
+
+
+def test_build_subagent_runtime_middlewares_wires_tool_progress_before_error_handling(monkeypatch: pytest.MonkeyPatch):
+    app_config = _make_app_config(tool_progress=ToolProgressConfig(enabled=True))
+    _stub_runtime_middleware_imports(monkeypatch)
+
+    middlewares = build_subagent_runtime_middlewares(app_config=app_config, lazy_init=False)
+
+    progress_idx = next(i for i, m in enumerate(middlewares) if isinstance(m, ToolProgressMiddleware))
+    error_idx = next(i for i, m in enumerate(middlewares) if isinstance(m, ToolErrorHandlingMiddleware))
+    assert progress_idx < error_idx
 
 
 def test_wrap_tool_call_passthrough_on_success():
@@ -160,6 +186,46 @@ def test_wrap_tool_call_passthrough_on_success():
     result = middleware.wrap_tool_call(req, lambda _req: expected)
 
     assert result is expected
+    assert result.additional_kwargs[TOOL_META_KEY]["status"] == "success"
+
+
+def test_wrap_tool_call_stamps_skill_read_metadata():
+    middleware = ToolErrorHandlingMiddleware()
+    req = SimpleNamespace(
+        tool_call={
+            "name": "read_file",
+            "id": "tc-skill",
+            "args": {"path": "/mnt/skills/public/data-analysis/SKILL.md"},
+        }
+    )
+    expected = ToolMessage(
+        content="---\nname: data-analysis\ndescription: Analyze tabular data\n---\n# Skill\n",
+        tool_call_id="tc-skill",
+        name="read_file",
+    )
+
+    result = middleware.wrap_tool_call(req, lambda _req: expected)
+
+    assert result.additional_kwargs["skill_context_entry"] == {
+        "path": "/mnt/skills/public/data-analysis/SKILL.md",
+        "description": "Analyze tabular data",
+    }
+
+
+def test_wrap_tool_call_does_not_stamp_non_skill_read_metadata():
+    middleware = ToolErrorHandlingMiddleware()
+    req = SimpleNamespace(
+        tool_call={
+            "name": "read_file",
+            "id": "tc-file",
+            "args": {"path": "/mnt/user-data/workspace/SKILL.md"},
+        }
+    )
+    expected = ToolMessage(content="# Not a skill", tool_call_id="tc-file", name="read_file")
+
+    result = middleware.wrap_tool_call(req, lambda _req: expected)
+
+    assert "skill_context_entry" not in result.additional_kwargs
 
 
 def test_wrap_tool_call_returns_error_tool_message_on_exception():
@@ -177,6 +243,8 @@ def test_wrap_tool_call_returns_error_tool_message_on_exception():
     assert result.status == "error"
     assert "Tool 'web_search' failed" in result.text
     assert "network down" in result.text
+    assert result.additional_kwargs[TOOL_META_KEY]["status"] == "error"
+    assert result.additional_kwargs[TOOL_META_KEY]["source"] == "exception"
 
 
 def test_wrap_tool_call_uses_fallback_tool_call_id_when_missing():
@@ -220,6 +288,8 @@ async def test_awrap_tool_call_returns_error_tool_message_on_exception():
     assert result.name == "mcp_tool"
     assert result.status == "error"
     assert "request timed out" in result.text
+    assert result.additional_kwargs[TOOL_META_KEY]["status"] == "error"
+    assert result.additional_kwargs[TOOL_META_KEY]["source"] == "exception"
 
 
 @pytest.mark.anyio
@@ -301,6 +371,31 @@ def test_subagent_runtime_middlewares_skip_deferred_filter_without_names(monkeyp
     for setup in (None, DeferredToolSetup(None, frozenset(), None)):
         middlewares = build_subagent_runtime_middlewares(app_config=app_config, deferred_setup=setup)
         assert not any(isinstance(m, DeferredToolFilterMiddleware) for m in middlewares)
+
+
+def test_subagent_runtime_middlewares_include_loop_detection_before_safety(monkeypatch):
+    from vassilflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
+    from vassilflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
+
+    app_config = _make_app_config()
+    _stub_runtime_middleware_imports(monkeypatch)
+
+    middlewares = build_subagent_runtime_middlewares(app_config=app_config)
+
+    loop_idx = next(i for i, m in enumerate(middlewares) if isinstance(m, LoopDetectionMiddleware))
+    safety_idx = next(i for i, m in enumerate(middlewares) if isinstance(m, SafetyFinishReasonMiddleware))
+    assert loop_idx < safety_idx
+
+
+def test_subagent_runtime_middlewares_skip_loop_detection_when_disabled(monkeypatch):
+    from vassilflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
+
+    app_config = _make_app_config(loop_detection=LoopDetectionConfig(enabled=False))
+    _stub_runtime_middleware_imports(monkeypatch)
+
+    middlewares = build_subagent_runtime_middlewares(app_config=app_config)
+
+    assert not any(isinstance(m, LoopDetectionMiddleware) for m in middlewares)
 
 
 def test_guardrail_provider_framework_hint_defaults_to_vassilflow(monkeypatch):

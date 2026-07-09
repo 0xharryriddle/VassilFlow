@@ -10,10 +10,13 @@ from vassilflow.uploads.manager import (
     PathTraversalError,
     UnsafeUploadPathError,
     claim_unique_filename,
+    cleanup_stale_upload_staging_files,
     delete_file_safe,
+    is_upload_staging_file,
     list_files_in_dir,
     normalize_filename,
     validate_path_traversal,
+    validate_upload_destination,
     write_upload_file_no_symlink,
 )
 
@@ -157,6 +160,41 @@ class TestWriteUploadFileNoSymlink:
 
 
 # ---------------------------------------------------------------------------
+# staging helpers
+# ---------------------------------------------------------------------------
+
+
+class TestUploadStagingHelpers:
+    def test_identifies_gateway_staging_files(self):
+        assert is_upload_staging_file(".upload-active.part") is True
+        assert is_upload_staging_file(".upload-active.tmp") is False
+        assert is_upload_staging_file("report.part") is False
+
+    def test_validate_upload_destination_rejects_hardlinks(self, tmp_path):
+        outside = tmp_path / "outside.txt"
+        outside.write_text("protected", encoding="utf-8")
+        hardlink = tmp_path / "victim.txt"
+        os.link(outside, hardlink)
+
+        with pytest.raises(UnsafeUploadPathError, match="multiple links"):
+            validate_upload_destination(tmp_path, "victim.txt")
+
+        assert outside.read_text(encoding="utf-8") == "protected"
+
+    def test_cleanup_stale_upload_staging_files(self, tmp_path):
+        uploads_dir = tmp_path / "threads" / "t1" / "user-data" / "uploads"
+        uploads_dir.mkdir(parents=True)
+        staging = uploads_dir / ".upload-active.part"
+        regular = uploads_dir / "notes.txt"
+        staging.write_text("partial", encoding="utf-8")
+        regular.write_text("keep", encoding="utf-8")
+
+        assert cleanup_stale_upload_staging_files(tmp_path) == 1
+        assert not staging.exists()
+        assert regular.exists()
+
+
+# ---------------------------------------------------------------------------
 # list_files_in_dir
 # ---------------------------------------------------------------------------
 
@@ -183,6 +221,13 @@ class TestListFilesInDir:
     def test_ignores_subdirectories(self, tmp_path):
         (tmp_path / "file.txt").write_text("data")
         (tmp_path / "subdir").mkdir()
+        result = list_files_in_dir(tmp_path)
+        assert result["count"] == 1
+        assert result["files"][0]["filename"] == "file.txt"
+
+    def test_ignores_upload_staging_files(self, tmp_path):
+        (tmp_path / ".upload-active.part").write_text("partial")
+        (tmp_path / "file.txt").write_text("data")
         result = list_files_in_dir(tmp_path)
         assert result["count"] == 1
         assert result["files"][0]["filename"] == "file.txt"

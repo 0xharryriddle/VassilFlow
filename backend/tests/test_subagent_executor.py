@@ -707,6 +707,40 @@ class TestAsyncExecutionPath:
         assert result.completed_at is not None
 
     @pytest.mark.anyio
+    async def test_aexecute_recovers_partial_result_when_max_turns_reached(self, classes, base_config, mock_agent, msg):
+        """GraphRecursionError should surface as max_turns_reached with partial output."""
+        from langgraph.errors import GraphRecursionError
+
+        SubagentExecutor = classes["SubagentExecutor"]
+        SubagentStatus = classes["SubagentStatus"]
+
+        async def capped_stream(*args, **kwargs):  # noqa: ARG001
+            yield {
+                "messages": [
+                    msg.human("Task"),
+                    msg.ai("partial research summary", "msg-partial"),
+                ]
+            }
+            raise GraphRecursionError("recursion limit reached")
+
+        mock_agent.astream = capped_stream
+
+        executor = SubagentExecutor(
+            config=base_config,
+            tools=[],
+            thread_id="test-thread",
+            trace_id="test-trace",
+        )
+
+        with patch.object(executor, "_create_agent", return_value=mock_agent):
+            result = await executor._aexecute("Do something")
+
+        assert result.status == SubagentStatus.MAX_TURNS_REACHED
+        assert result.result == "partial research summary"
+        assert result.error == f"Reached max_turns={base_config.max_turns}"
+        assert result.ai_messages and result.ai_messages[-1]["id"] == "msg-partial"
+
+    @pytest.mark.anyio
     async def test_aexecute_collects_ai_messages(self, classes, base_config, mock_agent, msg):
         """Test that AI messages are collected during streaming."""
         SubagentExecutor = classes["SubagentExecutor"]

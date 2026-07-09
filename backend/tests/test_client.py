@@ -39,6 +39,9 @@ def mock_app_config():
     config = MagicMock()
     config.models = [model]
     config.token_usage.enabled = False
+    config.skills.deferred_discovery = False
+    config.skills.container_path = "/mnt/skills"
+    config.tool_search.enabled = False
     return config
 
 
@@ -928,6 +931,59 @@ class TestEnsureAgent:
         assert mock_apply_prompt.call_args.kwargs.get("agent_name") == "custom-agent"
         assert mock_apply_prompt.call_args.kwargs.get("available_skills") == {"test_skill"}
 
+    def test_deferred_skill_discovery_wired_when_enabled(self, client, mock_app_config):
+        from pathlib import Path
+
+        from vassilflow.skills.types import Skill, SkillCategory
+
+        fake_skill = Skill(
+            name="deep-research",
+            description="Multi-source research",
+            license=None,
+            skill_dir=Path("/tmp/deep-research"),
+            skill_file=Path("/tmp/deep-research/SKILL.md"),
+            relative_path=Path("deep-research"),
+            category=SkillCategory.PUBLIC,
+            enabled=True,
+        )
+        mock_app_config.skills.deferred_discovery = True
+        client._app_config = mock_app_config
+        config = client._get_runnable_config("t1")
+
+        with (
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=MagicMock()) as mock_create_agent,
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt") as mock_apply_prompt,
+            patch("vassilflow.client.get_enabled_skills_for_config", return_value=[fake_skill]),
+            patch.object(client, "_get_tools", return_value=[]),
+            patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=None),
+        ):
+            client._ensure_agent(config)
+
+        assert mock_apply_prompt.call_args.kwargs.get("skill_names") == frozenset({"deep-research"})
+        assert [tool.name for tool in mock_create_agent.call_args.kwargs["tools"]] == ["describe_skill"]
+
+    def test_deferred_skill_discovery_not_wired_when_disabled(self, client, mock_app_config):
+        mock_app_config.skills.deferred_discovery = False
+        client._app_config = mock_app_config
+        config = client._get_runnable_config("t1")
+
+        with (
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=MagicMock()) as mock_create_agent,
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt") as mock_apply_prompt,
+            patch("vassilflow.client.get_enabled_skills_for_config") as mock_get_skills,
+            patch.object(client, "_get_tools", return_value=[]),
+            patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=None),
+        ):
+            client._ensure_agent(config)
+
+        mock_get_skills.assert_not_called()
+        assert mock_apply_prompt.call_args.kwargs.get("skill_names") is None
+        assert mock_create_agent.call_args.kwargs["tools"] == []
+
     def test_uses_default_checkpointer_when_available(self, client):
         mock_agent = MagicMock()
         mock_checkpointer = MagicMock()
@@ -993,7 +1049,7 @@ class TestEnsureAgent:
         """_ensure_agent does not recreate if config key unchanged."""
         mock_agent = MagicMock()
         client._agent = mock_agent
-        client._agent_config_key = (None, True, False, False, None, None)
+        client._agent_config_key = (None, True, False, False, None, None, False, "/mnt/skills")
 
         config = client._get_runnable_config("t1")
         client._ensure_agent(config)
@@ -1421,6 +1477,14 @@ class TestMemoryManagement:
         config.fact_confidence_threshold = 0.7
         config.injection_enabled = True
         config.max_injection_tokens = 2000
+        config.token_counting = "tiktoken"
+        config.guaranteed_categories = ["correction"]
+        config.guaranteed_token_budget = 500
+        config.staleness_review_enabled = True
+        config.staleness_age_days = 90
+        config.staleness_min_candidates = 3
+        config.staleness_max_removals_per_cycle = 10
+        config.staleness_protected_categories = ["correction"]
 
         with patch("vassilflow.config.memory_config.get_memory_config", return_value=config):
             result = client.get_memory_config()
@@ -1437,6 +1501,14 @@ class TestMemoryManagement:
         config.fact_confidence_threshold = 0.7
         config.injection_enabled = True
         config.max_injection_tokens = 2000
+        config.token_counting = "tiktoken"
+        config.guaranteed_categories = ["correction"]
+        config.guaranteed_token_budget = 500
+        config.staleness_review_enabled = True
+        config.staleness_age_days = 90
+        config.staleness_min_candidates = 3
+        config.staleness_max_removals_per_cycle = 10
+        config.staleness_protected_categories = ["correction"]
 
         data = {"version": "1.0", "facts": []}
 
@@ -2474,6 +2546,13 @@ class TestGatewayConformance:
         mem_cfg.injection_enabled = True
         mem_cfg.max_injection_tokens = 2000
         mem_cfg.token_counting = "tiktoken"
+        mem_cfg.guaranteed_categories = ["correction"]
+        mem_cfg.guaranteed_token_budget = 500
+        mem_cfg.staleness_review_enabled = True
+        mem_cfg.staleness_age_days = 90
+        mem_cfg.staleness_min_candidates = 3
+        mem_cfg.staleness_max_removals_per_cycle = 10
+        mem_cfg.staleness_protected_categories = ["correction"]
 
         with patch("vassilflow.config.memory_config.get_memory_config", return_value=mem_cfg):
             result = client.get_memory_config()
@@ -2493,6 +2572,13 @@ class TestGatewayConformance:
         mem_cfg.injection_enabled = True
         mem_cfg.max_injection_tokens = 2000
         mem_cfg.token_counting = "tiktoken"
+        mem_cfg.guaranteed_categories = ["correction"]
+        mem_cfg.guaranteed_token_budget = 500
+        mem_cfg.staleness_review_enabled = True
+        mem_cfg.staleness_age_days = 90
+        mem_cfg.staleness_min_candidates = 3
+        mem_cfg.staleness_max_removals_per_cycle = 10
+        mem_cfg.staleness_protected_categories = ["correction"]
 
         memory_data = {
             "version": "1.0",
@@ -2949,6 +3035,52 @@ class TestSerializeMessage:
         result = VassilFlowClient._serialize_message(msg)
         assert result["type"] == "tool"
         assert isinstance(result["content"], str)
+
+    def test_tool_message_preserves_artifact(self):
+        artifact = {
+            "human_input": {
+                "version": 1,
+                "kind": "human_input_request",
+                "source": "ask_clarification",
+                "request_id": "clarification:call-abc",
+                "question": "Which environment?",
+                "input_mode": "free_text",
+            }
+        }
+        msg = ToolMessage(
+            content="Which environment?",
+            id="tm-1",
+            tool_call_id="tc-1",
+            name="ask_clarification",
+            artifact=artifact,
+        )
+
+        result = VassilFlowClient._serialize_message(msg)
+
+        assert result["artifact"] == artifact
+
+    def test_tool_message_event_preserves_artifact(self):
+        artifact = {
+            "human_input": {
+                "version": 1,
+                "kind": "human_input_request",
+                "source": "ask_clarification",
+                "request_id": "clarification:call-abc",
+                "question": "Which environment?",
+                "input_mode": "free_text",
+            }
+        }
+        msg = ToolMessage(
+            content="Which environment?",
+            id="tm-1",
+            tool_call_id="tc-1",
+            name="ask_clarification",
+            artifact=artifact,
+        )
+
+        event = VassilFlowClient._tool_message_event(msg)
+
+        assert event.data["artifact"] == artifact
 
 
 # ===========================================================================

@@ -7,7 +7,7 @@ This document provides a complete reference for the VassilFlow backend APIs.
 VassilFlow backend exposes two sets of APIs:
 
 1. **LangGraph-compatible API** - Agent interactions, threads, and streaming (`/api/langgraph/*`)
-2. **Gateway API** - Models, MCP, skills, uploads, and artifacts (`/api/*`)
+2. **Gateway API** - Models, MCP, skills, uploads, artifacts, and console metrics (`/api/*`)
 
 All APIs are accessed through the Nginx reverse proxy at port 2026.
 
@@ -191,8 +191,8 @@ GET /api/models
       "supports_vision": true
     },
     {
-      "name": "deepseek-v3",
-      "display_name": "DeepSeek V3",
+      "name": "deepseek-v4",
+      "display_name": "DeepSeek V4",
       "supports_thinking": true,
       "supports_vision": false
     }
@@ -217,6 +217,41 @@ GET /api/models/{model_name}
   "supports_vision": true
 }
 ```
+
+### Console Metrics
+
+Read-only operational metrics scoped to the current user. These endpoints
+require SQL persistence (`database.backend: sqlite` or `postgres`) because
+memory mode does not keep durable run history.
+
+#### Get Console Stats
+
+```http
+GET /api/console/stats
+```
+
+Returns headline counts for runs, active runs, failed runs, threads, custom
+agents, total tokens, and optional estimated cost when model pricing metadata
+is configured.
+
+#### List Console Runs
+
+```http
+GET /api/console/runs?limit=20&offset=0&status=success
+```
+
+Returns cross-thread run history, newest first, including status, thread title,
+duration, tokens, optional cost, and error excerpts.
+
+#### Get Console Usage
+
+```http
+GET /api/console/usage?days=14&tz_offset_minutes=420
+```
+
+Returns a zero-filled daily token series and per-model breakdown. When
+`models[*].pricing.input_cache_hit_per_million` is configured, prompt-cache-hit
+input tokens are priced separately.
 
 ### MCP Configuration
 

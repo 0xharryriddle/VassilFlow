@@ -17,6 +17,29 @@ test.describe("Landing page", () => {
     ).toBeVisible();
   });
 
+  for (const width of [320, 375, 390]) {
+    test(`does not overflow at ${width}px width`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 812 });
+      await page.goto("/");
+
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+        .toBeLessThanOrEqual(width);
+      await expect(page.locator("main").first()).toBeInViewport();
+    });
+  }
+
+  test("mobile navigation exposes landing links", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: /open navigation menu/i }).click();
+
+    await expect(page.getByRole("link", { name: "Workspace" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Demo" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Source" })).toBeVisible();
+  });
+
   test("Get Started link navigates to workspace", async ({ page }) => {
     mockLangGraphAPI(page);
 
@@ -25,8 +48,8 @@ test.describe("Landing page", () => {
     const getStarted = page.getByRole("link", { name: /get started/i });
     await getStarted.click();
 
-    // Should redirect to /workspace/chats/new
-    await page.waitForURL("**/workspace/chats/new");
-    await expect(page).toHaveURL(/\/workspace\/chats\/new/);
+    await page.waitForURL("**/workspace");
+    await expect(page).toHaveURL(/\/workspace/);
+    await expect(page.getByRole("link", { name: /new chat/i })).toBeVisible();
   });
 });

@@ -371,6 +371,9 @@ class Paths:
             raise ValueError(f"Path must start with /{prefix}")
 
         relative = stripped[len(prefix) :].lstrip("/")
+        normalized_segments = relative.replace("\\", "/").split("/")
+        if ".." in normalized_segments:
+            raise ValueError("Access denied: path traversal detected")
         base = self.sandbox_user_data_dir(thread_id, user_id=user_id).resolve()
         actual = (base / relative).resolve()
 

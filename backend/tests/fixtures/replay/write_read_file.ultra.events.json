@@ -14,6 +14,7 @@
       "keys": [
         "artifacts",
         "messages",
+        "skill_context",
         "viewed_images"
       ]
     },
@@ -22,6 +23,7 @@
       "keys": [
         "artifacts",
         "messages",
+        "skill_context",
         "thread_data",
         "viewed_images"
       ]
@@ -31,6 +33,7 @@
       "keys": [
         "artifacts",
         "messages",
+        "skill_context",
         "thread_data",
         "viewed_images"
       ]
@@ -40,6 +43,7 @@
       "keys": [
         "artifacts",
         "messages",
+        "skill_context",
         "thread_data",
         "viewed_images"
       ]
@@ -49,16 +53,7 @@
       "keys": [
         "artifacts",
         "messages",
-        "thread_data",
-        "title",
-        "viewed_images"
-      ]
-    },
-    {
-      "event": "values",
-      "keys": [
-        "artifacts",
-        "messages",
+        "skill_context",
         "thread_data",
         "title",
         "viewed_images"
@@ -69,18 +64,7 @@
       "keys": [
         "artifacts",
         "messages",
-        "sandbox",
-        "thread_data",
-        "title",
-        "viewed_images"
-      ]
-    },
-    {
-      "event": "values",
-      "keys": [
-        "artifacts",
-        "messages",
-        "sandbox",
+        "skill_context",
         "thread_data",
         "title",
         "viewed_images"
@@ -92,6 +76,7 @@
         "artifacts",
         "messages",
         "sandbox",
+        "skill_context",
         "thread_data",
         "title",
         "viewed_images"
@@ -103,6 +88,7 @@
         "artifacts",
         "messages",
         "sandbox",
+        "skill_context",
         "thread_data",
         "title",
         "viewed_images"
@@ -114,6 +100,7 @@
         "artifacts",
         "messages",
         "sandbox",
+        "skill_context",
         "thread_data",
         "title",
         "viewed_images"
@@ -125,6 +112,31 @@
         "artifacts",
         "messages",
         "sandbox",
+        "skill_context",
+        "thread_data",
+        "title",
+        "viewed_images"
+      ]
+    },
+    {
+      "event": "values",
+      "keys": [
+        "artifacts",
+        "messages",
+        "sandbox",
+        "skill_context",
+        "thread_data",
+        "title",
+        "viewed_images"
+      ]
+    },
+    {
+      "event": "values",
+      "keys": [
+        "artifacts",
+        "messages",
+        "sandbox",
+        "skill_context",
         "thread_data",
         "title",
         "viewed_images"

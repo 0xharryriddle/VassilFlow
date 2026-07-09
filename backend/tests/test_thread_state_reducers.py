@@ -13,6 +13,7 @@ from vassilflow.agents.thread_state import (
     ThreadState,
     merge_artifacts,
     merge_sandbox,
+    merge_skill_context,
     merge_todos,
     merge_viewed_images,
 )
@@ -93,6 +94,30 @@ class TestMergeArtifacts:
         assert merge_artifacts(None, ["a"]) == ["a"]
 
 
+class TestMergeSkillContext:
+    def test_none_new_preserves_existing_and_normalizes(self):
+        existing = [{"name": "demo", "path": "/mnt/skills/public/demo/SKILL.md", "description": "  Demo   skill  ", "loaded_at": 1, "body": "drop"}]
+
+        out = merge_skill_context(existing, None)
+
+        assert out == [{"name": "demo", "path": "/mnt/skills/public/demo/SKILL.md", "description": "Demo skill", "loaded_at": 1}]
+
+    def test_new_refreshes_existing_path_recency(self):
+        existing = [
+            {"name": "old", "path": "/mnt/skills/public/old/SKILL.md", "description": "", "loaded_at": 1},
+            {"name": "demo", "path": "/mnt/skills/public/demo/SKILL.md", "description": "old", "loaded_at": 2},
+        ]
+        new = [{"name": "demo", "path": "/mnt/skills/public/demo/SKILL.md", "description": "new", "loaded_at": 9}]
+
+        out = merge_skill_context(existing, new)
+
+        assert [entry["path"] for entry in out] == [
+            "/mnt/skills/public/old/SKILL.md",
+            "/mnt/skills/public/demo/SKILL.md",
+        ]
+        assert out[-1]["description"] == "new"
+
+
 class TestMergeViewedImages:
     """Sanity check for the existing viewed_images reducer."""
 
@@ -142,3 +167,7 @@ class TestThreadStateAnnotations:
         """
         hints = get_type_hints(ThreadState, include_extras=True)
         assert merge_sandbox in hints["sandbox"].__metadata__
+
+    def test_skill_context_field_is_wired_to_merge_skill_context(self):
+        hints = get_type_hints(ThreadState, include_extras=True)
+        assert merge_skill_context in hints["skill_context"].__metadata__

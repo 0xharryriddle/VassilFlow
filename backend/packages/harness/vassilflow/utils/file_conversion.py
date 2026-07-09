@@ -279,7 +279,8 @@ def extract_outline(md_path: Path) -> list[dict]:
                     if title:
                         outline.append({"title": title, "line": lineno})
 
-                if len(outline) >= MAX_OUTLINE_ENTRIES:
+                if len(outline) > MAX_OUTLINE_ENTRIES:
+                    outline.pop()
                     outline.append({"truncated": True})
                     break
     except Exception:

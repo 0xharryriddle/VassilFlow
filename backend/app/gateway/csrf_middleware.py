@@ -14,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp
 
+from app.gateway.auth.config import get_auth_config
 from app.gateway.auth_disabled import is_auth_disabled
 
 CSRF_COOKIE_NAME = "csrf_token"
@@ -220,6 +221,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 httponly=False,  # Must be JS-readable for Double Submit Cookie pattern
                 secure=is_https,
                 samesite="strict",
+                # Keep the double-submit pair aligned with access_token.
+                max_age=get_auth_config().token_expiry_days * 24 * 3600 if is_https else None,
             )
 
         return response

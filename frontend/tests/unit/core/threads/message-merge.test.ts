@@ -4,6 +4,7 @@ import { expect, test } from "@rstest/core";
 import {
   buildRunMessagesUrl,
   buildVisibleHistoryMessages,
+  computeSummarizationMovedMessages,
   findLatestUnloadedRunIndex,
   getNextRunMessagesBeforeSeq,
   getOldestRunMessageSeq,
@@ -12,7 +13,9 @@ import {
   getVisibleOptimisticMessages,
   MAX_CONSECUTIVE_EMPTY_RUN_LOADS,
   mergeMessages,
+  pruneConfirmedArchivedMessages,
   removeSetItems,
+  resolvePreservedHistory,
   runMessagesPageHasMore,
   shouldAutoContinueOnEmptyRun,
 } from "@/core/threads/hooks";
@@ -586,4 +589,221 @@ test("shouldAutoContinueOnEmptyRun input must use the post-filter visible count,
   const rawPageSize = 3; // pretend the raw page had 3 middleware-only entries
   expect(shouldAutoContinueOnEmptyRun(filteredVisibleCount, 0)).toBe(true);
   expect(shouldAutoContinueOnEmptyRun(rawPageSize, 0)).toBe(false);
+});
+
+const summarizationHuman1 = {
+  id: "human-1",
+  type: "human",
+  content: "round 1 question",
+} as Message;
+const summarizationAi1 = {
+  id: "ai-1",
+  type: "ai",
+  content: "round 1 answer",
+} as Message;
+const summarizationHuman2 = {
+  id: "human-2",
+  type: "human",
+  content: "round 2 question",
+} as Message;
+const summarizationAi2 = {
+  id: "ai-2",
+  type: "ai",
+  content: "round 2 answer (retained)",
+} as Message;
+const summarizationMovedMessages = [
+  summarizationHuman1,
+  summarizationAi1,
+  summarizationHuman2,
+];
+
+test("resolvePreservedHistory keeps rescued messages while history state is stale", () => {
+  expect(resolvePreservedHistory([], summarizationMovedMessages)).toEqual(
+    summarizationMovedMessages,
+  );
+});
+
+test("resolvePreservedHistory appends rescued messages after loaded history", () => {
+  const olderLoadedHuman = {
+    id: "older-human",
+    type: "human",
+    content: "older loaded turn",
+  } as Message;
+
+  expect(
+    resolvePreservedHistory([olderLoadedHuman], summarizationMovedMessages),
+  ).toEqual([olderLoadedHuman, ...summarizationMovedMessages]);
+});
+
+test("resolvePreservedHistory does not duplicate once history catches up", () => {
+  expect(
+    resolvePreservedHistory(
+      summarizationMovedMessages,
+      summarizationMovedMessages,
+    ),
+  ).toEqual(summarizationMovedMessages);
+});
+
+test("resolvePreservedHistory returns history unchanged when nothing is pending", () => {
+  const history = [summarizationHuman1, summarizationAi1];
+  expect(resolvePreservedHistory(history, [])).toBe(history);
+});
+
+test("merge keeps the full conversation across summarization while history lags", () => {
+  const hiddenSummary = {
+    id: "summary-1",
+    type: "human",
+    name: "summary",
+    content: "conversation summary",
+  } as Message;
+  const postSummaryThread = [hiddenSummary, summarizationAi2];
+
+  const merged = mergeMessages(
+    resolvePreservedHistory([], summarizationMovedMessages),
+    postSummaryThread,
+    [],
+  );
+
+  expect(merged.map((m) => m.id)).toEqual([
+    "human-1",
+    "ai-1",
+    "human-2",
+    "summary-1",
+    "ai-2",
+  ]);
+});
+
+test("pruneConfirmedArchivedMessages drops messages history has absorbed", () => {
+  expect(
+    pruneConfirmedArchivedMessages(summarizationMovedMessages, [
+      summarizationHuman1,
+      summarizationAi1,
+    ]),
+  ).toEqual([summarizationHuman2]);
+});
+
+test("pruneConfirmedArchivedMessages keeps all pending messages while history lags", () => {
+  expect(
+    pruneConfirmedArchivedMessages(summarizationMovedMessages, []),
+  ).toEqual(summarizationMovedMessages);
+});
+
+test("resolvePreservedHistory keeps history copy over stale buffered duplicate", () => {
+  const staleBuffered = {
+    id: "ai-1",
+    type: "ai",
+    content: "streaming partial",
+  } as Message;
+  const liveFinal = {
+    id: "ai-1",
+    type: "ai",
+    content: "finalized answer",
+  } as Message;
+
+  expect(resolvePreservedHistory([liveFinal], [staleBuffered])).toEqual([
+    liveFinal,
+  ]);
+});
+
+test("computeSummarizationMovedMessages returns live turns before retained boundary", () => {
+  const removeAll = {
+    id: "__remove_all__",
+    type: "remove",
+    content: "",
+  } as Message;
+  const hiddenSummary = {
+    id: "summary-1",
+    type: "human",
+    name: "summary",
+    content: "conversation summary",
+  } as Message;
+  const liveThreadBeforeSummary = [
+    summarizationHuman1,
+    summarizationAi1,
+    summarizationHuman2,
+    summarizationAi2,
+  ];
+  const summarizationMessages = [removeAll, hiddenSummary, summarizationAi2];
+
+  expect(
+    computeSummarizationMovedMessages(
+      liveThreadBeforeSummary,
+      summarizationMessages,
+      new Set([hiddenSummary.id!]),
+    ),
+  ).toEqual([summarizationHuman1, summarizationAi1, summarizationHuman2]);
+});
+
+test("computeSummarizationMovedMessages excludes already summarized control messages", () => {
+  const priorSummary = {
+    id: "summary-0",
+    type: "human",
+    name: "summary",
+    content: "earlier summary",
+  } as Message;
+  const liveThreadBeforeSummary = [
+    priorSummary,
+    summarizationHuman1,
+    summarizationAi1,
+    summarizationAi2,
+  ];
+  const summarizationMessages = [
+    { id: "__remove_all__", type: "remove", content: "" } as Message,
+    {
+      id: "summary-1",
+      type: "human",
+      name: "summary",
+      content: "new summary",
+    } as Message,
+    summarizationAi2,
+  ];
+
+  expect(
+    computeSummarizationMovedMessages(
+      liveThreadBeforeSummary,
+      summarizationMessages,
+      new Set([priorSummary.id!, "summary-1"]),
+    ),
+  ).toEqual([summarizationHuman1, summarizationAi1]);
+});
+
+test("full summarization rescue pipeline keeps conversation when history state lags", () => {
+  const removeAll = {
+    id: "__remove_all__",
+    type: "remove",
+    content: "",
+  } as Message;
+  const hiddenSummary = {
+    id: "summary-1",
+    type: "human",
+    name: "summary",
+    content: "conversation summary",
+  } as Message;
+  const liveThreadBeforeSummary = [
+    summarizationHuman1,
+    summarizationAi1,
+    summarizationHuman2,
+    summarizationAi2,
+  ];
+  const summarizationMessages = [removeAll, hiddenSummary, summarizationAi2];
+
+  const moved = computeSummarizationMovedMessages(
+    liveThreadBeforeSummary,
+    summarizationMessages,
+    new Set([hiddenSummary.id!]),
+  );
+
+  const merged = mergeMessages(
+    resolvePreservedHistory([], moved),
+    [hiddenSummary, summarizationAi2],
+    [],
+  );
+
+  expect(merged.map((m) => m.id)).toEqual([
+    "human-1",
+    "ai-1",
+    "human-2",
+    "summary-1",
+    "ai-2",
+  ]);
 });

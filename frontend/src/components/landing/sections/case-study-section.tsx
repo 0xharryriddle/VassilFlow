@@ -49,7 +49,7 @@ const demoThreads = [
 export function CaseStudySection({ className }: { className?: string }) {
   return (
     <Section
-      className={cn("bg-[#07090b] px-4", className)}
+      className={cn("bg-[#07090b]", className)}
       title="VassilFlow Demo Threads"
       subtitle="Open the workspace with fixtures that show the harness operating through plans, skills, files, checks, and deliverables."
     >

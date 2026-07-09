@@ -9,12 +9,19 @@ from langchain_core.messages import AIMessage, HumanMessage
 from app.channels.commands import KNOWN_CHANNEL_COMMANDS
 from vassilflow.agents.middlewares import skill_activation_middleware as middleware_module
 from vassilflow.agents.middlewares.skill_activation_middleware import SkillActivationMiddleware, is_slash_skill_activation_reminder
+from vassilflow.runtime.secret_context import ACTIVE_SECRETS_CONTEXT_KEY
 from vassilflow.skills.slash import RESERVED_SLASH_SKILL_NAMES, parse_slash_skill_reference, resolve_slash_skill
-from vassilflow.skills.types import Skill, SkillCategory
+from vassilflow.skills.types import SecretRequirement, Skill, SkillCategory
 from vassilflow.utils.messages import ORIGINAL_USER_CONTENT_KEY
 
 
-def _make_skill(tmp_path: Path, name: str, content: str = "skill body") -> Skill:
+def _make_skill(
+    tmp_path: Path,
+    name: str,
+    content: str = "skill body",
+    *,
+    required_secrets: list[SecretRequirement] | None = None,
+) -> Skill:
     skill_dir = tmp_path / name
     skill_dir.mkdir()
     skill_file = skill_dir / "SKILL.md"
@@ -28,6 +35,7 @@ def _make_skill(tmp_path: Path, name: str, content: str = "skill body") -> Skill
         relative_path=Path(name),
         category=SkillCategory.CUSTOM,
         enabled=True,
+        required_secrets=required_secrets or [],
     )
 
 
@@ -39,13 +47,22 @@ def _make_storage(tmp_path: Path, skills: list[Skill]):
     )
 
 
-def _make_model_request(messages: list[HumanMessage], *, runtime=None) -> ModelRequest:
+def _make_model_request(messages: list[HumanMessage], *, runtime=None, state: dict | None = None) -> ModelRequest:
     return ModelRequest(
         model=object(),
         messages=messages,
-        state={"messages": list(messages)},
+        state=state or {"messages": list(messages)},
         runtime=runtime,
     )
+
+
+def _skill_context_entry(skill: Skill, *, container_root: str = "/mnt/skills") -> dict:
+    return {
+        "name": skill.name,
+        "path": skill.get_container_file_path(container_root),
+        "description": skill.description,
+        "loaded_at": 1,
+    }
 
 
 def test_parse_slash_skill_reference_extracts_name_and_remaining_text():
@@ -126,6 +143,157 @@ def test_skill_activation_middleware_injects_hidden_human_context_for_model_call
     assert "<user_request>\nanalyze uploads/foo.csv\n</user_request>" in activation_msg.content
     assert user_msg.content == original.content
     assert request.state["messages"] == [original]
+
+
+def test_skill_activation_middleware_binds_declared_request_secrets(monkeypatch, tmp_path):
+    skill = _make_skill(
+        tmp_path,
+        "data-analysis",
+        content="# Data Analysis\nUse pandas.",
+        required_secrets=[
+            SecretRequirement("API_TOKEN"),
+            SecretRequirement("OPTIONAL_TOKEN", optional=True),
+        ],
+    )
+    monkeypatch.setattr(middleware_module, "get_or_new_skill_storage", lambda **kwargs: _make_storage(tmp_path, [skill]))
+
+    runtime = SimpleNamespace(
+        context={
+            "secrets": {
+                "API_TOKEN": "request-secret-value",
+                "UNDECLARED_TOKEN": "must-not-bind",
+            }
+        }
+    )
+    middleware = SkillActivationMiddleware()
+
+    def handler(model_request: ModelRequest):
+        return AIMessage(content="ok")
+
+    middleware.wrap_model_call(_make_model_request([HumanMessage(content="/data-analysis run")], runtime=runtime), handler)
+
+    assert runtime.context[ACTIVE_SECRETS_CONTEXT_KEY] == {"API_TOKEN": "request-secret-value"}
+
+
+def test_skill_activation_middleware_clears_previous_active_secrets(monkeypatch, tmp_path):
+    skill = _make_skill(tmp_path, "data-analysis", content="# Data Analysis\nUse pandas.")
+    monkeypatch.setattr(middleware_module, "get_or_new_skill_storage", lambda **kwargs: _make_storage(tmp_path, [skill]))
+
+    runtime = SimpleNamespace(
+        context={
+            "secrets": {"API_TOKEN": "request-secret-value"},
+            ACTIVE_SECRETS_CONTEXT_KEY: {"API_TOKEN": "stale-secret"},
+        }
+    )
+    middleware = SkillActivationMiddleware()
+
+    def handler(model_request: ModelRequest):
+        return AIMessage(content="ok")
+
+    middleware.wrap_model_call(_make_model_request([HumanMessage(content="/data-analysis run")], runtime=runtime), handler)
+
+    assert ACTIVE_SECRETS_CONTEXT_KEY not in runtime.context
+
+
+def test_skill_activation_middleware_binds_secrets_for_loaded_skill_context(monkeypatch, tmp_path):
+    skill = _make_skill(
+        tmp_path,
+        "data-analysis",
+        content="# Data Analysis\nUse pandas.",
+        required_secrets=[SecretRequirement("API_TOKEN")],
+    )
+    monkeypatch.setattr(middleware_module, "get_or_new_skill_storage", lambda **kwargs: _make_storage(tmp_path, [skill]))
+
+    runtime = SimpleNamespace(context={"secrets": {"API_TOKEN": "request-secret-value"}})
+    middleware = SkillActivationMiddleware()
+
+    def handler(model_request: ModelRequest):
+        return AIMessage(content="ok")
+
+    middleware.wrap_model_call(
+        _make_model_request(
+            [HumanMessage(content="continue")],
+            runtime=runtime,
+            state={"messages": [], "skill_context": [_skill_context_entry(skill)]},
+        ),
+        handler,
+    )
+
+    assert runtime.context[ACTIVE_SECRETS_CONTEXT_KEY] == {"API_TOKEN": "request-secret-value"}
+
+
+def test_skill_activation_middleware_respects_secrets_autonomous_opt_out(monkeypatch, tmp_path):
+    skill = _make_skill(
+        tmp_path,
+        "data-analysis",
+        content="# Data Analysis\nUse pandas.",
+        required_secrets=[SecretRequirement("API_TOKEN")],
+    )
+    skill.secrets_autonomous = False
+    monkeypatch.setattr(middleware_module, "get_or_new_skill_storage", lambda **kwargs: _make_storage(tmp_path, [skill]))
+
+    runtime = SimpleNamespace(context={"secrets": {"API_TOKEN": "request-secret-value"}})
+    middleware = SkillActivationMiddleware()
+
+    def handler(model_request: ModelRequest):
+        return AIMessage(content="ok")
+
+    middleware.wrap_model_call(
+        _make_model_request(
+            [HumanMessage(content="continue")],
+            runtime=runtime,
+            state={"messages": [], "skill_context": [_skill_context_entry(skill)]},
+        ),
+        handler,
+    )
+
+    assert ACTIVE_SECRETS_CONTEXT_KEY not in runtime.context
+
+
+def test_skill_activation_middleware_slash_ignores_secrets_autonomous_opt_out(monkeypatch, tmp_path):
+    skill = _make_skill(
+        tmp_path,
+        "data-analysis",
+        content="# Data Analysis\nUse pandas.",
+        required_secrets=[SecretRequirement("API_TOKEN")],
+    )
+    skill.secrets_autonomous = False
+    monkeypatch.setattr(middleware_module, "get_or_new_skill_storage", lambda **kwargs: _make_storage(tmp_path, [skill]))
+
+    runtime = SimpleNamespace(context={"secrets": {"API_TOKEN": "request-secret-value"}})
+    middleware = SkillActivationMiddleware()
+
+    def handler(model_request: ModelRequest):
+        return AIMessage(content="ok")
+
+    middleware.wrap_model_call(_make_model_request([HumanMessage(content="/data-analysis run")], runtime=runtime), handler)
+
+    assert runtime.context[ACTIVE_SECRETS_CONTEXT_KEY] == {"API_TOKEN": "request-secret-value"}
+
+
+def test_skill_activation_middleware_clears_when_skill_context_removed(monkeypatch, tmp_path):
+    skill = _make_skill(
+        tmp_path,
+        "data-analysis",
+        content="# Data Analysis\nUse pandas.",
+        required_secrets=[SecretRequirement("API_TOKEN")],
+    )
+    monkeypatch.setattr(middleware_module, "get_or_new_skill_storage", lambda **kwargs: _make_storage(tmp_path, [skill]))
+
+    runtime = SimpleNamespace(
+        context={
+            "secrets": {"API_TOKEN": "request-secret-value"},
+            ACTIVE_SECRETS_CONTEXT_KEY: {"API_TOKEN": "stale-secret"},
+        }
+    )
+    middleware = SkillActivationMiddleware()
+
+    def handler(model_request: ModelRequest):
+        return AIMessage(content="ok")
+
+    middleware.wrap_model_call(_make_model_request([HumanMessage(content="continue")], runtime=runtime, state={"messages": [], "skill_context": []}), handler)
+
+    assert ACTIVE_SECRETS_CONTEXT_KEY not in runtime.context
 
 
 def test_skill_activation_middleware_does_not_duplicate_existing_activation(monkeypatch, tmp_path):

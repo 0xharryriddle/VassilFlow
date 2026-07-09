@@ -33,6 +33,7 @@ SubagentStatusValue = Literal[
     "cancelled",
     "timed_out",
     "polling_timed_out",
+    "max_turns_reached",
 ]
 
 #: Enumeration of every value ``subagent_status`` may take. Mirrors the
@@ -44,6 +45,7 @@ SUBAGENT_STATUS_VALUES: tuple[SubagentStatusValue, ...] = (
     "cancelled",
     "timed_out",
     "polling_timed_out",
+    "max_turns_reached",
 )
 
 # Prefix table — ordered most-specific-first because some prefixes are
@@ -55,6 +57,7 @@ SUBAGENT_STATUS_VALUES: tuple[SubagentStatusValue, ...] = (
 _PREFIX_TO_STATUS: tuple[tuple[str, SubagentStatusValue], ...] = (
     ("Task Succeeded. Result:", "completed"),
     ("Task polling timed out", "polling_timed_out"),
+    ("Task reached max turns", "max_turns_reached"),
     ("Task timed out", "timed_out"),
     ("Task cancelled by user", "cancelled"),
     ("Task failed.", "failed"),

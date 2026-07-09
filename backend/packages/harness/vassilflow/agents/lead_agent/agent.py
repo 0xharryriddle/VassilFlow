@@ -27,13 +27,12 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.runnables import RunnableConfig
 
 from vassilflow.agents.lead_agent.prompt import apply_prompt_template
-from vassilflow.agents.memory.summarization_hook import memory_flush_hook
 from vassilflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
 from vassilflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
 from vassilflow.agents.middlewares.memory_middleware import MemoryMiddleware
 from vassilflow.agents.middlewares.safety_finish_reason_middleware import SafetyFinishReasonMiddleware
 from vassilflow.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
-from vassilflow.agents.middlewares.summarization_middleware import BeforeSummarizationHook, VassilFlowSummarizationMiddleware
+from vassilflow.agents.middlewares.summarization_middleware import VassilFlowSummarizationMiddleware, create_summarization_middleware
 from vassilflow.agents.middlewares.title_middleware import TitleMiddleware
 from vassilflow.agents.middlewares.todo_middleware import TodoMiddleware
 from vassilflow.agents.middlewares.token_usage_middleware import TokenUsageMiddleware
@@ -43,7 +42,7 @@ from vassilflow.agents.thread_state import ThreadState
 from vassilflow.config.agents_config import load_agent_config, validate_agent_name
 from vassilflow.config.app_config import AppConfig, get_app_config
 from vassilflow.models import create_chat_model
-from vassilflow.skills.tool_policy import filter_tools_by_skill_allowed_tools
+from vassilflow.skills.tool_policy import SKILL_LOADING_TOOL_NAMES, filter_tools_by_skill_allowed_tools
 from vassilflow.skills.types import Skill, skill_reference_matches
 from vassilflow.tracing import build_tracing_callbacks
 
@@ -78,68 +77,7 @@ def _resolve_model_name(requested_model_name: str | None = None, *, app_config: 
 
 def _create_summarization_middleware(*, app_config: AppConfig | None = None) -> VassilFlowSummarizationMiddleware | None:
     """Create and configure the summarization middleware from config."""
-    resolved_app_config = app_config or get_app_config()
-    config = resolved_app_config.summarization
-
-    if not config.enabled:
-        return None
-
-    # Prepare trigger parameter
-    trigger = None
-    if config.trigger is not None:
-        if isinstance(config.trigger, list):
-            trigger = [t.to_tuple() for t in config.trigger]
-        else:
-            trigger = config.trigger.to_tuple()
-
-    # Prepare keep parameter
-    keep = config.keep.to_tuple()
-
-    # Prepare model parameter.
-    # Bind "middleware:summarize" tag so RunJournal identifies these LLM calls
-    # as middleware rather than lead_agent (SummarizationMiddleware is a
-    # LangChain built-in, so we tag the model at creation time).
-    # attach_tracing=False because the graph-level RunnableConfig (set in
-    # ``_make_lead_agent``) already carries tracing callbacks; binding them
-    # again at the model level would emit duplicate spans and break
-    # ``session_id`` / ``user_id`` propagation.
-    if config.model_name:
-        model = create_chat_model(name=config.model_name, thinking_enabled=False, app_config=resolved_app_config, attach_tracing=False)
-    else:
-        model = create_chat_model(thinking_enabled=False, app_config=resolved_app_config, attach_tracing=False)
-    model = model.with_config(tags=["middleware:summarize"])
-
-    # Prepare kwargs
-    kwargs = {
-        "model": model,
-        "trigger": trigger,
-        "keep": keep,
-    }
-
-    if config.trim_tokens_to_summarize is not None:
-        kwargs["trim_tokens_to_summarize"] = config.trim_tokens_to_summarize
-
-    if config.summary_prompt is not None:
-        kwargs["summary_prompt"] = config.summary_prompt
-
-    hooks: list[BeforeSummarizationHook] = []
-    if resolved_app_config.memory.enabled:
-        hooks.append(memory_flush_hook)
-
-    # The logic below relies on two assumptions holding true: this factory is
-    # the sole entry point for VassilFlowSummarizationMiddleware, and the runtime
-    # config is not expected to change after startup.
-    skills_container_path = resolved_app_config.skills.container_path or "/mnt/skills"
-
-    return VassilFlowSummarizationMiddleware(
-        **kwargs,
-        skills_container_path=skills_container_path,
-        skill_file_read_tool_names=config.skill_file_read_tool_names,
-        before_summarization=hooks,
-        preserve_recent_skill_count=config.preserve_recent_skill_count,
-        preserve_recent_skill_tokens=config.preserve_recent_skill_tokens,
-        preserve_recent_skill_tokens_per_skill=config.preserve_recent_skill_tokens_per_skill,
-    )
+    return create_summarization_middleware(app_config=app_config)
 
 
 def _create_todo_list_middleware(is_plan_mode: bool) -> TodoMiddleware | None:
@@ -312,6 +250,15 @@ def build_middlewares(
 
     middlewares.append(SkillActivationMiddleware(available_skills=available_skills, app_config=resolved_app_config))
 
+    from vassilflow.agents.middlewares.durable_context_middleware import DurableContextMiddleware
+
+    middlewares.append(
+        DurableContextMiddleware(
+            skills_container_path=resolved_app_config.skills.container_path,
+            skill_file_read_tool_names=resolved_app_config.summarization.skill_file_read_tool_names,
+        )
+    )
+
     # Add summarization middleware if enabled
     summarization_middleware = _create_summarization_middleware(app_config=resolved_app_config)
     if summarization_middleware is not None:
@@ -413,6 +360,16 @@ def _load_enabled_skills_for_tool_policy(available_skills: set[str] | None, *, a
     return [skill for skill in skills if any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in available_skills)]
 
 
+def _skills_deferred_discovery_enabled(app_config: AppConfig) -> bool:
+    skills_config = getattr(app_config, "skills", None)
+    return getattr(skills_config, "deferred_discovery", False) is True
+
+
+def _skills_container_path(app_config: AppConfig) -> str:
+    skills_config = getattr(app_config, "skills", None)
+    return str(getattr(skills_config, "container_path", "/mnt/skills") or "/mnt/skills")
+
+
 def make_lead_agent(config: RunnableConfig):
     """LangGraph graph factory; keep the signature compatible with LangGraph Server."""
     runtime_config = _get_runtime_config(config)
@@ -496,14 +453,26 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
         config["callbacks"] = [*existing, *tracing_callbacks]
 
     skills_for_tool_policy = _load_enabled_skills_for_tool_policy(available_skills, app_config=resolved_app_config)
+    from vassilflow.skills.describe import build_skill_search_setup
+
+    skill_search_enabled = _skills_deferred_discovery_enabled(resolved_app_config)
+    skills_container_path = _skills_container_path(resolved_app_config)
 
     if is_bootstrap:
         # Special bootstrap agent with minimal prompt for initial custom agent creation flow
         # Keep the bootstrap skill set intentionally narrow so agent creation
         # remains deterministic before the custom agent's own config exists.
+        bootstrap_skills = [skill for skill in skills_for_tool_policy if skill.name in _BOOTSTRAP_SKILL_NAMES]
+        skill_setup = build_skill_search_setup(
+            bootstrap_skills,
+            enabled=skill_search_enabled,
+            container_base_path=skills_container_path,
+        )
         raw_tools = get_available_tools(model_name=model_name, subagent_enabled=subagent_enabled, app_config=resolved_app_config) + [setup_agent]
-        filtered = filter_tools_by_skill_allowed_tools(raw_tools, skills_for_tool_policy)
+        filtered = filter_tools_by_skill_allowed_tools(raw_tools, skills_for_tool_policy, always_allowed_tool_names=SKILL_LOADING_TOOL_NAMES)
         final_tools, setup = assemble_deferred_tools(filtered, enabled=resolved_app_config.tool_search.enabled)
+        if skill_setup.describe_skill_tool is not None:
+            final_tools.append(skill_setup.describe_skill_tool)
         return create_agent(
             model=create_chat_model(name=model_name, thinking_enabled=thinking_enabled, app_config=resolved_app_config, attach_tracing=False),
             tools=final_tools,
@@ -520,17 +489,25 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
                 available_skills=set(_BOOTSTRAP_SKILL_NAMES),
                 app_config=resolved_app_config,
                 deferred_names=setup.deferred_names,
+                skill_names=skill_setup.skill_names or None,
             ),
             state_schema=ThreadState,
         )
 
     # Custom agents can update their own SOUL.md / config via update_agent.
     # The default agent (no agent_name) does not see this tool.
+    skill_setup = build_skill_search_setup(
+        skills_for_tool_policy,
+        enabled=skill_search_enabled,
+        container_base_path=skills_container_path,
+    )
     extra_tools = [update_agent] if agent_name else []
     # Default lead agent (unchanged behavior)
     raw_tools = get_available_tools(model_name=model_name, groups=agent_config.tool_groups if agent_config else None, subagent_enabled=subagent_enabled, app_config=resolved_app_config)
-    filtered = filter_tools_by_skill_allowed_tools(raw_tools + extra_tools, skills_for_tool_policy)
+    filtered = filter_tools_by_skill_allowed_tools(raw_tools + extra_tools, skills_for_tool_policy, always_allowed_tool_names=SKILL_LOADING_TOOL_NAMES)
     final_tools, setup = assemble_deferred_tools(filtered, enabled=resolved_app_config.tool_search.enabled)
+    if skill_setup.describe_skill_tool is not None:
+        final_tools.append(skill_setup.describe_skill_tool)
     return create_agent(
         model=create_chat_model(name=model_name, thinking_enabled=thinking_enabled, reasoning_effort=reasoning_effort, app_config=resolved_app_config, attach_tracing=False),
         tools=final_tools,
@@ -549,6 +526,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
             available_skills=available_skills,
             app_config=resolved_app_config,
             deferred_names=setup.deferred_names,
+            skill_names=skill_setup.skill_names or None,
         ),
         state_schema=ThreadState,
     )

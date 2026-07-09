@@ -21,6 +21,7 @@ from vassilflow.sandbox.tools import (
     _resolve_skills_path,
     bash_tool,
     mask_local_paths_in_output,
+    mask_secret_values,
     replace_virtual_path,
     replace_virtual_paths_in_command,
     str_replace_tool,
@@ -89,6 +90,19 @@ def test_replace_virtual_paths_in_command_preserves_trailing_slash() -> None:
     cmd = """python -c "output_dir = '/mnt/user-data/workspace/'; print(output_dir + 'some_file.txt')\""""
     result = replace_virtual_paths_in_command(cmd, _THREAD_DATA)
     assert "/tmp/vassilflow/threads/t1/user-data/workspace/" in result, f"Trailing slash lost in: {result!r}"
+
+
+def test_replace_virtual_paths_in_command_normalizes_windows_user_data_paths() -> None:
+    win_thread_data = {
+        "workspace_path": r"C:\vassilflow\threads\t1\user-data\workspace",
+        "uploads_path": r"C:\vassilflow\threads\t1\user-data\uploads",
+        "outputs_path": r"C:\vassilflow\threads\t1\user-data\outputs",
+    }
+
+    result = replace_virtual_paths_in_command("cat /mnt/user-data/workspace/data.json", win_thread_data)
+
+    assert "\\" not in result
+    assert "C:/vassilflow/threads/t1/user-data/workspace/data.json" in result
 
 
 # ---------- mask_local_paths_in_output ----------
@@ -316,6 +330,17 @@ def test_replace_virtual_paths_in_command_replaces_skills_paths() -> None:
         result = replace_virtual_paths_in_command(cmd, _THREAD_DATA)
         assert "/mnt/skills" not in result
         assert "/home/user/vassilflow/skills/public/bootstrap/SKILL.md" in result
+
+
+def test_replace_virtual_paths_in_command_normalizes_windows_skills_paths() -> None:
+    with (
+        patch("vassilflow.sandbox.tools._get_skills_container_path", return_value="/mnt/skills"),
+        patch("vassilflow.sandbox.tools._get_skills_host_path", return_value=r"C:\vassilflow\skills"),
+    ):
+        result = replace_virtual_paths_in_command("python /mnt/skills/custom/run.py", _THREAD_DATA)
+
+    assert "\\" not in result
+    assert "C:/vassilflow/skills/custom/run.py" in result
 
 
 def test_replace_virtual_paths_in_command_replaces_both() -> None:
@@ -569,6 +594,44 @@ def test_bash_tool_blocks_relative_traversal_before_host_execution(monkeypatch) 
     )
 
     assert "path traversal" in result
+
+
+def test_mask_secret_values_redacts_injected_secret_values() -> None:
+    output = "token=super-secret-token short=abc"
+
+    masked = mask_secret_values(output, {"API_TOKEN": "super-secret-token", "SHORT": "abc"})
+
+    assert masked == "token=[redacted] short=abc"
+
+
+def test_bash_tool_injects_active_secrets_and_masks_output(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class FakeSandbox:
+        def execute_command(self, command: str, env: dict[str, str] | None = None, timeout: float | None = None) -> str:
+            captured["command"] = command
+            captured["env"] = env
+            captured["timeout"] = timeout
+            return f"token={env['API_TOKEN']}"
+
+    runtime = SimpleNamespace(
+        state={},
+        context={
+            "__active_skill_secrets": {
+                "API_TOKEN": "super-secret-token",
+            }
+        },
+        config={},
+    )
+
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_sandbox_initialized", lambda runtime: FakeSandbox())
+    monkeypatch.setattr("vassilflow.sandbox.tools.ensure_thread_directories_exist", lambda runtime: None)
+
+    result = bash_tool.func(runtime=runtime, description="run command", command="print-token")
+
+    assert captured["command"] == "print-token"
+    assert captured["env"] == {"API_TOKEN": "super-secret-token"}
+    assert result == "token=[redacted]"
 
 
 # ---------- Skills path tests ----------
