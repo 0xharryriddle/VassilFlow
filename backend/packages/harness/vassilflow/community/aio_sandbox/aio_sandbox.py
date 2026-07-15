@@ -1,6 +1,7 @@
 import base64
 import errno
 import logging
+import posixpath
 import shlex
 import threading
 import uuid
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 _MAX_DOWNLOAD_SIZE = 100 * 1024 * 1024  # 100 MB
 
 _ERROR_OBSERVATION_SIGNATURE = "'ErrorObservation' object has no attribute 'exit_code'"
+_MOVE_STATUS_MARKER = "__VASSILFLOW_MOVE_STATUS__"
 
 # Env-bearing commands require the bash.exec API (POST /v1/bash/exec), which
 # older all-in-one sandbox images do not expose. There is no safe fallback
@@ -220,9 +222,7 @@ class AioSandbox(Sandbox):
                 if e.status_code == 404:
                     self._bash_exec_unsupported = True
                     logger.error(
-                        "Sandbox %s does not support bash.exec (/v1/bash/exec returned 404); "
-                        "env-bearing commands are unavailable until the sandbox image is upgraded "
-                        "to all-in-one-sandbox >= 1.9.3",
+                        "Sandbox %s does not support bash.exec (/v1/bash/exec returned 404); env-bearing commands are unavailable until the sandbox image is upgraded to all-in-one-sandbox >= 1.9.3",
                         self.id,
                     )
                     return _BASH_EXEC_UNSUPPORTED_ERROR
@@ -420,8 +420,36 @@ class AioSandbox(Sandbox):
         """
         with self._lock:
             try:
+                parent = posixpath.dirname(path)
+                if parent:
+                    self._client.shell.exec_command(
+                        command=f"mkdir -p -- {shlex.quote(parent)}",
+                        no_change_timeout=self._DEFAULT_NO_CHANGE_TIMEOUT,
+                    )
                 base64_content = base64.b64encode(content).decode("utf-8")
                 self._client.file.write_file(file=path, content=base64_content, encoding="base64")
             except Exception as e:
                 logger.error(f"Failed to update file in sandbox: {e}")
                 raise
+
+    def replace_file(self, source_path: str, destination_path: str) -> None:
+        """Replace destination with a staged file on the sandbox filesystem."""
+        command = f"mv -f -- {shlex.quote(source_path)} {shlex.quote(destination_path)}; status=$?; printf '{_MOVE_STATUS_MARKER}%s\\n' \"$status\""
+        with self._lock:
+            try:
+                result = self._client.shell.exec_command(
+                    command=command,
+                    no_change_timeout=self._DEFAULT_NO_CHANGE_TIMEOUT,
+                )
+                output = result.data.output if result.data else ""
+                status_line = next(
+                    (line for line in reversed(output.splitlines()) if line.startswith(_MOVE_STATUS_MARKER)),
+                    None,
+                )
+                if status_line != f"{_MOVE_STATUS_MARKER}0":
+                    raise OSError(errno.EIO, "Failed to atomically replace staged file", destination_path)
+            except OSError:
+                raise
+            except Exception as e:
+                logger.error("Failed to replace staged sandbox file: %s", e)
+                raise OSError(errno.EIO, "Failed to atomically replace staged file", destination_path) from e

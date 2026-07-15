@@ -671,6 +671,54 @@ When using `make dev` from root, the frontend automatically connects through ngi
 
 ## Key Features
 
+### Office Engine
+
+The harness Office engine lives under
+`packages/harness/vassilflow/community/office/`. It exposes separate bounded
+inspect, edit, and render tools under the existing sandbox capability model.
+DOCX and XLSX have typed edit surfaces. PPTX supports paragraph-local literal
+replacement plus bounded direct run, paragraph, shape, and connector-line
+formatting within exact authored-ID paths. Shape writes cover only solid/no
+fill, typed RGB linear gradients, corpus-verified radial circle gradients, a
+typed direct-RGB pattern fill, typed embedded PNG/baseline-JPEG
+stretch/crop/tile/center fill, bounded preset-geometry allowlist, line
+fill/width/cap/preset-dash/join, text-box insets, and vertical anchoring. Direct
+slide backgrounds support remove, RGB solid, bounded linear gradient, and
+embedded PNG/baseline-JPEG stretch/tile/center framing. Existing native
+pictures support guarded source-only replacement while preserving crop,
+framing, effects, geometry, metadata, and identity. PNG and baseline JPEG
+sources are read-only sandbox paths locked with the edit; URLs, data URIs,
+base64 payloads, and linked images are rejected. The separate direct-line
+operation targets authored shapes or connectors and adds typed
+compound/alignment plus independent head/tail type, width, and length. Pattern
+or image line fill, picture creation/removal/crop/framing/effect mutation,
+non-circle path gradients, effects/3D, custom or adjusted geometry, connector
+routing, object creation, and destructive media cleanup remain closed. Its read
+surface includes
+declared-order slide metadata, stable object paths, owner-aware interactions,
+direct shape/text/picture formatting, relationship resources, typed
+transitions, opt-in speaker notes and legacy/threaded comments, opt-in authored
+animation effects, and isolated static visual QA. PPTX selectors accept exact
+typed object paths only; positional-path and broad presentation-wide writes
+stay outside the edit union. Optional media cleanup inspection uses a bounded
+contract-v2 package graph plus declared-XML `r:id`/`r:embed`/`r:link`
+integrity scan. It reports zero-reference image relationships, zero-incoming
+parts, projected package-root reachability, and hash-bound root-unreachable
+island evidence; every record is non-actionable and no deletion executor
+exists. The
+DOCX loader validates the package relationship graph, active-content risk, and
+bounded document structure before parsing; XLSX resolves every declared sheet
+before applying cell limits and shares a bounded inspect text budget. The
+shared `opc.py` preservation gate rejects payload or ZIP-container drift outside
+each structured editor's explicit part allowlist while preserving exact bytes
+for allowed all-zero-match transactions. PPTX additionally canonicalizes each
+touched slide to prove that only selected text or requested direct-formatting
+slots changed. Focused coverage lives in
+`tests/test_office_engine_*.py`, `tests/test_office_tools.py`, and
+`tests/test_office_render.py`, with OPC invariants in
+`tests/test_office_opc.py`; the user/tool contract is documented in
+`docs/OFFICE_TOOLS.md`.
+
 ### File Upload
 
 Multi-file upload with automatic document conversion:

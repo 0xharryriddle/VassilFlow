@@ -20,7 +20,7 @@
 # ============================================================================
 # Bump this number when the config schema changes.
 # Run `make config-upgrade` to merge new fields into your local config.yaml.
-config_version: 18
+config_version: 19
 
 # ============================================================================
 # Logging
@@ -770,6 +770,10 @@ tools:
     group: file:read
     use: vassilflow.sandbox.tools:read_file_tool
 
+  - name: office_inspect
+    group: file:read
+    use: vassilflow.community.office.tools:office_inspect_tool
+
   - name: glob
     group: file:read
     use: vassilflow.sandbox.tools:glob_tool
@@ -787,6 +791,14 @@ tools:
   - name: str_replace
     group: file:write
     use: vassilflow.sandbox.tools:str_replace_tool
+
+  - name: office_edit
+    group: file:write
+    use: vassilflow.community.office.tools:office_edit_tool
+
+  - name: office_render
+    group: file:write
+    use: vassilflow.community.office.tools:office_render_tool
 
   # Bash execution tool
   # Active only when using an isolated shell sandbox or when

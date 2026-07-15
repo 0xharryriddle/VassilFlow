@@ -17,6 +17,7 @@ class ThreadDataState(TypedDict):
 class ViewedImageData(TypedDict):
     base64: str
     mime_type: str
+    sha256: NotRequired[str]
 
 
 def merge_sandbox(existing: SandboxState | None, new: SandboxState | None) -> SandboxState | None:
@@ -67,6 +68,17 @@ def merge_viewed_images(existing: dict[str, ViewedImageData] | None, new: dict[s
     if len(new) == 0:
         return {}
     # Merge dictionaries, new values override existing ones for same keys
+    return {**existing, **new}
+
+
+def merge_reviewed_image_hashes(existing: dict[str, str] | None, new: dict[str, str] | None) -> dict[str, str]:
+    """Merge hashes for images that have been delivered to a vision model."""
+    if existing is None:
+        return new or {}
+    if new is None:
+        return existing
+    if not new:
+        return {}
     return {**existing, **new}
 
 
@@ -166,5 +178,6 @@ class ThreadState(AgentState):
     todos: Annotated[list | None, merge_todos]
     uploaded_files: NotRequired[list[dict] | None]
     viewed_images: Annotated[dict[str, ViewedImageData], merge_viewed_images]  # image_path -> {base64, mime_type}
+    visual_reviewed_images: Annotated[dict[str, str], merge_reviewed_image_hashes]
     promoted: Annotated[PromotedTools | None, merge_promoted]
     skill_context: Annotated[list[SkillEntry], merge_skill_context]

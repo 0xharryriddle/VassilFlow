@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import importlib
 import os
 from pathlib import Path
@@ -70,6 +71,7 @@ def test_view_image_reads_virtual_uploads_path(tmp_path: Path) -> None:
     viewed_image = result.update["viewed_images"]["/mnt/user-data/uploads/sample.png"]
     assert viewed_image["base64"] == base64.b64encode(PNG_BYTES).decode("utf-8")
     assert viewed_image["mime_type"] == "image/png"
+    assert viewed_image["sha256"] == hashlib.sha256(PNG_BYTES).hexdigest()
 
 
 def test_view_image_rejects_spoofed_extension(tmp_path: Path) -> None:

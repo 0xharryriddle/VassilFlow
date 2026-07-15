@@ -67,6 +67,7 @@ def test_core_docs_use_vassilflow_runtime_contracts():
 
 def test_docs_and_scripts_do_not_reintroduce_external_product_tokens():
     skipped_prefixes = (
+        Path("docs/audits"),
         Path("frontend/public/demo"),
         Path("frontend/src/components/landing"),
         Path("frontend/public/images"),

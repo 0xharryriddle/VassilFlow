@@ -34,6 +34,18 @@ def test_write_file_uses_utf8_on_windows_locale(tmp_path, monkeypatch):
     assert path.read_text(encoding="utf-8") == text
 
 
+def test_replace_file_atomically_replaces_destination(tmp_path):
+    staged = tmp_path / ".result.stage"
+    destination = tmp_path / "result.docx"
+    staged.write_bytes(b"new")
+    destination.write_bytes(b"old")
+
+    LocalSandbox("t").replace_file(str(staged), str(destination))
+
+    assert destination.read_bytes() == b"new"
+    assert not staged.exists()
+
+
 def test_get_shell_prefers_posix_shell_from_path_before_windows_fallback(monkeypatch):
     monkeypatch.setattr(local_sandbox.os, "name", "nt")
     monkeypatch.setattr(LocalSandbox, "_find_first_available_shell", lambda candidates: r"C:\Program Files\Git\bin\sh.exe" if candidates == ("/bin/zsh", "/bin/bash", "/bin/sh", "sh") else None)

@@ -1,0 +1,556 @@
+{
+  "schema_version": 1,
+  "corpus_id": "vassilflow-pptx-native-roundtrip-v1",
+  "seed": {
+    "file": "seed-v1.pptx",
+    "sha256": "5b0947cb1e6a7aceb4860835d67a341184f1d8336ec731ae3f9b482f2c2607e6",
+    "generator": "backend/scripts/build_pptx_roundtrip_seed.py",
+    "vassilflow_edit": {
+      "type": "replace_pptx_text",
+      "target_name": "VF_RT_EDIT_SENTINEL",
+      "find": "Draft",
+      "replace": "Final",
+      "match_count": 1
+    }
+  },
+  "required_producers": [
+    "microsoft_powerpoint",
+    "wps_presentation"
+  ],
+  "lanes": [
+    {
+      "producer": "microsoft_powerpoint",
+      "status": "verified",
+      "fixture": "powerpoint-16-v1.pptx",
+      "receipt": "powerpoint-16-v1.receipt.json",
+      "native_observation": {
+        "entry_count": 70,
+        "slide_size_emu": {
+          "width": 12192000,
+          "height": 6858000
+        }
+      }
+    },
+    {
+      "producer": "wps_presentation",
+      "status": "verified",
+      "fixture": "wps-v1.pptx",
+      "receipt": "wps-v1.receipt.json",
+      "native_observation": {
+        "entry_count": 83,
+        "slide_size_emu": {
+          "width": 12191365,
+          "height": 6858000
+        }
+      }
+    }
+  ],
+  "formatting_readiness": {
+    "ready": true,
+    "verified_producers": [
+      "microsoft_powerpoint",
+      "wps_presentation"
+    ],
+    "blocked_by": []
+  },
+  "semantic_contract": {
+    "slide_size_emu": {
+      "baseline_width": 12191999,
+      "baseline_height": 6858000,
+      "max_native_width_drift": 1000,
+      "max_native_height_drift": 0
+    },
+    "slide_count": 13,
+    "object_count": 32,
+    "required_backgrounds": [
+      {
+        "path": "/slide[8]",
+        "part_name": "ppt/slides/slide8.xml",
+        "background": {
+          "scope": "direct",
+          "type": "solid",
+          "color": {
+            "type": "rgb",
+            "value": "#D9EAF7"
+          }
+        }
+      },
+      {
+        "path": "/slide[9]",
+        "part_name": "ppt/slides/slide9.xml",
+        "background": {
+          "scope": "direct",
+          "type": "gradient",
+          "rotate_with_shape": false,
+          "stops": [
+            {
+              "position_percent": 0.0,
+              "color": {
+                "type": "rgb",
+                "value": "#FFF2CC"
+              }
+            },
+            {
+              "position_percent": 42.5,
+              "color": {
+                "type": "rgb",
+                "value": "#5B9BD5",
+                "opacity_percent": 90.0
+              }
+            },
+            {
+              "position_percent": 100.0,
+              "color": {
+                "type": "rgb",
+                "value": "#203864"
+              }
+            }
+          ],
+          "geometry": "linear",
+          "angle_degrees": 132.5,
+          "scaled": true
+        }
+      },
+      {
+        "path": "/slide[10]",
+        "part_name": "ppt/slides/slide10.xml",
+        "background": {
+          "scope": "direct",
+          "type": "image",
+          "fill_mode": "stretch",
+          "fill_rectangle": {}
+        }
+      },
+      {
+        "path": "/slide[11]",
+        "part_name": "ppt/slides/slide11.xml",
+        "background": {
+          "scope": "direct",
+          "type": "image",
+          "fill_mode": "tile",
+          "tile": {
+            "offset_x_emu": 127000,
+            "offset_y_emu": -63500,
+            "scale_x_percent": 40.0,
+            "scale_y_percent": 55.0,
+            "alignment": "top_left",
+            "flip": "none"
+          }
+        }
+      },
+      {
+        "path": "/slide[12]",
+        "part_name": "ppt/slides/slide12.xml",
+        "background": {
+          "scope": "direct",
+          "type": "image",
+          "fill_mode": "center"
+        }
+      }
+    ],
+    "required_objects": [
+      {
+        "name": "VF_RT_SPLIT_RUN",
+        "kind": "text_box",
+        "text": "AlphaBeta",
+        "paragraphs": [
+          {
+            "text": "AlphaBeta",
+            "alignment": "center",
+            "runs": [
+              {
+                "text": "Alpha",
+                "font": "Aptos",
+                "font_size_points": 28.0,
+                "bold": true,
+                "color": "#C02B3A"
+              },
+              {
+                "text": "Beta",
+                "font": "Georgia",
+                "font_size_points": 20.0,
+                "italic": true,
+                "color": "#107C71"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "VF_RT_PARAGRAPHS",
+        "kind": "text_box",
+        "text": "Left paragraph\nCentered paragraph\nRight paragraph",
+        "paragraphs": [
+          {
+            "text": "Left paragraph",
+            "alignment": "left",
+            "font_size_points": 18.0,
+            "space_after_points": 8.0
+          },
+          {
+            "text": "Centered paragraph",
+            "alignment": "center",
+            "font_size_points": 20.0,
+            "space_after_points": 8.0
+          },
+          {
+            "text": "Right paragraph",
+            "alignment": "right",
+            "font_size_points": 16.0,
+            "space_after_points": 8.0
+          }
+        ]
+      },
+      {
+        "name": "VF_RT_EDIT_SENTINEL",
+        "kind": "text_box",
+        "text": "Final native round-trip sentinel",
+        "vertical_anchor": "middle"
+      },
+      {
+        "name": "VF_RT_STYLE",
+        "kind": "shape",
+        "text": "Direct fill and line",
+        "geometry": "roundRect",
+        "fill_color": "#336699",
+        "line_color": "#E04B42",
+        "line_width_emu": 31750
+      },
+      {
+        "name": "VF_RT_GRADIENT",
+        "kind": "shape",
+        "text": "Authored linear gradient",
+        "geometry": "roundRect",
+        "fill": {
+          "type": "gradient",
+          "rotate_with_shape": true,
+          "stops": [
+            {
+              "position_percent": 0.0,
+              "color": {
+                "type": "rgb",
+                "value": "#203864"
+              }
+            },
+            {
+              "position_percent": 37.5,
+              "color": {
+                "type": "rgb",
+                "value": "#4472C4",
+                "opacity_percent": 85.0
+              }
+            },
+            {
+              "position_percent": 100.0,
+              "color": {
+                "type": "rgb",
+                "value": "#70AD47"
+              }
+            }
+          ],
+          "geometry": "linear",
+          "angle_degrees": 37.5,
+          "scaled": true
+        },
+        "line_color": "#18242B",
+        "line_width_emu": 19050
+      },
+      {
+        "name": "VF_RT_UNICODE",
+        "kind": "text_box",
+        "text": "Hello, \u4e16\u754c! \u039a\u03b1\u03bb\u03b7\u03bc\u03ad\u03c1\u03b1 \u03ba\u03cc\u03c3\u03bc\u03b5. \u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645."
+      },
+      {
+        "name": "VF_RT_MARGINS",
+        "kind": "text_box",
+        "text": "Bottom anchored with authored margins",
+        "vertical_anchor": "bottom",
+        "margins_emu": {
+          "left_emu": 320040,
+          "top_emu": 228600,
+          "right_emu": 182880,
+          "bottom_emu": 137160
+        }
+      },
+      {
+        "name": "VF_RT_CONNECTOR",
+        "kind": "connector",
+        "geometry": "line",
+        "line": {
+          "width_emu": 38100,
+          "compound": "double",
+          "alignment": "center",
+          "fill_color": "#4472C4",
+          "head_end": {
+            "type": "diamond",
+            "width": "small",
+            "length": "medium"
+          },
+          "tail_end": {
+            "type": "triangle",
+            "width": "large",
+            "length": "large"
+          }
+        }
+      },
+      {
+        "name": "VF_RT_GRADIENT_CONNECTOR",
+        "kind": "connector",
+        "geometry": "line",
+        "line": {
+          "width_emu": 63500,
+          "fill": {
+            "type": "gradient",
+            "rotate_with_shape": true,
+            "stops": [
+              {
+                "position_percent": 0.0,
+                "color": {
+                  "type": "rgb",
+                  "value": "#C00000"
+                }
+              },
+              {
+                "position_percent": 50.0,
+                "color": {
+                  "type": "rgb",
+                  "value": "#FFC000"
+                }
+              },
+              {
+                "position_percent": 100.0,
+                "color": {
+                  "type": "rgb",
+                  "value": "#70AD47"
+                }
+              }
+            ],
+            "geometry": "linear",
+            "angle_degrees": 0.0,
+            "scaled": true
+          }
+        }
+      },
+      {
+        "name": "VF_RT_PATH_GRADIENT",
+        "kind": "shape",
+        "text": "Authored path gradient",
+        "geometry": "ellipse",
+        "fill": {
+          "type": "gradient",
+          "rotate_with_shape": false,
+          "stops": [
+            {
+              "position_percent": 0.0,
+              "color": {
+                "type": "rgb",
+                "value": "#FFFFFF"
+              }
+            },
+            {
+              "position_percent": 35.0,
+              "color": {
+                "type": "rgb",
+                "value": "#5B9BD5",
+                "opacity_percent": 90.0
+              }
+            },
+            {
+              "position_percent": 100.0,
+              "color": {
+                "type": "rgb",
+                "value": "#203864"
+              }
+            }
+          ],
+          "geometry": "path",
+          "path": "circle",
+          "fill_to_rectangle": {
+            "left_percent": 35.0,
+            "top_percent": 25.0,
+            "right_percent": 65.0,
+            "bottom_percent": 75.0
+          }
+        },
+        "line_color": "#18242B",
+        "line_width_emu": 19050
+      },
+      {
+        "name": "VF_RT_PRESET_GEOMETRY",
+        "kind": "shape",
+        "text": "Preset geometry",
+        "geometry": "roundRect",
+        "fill_color": "#70AD47",
+        "line_color": "#385923",
+        "line_width_emu": 25400
+      },
+      {
+        "name": "VF_RT_PATTERN_FILL",
+        "kind": "shape",
+        "text": "Authored direct RGB pattern",
+        "geometry": "rect",
+        "fill": {
+          "type": "pattern",
+          "preset": "diagCross",
+          "foreground_color": {
+            "type": "rgb",
+            "value": "#4472C4"
+          },
+          "background_color": {
+            "type": "rgb",
+            "value": "#D9EAF7"
+          }
+        },
+        "line_color": "#1F4E79",
+        "line_width_emu": 25400
+      },
+      {
+        "name": "VF_RT_IMAGE_FILL",
+        "kind": "shape",
+        "geometry": "roundRect",
+        "image_fill": {
+          "type": "image",
+          "rotate_with_shape": false,
+          "crop": {
+            "left_percent": 12.5,
+            "top_percent": 5.0,
+            "right_percent": 8.0,
+            "bottom_percent": 10.0
+          },
+          "fill_mode": "stretch",
+          "fill_rectangle": {}
+        },
+        "line_color": "#18242B",
+        "line_width_emu": 25400
+      },
+      {
+        "name": "VF_RT_JPEG_FILL",
+        "kind": "shape",
+        "geometry": "roundRect",
+        "image_fill": {
+          "type": "image",
+          "rotate_with_shape": true,
+          "crop": {
+            "left_percent": 6.0,
+            "top_percent": 9.0,
+            "right_percent": 14.0,
+            "bottom_percent": 4.0
+          },
+          "fill_mode": "stretch",
+          "fill_rectangle": {}
+        },
+        "line_color": "#595595",
+        "line_width_emu": 25400
+      },
+      {
+        "name": "VF_RT_IMAGE_TILE",
+        "kind": "shape",
+        "geometry": "roundRect",
+        "image_fill": {
+          "type": "image",
+          "rotate_with_shape": false,
+          "fill_mode": "tile",
+          "tile": {
+            "offset_x_emu": 127000,
+            "offset_y_emu": -63500,
+            "scale_x_percent": 45.0,
+            "scale_y_percent": 65.0,
+            "alignment": "bottom_right",
+            "flip": "horizontal"
+          }
+        },
+        "line_color": "#385923",
+        "line_width_emu": 38100
+      },
+      {
+        "name": "VF_RT_IMAGE_CENTER",
+        "kind": "shape",
+        "geometry": "roundRect",
+        "image_fill": {
+          "type": "image",
+          "rotate_with_shape": true,
+          "fill_mode": "center"
+        },
+        "line_color": "#595595",
+        "line_width_emu": 38100
+      },
+      {
+        "name": "VF_RT_PICTURE_EFFECT",
+        "kind": "picture",
+        "alt_text": "Source replacement preserves crop and blip effects",
+        "geometry_emu": {
+          "x_emu": 685800,
+          "y_emu": 1371600,
+          "width_emu": 3429000,
+          "height_emu": 4191000
+        },
+        "source": {
+          "content_type": "image/png",
+          "sha256": "e44121807d48ae90a4f8d29b6130609bfcdc24ddaa1fd9014a91deecd5a86e83"
+        },
+        "picture": {
+          "rotate_with_shape": false,
+          "crop": {
+            "left_percent": 10.0,
+            "top_percent": 5.0,
+            "right_percent": 15.0,
+            "bottom_percent": 12.0
+          },
+          "fill_mode": "stretch",
+          "fill_rectangle": {
+            "left_percent": -5.0,
+            "right_percent": 3.0
+          },
+          "compression_state": "screen",
+          "effects": {
+            "alpha_modulation_percent": 85.0,
+            "brightness_percent": 12.0,
+            "contrast_percent": -8.0
+          }
+        }
+      },
+      {
+        "name": "VF_RT_PICTURE_SHARED",
+        "kind": "picture",
+        "alt_text": "Shared source remains unchanged when its peer is replaced",
+        "geometry_emu": {
+          "x_emu": 4343400,
+          "y_emu": 1371600,
+          "width_emu": 3429000,
+          "height_emu": 4191000
+        },
+        "source": {
+          "content_type": "image/png",
+          "sha256": "e44121807d48ae90a4f8d29b6130609bfcdc24ddaa1fd9014a91deecd5a86e83"
+        },
+        "picture": {
+          "rotate_with_shape": true,
+          "fill_mode": "stretch",
+          "fill_rectangle": {},
+          "effects": {
+            "grayscale": true
+          }
+        }
+      },
+      {
+        "name": "VF_RT_PICTURE_JPEG",
+        "kind": "picture",
+        "alt_text": "Baseline JPEG picture source",
+        "geometry_emu": {
+          "x_emu": 8001000,
+          "y_emu": 1371600,
+          "width_emu": 3429000,
+          "height_emu": 4191000
+        },
+        "source": {
+          "content_type": "image/jpeg",
+          "sha256": "7cc3e2ac4d6ed2d7efcf4d07fbc3a66d8362ae16597edb1df8b223e5a2f0d167"
+        },
+        "picture": {
+          "fill_mode": "stretch",
+          "fill_rectangle": {}
+        }
+      }
+    ]
+  }
+}

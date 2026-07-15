@@ -283,9 +283,9 @@ start() {
 
     sandbox_mode="$(detect_sandbox_mode)"
 
-    services="frontend gateway nginx"
+    services="frontend gateway office-renderer office-renderer-proxy nginx"
     if [ "$sandbox_mode" = "provisioner" ]; then
-        services="frontend gateway provisioner nginx"
+        services="frontend gateway office-renderer office-renderer-proxy provisioner nginx"
     fi
 
     # Only aio mode (AioSandboxProvider without provisioner_url) needs the host

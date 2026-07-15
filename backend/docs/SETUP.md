@@ -23,6 +23,9 @@ You can override that location with:
 
 All VassilFlow-owned environment variables use the `VASSILFLOW_*` namespace.
 
+- **Runtime variables**: Use `VASSILFLOW_*` variables.
+- **Runtime data**: State defaults to `.vassilflow` under the project root.
+
 `config.yaml`, `.env`, and runtime state are local files and should not be
 committed.
 

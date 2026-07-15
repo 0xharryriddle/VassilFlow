@@ -753,6 +753,7 @@ All dict-returning methods are validated against Gateway Pydantic response model
 - [Configuration Guide](backend/docs/CONFIGURATION.md) - Setup and configuration instructions
 - [Architecture Overview](backend/CLAUDE.md) - Technical architecture details
 - [Backend Architecture](backend/README.md) - Backend architecture and API reference
+- [Office Document Tools](backend/docs/OFFICE_TOOLS.md) - Structured DOCX/XLSX editing plus exact-path PPTX formatting, source-only picture replacement, read-only media cleanup evidence, and visual QA
 
 ## ⚠️ Security Notice
 

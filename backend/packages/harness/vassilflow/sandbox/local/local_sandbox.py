@@ -691,3 +691,16 @@ class LocalSandbox(Sandbox):
         except OSError as e:
             # Re-raise with the original path for clearer error messages, hiding internal resolved paths
             raise type(e)(e.errno, e.strerror, path) from None
+
+    def replace_file(self, source_path: str, destination_path: str) -> None:
+        source = self._resolve_path_with_mapping(source_path)
+        destination = self._resolve_path_with_mapping(destination_path)
+        if self._is_resolved_path_read_only(source) or self._is_resolved_path_read_only(destination):
+            raise OSError(errno.EROFS, "Read-only file system", destination_path)
+        try:
+            destination_dir = os.path.dirname(destination.path)
+            if destination_dir:
+                os.makedirs(destination_dir, exist_ok=True)
+            os.replace(source.path, destination.path)
+        except OSError as e:
+            raise type(e)(e.errno, e.strerror, destination_path) from None

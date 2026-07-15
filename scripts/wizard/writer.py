@@ -90,10 +90,25 @@ def _default_tools() -> list[dict[str, Any]]:
         {"name": "image_search", "use": "vassilflow.community.image_search.tools:image_search_tool", "group": "web", "max_results": 5},
         {"name": "ls", "use": "vassilflow.sandbox.tools:ls_tool", "group": "file:read"},
         {"name": "read_file", "use": "vassilflow.sandbox.tools:read_file_tool", "group": "file:read"},
+        {
+            "name": "office_inspect",
+            "use": "vassilflow.community.office.tools:office_inspect_tool",
+            "group": "file:read",
+        },
         {"name": "glob", "use": "vassilflow.sandbox.tools:glob_tool", "group": "file:read"},
         {"name": "grep", "use": "vassilflow.sandbox.tools:grep_tool", "group": "file:read"},
         {"name": "write_file", "use": "vassilflow.sandbox.tools:write_file_tool", "group": "file:write"},
         {"name": "str_replace", "use": "vassilflow.sandbox.tools:str_replace_tool", "group": "file:write"},
+        {
+            "name": "office_edit",
+            "use": "vassilflow.community.office.tools:office_edit_tool",
+            "group": "file:write",
+        },
+        {
+            "name": "office_render",
+            "use": "vassilflow.community.office.tools:office_render_tool",
+            "group": "file:write",
+        },
         {"name": "bash", "use": "vassilflow.sandbox.tools:bash_tool", "group": "bash"},
     ]
 
@@ -111,7 +126,20 @@ def _build_tools(
     include_write_tools: bool,
 ) -> list[dict[str, Any]]:
     tools = deepcopy(base_tools if base_tools is not None else _default_tools())
-    tools = [tool for tool in tools if tool.get("name") not in {search_tool_name, web_fetch_tool_name, "write_file", "str_replace", "bash"}]
+    tools = [
+        tool
+        for tool in tools
+        if tool.get("name")
+        not in {
+            search_tool_name,
+            web_fetch_tool_name,
+            "write_file",
+            "str_replace",
+            "office_edit",
+            "office_render",
+            "bash",
+        }
+    ]
 
     web_group = "web"
 
@@ -141,6 +169,16 @@ def _build_tools(
             [
                 {"name": "write_file", "use": "vassilflow.sandbox.tools:write_file_tool", "group": "file:write"},
                 {"name": "str_replace", "use": "vassilflow.sandbox.tools:str_replace_tool", "group": "file:write"},
+                {
+                    "name": "office_edit",
+                    "use": "vassilflow.community.office.tools:office_edit_tool",
+                    "group": "file:write",
+                },
+                {
+                    "name": "office_render",
+                    "use": "vassilflow.community.office.tools:office_render_tool",
+                    "group": "file:write",
+                },
             ]
         )
 

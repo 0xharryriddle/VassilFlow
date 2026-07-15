@@ -12,6 +12,7 @@ import pytest
 from vassilflow.agents.thread_state import (
     ThreadState,
     merge_artifacts,
+    merge_reviewed_image_hashes,
     merge_sandbox,
     merge_skill_context,
     merge_todos,
@@ -132,6 +133,20 @@ class TestMergeViewedImages:
         assert merge_viewed_images(existing, {}) == {}
 
 
+class TestMergeReviewedImageHashes:
+    def test_merges_hashes_and_replaces_same_path(self):
+        existing = {"/page-1.png": "old"}
+        new = {"/page-1.png": "new", "/page-2.png": "second"}
+
+        assert merge_reviewed_image_hashes(existing, new) == {
+            "/page-1.png": "new",
+            "/page-2.png": "second",
+        }
+
+    def test_empty_dict_clears(self):
+        assert merge_reviewed_image_hashes({"/page-1.png": "hash"}, {}) == {}
+
+
 class TestThreadStateAnnotations:
     """Regression guards: ensure reducer wiring on ThreadState fields.
 
@@ -171,3 +186,7 @@ class TestThreadStateAnnotations:
     def test_skill_context_field_is_wired_to_merge_skill_context(self):
         hints = get_type_hints(ThreadState, include_extras=True)
         assert merge_skill_context in hints["skill_context"].__metadata__
+
+    def test_visual_reviewed_images_field_is_wired_to_hash_reducer(self):
+        hints = get_type_hints(ThreadState, include_extras=True)
+        assert merge_reviewed_image_hashes in hints["visual_reviewed_images"].__metadata__

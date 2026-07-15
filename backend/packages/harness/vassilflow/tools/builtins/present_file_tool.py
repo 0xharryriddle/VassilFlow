@@ -30,10 +30,10 @@ def _get_thread_id(runtime: Runtime) -> str | None:
         return None
 
 
-def _normalize_presented_filepath(
+def _resolve_presented_filepath(
     runtime: Runtime,
     filepath: str,
-) -> str:
+) -> tuple[str, Path]:
     """Normalize a presented file path to the `/mnt/user-data/outputs/*` contract.
 
     Accepts either:
@@ -77,7 +77,15 @@ def _normalize_presented_filepath(
     except ValueError as exc:
         raise ValueError(f"Only files in {OUTPUTS_VIRTUAL_PREFIX} can be presented: {filepath}") from exc
 
-    return f"{OUTPUTS_VIRTUAL_PREFIX}/{relative_path.as_posix()}"
+    return f"{OUTPUTS_VIRTUAL_PREFIX}/{relative_path.as_posix()}", actual_path
+
+
+def _normalize_presented_filepath(
+    runtime: Runtime,
+    filepath: str,
+) -> str:
+    """Return the normalized virtual output path for a presented file."""
+    return _resolve_presented_filepath(runtime, filepath)[0]
 
 
 @tool("present_files", parse_docstring=True)
@@ -100,22 +108,43 @@ def present_file_tool(
 
     Notes:
     - You should call this tool after creating files and moving them to the `/mnt/user-data/outputs` directory.
+    - Office files must have a complete current office_render manifest. When view_image is available, review every rendered page
+      in a prior model step before presenting the Office file. Never call view_image and present_files in the same tool batch.
+    - If visual review requires an external client, present_files succeeds with a warning; report that visual QA is still external.
     - This tool can be safely called in parallel with other tools. State updates are handled by a reducer to prevent conflicts.
 
     Args:
         filepaths: List of absolute file paths to present to the user. **Only** files in `/mnt/user-data/outputs` can be presented.
     """
     try:
-        normalized_paths = [_normalize_presented_filepath(runtime, filepath) for filepath in filepaths]
+        resolved_paths = [_resolve_presented_filepath(runtime, filepath) for filepath in filepaths]
     except ValueError as exc:
         return Command(
             update={"messages": [ToolMessage(f"Error: {exc}", tool_call_id=tool_call_id)]},
         )
 
+    from vassilflow.community.office.review import evaluate_office_visual_review
+
+    normalized_paths = [virtual_path for virtual_path, _ in resolved_paths]
+    review_warnings: list[str] = []
+    for virtual_path, actual_path in resolved_paths:
+        decision = evaluate_office_visual_review(runtime, virtual_path=virtual_path, actual_path=actual_path)
+        if decision is None:
+            continue
+        if decision.blocked:
+            return Command(
+                update={"messages": [ToolMessage(f"Error: {decision.message}", tool_call_id=tool_call_id)]},
+            )
+        if decision.message:
+            review_warnings.append(decision.message)
+
     # The merge_artifacts reducer will handle merging and deduplication
+    message = "Successfully presented files"
+    if review_warnings:
+        message += "\n\nVisual review notice:\n" + "\n".join(f"- {warning}" for warning in review_warnings)
     return Command(
         update={
             "artifacts": normalized_paths,
-            "messages": [ToolMessage("Successfully presented files", tool_call_id=tool_call_id)],
+            "messages": [ToolMessage(message, tool_call_id=tool_call_id)],
         },
     )

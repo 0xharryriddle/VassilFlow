@@ -5,6 +5,8 @@
 #   - nginx: Reverse proxy (port 2026)
 #   - frontend: Frontend Next.js dev server (port 3000)
 #   - gateway: Backend Gateway API + agent runtime (port 8001)
+#   - office-renderer: Isolated DOCX page renderer
+#   - office-renderer-proxy: One-way renderer bridge (host loopback port 8003)
 #   - provisioner (optional): Sandbox provisioner (creates Pods in host Kubernetes)
 #
 # Prerequisites:
@@ -13,6 +15,68 @@
 # Access: http://localhost:2026
 
 services:
+  # Isolated Office renderer. Only the fixed-route proxy shares its private
+  # network, so renderer code has no route back to the Gateway.
+  office-renderer:
+    build:
+      context: ./office-renderer
+      dockerfile: Dockerfile
+      args:
+        APT_MIRROR: ${APT_MIRROR:-}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
+    container_name: vassilflow-office-renderer
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=768m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 1.0
+    networks:
+      - vassilflow-office
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health', timeout=8)"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 30s
+
+  office-renderer-proxy:
+    image: nginx:alpine
+    container_name: vassilflow-office-renderer-proxy
+    user: "101:101"
+    entrypoint: ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
+    ports:
+      - "127.0.0.1:${VASSILFLOW_OFFICE_RENDERER_PORT:-8003}:8004"
+    volumes:
+      - ./office-renderer/proxy.conf:/etc/nginx/nginx.conf:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 32
+    mem_limit: 64m
+    cpus: 0.25
+    depends_on:
+      office-renderer:
+        condition: service_healthy
+    networks:
+      - vassilflow-office
+      - vassilflow-dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # ── Sandbox Provisioner ────────────────────────────────────────────────
   # Manages per-sandbox Pod + Service lifecycle in the host Kubernetes
   # cluster via the K8s API.
@@ -163,6 +227,9 @@ services:
       # opt-in docker-compose.cli-auth.yaml overlay. Prefer an env token
       # (CLAUDE_CODE_OAUTH_TOKEN, see .env.example / backend/docs/CONFIGURATION.md).
     working_dir: /app
+    depends_on:
+      office-renderer-proxy:
+        condition: service_healthy
     environment:
       - CI=true
       - VASSILFLOW_PROJECT_ROOT=/app
@@ -175,10 +242,11 @@ services:
       - VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_RUNTIME_HOME:-${VASSILFLOW_ROOT:-..}/backend/.vassilflow}
       - VASSILFLOW_HOST_SKILLS_PATH=${VASSILFLOW_ROOT:-..}/skills
       - VASSILFLOW_SANDBOX_HOST=host.docker.internal
+      - VASSILFLOW_OFFICE_RENDERER_URL=http://office-renderer-proxy:8004
       # Proxy values (HTTP_PROXY/HTTPS_PROXY/ALL_PROXY) are inherited from ../.env via env_file.
       # Only NO_PROXY is declared here so internal service hostnames are always exempt from the proxy.
-      - NO_PROXY=${NO_PROXY:-}${NO_PROXY:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,host.docker.internal
-      - no_proxy=${no_proxy:-}${no_proxy:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,host.docker.internal
+      - NO_PROXY=${NO_PROXY:-}${NO_PROXY:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,office-renderer-proxy,host.docker.internal
+      - no_proxy=${no_proxy:-}${no_proxy:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,office-renderer-proxy,host.docker.internal
     env_file:
       - ../.env
     extra_hosts:
@@ -200,3 +268,6 @@ networks:
     ipam:
       config:
         - subnet: 192.168.200.0/24
+  vassilflow-office:
+    driver: bridge
+    internal: true

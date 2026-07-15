@@ -18,6 +18,11 @@ import warnings
 import pytest
 from langchain.tools import ToolRuntime
 
+from vassilflow.community.office.tools import (
+    office_edit_tool,
+    office_inspect_tool,
+    office_render_tool,
+)
 from vassilflow.sandbox.tools import (
     bash_tool,
     glob_tool,
@@ -55,6 +60,22 @@ _TOOL_CASES = [
     (read_file_tool, {"description": "read", "path": "/tmp/x"}),
     (write_file_tool, {"description": "write", "path": "/tmp/x", "content": "hi"}),
     (str_replace_tool, {"description": "replace", "path": "/tmp/x", "old_str": "a", "new_str": "b"}),
+    (office_inspect_tool, {"path": "/mnt/user-data/uploads/in.docx"}),
+    (
+        office_edit_tool,
+        {
+            "source_path": "/mnt/user-data/uploads/in.docx",
+            "output_path": "/mnt/user-data/workspace/out.docx",
+            "operations": [{"type": "replace_text", "find": "old", "replace": "new"}],
+        },
+    ),
+    (
+        office_render_tool,
+        {
+            "path": "/mnt/user-data/uploads/in.docx",
+            "output_dir": "/mnt/user-data/workspace/visual-qa",
+        },
+    ),
     (present_file_tool, {"filepaths": ["/tmp/x"], "tool_call_id": "call-1"}),
     (view_image_tool, {"image_path": "/tmp/img.png", "tool_call_id": "call-1"}),
     (task_tool, {"description": "do", "prompt": "go", "subagent_type": "general-purpose", "tool_call_id": "call-1"}),

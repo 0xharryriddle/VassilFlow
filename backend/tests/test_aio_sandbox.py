@@ -1,5 +1,6 @@
 """Tests for AioSandbox concurrent command serialization (#1433)."""
 
+import base64
 import threading
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -470,6 +471,52 @@ class TestDownloadFile:
         result = sandbox.download_file("/mnt/user-data/outputs/single.bin")
 
         assert result == b"single-chunk"
+
+
+class TestUpdateFile:
+    def test_creates_parent_directory_before_binary_write(self, sandbox):
+        calls: list[tuple[str, str]] = []
+
+        def exec_command(*, command, **_kwargs):
+            calls.append(("mkdir", command))
+            return SimpleNamespace(data=SimpleNamespace(output=""))
+
+        def write_file(*, file, content, encoding):
+            calls.append(("write", file))
+            assert content == base64.b64encode(b"png").decode("utf-8")
+            assert encoding == "base64"
+
+        sandbox._client.shell.exec_command = exec_command
+        sandbox._client.file.write_file = write_file
+
+        sandbox.update_file("/mnt/user-data/workspace/qa/page-001.png", b"png")
+
+        assert calls == [
+            ("mkdir", "mkdir -p -- /mnt/user-data/workspace/qa"),
+            ("write", "/mnt/user-data/workspace/qa/page-001.png"),
+        ]
+
+    def test_replace_file_requires_success_marker(self, sandbox):
+        sandbox._client.shell.exec_command = MagicMock(return_value=SimpleNamespace(data=SimpleNamespace(output="__VASSILFLOW_MOVE_STATUS__0\n")))
+
+        sandbox.replace_file(
+            "/mnt/user-data/workspace/.out.docx.stage",
+            "/mnt/user-data/workspace/out.docx",
+        )
+
+        command = sandbox._client.shell.exec_command.call_args.kwargs["command"]
+        assert "mv -f --" in command
+        assert "/mnt/user-data/workspace/.out.docx.stage" in command
+        assert "/mnt/user-data/workspace/out.docx" in command
+
+    def test_replace_file_preserves_failure_as_oserror(self, sandbox):
+        sandbox._client.shell.exec_command = MagicMock(return_value=SimpleNamespace(data=SimpleNamespace(output="__VASSILFLOW_MOVE_STATUS__1\n")))
+
+        with pytest.raises(OSError, match="atomically replace"):
+            sandbox.replace_file(
+                "/mnt/user-data/workspace/.out.docx.stage",
+                "/mnt/user-data/workspace/out.docx",
+            )
 
 
 class TestClose:

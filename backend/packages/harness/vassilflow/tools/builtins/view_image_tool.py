@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import mimetypes
 from pathlib import Path
 from typing import Annotated
@@ -155,7 +156,13 @@ def view_image_tool(
 
     # Update viewed_images in state
     # The merge_viewed_images reducer will handle merging with existing images
-    new_viewed_images = {image_path: {"base64": image_base64, "mime_type": mime_type}}
+    new_viewed_images = {
+        image_path: {
+            "base64": image_base64,
+            "mime_type": mime_type,
+            "sha256": hashlib.sha256(image_data).hexdigest(),
+        }
+    }
 
     return Command(
         update={"viewed_images": new_viewed_images, "messages": [ToolMessage("Successfully read image", tool_call_id=tool_call_id)]},

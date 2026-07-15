@@ -14,10 +14,7 @@ def _validate_extra_env(extra_env: dict[str, str] | None) -> None:
         return
     for key in extra_env:
         if not isinstance(key, str) or not _ENV_NAME_PATTERN.fullmatch(key):
-            raise ValueError(
-                f"extra_env key {key!r} is not a valid POSIX environment variable name "
-                "(must match ^[A-Za-z_][A-Za-z0-9_]*$)."
-            )
+            raise ValueError(f"extra_env key {key!r} is not a valid POSIX environment variable name (must match ^[A-Za-z_][A-Za-z0-9_]*$).")
 
 
 class Sandbox(ABC):
@@ -139,5 +136,15 @@ class Sandbox(ABC):
         Args:
             path: The absolute path of the file to update.
             content: The binary content to write to the file.
+
+        Implementations must create missing parent directories before writing.
         """
         pass
+
+    def replace_file(self, source_path: str, destination_path: str) -> None:
+        """Atomically replace a destination with a staged file when supported.
+
+        Both paths must be on the same writable filesystem. Implementations
+        should preserve the existing destination when replacement fails.
+        """
+        raise NotImplementedError

@@ -275,6 +275,9 @@ class TestBuildMinimalConfig:
         data = yaml.safe_load(content)
         tool_names = [t["name"] for t in data.get("tools", [])]
         assert "bash" not in tool_names
+        assert "office_inspect" in tool_names
+        assert "office_edit" in tool_names
+        assert "office_render" in tool_names
 
     def test_can_enable_container_sandbox_and_bash(self):
         content = build_minimal_config(
@@ -305,6 +308,9 @@ class TestBuildMinimalConfig:
         tool_names = [t["name"] for t in data.get("tools", [])]
         assert "write_file" not in tool_names
         assert "str_replace" not in tool_names
+        assert "office_edit" not in tool_names
+        assert "office_render" not in tool_names
+        assert "office_inspect" in tool_names
 
     def test_config_version_present(self):
         content = build_minimal_config(

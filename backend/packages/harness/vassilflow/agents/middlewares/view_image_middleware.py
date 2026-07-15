@@ -186,8 +186,11 @@ class ViewImageMiddleware(AgentMiddleware[ViewImageMiddlewareState]):
 
         logger.debug("Injecting image details message with images before LLM call")
 
-        # Return state update with the new message
-        return {"messages": [human_msg]}
+        update: dict = {"messages": [human_msg]}
+        reviewed_images = {image_path: image_data["sha256"] for image_path, image_data in state.get("viewed_images", {}).items() if isinstance(image_data.get("sha256"), str) and image_data["sha256"]}
+        if reviewed_images:
+            update["visual_reviewed_images"] = reviewed_images
+        return update
 
     @override
     def before_model(self, state: ViewImageMiddlewareState, runtime: Runtime) -> dict | None:

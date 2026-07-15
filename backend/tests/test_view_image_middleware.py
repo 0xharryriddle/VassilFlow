@@ -260,7 +260,7 @@ class TestShouldInjectImageMessage:
         state = {
             "messages": [assistant, ToolMessage(content="ok", tool_call_id="c1")],
             "viewed_images": {
-                "/img.png": {"base64": "AAA", "mime_type": "image/png"},
+                "/img.png": {"base64": "AAA", "mime_type": "image/png", "sha256": "abc123"},
             },
         }
         assert mw._should_inject_image_message(state) is True
@@ -342,7 +342,7 @@ class TestInjectImageMessage:
         state = {
             "messages": [assistant, ToolMessage(content="ok", tool_call_id="c1")],
             "viewed_images": {
-                "/img.png": {"base64": "AAA", "mime_type": "image/png"},
+                "/img.png": {"base64": "AAA", "mime_type": "image/png", "sha256": "abc123"},
             },
         }
 
@@ -359,6 +359,22 @@ class TestInjectImageMessage:
         # Internal injection: must be hidden from the chat UI (and IM channels),
         # like the other middleware-injected context messages.
         assert injected.additional_kwargs.get("hide_from_ui") is True
+        assert result["visual_reviewed_images"] == {"/img.png": "abc123"}
+
+    def test_does_not_mark_legacy_unhashed_image_as_reviewed(self):
+        mw = ViewImageMiddleware()
+        assistant = AIMessage(content="", tool_calls=[_view_image_call("c1")])
+        state = {
+            "messages": [assistant, ToolMessage(content="ok", tool_call_id="c1")],
+            "viewed_images": {
+                "/img.png": {"base64": "AAA", "mime_type": "image/png"},
+            },
+        }
+
+        result = mw._inject_image_message(state)
+
+        assert result is not None
+        assert "visual_reviewed_images" not in result
 
 
 class TestBeforeModel:

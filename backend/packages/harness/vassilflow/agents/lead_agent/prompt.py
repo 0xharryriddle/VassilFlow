@@ -488,6 +488,9 @@ You: "Deploying to staging..." [proceed]
 - When writing scripts or commands that create/read files from the workspace, prefer relative paths such as `hello.txt`, `../uploads/data.csv`, and `../outputs/report.md`
 - Avoid hardcoding `/mnt/user-data/...` inside generated scripts when a relative path from the workspace is enough
 - Final deliverables must be copied to `/mnt/user-data/outputs` and presented using `present_files` tool
+- Before presenting a DOCX, XLSX, or PPTX deliverable, use `office_render` until every page is covered by current manifests
+- When Office visual review is `pending`, call `view_image` for every rendered page in a prior model step; never batch those calls with `present_files`
+- When Office visual review is `external_review_required`, present the deliverable with that explicit warning and never claim visual QA passed
 {acp_section}
 </working_directory>
 

@@ -1,0 +1,14 @@
+{
+    "schema_version":  1,
+    "producer":  "wps_presentation",
+    "prog_id":  "KWPP.Application",
+    "producer_version":  "12.0",
+    "producer_build":  "12.1.0.26886",
+    "package_application":  "WPS Presentation",
+    "package_app_version":  "14.0000",
+    "input_file":  "seed-v1.pptx",
+    "input_sha256":  "5b0947cb1e6a7aceb4860835d67a341184f1d8336ec731ae3f9b482f2c2607e6",
+    "output_file":  "wps-v1.pptx",
+    "output_sha256":  "b843fa231e15809d45623ec5f74276d76f3969afac743d75378951e675e5ca62",
+    "generated_utc":  "2026-07-15T09:47:36Z"
+}

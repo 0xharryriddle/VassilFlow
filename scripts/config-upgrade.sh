@@ -93,6 +93,41 @@ MIGRATIONS = {
             ('src.tools.', 'vassilflow.tools.'),
         ],
     },
+    19: {
+        'description': 'Add structured VassilFlow Office tools alongside existing file capabilities',
+        'list_additions': [
+            (
+                'tools',
+                'name',
+                {
+                    'name': 'office_inspect',
+                    'group': 'file:read',
+                    'use': 'vassilflow.community.office.tools:office_inspect_tool',
+                },
+                {'read_file'},
+            ),
+            (
+                'tools',
+                'name',
+                {
+                    'name': 'office_edit',
+                    'group': 'file:write',
+                    'use': 'vassilflow.community.office.tools:office_edit_tool',
+                },
+                {'write_file', 'str_replace'},
+            ),
+            (
+                'tools',
+                'name',
+                {
+                    'name': 'office_render',
+                    'group': 'file:write',
+                    'use': 'vassilflow.community.office.tools:office_render_tool',
+                },
+                {'write_file', 'str_replace'},
+            ),
+        ],
+    },
     # Future migrations go here:
     # 2: {
     #     'description': '...',
@@ -103,6 +138,7 @@ MIGRATIONS = {
 # Apply migrations in order for versions (user_version, example_version]
 migrated = []
 value_replacements = []
+list_additions = []
 for version in range(user_version + 1, example_version + 1):
     migration = MIGRATIONS.get(version)
     if not migration:
@@ -113,9 +149,26 @@ for version in range(user_version + 1, example_version + 1):
             raw_text = raw_text.replace(old, new)
             migrated.append(f'{old} -> {new}')
     value_replacements.extend(migration.get('value_replacements', []))
+    list_additions.extend(migration.get('list_additions', []))
 
 # Re-parse after text migrations
 user = yaml.safe_load(raw_text) or {}
+
+for list_key, identity_key, item, required_names in list_additions:
+    values = user.get(list_key)
+    if not isinstance(values, list):
+        # Let the recursive merge add the complete example list when the key is absent.
+        continue
+    existing_names = {
+        value.get(identity_key)
+        for value in values
+        if isinstance(value, dict) and isinstance(value.get(identity_key), str)
+    }
+    identity = item.get(identity_key)
+    if identity in existing_names or not existing_names.intersection(required_names):
+        continue
+    values.append(copy.deepcopy(item))
+    migrated.append(f'{list_key}: added {identity}')
 
 if value_replacements:
     def replace_values(node, path=''):
