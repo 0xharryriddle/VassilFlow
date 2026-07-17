@@ -8,31 +8,32 @@ per-user layout.
 """
 
 import logging
-import re
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import BaseModel
 
+from vassilflow.config.agent_contract import resolve_agent_identity
 from vassilflow.config.paths import get_paths
 from vassilflow.runtime.user_context import get_effective_user_id
 
 logger = logging.getLogger(__name__)
 
 SOUL_FILENAME = "SOUL.md"
-AGENT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
 
 
 def validate_agent_name(name: str | None) -> str | None:
-    """Validate a custom agent name before using it in filesystem paths."""
+    """Return the canonical personal Agent name before filesystem access."""
     if name is None:
         return None
-    if not isinstance(name, str):
-        raise ValueError("Invalid agent name. Expected a string or None.")
-    if not AGENT_NAME_PATTERN.fullmatch(name):
-        raise ValueError(f"Invalid agent name '{name}'. Must match pattern: {AGENT_NAME_PATTERN.pattern}")
-    return name
+    try:
+        identity = resolve_agent_identity(name)
+    except ValueError as exc:
+        raise ValueError(f"Invalid agent name {name!r}: {exc}") from exc
+    if identity.agent_name is None:
+        raise ValueError(f"Agent name {name!r} is reserved for the default Agent")
+    return identity.agent_name
 
 
 class AgentConfig(BaseModel):
@@ -64,6 +65,10 @@ def resolve_agent_dir(name: str, *, user_id: str | None = None) -> Path:
         user_id: Owner of the agent. Defaults to the effective user from the
             request context (or ``"default"`` in no-auth mode).
     """
+    canonical_name = validate_agent_name(name)
+    if canonical_name is None:  # pragma: no cover - guarded by the str input
+        raise ValueError("A personal Agent name is required")
+    name = canonical_name
     paths = get_paths()
     effective_user = user_id or get_effective_user_id()
     user_path = paths.user_agent_dir(effective_user, name)
@@ -117,9 +122,9 @@ def load_agent_config(name: str | None, *, user_id: str | None = None) -> AgentC
     except yaml.YAMLError as e:
         raise ValueError(f"Failed to parse agent config {config_file}: {e}") from e
 
-    # Ensure name is set from directory name if not in file
-    if "name" not in data:
-        data["name"] = name
+    # The assistant ID and directory are authoritative. A stale or edited YAML
+    # name must never relabel the runtime identity after routing has completed.
+    data["name"] = name
 
     # Strip unknown fields before passing to Pydantic (e.g. legacy prompt_file)
     known_fields = set(AgentConfig.model_fields.keys())

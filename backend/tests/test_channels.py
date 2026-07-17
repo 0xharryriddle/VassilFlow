@@ -650,7 +650,13 @@ class TestChannelManager:
             first_create_started = asyncio.Event()
             release_create = asyncio.Event()
 
-            async def blocking_create(*, metadata=None, headers=None):
+            async def blocking_create(
+                *,
+                assistant_id=None,
+                metadata=None,
+                headers=None,
+            ):
+                assert assistant_id == "lead_agent"
                 thread_id = f"thread-{len(created_ids) + 1}"
                 created_ids.append(thread_id)
                 first_create_started.set()
@@ -1277,13 +1283,16 @@ class TestChannelManager:
 
             mock_client.runs.wait.assert_called_once()
             call_args = mock_client.runs.wait.call_args
-            assert call_args[0][1] == "lead_agent"
+            assert call_args[0][1] == "mobile-agent"
             assert call_args[1]["config"]["recursion_limit"] == 55
             assert call_args[1]["config"]["configurable"]["checkpoint_ns"] == ""
             assert call_args[1]["config"]["configurable"]["thread_id"] == "test-thread-123"
             assert call_args[1]["context"]["thinking_enabled"] is False
             assert call_args[1]["context"]["subagent_enabled"] is True
-            assert call_args[1]["context"]["agent_name"] == "mobile-agent"
+            assert "agent_name" not in call_args[1]["context"]
+            create_kwargs = mock_client.threads.create.call_args.kwargs
+            assert create_kwargs["assistant_id"] == "mobile-agent"
+            assert "agent_name" not in create_kwargs["metadata"]
 
         _run(go())
 
@@ -1461,12 +1470,15 @@ class TestChannelManager:
 
             mock_client.runs.wait.assert_called_once()
             call_args = mock_client.runs.wait.call_args
-            assert call_args[0][1] == "lead_agent"
+            assert call_args[0][1] == "vip-agent"
             assert call_args[1]["config"]["recursion_limit"] == 77
             assert call_args[1]["context"]["thinking_enabled"] is True
             assert call_args[1]["context"]["subagent_enabled"] is True
-            assert call_args[1]["context"]["agent_name"] == "vip-agent"
+            assert "agent_name" not in call_args[1]["context"]
             assert call_args[1]["context"]["is_plan_mode"] is True
+            create_kwargs = mock_client.threads.create.call_args.kwargs
+            assert create_kwargs["assistant_id"] == "vip-agent"
+            assert "agent_name" not in create_kwargs["metadata"]
 
         _run(go())
 

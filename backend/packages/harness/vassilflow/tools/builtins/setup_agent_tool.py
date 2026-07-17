@@ -5,7 +5,8 @@ from langchain_core.messages import ToolMessage
 from langchain_core.tools import tool
 from langgraph.types import Command
 
-from vassilflow.config.agents_config import validate_agent_name
+from vassilflow.config.agent_contract import resolve_agent_identity
+from vassilflow.config.builtin_agents import is_builtin_agent
 from vassilflow.config.paths import get_paths
 from vassilflow.runtime.user_context import resolve_runtime_user_id
 from vassilflow.tools.types import Runtime
@@ -33,8 +34,7 @@ def setup_agent(
     # still report success, which caused the frontend to enter the "agent
     # created" state for an unusable agent (issue #3549). Failing loud lets
     # the model retry instead of silently producing a broken artifact and,
-    # together with the upstream agent_name fix, prevents the global default
-    # SOUL.md from being overwritten with empty content.
+    # It also prevents a bootstrap request from creating an unusable Agent.
     if not soul or not soul.strip():
         return Command(
             update={
@@ -47,35 +47,36 @@ def setup_agent(
             }
         )
 
-    agent_name: str | None = runtime.context.get("agent_name") if runtime.context else None
+    raw_agent_name = runtime.context.get("bootstrap_agent_name") if runtime.context else None
+    agent_name: str | None = None
     agent_dir = None
     is_new_dir = False
 
     try:
-        agent_name = validate_agent_name(agent_name)
+        try:
+            identity = resolve_agent_identity(raw_agent_name)
+        except ValueError as exc:
+            raise ValueError(f"Invalid agent name: {exc}") from exc
+        if identity.is_default or is_builtin_agent(identity.agent_name):
+            raise ValueError("bootstrap_agent_name must identify a new personal Agent")
+        agent_name = identity.agent_name
         paths = get_paths()
-        if agent_name:
-            # Custom agents are persisted under the current user's bucket so
-            # different users do not see each other's agents.
-            user_id = resolve_runtime_user_id(runtime)
-            agent_dir = paths.user_agent_dir(user_id, agent_name)
-        else:
-            # Default agent (no agent_name): SOUL.md lives at the global base dir.
-            agent_dir = paths.base_dir
+        # Custom agents are persisted under the current user's bucket so
+        # different users do not see each other's agents.
+        user_id = resolve_runtime_user_id(runtime)
+        agent_dir = paths.user_agent_dir(user_id, agent_name)
         is_new_dir = not agent_dir.exists()
         agent_dir.mkdir(parents=True, exist_ok=True)
 
-        if agent_name:
-            # If agent_name is provided, we are creating a custom agent in the agents/ directory
-            config_data: dict = {"name": agent_name}
-            if description:
-                config_data["description"] = description
-            if skills is not None:
-                config_data["skills"] = skills
+        config_data: dict = {"name": agent_name}
+        if description:
+            config_data["description"] = description
+        if skills is not None:
+            config_data["skills"] = skills
 
-            config_file = agent_dir / "config.yaml"
-            with open(config_file, "w", encoding="utf-8") as f:
-                yaml.dump(config_data, f, default_flow_style=False, allow_unicode=True)
+        config_file = agent_dir / "config.yaml"
+        with open(config_file, "w", encoding="utf-8") as f:
+            yaml.dump(config_data, f, default_flow_style=False, allow_unicode=True)
 
         soul_file = agent_dir / "SOUL.md"
         soul_file.write_text(soul, encoding="utf-8")

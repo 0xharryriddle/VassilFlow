@@ -11,6 +11,12 @@ from .docx import (
 from .errors import UnsupportedOfficeFormatError
 from .models import OfficeEditOperation, PptxObjectSelector
 from .pptx import edit_pptx, inspect_pptx, validate_pptx, validate_pptx_renderable
+from .pptx_preflight import preflight_pptx
+from .receipt import (
+    OfficeEditTrace,
+    build_semantic_change_receipt,
+    operation_receipt_id,
+)
 from .render import OfficeRenderResult, render_docx_pages, render_pptx_pages, render_xlsx_pages
 from .xlsx import edit_xlsx, inspect_xlsx, validate_xlsx, validate_xlsx_renderable
 
@@ -73,18 +79,96 @@ class OfficeEngine:
         operations: list[OfficeEditOperation],
         image_assets: dict[str, bytes] | None = None,
     ) -> tuple[bytes, list[dict[str, Any]]]:
+        return self._edit(
+            document,
+            suffix=suffix,
+            operations=operations,
+            image_assets=image_assets,
+            receipt_trace=None,
+        )
+
+    def edit_with_receipt(
+        self,
+        document: bytes,
+        *,
+        suffix: str,
+        operations: list[OfficeEditOperation],
+        image_assets: dict[str, bytes] | None = None,
+    ) -> tuple[bytes, list[dict[str, Any]], dict[str, Any]]:
+        """Edit a package and build its receipt before any external commit."""
+
+        trace = OfficeEditTrace()
+        edited, reports = self._edit(
+            document,
+            suffix=suffix,
+            operations=operations,
+            image_assets=image_assets,
+            receipt_trace=trace,
+        )
+        enriched_reports = [
+            {
+                **report,
+                "operation_id": operation_receipt_id(
+                    operation,
+                    position,
+                ),
+            }
+            for position, (operation, report) in enumerate(
+                zip(operations, reports, strict=True),
+                start=1,
+            )
+        ]
+        receipt = build_semantic_change_receipt(
+            document,
+            edited,
+            suffix=suffix,
+            operations=operations,
+            reports=enriched_reports,
+            trace=trace,
+        )
+        return edited, enriched_reports, receipt
+
+    def _edit(
+        self,
+        document: bytes,
+        *,
+        suffix: str,
+        operations: list[OfficeEditOperation],
+        image_assets: dict[str, bytes] | None,
+        receipt_trace: OfficeEditTrace | None,
+    ) -> tuple[bytes, list[dict[str, Any]]]:
         normalized_suffix = suffix.lower()
         if normalized_suffix == ".docx":
             if image_assets:
                 raise UnsupportedOfficeFormatError("Image assets are supported only for PPTX edits")
-            return edit_docx(document, operations)
+            return edit_docx(
+                document,
+                operations,
+                receipt_trace=receipt_trace,
+            )
         if normalized_suffix == ".xlsx":
             if image_assets:
                 raise UnsupportedOfficeFormatError("Image assets are supported only for PPTX edits")
-            return edit_xlsx(document, operations)
+            return edit_xlsx(
+                document,
+                operations,
+                receipt_trace=receipt_trace,
+            )
         if normalized_suffix == ".pptx":
-            return edit_pptx(document, operations, image_assets=image_assets)
+            return edit_pptx(
+                document,
+                operations,
+                image_assets=image_assets,
+                receipt_trace=receipt_trace,
+            )
         raise UnsupportedOfficeFormatError(f"Unsupported Office format: {suffix}")
+
+    def preflight(self, document: bytes, *, suffix: str) -> dict[str, Any]:
+        """Return bounded, read-only quality evidence for a supported package."""
+
+        if suffix.lower() == ".pptx":
+            return preflight_pptx(document)
+        raise UnsupportedOfficeFormatError(f"Office quality preflight does not support format: {suffix}")
 
     def validate(self, document: bytes, *, suffix: str) -> dict[str, Any]:
         normalized_suffix = suffix.lower()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import io
 import zipfile
 from datetime import datetime
@@ -403,6 +404,39 @@ def test_xlsx_formatting_preserves_formula_cache_structure_and_unrelated_parts()
     finally:
         styled.close()
         cached.close()
+
+
+def test_xlsx_edit_receipt_uses_exact_cell_paths_and_style_deltas() -> None:
+    source = _workbook()
+    operation = XlsxCellFormatOperation(
+        cells=XlsxCellSelector(sheet_name="Data", ranges=["B2"]),
+        formatting=XlsxCellFormatting(bold=True),
+    )
+
+    edited, reports, receipt = office_engine.edit_with_receipt(
+        source,
+        suffix=".xlsx",
+        operations=[operation],
+    )
+
+    path = '/workbook/sheet[@name="Data"]/cell[B2]'
+    operation_id = reports[0]["operation_id"]
+    assert receipt["source"]["sha256"] == hashlib.sha256(source).hexdigest()
+    assert receipt["result"]["sha256"] == hashlib.sha256(edited).hexdigest()
+    assert receipt["applied_operation_ids"] == [operation_id]
+    assert receipt["operations"][0]["target_paths"] == [path]
+    assert receipt["semantic_changes"]["changed_target_paths"] == [path]
+    assert {
+        (
+            delta["path"],
+            delta["property"],
+            delta["before"],
+            delta["after"],
+        )
+        for delta in receipt["semantic_changes"]["semantic_deltas"]
+    } == {(path, "formatting.font.bold", False, True)}
+    assert {change["part_name"] for change in receipt["package_changes"]["parts"]} == {"xl/styles.xml", "xl/worksheets/sheet1.xml"}
+    assert receipt["package_changes"]["relationship_change_count"] == 0
 
 
 def test_xlsx_formatting_merges_base_style_and_deduplicates_new_cell_xf() -> None:

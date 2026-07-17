@@ -281,7 +281,7 @@ def test_real_http_create_agent_lands_in_authenticated_user_dir(
             },
             "config": {"recursion_limit": 50},
             "context": {
-                "agent_name": agent_name,
+                "bootstrap_agent_name": agent_name,
                 "is_bootstrap": True,
                 "mode": "flash",
                 "thinking_enabled": False,

@@ -24,9 +24,15 @@ from langgraph.checkpoint.base import empty_checkpoint, uuid6
 from pydantic import BaseModel, Field, field_validator
 
 from app.gateway.authz import require_permission
-from app.gateway.deps import get_checkpointer, get_run_manager
+from app.gateway.deps import get_checkpointer, get_run_manager, get_thread_store
 from app.gateway.internal_auth import get_trusted_internal_owner_user_id
 from app.gateway.utils import sanitize_log_param
+from vassilflow.agents.memory.queue import get_memory_queue
+from vassilflow.config.agent_contract import (
+    DEFAULT_ASSISTANT_ID,
+    resolve_agent_identity,
+    validate_agent_identity_claim,
+)
 from vassilflow.config.paths import Paths, get_paths
 from vassilflow.config.summarization_config import ContextSize
 from vassilflow.runtime import serialize_channel_values_for_api
@@ -51,7 +57,22 @@ router = APIRouter(prefix="/api/threads", tags=["threads"])
 # owner identity through the API surface. Defense-in-depth — the
 # row-level invariant is still ``threads_meta.user_id`` populated from
 # the auth contextvar; this list closes the metadata-blob echo gap.
-_SERVER_RESERVED_METADATA_KEYS: frozenset[str] = frozenset({"owner_id", "user_id"})
+_SERVER_RESERVED_METADATA_KEYS: frozenset[str] = frozenset(
+    {
+        "owner_id",
+        "user_id",
+        "agent_name",
+        "assistant_id",
+        "agent_origin",
+        "tool_groups",
+        "allowed_tools",
+        "agent_data_access",
+        "agent_allow_acp_agents",
+        "agent_allow_mcp_tools",
+        "agent_policy_version",
+        "available_skills",
+    }
+)
 _SIDECAR_METADATA_KEY = "vassilflow_sidecar"
 _BRANCH_METADATA_KEY = "vassilflow_branch"
 _BRANCH_HISTORY_SCAN_LIMIT = 200
@@ -220,6 +241,10 @@ class ThreadResponse(BaseModel):
     """Response model for a single thread."""
 
     thread_id: str = Field(description="Unique thread identifier")
+    assistant_id: str = Field(
+        default=DEFAULT_ASSISTANT_ID,
+        description="Canonical Agent identity bound to this thread",
+    )
     status: str = Field(default="idle", description="Thread status: idle, busy, interrupted, error")
     created_at: str = Field(default="", description="ISO timestamp")
     updated_at: str = Field(default="", description="ISO timestamp")
@@ -232,8 +257,16 @@ class ThreadCreateRequest(BaseModel):
     """Request body for creating a thread."""
 
     thread_id: str | None = Field(default=None, description="Optional thread ID (auto-generated if omitted)")
-    assistant_id: str | None = Field(default=None, description="Associate thread with an assistant")
+    assistant_id: str = Field(
+        default=DEFAULT_ASSISTANT_ID,
+        description="Canonical Agent identity bound to the thread",
+    )
     metadata: dict[str, Any] = Field(default_factory=dict, description="Initial metadata")
+
+    @field_validator("assistant_id", mode="before")
+    @classmethod
+    def _canonicalize_assistant_id(cls, value: str | None) -> str:
+        return resolve_agent_identity(value).assistant_id
 
     _strip_reserved = field_validator("metadata")(classmethod(lambda cls, v: _strip_reserved_metadata(v)))
 
@@ -304,7 +337,11 @@ class ThreadCompactRequest(BaseModel):
 
     force: bool = Field(default=True, description="Run compaction even if automatic summarization thresholds are not met")
     keep: ContextSize | None = Field(default=None, description="Optional retention policy for this compaction only")
-    agent_name: str | None = Field(default=None, max_length=128, description="Optional custom agent name for memory attribution")
+    agent_name: str | None = Field(
+        default=None,
+        max_length=128,
+        description="Legacy Agent identity hint; validated against the thread's assistant_id",
+    )
 
 
 class ThreadCompactResponse(BaseModel):
@@ -415,8 +452,11 @@ async def delete_thread_data(thread_id: str, request: Request) -> ThreadDeleteRe
     """
     from app.gateway.deps import get_thread_store
 
+    user_id = get_effective_user_id()
+    get_memory_queue().discard_thread(thread_id, user_id=user_id)
+
     # Clean local filesystem
-    response = _delete_thread_data(thread_id, user_id=get_effective_user_id())
+    response = _delete_thread_data(thread_id, user_id=user_id)
 
     # Remove checkpoints (best-effort)
     checkpointer = getattr(request.app.state, "checkpointer", None)
@@ -466,8 +506,18 @@ async def create_thread(body: ThreadCreateRequest, request: Request) -> ThreadRe
                 await thread_store.update_owner(thread_id, thread_owner_user_id, user_id=None)
             existing_record = await thread_store.get(thread_id, **thread_owner_kwargs)
     if existing_record is not None:
+        from app.gateway.services import enforce_thread_agent_identity
+
+        await enforce_thread_agent_identity(
+            thread_store,
+            thread_id,
+            resolve_agent_identity(body.assistant_id),
+            record=existing_record,
+        )
+        get_memory_queue().allow_thread(thread_id, user_id=get_effective_user_id())
         return ThreadResponse(
             thread_id=thread_id,
+            assistant_id=resolve_agent_identity(existing_record.get("assistant_id")).assistant_id,
             status=existing_record.get("status", "idle"),
             created_at=coerce_iso(existing_record.get("created_at", "")),
             updated_at=coerce_iso(existing_record.get("updated_at", "")),
@@ -502,9 +552,11 @@ async def create_thread(body: ThreadCreateRequest, request: Request) -> ThreadRe
         logger.exception("Failed to create checkpoint for thread %s", sanitize_log_param(thread_id))
         raise HTTPException(status_code=500, detail="Failed to create thread")
 
+    get_memory_queue().allow_thread(thread_id, user_id=get_effective_user_id())
     logger.info("Thread created: %s", sanitize_log_param(thread_id))
     return ThreadResponse(
         thread_id=thread_id,
+        assistant_id=body.assistant_id or DEFAULT_ASSISTANT_ID,
         status="idle",
         created_at=now,
         updated_at=now,
@@ -577,7 +629,7 @@ async def branch_thread(thread_id: str, body: ThreadBranchRequest, request: Requ
     try:
         await thread_store.create(
             new_thread_id,
-            assistant_id=source_record.get("assistant_id"),
+            assistant_id=resolve_agent_identity(source_record.get("assistant_id")).assistant_id,
             display_name=display_name,
             metadata=branch_metadata,
             **thread_owner_kwargs,
@@ -623,6 +675,7 @@ async def search_threads(body: ThreadSearchRequest, request: Request) -> list[Th
     return [
         ThreadResponse(
             thread_id=r["thread_id"],
+            assistant_id=resolve_agent_identity(r.get("assistant_id")).assistant_id,
             status=r.get("status", "idle"),
             # ``coerce_iso`` heals legacy unix-second values that
             # ``MemoryThreadMetaStore`` historically wrote with ``time.time()``;
@@ -659,6 +712,7 @@ async def patch_thread(thread_id: str, body: ThreadPatchRequest, request: Reques
     record = await thread_store.get(thread_id) or record
     return ThreadResponse(
         thread_id=thread_id,
+        assistant_id=resolve_agent_identity(record.get("assistant_id")).assistant_id,
         status=record.get("status", "idle"),
         created_at=coerce_iso(record.get("created_at", "")),
         updated_at=coerce_iso(record.get("updated_at", "")),
@@ -715,6 +769,7 @@ async def get_thread(thread_id: str, request: Request) -> ThreadResponse:
 
     return ThreadResponse(
         thread_id=thread_id,
+        assistant_id=resolve_agent_identity(record.get("assistant_id")).assistant_id,
         status=status,
         created_at=coerce_iso(record.get("created_at", "")),
         updated_at=coerce_iso(record.get("updated_at", "")),
@@ -795,6 +850,18 @@ async def compact_thread(thread_id: str, body: ThreadCompactRequest, request: Re
     """Manually summarize old thread context while preserving visible history."""
     run_manager = get_run_manager(request)
     checkpointer = get_checkpointer(request)
+    thread_record = await get_thread_store(request).get(thread_id)
+    if thread_record is None:
+        raise HTTPException(status_code=404, detail=f"Thread {thread_id} not found")
+    try:
+        identity = resolve_agent_identity(thread_record.get("assistant_id"))
+        validate_agent_identity_claim(
+            identity,
+            body.agent_name,
+            source="agent_name",
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     keep = body.keep.to_tuple() if body.keep is not None else None
     try:
         async with thread_context_lock(thread_id):
@@ -806,7 +873,7 @@ async def compact_thread(thread_id: str, body: ThreadCompactRequest, request: Re
                 keep=keep,
                 force=body.force,
                 user_id=get_effective_user_id(),
-                agent_name=body.agent_name,
+                agent_name=identity.agent_name,
             )
     except ContextCompactionDisabled:
         raise HTTPException(status_code=409, detail="Context compaction is disabled.") from None

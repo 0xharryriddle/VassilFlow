@@ -25,6 +25,24 @@ test("uses agent chat route when thread context has agent_name", () => {
   ).toBe("/workspace/agents/researcher/chats/thread-123");
 });
 
+test("uses canonical assistant_id before legacy identity hints", () => {
+  expect(
+    pathOfThread({
+      thread_id: "thread-canonical",
+      assistant_id: "office",
+      context: { agent_name: "from-context" },
+      metadata: { agent_name: "from-metadata" },
+    }),
+  ).toBe("/workspace/agents/office/chats/thread-canonical");
+  expect(
+    pathOfThread({
+      thread_id: "thread-default",
+      assistant_id: "lead_agent",
+      metadata: { agent_name: "stale-agent" },
+    }),
+  ).toBe("/workspace/chats/thread-default");
+});
+
 test("uses provided context when pathOfThread is called with a thread id", () => {
   expect(pathOfThread("thread-123", { agent_name: "ops agent" })).toBe(
     "/workspace/agents/ops%20agent/chats/thread-123",

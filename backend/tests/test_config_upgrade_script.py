@@ -71,17 +71,22 @@ def test_config_upgrade_preserves_vassilflow_runtime_defaults(tmp_path: Path):
 
     upgraded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
-    assert "version 16 -> 19" in result.stdout
+    assert "version 16 -> 20" in result.stdout
     assert "Applied" not in result.stdout
     assert (tmp_path / "config.yaml.bak").exists()
-    assert upgraded["config_version"] == 19
+    assert upgraded["config_version"] == 20
     assert upgraded["database"]["sqlite_dir"] == ".vassilflow/data"
     assert upgraded["channel_connections"]["wechat"]["state_dir"] == "./.vassilflow/wechat/state"
     assert upgraded["memory"]["storage_path"] == ".vassilflow/memory.json"
     assert upgraded["checkpointer"]["connection_string"] == "./.vassilflow/checkpoints.db"
     assert upgraded["tool_progress"]["enabled"] is False
     upgraded_tool_names = {tool["name"] for tool in upgraded["tools"]}
-    assert {"office_inspect", "office_edit", "office_render"}.issubset(upgraded_tool_names)
+    assert {
+        "office_inspect",
+        "office_generate",
+        "office_edit",
+        "office_render",
+    }.issubset(upgraded_tool_names)
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for config-upgrade tests")
@@ -116,11 +121,12 @@ tools:
     assert tools["custom_search"]["use"] == "example.tools:search"
     assert tools["office_inspect"]["group"] == "file:read"
     assert "office_edit" not in tools
+    assert "office_generate" not in tools
     assert "office_render" not in tools
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for config-upgrade tests")
-def test_config_upgrade_adds_edit_and_render_with_existing_write_permission(
+def test_config_upgrade_adds_generate_edit_and_render_with_existing_write_permission(
     tmp_path: Path,
 ):
     config_path = tmp_path / "config.yaml"
@@ -147,6 +153,7 @@ tools:
     tools = {tool["name"]: tool for tool in upgraded["tools"]}
 
     assert tools["office_edit"]["group"] == "file:write"
+    assert tools["office_generate"]["group"] == "file:write"
     assert tools["office_render"]["group"] == "file:write"
 
 

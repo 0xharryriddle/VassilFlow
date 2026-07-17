@@ -1,7 +1,13 @@
 import { fetch } from "@/core/api/fetcher";
 import { getBackendBaseURL } from "@/core/config";
 
-import type { Agent, CreateAgentRequest, UpdateAgentRequest } from "./types";
+import type {
+  Agent,
+  AgentCatalog,
+  AgentProductMetadata,
+  CreateAgentRequest,
+  UpdateAgentRequest,
+} from "./types";
 
 const BACKEND_UNAVAILABLE_STATUSES = new Set([502, 503, 504]);
 
@@ -35,17 +41,89 @@ function isAgentsApiDisabledDetail(detail: string | undefined): boolean {
   return typeof detail === "string" && detail.includes("agents_api.enabled");
 }
 
+type AgentProductWire = Omit<
+  Partial<AgentProductMetadata>,
+  "launch" | "management"
+> & {
+  launch?: Partial<AgentProductMetadata["launch"]>;
+  management?: Partial<AgentProductMetadata["management"]>;
+};
+
+type AgentWire = Omit<Agent, "product"> & {
+  product?: AgentProductWire;
+};
+
+function legacyCustomAgentProduct(agent: AgentWire): AgentProductMetadata {
+  return {
+    id: `personal:${agent.name}`,
+    display_name: agent.name,
+    origin: "personal",
+    category: "custom",
+    icon: "bot",
+    status: "available",
+    required_tools: [],
+    missing_requirements: [],
+    data_access: [],
+    starter_prompts: [],
+    launch: {
+      kind: "chat",
+      path: `/workspace/agents/${agent.name}/chats/new`,
+      project_kind: null,
+    },
+    management: {
+      can_edit: true,
+      can_delete: true,
+    },
+  };
+}
+
+function normalizeAgent(agent: AgentWire): Agent {
+  const fallback = legacyCustomAgentProduct(agent);
+  const product = agent.product;
+  return {
+    ...agent,
+    product: product
+      ? {
+          ...fallback,
+          ...product,
+          required_tools: product.required_tools ?? [],
+          missing_requirements: product.missing_requirements ?? [],
+          data_access: product.data_access ?? [],
+          starter_prompts: product.starter_prompts ?? [],
+          launch: { ...fallback.launch, ...product.launch },
+          management: { ...fallback.management, ...product.management },
+        }
+      : fallback,
+  };
+}
+
 export async function listAgents(): Promise<Agent[]> {
   const res = await fetch(`${getBackendBaseURL()}/api/agents`);
   if (!res.ok) throw new Error(`Failed to load agents: ${res.statusText}`);
-  const data = (await res.json()) as { agents: Agent[] };
-  return data.agents;
+  const data = (await res.json()) as { agents: AgentWire[] };
+  return data.agents.map(normalizeAgent);
+}
+
+export async function listAgentCatalog(): Promise<AgentCatalog> {
+  const res = await fetch(`${getBackendBaseURL()}/api/agent-catalog`);
+  if (!res.ok) {
+    throw new Error(`Failed to load Agent catalog: ${res.statusText}`);
+  }
+  const data = (await res.json()) as {
+    agents: AgentWire[];
+    custom_agent_management_enabled?: boolean;
+  };
+  return {
+    agents: data.agents.map(normalizeAgent),
+    custom_agent_management_enabled:
+      data.custom_agent_management_enabled ?? true,
+  };
 }
 
 export async function getAgent(name: string): Promise<Agent> {
   const res = await fetch(`${getBackendBaseURL()}/api/agents/${name}`);
   if (!res.ok) throw new Error(`Agent '${name}' not found`);
-  return res.json() as Promise<Agent>;
+  return normalizeAgent((await res.json()) as AgentWire);
 }
 
 export async function createAgent(request: CreateAgentRequest): Promise<Agent> {
@@ -61,7 +139,7 @@ export async function createAgent(request: CreateAgentRequest): Promise<Agent> {
     }
     throw new Error(err.detail ?? `Failed to create agent: ${res.statusText}`);
   }
-  return res.json() as Promise<Agent>;
+  return normalizeAgent((await res.json()) as AgentWire);
 }
 
 export async function updateAgent(
@@ -77,7 +155,7 @@ export async function updateAgent(
     const err = (await res.json().catch(() => ({}))) as { detail?: string };
     throw new Error(err.detail ?? `Failed to update agent: ${res.statusText}`);
   }
-  return res.json() as Promise<Agent>;
+  return normalizeAgent((await res.json()) as AgentWire);
 }
 
 export async function deleteAgent(name: string): Promise<void> {

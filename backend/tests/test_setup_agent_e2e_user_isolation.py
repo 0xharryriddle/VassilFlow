@@ -114,15 +114,19 @@ class TestConfigAssembly:
     """Covers L1-L3: validate that user_id reaches runtime_ctx for every wire shape."""
 
     def test_typical_wire_format_user_id_in_runtime_ctx(self):
-        """Real frontend: body.config={recursion_limit}, body.context={agent_name,...}."""
+        """Real frontend carries a separate bootstrap target in body.context."""
         config = _assemble_config(
             body_config={"recursion_limit": 1000},
-            body_context={"agent_name": "myagent", "is_bootstrap": True, "mode": "flash"},
+            body_context={
+                "bootstrap_agent_name": "myagent",
+                "is_bootstrap": True,
+                "mode": "flash",
+            },
             request_user_id="11111111-2222-3333-4444-555555555555",
         )
         runtime_ctx = _build_runtime_context("thread-e2e", "run-1", config.get("context"), None)
         assert runtime_ctx["user_id"] == "11111111-2222-3333-4444-555555555555"
-        assert runtime_ctx["agent_name"] == "myagent"
+        assert runtime_ctx["bootstrap_agent_name"] == "myagent"
 
     def test_body_context_none_still_injects_user_id(self):
         """If frontend omits body.context entirely, inject must still create it."""
@@ -163,7 +167,10 @@ class TestConfigAssembly:
     def test_body_config_already_contains_context_field(self):
         """body.config={'context': {...}} (LG 0.6 alt wire): inject still wins."""
         config = _assemble_config(
-            body_config={"context": {"agent_name": "myagent"}, "recursion_limit": 1000},
+            body_config={
+                "context": {"bootstrap_agent_name": "myagent"},
+                "recursion_limit": 1000,
+            },
             body_context=None,
             request_user_id="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
         )
@@ -181,7 +188,6 @@ class TestConfigAssembly:
         config = _assemble_config(
             body_config={"recursion_limit": 1000},
             body_context={
-                "agent_name": "myagent",
                 "user_id": "spoofed",
             },
             request_user_id="11111111-2222-3333-4444-555555555555",
@@ -231,7 +237,7 @@ class TestConfigAssembly:
         therefore lack it — forcing the tool fallback path to reveal itself."""
         config = _assemble_config(
             body_config={"recursion_limit": 1000},
-            body_context={"agent_name": "myagent"},
+            body_context=None,
             request_user_id=None,
         )
         runtime_ctx = _build_runtime_context("thread-e2e", "run-1", config.get("context"), None)
@@ -299,7 +305,10 @@ async def test_real_graph_real_setup_agent_writes_to_authenticated_user_dir(tmp_
     auth_uid = "abcdef01-2345-6789-abcd-ef0123456789"
     config = _assemble_config(
         body_config={"recursion_limit": 50},
-        body_context={"agent_name": "e2e-agent", "is_bootstrap": True},
+        body_context={
+            "bootstrap_agent_name": "e2e-agent",
+            "is_bootstrap": True,
+        },
         request_user_id=auth_uid,
         thread_id="thread-e2e-1",
     )
@@ -352,7 +361,10 @@ async def test_inject_failure_falls_back_to_default_proving_test_is_load_bearing
 
     config = _assemble_config(
         body_config={"recursion_limit": 50},
-        body_context={"agent_name": "fallback-agent", "is_bootstrap": True},
+        body_context={
+            "bootstrap_agent_name": "fallback-agent",
+            "is_bootstrap": True,
+        },
         request_user_id=None,  # no auth — inject is a no-op
         thread_id="thread-e2e-2",
     )
@@ -424,7 +436,10 @@ async def test_subgraph_invocation_preserves_user_id_in_runtime(tmp_path: Path):
 
     config = _assemble_config(
         body_config={"recursion_limit": 50},
-        body_context={"agent_name": "subgraph-agent", "is_bootstrap": True},
+        body_context={
+            "bootstrap_agent_name": "subgraph-agent",
+            "is_bootstrap": True,
+        },
         request_user_id=auth_uid,
         thread_id="thread-e2e-3",
     )
@@ -488,7 +503,10 @@ def test_sync_tool_dispatch_through_thread_pool_uses_runtime_context(tmp_path: P
 
     config = _assemble_config(
         body_config={"recursion_limit": 50},
-        body_context={"agent_name": "sync-agent", "is_bootstrap": True},
+        body_context={
+            "bootstrap_agent_name": "sync-agent",
+            "is_bootstrap": True,
+        },
         request_user_id=auth_uid,
         thread_id="thread-e2e-4",
     )

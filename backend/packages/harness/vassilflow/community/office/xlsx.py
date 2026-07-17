@@ -35,6 +35,7 @@ from .models import (
     _validate_xlsx_number_format,
 )
 from .opc import enforce_package_preservation
+from .receipt import OfficeEditTrace, xlsx_cell_path
 
 _CONTENT_TYPES_XML = "[Content_Types].xml"
 _ROOT_RELATIONSHIPS_XML = "_rels/.rels"
@@ -1261,7 +1262,12 @@ def _selected_cells(
     return cells
 
 
-def edit_xlsx(data: bytes, operations: list[XlsxEditOperation]) -> tuple[bytes, list[dict[str, Any]]]:
+def edit_xlsx(
+    data: bytes,
+    operations: list[XlsxEditOperation],
+    *,
+    receipt_trace: OfficeEditTrace | None = None,
+) -> tuple[bytes, list[dict[str, Any]]]:
     """Patch worksheet style references and styles.xml as one transaction."""
     if not operations:
         raise OfficeOperationError("At least one Office edit operation is required")
@@ -1280,6 +1286,11 @@ def edit_xlsx(data: bytes, operations: list[XlsxEditOperation]) -> tuple[bytes, 
         for operation_index, operation in enumerate(operations, start=1):
             if not isinstance(operation, XlsxCellFormatOperation):
                 raise OfficeOperationError(f"Unsupported Office operation at position {operation_index}")
+            if receipt_trace is not None:
+                receipt_trace.start_operation(
+                    operation_index,
+                    operation.type,
+                )
             worksheet = _find_sheet(workbook, operation.cells.sheet_name)
             sheet_part = _worksheet_part_for_name(package, worksheet.title)
             if sheet_part not in worksheet_roots:
@@ -1317,6 +1328,18 @@ def edit_xlsx(data: bytes, operations: list[XlsxEditOperation]) -> tuple[bytes, 
             if operation.require_match and not matched:
                 raise OfficeOperationError(f"Operation {operation_index} matched no targets; no document changes were written")
             total_match_count += len(matched)
+            if receipt_trace is not None:
+                for coordinate in matched:
+                    receipt_trace.add_target(
+                        operation_index,
+                        path=xlsx_cell_path(worksheet.title, coordinate),
+                        kind="xlsx_cell_format",
+                        locator=(worksheet.title, coordinate),
+                    )
+                receipt_trace.finish_operation(
+                    operation_index,
+                    match_count=len(matched),
+                )
             reports.append(
                 {
                     "operation": operation_index,

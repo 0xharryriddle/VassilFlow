@@ -1,8 +1,7 @@
 "use client";
 
-import { BotIcon } from "lucide-react";
-
-import { type Agent } from "@/core/agents";
+import { type Agent, iconForAgent } from "@/core/agents";
+import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
 export function AgentWelcome({
@@ -14,8 +13,10 @@ export function AgentWelcome({
   agent: Agent | null | undefined;
   agentName: string;
 }) {
-  const displayName = agent?.name ?? agentName;
+  const { t } = useI18n();
+  const displayName = agent?.product.display_name ?? agentName;
   const description = agent?.description;
+  const AgentIcon = iconForAgent(agent?.product.icon ?? "bot");
 
   return (
     <div
@@ -25,11 +26,16 @@ export function AgentWelcome({
       )}
     >
       <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-full">
-        <BotIcon className="text-primary h-6 w-6" />
+        <AgentIcon className="text-primary h-6 w-6" />
       </div>
       <div className="text-2xl font-bold">{displayName}</div>
       {description && (
         <p className="text-muted-foreground max-w-sm text-sm">{description}</p>
+      )}
+      {agent?.product.status === "unavailable" && (
+        <p className="text-destructive max-w-sm text-sm">
+          {t.agents.launchUnavailable}
+        </p>
       )}
     </div>
   );

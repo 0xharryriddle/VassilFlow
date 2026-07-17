@@ -30,7 +30,6 @@ export type BranchThreadFromTurnInput = {
 
 export type CompactThreadContextOptions = {
   signal?: AbortSignal;
-  agentName?: string | null;
 };
 
 async function readThreadAPIError(
@@ -81,7 +80,6 @@ export async function compactThreadContext(
       },
       body: JSON.stringify({
         force: true,
-        ...(options.agentName ? { agent_name: options.agentName } : {}),
       }),
       signal: options.signal,
     },

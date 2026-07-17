@@ -7,6 +7,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from vassilflow.config.agents_config import load_agent_soul
+from vassilflow.config.builtin_agents import is_builtin_agent, load_builtin_agent_soul
 from vassilflow.skills.storage import get_or_new_skill_storage
 from vassilflow.skills.types import Skill, SkillCategory, skill_config_key, skill_reference_matches
 from vassilflow.subagents import get_available_subagent_names
@@ -489,8 +490,11 @@ You: "Deploying to staging..." [proceed]
 - Avoid hardcoding `/mnt/user-data/...` inside generated scripts when a relative path from the workspace is enough
 - Final deliverables must be copied to `/mnt/user-data/outputs` and presented using `present_files` tool
 - Before presenting a DOCX, XLSX, or PPTX deliverable, use `office_render` until every page is covered by current manifests
+- For a new editable PPTX, use `office_generate` with versioned semantic intent; never represent raster slide composition as editable native output
 - When Office visual review is `pending`, call `view_image` for every rendered page in a prior model step; never batch those calls with `present_files`
 - When Office visual review is `external_review_required`, present the deliverable with that explicit warning and never claim visual QA passed
+- Retain the project and current revision IDs returned by `office_edit`; pass both IDs exactly on later edits to the same Office project, and omit both only when starting a separate project
+- Pass that project ID and exact revision ID to `office_render` so its manifest and preview pages are persisted as durable evidence for the revision
 {acp_section}
 </working_directory>
 
@@ -722,7 +726,7 @@ def get_skills_prompt_section(
 
 def get_agent_soul(agent_name: str | None) -> str:
     # Append SOUL.md (agent personality) if present
-    soul = load_agent_soul(agent_name)
+    soul = load_builtin_agent_soul(agent_name) or load_agent_soul(agent_name)
     if soul:
         return f"<soul>\n{soul}\n</soul>\n" if soul else ""
     return ""
@@ -730,7 +734,7 @@ def get_agent_soul(agent_name: str | None) -> str:
 
 def _build_self_update_section(agent_name: str | None) -> str:
     """Prompt block that teaches the custom agent to persist self-updates via update_agent."""
-    if not agent_name:
+    if not agent_name or is_builtin_agent(agent_name):
         return ""
     return f"""<self_update>
 You are running as the custom agent **{agent_name}** with a persisted SOUL.md and config.yaml.

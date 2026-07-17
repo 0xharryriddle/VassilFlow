@@ -392,7 +392,7 @@ channels:
 
   # Optional: global session defaults for all mobile channels
   session:
-    assistant_id: lead_agent  # or a custom agent name; custom agents are routed via lead_agent + agent_name
+    assistant_id: lead_agent  # or a canonical built-in/personal Agent name
     config:
       recursion_limit: 100
     context:
@@ -460,7 +460,7 @@ channels:
 
 Notes:
 - `assistant_id: lead_agent` calls the default LangGraph assistant directly.
-- If `assistant_id` is set to a custom agent name, VassilFlow still routes through `lead_agent` and injects that value as `agent_name`, so the custom agent's SOUL/config takes effect for IM channels.
+- `assistant_id` is the authoritative Agent identity for threads and runs. The Gateway derives any internal runtime context after validation; clients and channel configuration must not duplicate identity in `context.agent_name` or metadata.
 - IM channel workers call Gateway's LangGraph-compatible API internally and automatically attach process-local internal auth plus the CSRF cookie/header pair required for thread and run creation.
 
 Set the corresponding API keys in your `.env` file:
@@ -665,6 +665,22 @@ VASSILFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
 
 See [`skills/public/claude-to-vassilflow/SKILL.md`](skills/public/claude-to-vassilflow/SKILL.md) for the full API reference.
 
+### Office Workspace
+
+The built-in Office Agent can inspect, edit, render, and visually review DOCX,
+XLSX, and PPTX files through bounded typed tools. Office Projects preserve
+canonical revision history, source and result SHA-256 evidence, semantic change
+receipts, render previews, explicit review decisions, append-only restore, and a
+separately selected final artifact.
+
+For PPTX projects, the current revision preview can select a supported object by
+its inspection-derived overlay or accessible object list and carry that exact
+context into chat. VassilFlow resolves the object again from canonical bytes,
+limits the edit and receipt to its stable path, and pauses before mutation so the
+user can review and approve the complete operation proposal. Personal
+fixed-structure PPTX templates can lock reusable text and picture slots while
+preserving the rest of the source deck.
+
 ### Sub-Agents
 
 Complex tasks rarely fit in a single pass. VassilFlow decomposes them.
@@ -753,7 +769,7 @@ All dict-returning methods are validated against Gateway Pydantic response model
 - [Configuration Guide](backend/docs/CONFIGURATION.md) - Setup and configuration instructions
 - [Architecture Overview](backend/CLAUDE.md) - Technical architecture details
 - [Backend Architecture](backend/README.md) - Backend architecture and API reference
-- [Office Document Tools](backend/docs/OFFICE_TOOLS.md) - Structured DOCX/XLSX editing plus exact-path PPTX formatting, source-only picture replacement, read-only media cleanup evidence, and visual QA
+- [Office Document Tools](backend/docs/OFFICE_TOOLS.md) - Typed Office editing, projects, templates, revision evidence, exact PPTX object selection and approval, and visual QA
 
 ## ⚠️ Security Notice
 

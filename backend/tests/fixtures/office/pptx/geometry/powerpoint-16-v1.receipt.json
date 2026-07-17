@@ -1,0 +1,14 @@
+{
+    "schema_version":  1,
+    "producer":  "microsoft_powerpoint",
+    "prog_id":  "PowerPoint.Application",
+    "producer_version":  "16.0",
+    "producer_build":  "20131",
+    "package_application":  "Microsoft Office PowerPoint",
+    "package_app_version":  "16.0000",
+    "input_file":  "seed-v1.pptx",
+    "input_sha256":  "008aa5e282bc7e059c4f244984d91069b11f2d7939e7b36d154ab35e97b49a14",
+    "output_file":  "powerpoint-16-v1.pptx",
+    "output_sha256":  "cdac8b5129ea9edef5b0049a529eb816e768d6867b61819fc5da6f1ebed5c162",
+    "generated_utc":  "2026-07-16T23:43:31Z"
+}

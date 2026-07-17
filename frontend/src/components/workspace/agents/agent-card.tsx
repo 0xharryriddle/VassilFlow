@@ -1,15 +1,20 @@
 "use client";
 
-import { BotIcon, MessageSquareIcon, Trash2Icon } from "lucide-react";
+import {
+  FolderKanbanIcon,
+  InfoIcon,
+  MessageSquareIcon,
+  PinIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type ComponentProps, type ReactElement, useState } from "react";
+import { type ReactElement, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -28,13 +33,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useDeleteAgent } from "@/core/agents";
+import {
+  iconForAgent,
+  isSafeAgentLaunchPath,
+  useDeleteAgent,
+} from "@/core/agents";
 import type { Agent } from "@/core/agents";
 import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
 interface AgentCardProps {
   agent: Agent;
+  pinned: boolean;
+  onTogglePin: (agent: Agent) => void;
+  onViewDetails: (agent: Agent) => void;
 }
 
 /**
@@ -74,40 +86,42 @@ function TruncatedTooltip({
   );
 }
 
-/**
- * Long, user-controlled labels (agent model, skills, tool groups) that must
- * never break the card layout: width is capped to the parent and the text is
- * truncated with an ellipsis, with the full value revealed on hover.
- */
-function TruncatedBadge({
-  label,
-  variant,
-  className,
-}: {
-  label: string;
-  variant: ComponentProps<typeof Badge>["variant"];
-  className?: string;
-}) {
-  return (
-    <TruncatedTooltip text={label}>
-      <Badge
-        variant={variant}
-        className={cn("block max-w-full truncate", className)}
-      >
-        {label}
-      </Badge>
-    </TruncatedTooltip>
-  );
-}
-
-export function AgentCard({ agent }: AgentCardProps) {
+export function AgentCard({
+  agent,
+  pinned,
+  onTogglePin,
+  onViewDetails,
+}: AgentCardProps) {
   const { t } = useI18n();
   const router = useRouter();
   const deleteAgent = useDeleteAgent();
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const displayName = agent.product.display_name;
+  const AgentIcon = iconForAgent(agent.product.icon);
+  const originLabel =
+    agent.product.origin === "builtin"
+      ? t.agents.originBuiltin
+      : agent.product.origin === "team"
+        ? t.agents.originTeam
+        : t.agents.originPersonal;
+  const launchLabel =
+    agent.product.launch.kind === "project"
+      ? t.agents.launchProject
+      : t.agents.launchChat;
+  const LaunchIcon =
+    agent.product.launch.kind === "project"
+      ? FolderKanbanIcon
+      : MessageSquareIcon;
 
-  function handleChat() {
-    router.push(`/workspace/agents/${agent.name}/chats/new`);
+  function handleLaunch() {
+    if (
+      agent.product.status !== "available" ||
+      !isSafeAgentLaunchPath(agent.product.launch.path)
+    ) {
+      toast.error(t.agents.launchUnavailable);
+      return;
+    }
+    router.push(agent.product.launch.path);
   }
 
   async function handleDelete() {
@@ -122,76 +136,111 @@ export function AgentCard({ agent }: AgentCardProps) {
 
   return (
     <>
-      <Card className="group flex flex-col transition-shadow hover:shadow-md">
-        <CardHeader className="pb-3">
+      <Card className="group h-full min-h-52 gap-0 rounded-lg py-0 transition-shadow hover:shadow-md">
+        <CardHeader className="px-4 pt-4 pb-3">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
-              <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
-                <BotIcon className="h-5 w-5" />
+              <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-md">
+                <AgentIcon className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <TruncatedTooltip text={agent.name}>
+                <TruncatedTooltip text={displayName}>
                   <CardTitle className="truncate text-base">
-                    {agent.name}
+                    {displayName}
                   </CardTitle>
                 </TruncatedTooltip>
-                {agent.model && (
-                  <TruncatedBadge
-                    label={agent.model}
-                    variant="secondary"
-                    className="mt-0.5 text-xs"
-                  />
-                )}
+                <div className="mt-1 flex min-w-0 flex-wrap gap-1">
+                  <Badge variant="outline" className="max-w-full truncate">
+                    {originLabel}
+                  </Badge>
+                  <Badge variant="secondary">
+                    <LaunchIcon />
+                    {launchLabel}
+                  </Badge>
+                </div>
               </div>
+            </div>
+            <div className="flex shrink-0 gap-0.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => onViewDetails(agent)}
+                    aria-label={t.agents.viewDetails(displayName)}
+                  >
+                    <InfoIcon className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {t.agents.viewDetails(displayName)}
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => onTogglePin(agent)}
+                    aria-label={
+                      pinned
+                        ? t.agents.unpinAgent(displayName)
+                        : t.agents.pinAgent(displayName)
+                    }
+                    aria-pressed={pinned}
+                  >
+                    <PinIcon
+                      className={cn("h-4 w-4", pinned && "fill-current")}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {pinned
+                    ? t.agents.unpinAgent(displayName)
+                    : t.agents.pinAgent(displayName)}
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
           {agent.description && (
             <TruncatedTooltip text={agent.description}>
-              <CardDescription className="mt-2 line-clamp-2 text-sm">
+              <CardDescription className="mt-2 line-clamp-2 min-h-10 text-sm">
                 {agent.description}
               </CardDescription>
             </TruncatedTooltip>
           )}
+          {!agent.description && <div className="mt-2 min-h-10" />}
         </CardHeader>
 
-        {(agent.tool_groups?.length ?? agent.skills?.length ?? 0) > 0 && (
-          <CardContent className="pt-0 pb-3">
-            <div className="flex flex-wrap gap-1">
-              {agent.tool_groups?.map((group) => (
-                <TruncatedBadge
-                  key={`tg:${group}`}
-                  label={group}
-                  variant="outline"
-                  className="text-xs"
-                />
-              ))}
-              {agent.skills?.map((skill) => (
-                <TruncatedBadge
-                  key={`sk:${skill}`}
-                  label={skill}
-                  variant="secondary"
-                  className="text-xs"
-                />
-              ))}
-            </div>
-          </CardContent>
-        )}
-
-        <CardFooter className="mt-auto flex items-center justify-between gap-2 pt-3">
-          <Button size="sm" className="flex-1" onClick={handleChat}>
-            <MessageSquareIcon className="mr-1.5 h-3.5 w-3.5" />
-            {t.agents.chat}
+        <CardFooter className="mt-auto flex items-center justify-between gap-2 border-t px-4 py-3">
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={handleLaunch}
+            disabled={agent.product.status !== "available"}
+          >
+            <LaunchIcon className="mr-1.5 h-3.5 w-3.5" />
+            {launchLabel}
           </Button>
           <div className="flex gap-1">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="text-destructive hover:text-destructive h-8 w-8 shrink-0"
-              onClick={() => setDeleteOpen(true)}
-              title={t.agents.delete}
-            >
-              <Trash2Icon className="h-3.5 w-3.5" />
-            </Button>
+            {agent.product.management.can_delete && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive h-8 w-8 shrink-0"
+                    onClick={() => setDeleteOpen(true)}
+                    aria-label={t.agents.delete}
+                  >
+                    <Trash2Icon className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t.agents.delete}</TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </CardFooter>
       </Card>

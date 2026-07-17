@@ -128,6 +128,21 @@ MIGRATIONS = {
             ),
         ],
     },
+    20: {
+        'description': 'Add editable presentation generation alongside existing file write capabilities',
+        'list_additions': [
+            (
+                'tools',
+                'name',
+                {
+                    'name': 'office_generate',
+                    'group': 'file:write',
+                    'use': 'vassilflow.community.office.tools:office_generate_tool',
+                },
+                {'write_file', 'str_replace', 'office_edit', 'office_render'},
+            ),
+        ],
+    },
     # Future migrations go here:
     # 2: {
     #     'description': '...',

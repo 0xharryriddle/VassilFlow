@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import io
+import json
 import warnings
 import zipfile
 
@@ -14,6 +16,7 @@ from vassilflow.community.office.docx import (
     validate_docx,
     validate_docx_renderable,
 )
+from vassilflow.community.office.engine import office_engine
 from vassilflow.community.office.errors import OfficeError, OfficeOperationError, OfficePackageError
 from vassilflow.community.office.models import (
     DocxParagraphFormatOperation,
@@ -194,6 +197,140 @@ def test_replace_across_runs_preserves_package_and_first_run_formatting() -> Non
             "word/document.xml",
             "word/_rels/document.xml.rels",
         }
+
+
+def test_docx_edit_receipt_records_hashes_paths_and_net_semantic_delta() -> None:
+    source = _docx("<w:p><w:r><w:t>old value</w:t></w:r></w:p>")
+    operation = DocxTextReplacement(find="old", replace="new")
+
+    edited, reports, receipt = office_engine.edit_with_receipt(
+        source,
+        suffix=".docx",
+        operations=[operation],
+    )
+
+    operation_id = reports[0]["operation_id"]
+    assert operation_id.startswith("op-0001-")
+    assert receipt["schema"] == "vassilflow.office.semantic_change_receipt.v1"
+    assert receipt["status"] == "changed"
+    assert receipt["source"] == {
+        "sha256": hashlib.sha256(source).hexdigest(),
+        "size_bytes": len(source),
+    }
+    assert receipt["result"] == {
+        "sha256": hashlib.sha256(edited).hexdigest(),
+        "size_bytes": len(edited),
+    }
+    assert receipt["applied_operation_ids"] == [operation_id]
+    assert receipt["operations"] == [
+        {
+            "operation_id": operation_id,
+            "position": 1,
+            "type": "replace_text",
+            "match_count": 1,
+            "target_path_count": 1,
+            "target_paths_returned": 1,
+            "target_paths_truncated": False,
+            "target_paths": ["/document/paragraph[1]"],
+        }
+    ]
+    assert receipt["semantic_changes"]["semantic_deltas"] == [
+        {
+            "path": "/document/paragraph[1]",
+            "semantic_kind": "docx_paragraph_text",
+            "property": "text",
+            "before": "old value",
+            "after": "new value",
+        }
+    ]
+    assert receipt["package_changes"]["parts"] == [
+        {
+            "part_name": "word/document.xml",
+            "status": "changed",
+            "before": {
+                "sha256": hashlib.sha256(_document("<w:p><w:r><w:t>old value</w:t></w:r></w:p>")).hexdigest(),
+                "size_bytes": len(_document("<w:p><w:r><w:t>old value</w:t></w:r></w:p>")),
+            },
+            "after": receipt["package_changes"]["parts"][0]["after"],
+        }
+    ]
+    assert receipt["package_changes"]["relationship_change_count"] == 0
+    json.dumps(receipt, allow_nan=False)
+
+
+def test_docx_edit_receipt_covers_run_and_paragraph_formatting() -> None:
+    source = _docx("<w:p><w:r><w:t>target</w:t></w:r></w:p>")
+
+    _, reports, receipt = office_engine.edit_with_receipt(
+        source,
+        suffix=".docx",
+        operations=[
+            DocxRunFormatOperation(
+                paragraphs=DocxParagraphSelector(paragraph_indices=[1]),
+                runs=DocxRunSelector(run_indices=[1]),
+                formatting=DocxRunFormatting(bold=True),
+            ),
+            DocxParagraphFormatOperation(
+                paragraphs=DocxParagraphSelector(paragraph_indices=[1]),
+                formatting=DocxParagraphFormatting(alignment="center"),
+            ),
+        ],
+    )
+
+    assert receipt["applied_operation_ids"] == [report["operation_id"] for report in reports]
+    assert [record["target_paths"] for record in receipt["operations"]] == [
+        ["/document/paragraph[1]/run[1]"],
+        ["/document/paragraph[1]"],
+    ]
+    assert {delta["semantic_kind"] for delta in receipt["semantic_changes"]["semantic_deltas"]} == {"docx_run_format", "docx_paragraph_format"}
+    assert {delta["property"] for delta in receipt["semantic_changes"]["semantic_deltas"]} >= {"formatting.bold", "formatting.alignment"}
+
+
+def test_docx_edit_receipt_bounds_operation_and_semantic_evidence_explicitly() -> None:
+    source = _docx("".join(f"<w:p><w:r><w:t>old {index}</w:t></w:r></w:p>" for index in range(1_001)))
+
+    _, _, receipt = office_engine.edit_with_receipt(
+        source,
+        suffix=".docx",
+        operations=[DocxTextReplacement(find="old", replace="new")],
+    )
+
+    operation = receipt["operations"][0]
+    assert operation["match_count"] == 1_001
+    assert operation["target_path_count"] == 1_001
+    assert operation["target_paths_returned"] == 200
+    assert operation["target_paths_truncated"] is True
+    assert receipt["semantic_changes"]["coverage"] == "partial"
+    assert receipt["semantic_changes"]["evaluated_target_count"] == 1_000
+    assert receipt["semantic_changes"]["changed_target_count"] == 1_000
+    assert receipt["semantic_changes"]["changed_target_paths_returned"] == 500
+    assert receipt["semantic_changes"]["changed_target_paths_truncated"] is True
+
+
+def test_docx_edit_receipt_represents_successful_no_match_as_unchanged() -> None:
+    source = _docx("<w:p><w:r><w:t>original</w:t></w:r></w:p>")
+
+    edited, reports, receipt = office_engine.edit_with_receipt(
+        source,
+        suffix=".docx",
+        operations=[
+            DocxTextReplacement(
+                find="missing",
+                replace="unused",
+                require_match=False,
+            )
+        ],
+    )
+
+    assert edited == source
+    assert reports[0]["match_count"] == 0
+    assert receipt["status"] == "unchanged"
+    assert receipt["source"] == receipt["result"]
+    assert receipt["operations"][0]["target_path_count"] == 0
+    assert receipt["semantic_changes"]["evaluated_target_count"] == 0
+    assert receipt["semantic_changes"]["semantic_delta_count"] == 0
+    assert receipt["package_changes"]["part_change_count"] == 0
+    assert receipt["package_changes"]["relationship_change_count"] == 0
 
 
 def test_validate_accepts_main_document_content_type_from_default_extension() -> None:

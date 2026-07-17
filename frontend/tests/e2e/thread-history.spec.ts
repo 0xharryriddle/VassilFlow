@@ -94,6 +94,23 @@ test.describe("Thread history", () => {
     ).toBeVisible({ timeout: 15_000 });
   });
 
+  test("real threads do not probe static demo assets", async ({ page }) => {
+    const demoRequests: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("/demo/threads/")) {
+        demoRequests.push(request.url());
+      }
+    });
+    mockLangGraphAPI(page, { threads: THREADS });
+
+    await page.goto(`/workspace/chats/${MOCK_THREAD_ID}`);
+    await expect(
+      page.getByText("Response in thread First conversation"),
+    ).toBeVisible({ timeout: 15_000 });
+
+    expect(demoRequests).toEqual([]);
+  });
+
   test("input box recalls previous prompts with arrow keys", async ({
     page,
   }) => {

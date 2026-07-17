@@ -14,6 +14,7 @@ import { RecentChatList } from "./recent-chat-list";
 import { WorkspaceHeader } from "./workspace-header";
 import { WorkspaceNavChatList } from "./workspace-nav-chat-list";
 import { WorkspaceNavMenu } from "./workspace-nav-menu";
+import { WorkspacePinnedAgents } from "./workspace-pinned-agents";
 
 export function WorkspaceSidebar({
   ...props
@@ -27,6 +28,7 @@ export function WorkspaceSidebar({
         </SidebarHeader>
         <SidebarContent>
           <WorkspaceNavChatList />
+          <WorkspacePinnedAgents />
           <WorkspaceChannelsList />
           {isSidebarOpen && <RecentChatList />}
         </SidebarContent>

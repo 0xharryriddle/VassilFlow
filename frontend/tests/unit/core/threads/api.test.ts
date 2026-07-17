@@ -73,7 +73,6 @@ test("compactThreadContext posts force compact request with agent name", async (
   await expect(
     compactThreadContext("thread 1/2", {
       signal: controller.signal,
-      agentName: "research-agent",
     }),
   ).resolves.toMatchObject({
     compacted: true,
@@ -91,7 +90,6 @@ test("compactThreadContext posts force compact request with agent name", async (
   expect(init.headers).toEqual({ "Content-Type": "application/json" });
   expect(JSON.parse(init.body as string)).toEqual({
     force: true,
-    agent_name: "research-agent",
   });
 });
 

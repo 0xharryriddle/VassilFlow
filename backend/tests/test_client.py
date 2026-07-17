@@ -7,6 +7,7 @@ import tempfile
 import zipfile
 from enum import Enum
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,6 +19,7 @@ from app.gateway.routers.models import ModelResponse, ModelsListResponse
 from app.gateway.routers.skills import SkillInstallResponse, SkillResponse, SkillsListResponse
 from app.gateway.routers.uploads import UploadResponse
 from vassilflow.client import VassilFlowClient
+from vassilflow.config.agents_config import AgentConfig
 from vassilflow.config.paths import Paths
 from vassilflow.uploads.manager import PathTraversalError
 
@@ -101,6 +103,12 @@ class TestClientInit:
                 VassilFlowClient(agent_name="invalid name with spaces!")
             with pytest.raises(ValueError, match="Invalid agent name"):
                 VassilFlowClient(agent_name="../path/traversal")
+
+    def test_agent_name_uses_canonical_identity(self, mock_app_config):
+        with patch("vassilflow.client.get_app_config", return_value=mock_app_config):
+            client = VassilFlowClient(agent_name=" Report_AGENT ")
+
+        assert client._agent_name == "report-agent"
 
     def test_custom_config_path(self, mock_app_config):
         with (
@@ -916,6 +924,10 @@ class TestEnsureAgent:
             patch("vassilflow.client.create_agent", return_value=mock_agent),
             patch("vassilflow.client.build_middlewares", return_value=[]) as mock_build_middlewares,
             patch("vassilflow.client.apply_prompt_template", return_value="prompt") as mock_apply_prompt,
+            patch(
+                "vassilflow.client.load_agent_config",
+                return_value=AgentConfig(name="custom-agent"),
+            ),
             patch.object(client, "_get_tools", return_value=[]),
             patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=MagicMock()),
         ):
@@ -930,6 +942,64 @@ class TestEnsureAgent:
         mock_apply_prompt.assert_called_once()
         assert mock_apply_prompt.call_args.kwargs.get("agent_name") == "custom-agent"
         assert mock_apply_prompt.call_args.kwargs.get("available_skills") == {"test_skill"}
+
+    def test_embedded_custom_agent_enforces_runtime_policy(
+        self,
+        client,
+        mock_app_config,
+    ):
+        mock_app_config.tools = [SimpleNamespace(name="read_file", group="file:read")]
+        client._app_config = mock_app_config
+        client._agent_name = "reader"
+        config = client._get_runnable_config("t-policy")
+        raw_tools = [
+            SimpleNamespace(name="read_file"),
+            SimpleNamespace(name="mcp_private"),
+            SimpleNamespace(name="task"),
+        ]
+
+        with (
+            patch(
+                "vassilflow.client.load_agent_config",
+                return_value=AgentConfig(name="reader", tool_groups=["file:read"]),
+            ),
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=MagicMock()) as create_agent_mock,
+            patch("vassilflow.client.build_middlewares", return_value=[]) as middlewares_mock,
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt"),
+            patch.object(client, "_get_tools", return_value=raw_tools),
+            patch("vassilflow.runtime.checkpointer.get_checkpointer", return_value=None),
+        ):
+            client._ensure_agent(config)
+
+        assert [tool.name for tool in create_agent_mock.call_args.kwargs["tools"]] == [
+            "read_file",
+            "task",
+        ]
+        policy = middlewares_mock.call_args.kwargs["agent_policy"]
+        assert policy.allowed_tool_names is not None
+        assert "mcp_private" not in policy.allowed_tool_names
+        assert config["metadata"]["assistant_id"] == "reader"
+        assert config["metadata"]["agent_name"] == "reader"
+
+    def test_embedded_default_agent_uses_canonical_trace_identity(self, client):
+        config = client._get_runnable_config("t-default-identity")
+
+        with (
+            patch("vassilflow.client.create_chat_model"),
+            patch("vassilflow.client.create_agent", return_value=MagicMock()),
+            patch("vassilflow.client.build_middlewares", return_value=[]),
+            patch("vassilflow.client.apply_prompt_template", return_value="prompt"),
+            patch.object(client, "_get_tools", return_value=[]),
+            patch(
+                "vassilflow.runtime.checkpointer.get_checkpointer",
+                return_value=None,
+            ),
+        ):
+            client._ensure_agent(config)
+
+        assert config["metadata"]["assistant_id"] == "lead_agent"
+        assert "agent_name" not in config["metadata"]
 
     def test_deferred_skill_discovery_wired_when_enabled(self, client, mock_app_config):
         from pathlib import Path
@@ -1081,7 +1151,18 @@ class TestEnsureAgent:
         """_ensure_agent does not recreate if config key unchanged."""
         mock_agent = MagicMock()
         client._agent = mock_agent
-        client._agent_config_key = (None, True, False, False, None, None, False, "/mnt/skills")
+        client._agent_config_key = (
+            None,
+            True,
+            False,
+            False,
+            None,
+            None,
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            None,
+            False,
+            "/mnt/skills",
+        )
 
         config = client._get_runnable_config("t1")
         client._ensure_agent(config)

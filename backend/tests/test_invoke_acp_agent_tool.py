@@ -6,8 +6,13 @@ from types import SimpleNamespace
 import pytest
 
 from vassilflow.config.acp_config import ACPAgentConfig
+from vassilflow.config.agent_contract import (
+    AgentRuntimePolicy,
+    serialize_agent_runtime_policy,
+)
 from vassilflow.config.extensions_config import ExtensionsConfig, McpServerConfig, set_extensions_config
 from vassilflow.tools.builtins.invoke_acp_agent_tool import (
+    _acp_policy_error,
     _build_acp_mcp_servers,
     _build_mcp_servers,
     _build_permission_response,
@@ -15,6 +20,36 @@ from vassilflow.tools.builtins.invoke_acp_agent_tool import (
     build_invoke_acp_agent_tool,
 )
 from vassilflow.tools.tools import get_available_tools
+
+
+def test_acp_execution_boundary_enforces_agent_policy() -> None:
+    denied = {
+        "metadata": serialize_agent_runtime_policy(
+            AgentRuntimePolicy(
+                allowed_tool_names=frozenset({"invoke_acp_agent"}),
+            )
+        )
+    }
+    wrong_tool = {
+        "metadata": serialize_agent_runtime_policy(
+            AgentRuntimePolicy(
+                allowed_tool_names=frozenset({"read_file"}),
+                allow_acp_agents=True,
+            )
+        )
+    }
+    allowed = {
+        "metadata": serialize_agent_runtime_policy(
+            AgentRuntimePolicy(
+                allowed_tool_names=frozenset({"invoke_acp_agent"}),
+                allow_acp_agents=True,
+            )
+        )
+    }
+
+    assert "not permitted to invoke ACP" in (_acp_policy_error(denied) or "")
+    assert "not permitted by" in (_acp_policy_error(wrong_tool) or "")
+    assert _acp_policy_error(allowed) is None
 
 
 def test_build_mcp_servers_filters_disabled_and_maps_transports():

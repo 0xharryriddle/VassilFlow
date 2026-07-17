@@ -10,6 +10,9 @@ import yaml
 from fastapi.testclient import TestClient
 
 from vassilflow.config.agents_api_config import AgentsApiConfig, get_agents_api_config, set_agents_api_config
+from vassilflow.config.app_config import AppConfig
+from vassilflow.config.sandbox_config import SandboxConfig
+from vassilflow.config.tool_config import ToolConfig
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -154,6 +157,25 @@ class TestLoadAgentConfig:
             cfg = load_agent_config("inferred-name")
 
         assert cfg.name == "inferred-name"
+
+    def test_directory_identity_overrides_stale_config_name(self, tmp_path):
+        agent_dir = tmp_path / "agents" / "canonical-agent"
+        agent_dir.mkdir(parents=True)
+        (agent_dir / "config.yaml").write_text(
+            "name: different-agent\ndescription: Kept\n",
+            encoding="utf-8",
+        )
+
+        with patch(
+            "vassilflow.config.agents_config.get_paths",
+            return_value=_make_paths(tmp_path),
+        ):
+            from vassilflow.config.agents_config import load_agent_config
+
+            cfg = load_agent_config("canonical-agent")
+
+        assert cfg.name == "canonical-agent"
+        assert cfg.description == "Kept"
 
     def test_load_config_with_tool_groups(self, tmp_path):
         config_dict = {"name": "restricted", "tool_groups": ["file:read", "file:write"]}
@@ -448,13 +470,43 @@ class TestMemoryFilePath:
 # ===========================================================================
 
 
+def _office_app_config() -> AppConfig:
+    return AppConfig(
+        sandbox=SandboxConfig(use="test"),
+        tools=[
+            ToolConfig(
+                name="office_inspect",
+                group="file:read",
+                use="vassilflow.community.office.tools:office_inspect_tool",
+            ),
+            ToolConfig(
+                name="office_generate",
+                group="file:write",
+                use="vassilflow.community.office.tools:office_generate_tool",
+            ),
+            ToolConfig(
+                name="office_edit",
+                group="file:write",
+                use="vassilflow.community.office.tools:office_edit_tool",
+            ),
+            ToolConfig(
+                name="office_render",
+                group="file:write",
+                use="vassilflow.community.office.tools:office_render_tool",
+            ),
+        ],
+    )
+
+
 def _make_test_app(tmp_path: Path):
     """Create a FastAPI app with the agents router, patching paths to tmp_path."""
     from fastapi import FastAPI
 
+    from app.gateway.deps import get_config
     from app.gateway.routers.agents import router
 
     app = FastAPI()
+    app.dependency_overrides[get_config] = _office_app_config
     app.include_router(router)
     return app
 
@@ -497,11 +549,113 @@ def disabled_agent_client(tmp_path):
 
 
 class TestAgentsAPI:
-    def test_list_agents_empty(self, agent_client):
+    def test_list_agents_contains_available_office_builtin(self, agent_client):
         response = agent_client.get("/api/agents")
         assert response.status_code == 200
-        data = response.json()
-        assert data["agents"] == []
+        assert response.json()["agents"] == [
+            {
+                "name": "office",
+                "description": "Generate editable presentations and inspect, quality-check, revise, render, and review Office files.",
+                "model": None,
+                "tool_groups": ["file:read", "file:write"],
+                "skills": [],
+                "soul": response.json()["agents"][0]["soul"],
+                "product": {
+                    "id": "builtin:office",
+                    "display_name": "Office",
+                    "origin": "builtin",
+                    "category": "create",
+                    "icon": "files",
+                    "status": "available",
+                    "required_tools": [
+                        "office_inspect",
+                        "office_generate",
+                        "office_edit",
+                        "office_render",
+                    ],
+                    "missing_requirements": [],
+                    "data_access": [
+                        "thread_uploads",
+                        "thread_workspace",
+                        "thread_outputs",
+                    ],
+                    "starter_prompts": [
+                        "Create a native editable PowerPoint presentation from a structured brief.",
+                        "Inspect an uploaded Office file and summarize its structure.",
+                        "Run a source-bound quality preflight on an uploaded PowerPoint file.",
+                        "Revise formatting in an uploaded document without changing the source file.",
+                        "Render an Office output and perform visual QA before presenting it.",
+                    ],
+                    "launch": {
+                        "kind": "chat",
+                        "path": "/workspace/agents/office/chats/new",
+                        "project_kind": None,
+                    },
+                    "management": {
+                        "can_edit": False,
+                        "can_delete": False,
+                    },
+                },
+            }
+        ]
+
+    def test_get_office_builtin(self, agent_client):
+        response = agent_client.get("/api/agents/office")
+
+        assert response.status_code == 200
+        assert response.json()["product"]["id"] == "builtin:office"
+        assert response.json()["product"]["status"] == "available"
+
+    def test_catalog_includes_personal_metadata_without_soul(self, agent_client):
+        agent_client.post(
+            "/api/agents",
+            json={"name": "catalog-agent", "soul": "private prompt"},
+        )
+
+        response = agent_client.get("/api/agent-catalog")
+
+        assert response.status_code == 200
+        assert response.json()["custom_agent_management_enabled"] is True
+        agents = {agent["name"]: agent for agent in response.json()["agents"]}
+        assert agents["office"]["product"]["origin"] == "builtin"
+        assert agents["catalog-agent"]["product"]["origin"] == "personal"
+        assert agents["catalog-agent"]["soul"] is None
+
+    def test_office_name_is_reserved(self, agent_client):
+        check = agent_client.get("/api/agents/check?name=Office")
+        create = agent_client.post(
+            "/api/agents",
+            json={"name": "office", "soul": "replace built-in"},
+        )
+        update = agent_client.put(
+            "/api/agents/office",
+            json={"description": "replace built-in"},
+        )
+        delete = agent_client.delete("/api/agents/office")
+
+        assert check.json() == {"available": False, "name": "office"}
+        assert create.status_code == 409
+        assert update.status_code == 403
+        assert delete.status_code == 403
+
+    def test_default_agent_alias_is_reserved(self, agent_client):
+        check = agent_client.get("/api/agents/check?name=Lead-Agent")
+        create = agent_client.post(
+            "/api/agents",
+            json={"name": "lead-agent", "soul": "shadow default"},
+        )
+        get = agent_client.get("/api/agents/lead-agent")
+        update = agent_client.put(
+            "/api/agents/lead-agent",
+            json={"description": "shadow default"},
+        )
+        delete = agent_client.delete("/api/agents/lead-agent")
+
+        assert check.json() == {"available": False, "name": "lead_agent"}
+        assert create.status_code == 409
+        assert get.status_code == 404
+        assert update.status_code == 403
+        assert delete.status_code == 403
 
     def test_create_agent(self, agent_client):
         payload = {
@@ -515,11 +669,45 @@ class TestAgentsAPI:
         assert data["name"] == "code-reviewer"
         assert data["description"] == "Reviews code"
         assert data["soul"] == "You are a code reviewer."
+        assert data["product"] == {
+            "id": "personal:code-reviewer",
+            "display_name": "code-reviewer",
+            "origin": "personal",
+            "category": "custom",
+            "icon": "bot",
+            "status": "available",
+            "required_tools": [],
+            "missing_requirements": [],
+            "data_access": [
+                "thread_uploads",
+                "thread_workspace",
+                "thread_outputs",
+            ],
+            "starter_prompts": [],
+            "launch": {
+                "kind": "chat",
+                "path": "/workspace/agents/code-reviewer/chats/new",
+                "project_kind": None,
+            },
+            "management": {
+                "can_edit": True,
+                "can_delete": True,
+            },
+        }
 
     def test_create_agent_invalid_name(self, agent_client):
         payload = {"name": "Code Reviewer!", "soul": "test"}
         response = agent_client.post("/api/agents", json=payload)
         assert response.status_code == 422
+
+    def test_create_agent_uses_canonical_name(self, agent_client):
+        response = agent_client.post(
+            "/api/agents",
+            json={"name": " Report_AGENT ", "soul": "canonical"},
+        )
+
+        assert response.status_code == 201
+        assert response.json()["name"] == "report-agent"
 
     def test_create_duplicate_agent_409(self, agent_client):
         payload = {"name": "my-agent", "soul": "test"}
@@ -538,6 +726,10 @@ class TestAgentsAPI:
         names = [a["name"] for a in response.json()["agents"]]
         assert "agent-one" in names
         assert "agent-two" in names
+
+        products = {a["name"]: a["product"] for a in response.json()["agents"]}
+        assert products["agent-one"]["id"] == "personal:agent-one"
+        assert products["agent-two"]["launch"]["path"] == "/workspace/agents/agent-two/chats/new"
 
     def test_list_agents_includes_soul(self, agent_client):
         agent_client.post("/api/agents", json={"name": "soul-agent", "soul": "My soul content"})
@@ -680,6 +872,46 @@ class TestAgentsApiDisabled:
         response = disabled_agent_client.get("/api/agents")
         assert response.status_code == 403
         assert "agents_api.enabled=true" in response.json()["detail"]
+
+    def test_catalog_remains_available_with_only_builtins(
+        self,
+        disabled_agent_client,
+    ):
+        response = disabled_agent_client.get("/api/agent-catalog")
+
+        assert response.status_code == 200
+        assert response.json()["custom_agent_management_enabled"] is False
+        assert [agent["name"] for agent in response.json()["agents"]] == ["office"]
+        assert response.json()["agents"][0]["soul"] is None
+
+    def test_catalog_exposes_runtime_safe_personal_agent_without_management(
+        self,
+        disabled_agent_client,
+        tmp_path,
+    ):
+        agent_dir = tmp_path / "users" / "test-user-autouse" / "agents" / "runtime-agent"
+        agent_dir.mkdir(parents=True)
+        (agent_dir / "config.yaml").write_text(
+            "name: runtime-agent\ndescription: Runtime only\n",
+            encoding="utf-8",
+        )
+        (agent_dir / "SOUL.md").write_text("private", encoding="utf-8")
+
+        response = disabled_agent_client.get("/api/agent-catalog")
+
+        assert response.status_code == 200
+        agents = {agent["name"]: agent for agent in response.json()["agents"]}
+        assert agents["runtime-agent"]["soul"] is None
+        assert agents["runtime-agent"]["product"]["management"] == {
+            "can_edit": False,
+            "can_delete": False,
+        }
+
+    def test_builtin_get_remains_available(self, disabled_agent_client):
+        response = disabled_agent_client.get("/api/agents/office")
+
+        assert response.status_code == 200
+        assert response.json()["product"]["id"] == "builtin:office"
 
     def test_agent_get_returns_403(self, disabled_agent_client):
         response = disabled_agent_client.get("/api/agents/example-agent")

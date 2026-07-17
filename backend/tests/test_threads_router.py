@@ -1,6 +1,6 @@
 import re
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from _router_auth_helpers import make_authed_test_app
@@ -68,6 +68,64 @@ def _build_thread_app() -> tuple[FastAPI, InMemoryStore, InMemorySaver]:
     return app, store, checkpointer
 
 
+def test_thread_responses_expose_canonical_assistant_id() -> None:
+    app, _store, _checkpointer = _build_thread_app()
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/threads",
+            json={
+                "thread_id": "agent-thread",
+                "assistant_id": "Report_AGENT",
+                "metadata": {"agent_name": "forged", "label": "kept"},
+            },
+        )
+        fetched = client.get("/api/threads/agent-thread")
+        searched = client.post("/api/threads/search", json={})
+
+    assert created.status_code == 200
+    assert created.json()["assistant_id"] == "report-agent"
+    assert created.json()["metadata"] == {"label": "kept"}
+    assert fetched.json()["assistant_id"] == "report-agent"
+    row = next(item for item in searched.json() if item["thread_id"] == "agent-thread")
+    assert row["assistant_id"] == "report-agent"
+
+
+def test_default_thread_persists_canonical_assistant_id() -> None:
+    import asyncio
+
+    app, store, _checkpointer = _build_thread_app()
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/threads",
+            json={"thread_id": "default-thread"},
+        )
+
+    assert created.status_code == 200
+    assert created.json()["assistant_id"] == "lead_agent"
+    stored = asyncio.run(store.aget(THREADS_NS, "default-thread"))
+    assert stored is not None
+    assert stored.value["assistant_id"] == "lead_agent"
+
+
+def test_idempotent_thread_create_rejects_different_agent() -> None:
+    app, _store, _checkpointer = _build_thread_app()
+
+    with TestClient(app) as client:
+        first = client.post(
+            "/api/threads",
+            json={"thread_id": "bound-thread", "assistant_id": "writer"},
+        )
+        second = client.post(
+            "/api/threads",
+            json={"thread_id": "bound-thread", "assistant_id": "researcher"},
+        )
+
+    assert first.status_code == 200
+    assert second.status_code == 409
+
+
 def test_delete_thread_data_removes_thread_directory(tmp_path):
     paths = Paths(tmp_path)
     thread_dir = paths.thread_dir("thread-cleanup")
@@ -127,6 +185,24 @@ def test_delete_thread_route_cleans_thread_directory(tmp_path):
     assert response.status_code == 200
     assert response.json() == {"success": True, "message": "Deleted local thread data for thread-route"}
     assert not thread_dir.exists()
+
+
+def test_delete_thread_route_cancels_memory_updates(tmp_path):
+    paths = Paths(tmp_path)
+    memory_queue = MagicMock()
+    app = make_authed_test_app()
+    app.include_router(threads.router)
+
+    with (
+        patch("app.gateway.routers.threads.get_paths", return_value=paths),
+        patch("app.gateway.routers.threads.get_effective_user_id", return_value="user-42"),
+        patch("app.gateway.routers.threads.get_memory_queue", return_value=memory_queue),
+        TestClient(app) as client,
+    ):
+        response = client.delete("/api/threads/thread-memory-cleanup")
+
+    assert response.status_code == 200
+    memory_queue.discard_thread.assert_called_once_with("thread-memory-cleanup", user_id="user-42")
 
 
 def test_delete_thread_route_rejects_invalid_thread_id(tmp_path):
@@ -250,14 +326,20 @@ def test_compact_thread_route_returns_compaction_result(monkeypatch) -> None:
     monkeypatch.setattr(threads, "compact_thread_context", _fake_compact_thread_context)
 
     with TestClient(app) as client:
-        create_response = client.post("/api/threads", json={"thread_id": "thread-compact", "metadata": {}})
+        create_response = client.post(
+            "/api/threads",
+            json={
+                "thread_id": "thread-compact",
+                "assistant_id": "research-agent",
+                "metadata": {},
+            },
+        )
         assert create_response.status_code == 200, create_response.text
         response = client.post(
             "/api/threads/thread-compact/compact",
             json={
                 "force": False,
                 "keep": {"type": "messages", "value": 3},
-                "agent_name": "research-agent",
             },
         )
 
@@ -278,6 +360,36 @@ def test_compact_thread_route_returns_compaction_result(monkeypatch) -> None:
     assert captured["force"] is False
     assert captured["agent_name"] == "research-agent"
     assert isinstance(captured["user_id"], str)
+
+
+def test_compact_thread_route_rejects_conflicting_agent_claim(monkeypatch) -> None:
+    app, _store, _checkpointer = _build_thread_app()
+    called = False
+
+    async def _fake_compact_thread_context(*args, **kwargs):
+        nonlocal called
+        called = True
+        return ThreadCompactionResult(thread_id="thread-compact", compacted=True)
+
+    monkeypatch.setattr(threads, "compact_thread_context", _fake_compact_thread_context)
+
+    with TestClient(app) as client:
+        create_response = client.post(
+            "/api/threads",
+            json={
+                "thread_id": "thread-compact",
+                "assistant_id": "research-agent",
+            },
+        )
+        assert create_response.status_code == 200, create_response.text
+        response = client.post(
+            "/api/threads/thread-compact/compact",
+            json={"agent_name": "other-agent"},
+        )
+
+    assert response.status_code == 400
+    assert "conflicts with assistant_id" in response.json()["detail"]
+    assert called is False
 
 
 def test_compact_thread_route_rejects_inflight_run(monkeypatch) -> None:
@@ -646,6 +758,7 @@ async def _seed_branch_checkpoint(
 
 def test_branch_thread_creates_checkpoint_from_assistant_turn(tmp_path) -> None:
     import asyncio
+
     from vassilflow.runtime.user_context import get_effective_user_id
 
     app, _store, checkpointer = _build_thread_app()
@@ -718,6 +831,7 @@ def test_branch_thread_rejects_turn_with_visible_future_messages() -> None:
 
 def test_branch_thread_skips_workspace_clone_for_historical_turn(tmp_path) -> None:
     import asyncio
+
     from vassilflow.runtime.user_context import get_effective_user_id
 
     app, _store, checkpointer = _build_thread_app()

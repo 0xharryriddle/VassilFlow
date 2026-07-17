@@ -1,27 +1,41 @@
-"""CRUD API for custom agents."""
+"""Catalog and management API for built-in and custom Agents."""
 
 import asyncio
 import logging
-import re
 import shutil
 
 import yaml
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.gateway.agent_catalog import (
+    AgentProductMetadata,
+    build_builtin_agent_product,
+    build_custom_agent_product,
+)
+from app.gateway.deps import get_config
+from vassilflow.config.agent_contract import (
+    is_default_agent_alias,
+    resolve_agent_identity,
+)
 from vassilflow.config.agents_api_config import get_agents_api_config
 from vassilflow.config.agents_config import AgentConfig, list_custom_agents, load_agent_config, load_agent_soul
+from vassilflow.config.app_config import AppConfig
+from vassilflow.config.builtin_agents import (
+    BuiltinAgentDefinition,
+    get_builtin_agent,
+    is_builtin_agent,
+    list_builtin_agents,
+)
 from vassilflow.config.paths import get_paths
 from vassilflow.runtime.user_context import get_effective_user_id
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["agents"])
 
-AGENT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
-
 
 class AgentResponse(BaseModel):
-    """Response model for a custom agent."""
+    """Response model for one catalog Agent."""
 
     name: str = Field(..., description="Agent name (hyphen-case)")
     description: str = Field(default="", description="Agent description")
@@ -29,18 +43,26 @@ class AgentResponse(BaseModel):
     tool_groups: list[str] | None = Field(default=None, description="Optional tool group whitelist")
     skills: list[str] | None = Field(default=None, description="Optional skill whitelist (None=all, []=none)")
     soul: str | None = Field(default=None, description="SOUL.md content")
+    product: AgentProductMetadata = Field(..., description="Product catalog and launch metadata")
 
 
 class AgentsListResponse(BaseModel):
-    """Response model for listing all custom agents."""
+    """Response model for listing catalog Agents."""
 
     agents: list[AgentResponse]
+
+
+class AgentCatalogResponse(BaseModel):
+    """Read-safe product catalog separated from prompt management."""
+
+    agents: list[AgentResponse]
+    custom_agent_management_enabled: bool
 
 
 class AgentCreateRequest(BaseModel):
     """Request body for creating a custom agent."""
 
-    name: str = Field(..., description="Agent name (must match ^[A-Za-z0-9-]+$, stored as lowercase)")
+    name: str = Field(..., description="Agent name (stored in canonical lowercase hyphen-case)")
     description: str = Field(default="", description="Agent description")
     model: str | None = Field(default=None, description="Optional model override")
     tool_groups: list[str] | None = Field(default=None, description="Optional tool group whitelist")
@@ -58,25 +80,19 @@ class AgentUpdateRequest(BaseModel):
     soul: str | None = Field(default=None, description="Updated SOUL.md content")
 
 
-def _validate_agent_name(name: str) -> None:
-    """Validate agent name against allowed pattern.
-
-    Args:
-        name: The agent name to validate.
-
-    Raises:
-        HTTPException: 422 if the name is invalid.
-    """
-    if not AGENT_NAME_PATTERN.match(name):
-        raise HTTPException(
-            status_code=422,
-            detail=f"Invalid agent name '{name}'. Must match ^[A-Za-z0-9-]+$ (letters, digits, and hyphens only).",
-        )
-
-
 def _normalize_agent_name(name: str) -> str:
-    """Normalize agent name to lowercase for filesystem storage."""
-    return name.lower()
+    """Resolve one external name through the canonical Agent contract."""
+
+    try:
+        return resolve_agent_identity(name).assistant_id
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+def _is_reserved_agent_name(name: str) -> bool:
+    """Keep default and built-in runtime identities out of personal storage."""
+
+    return is_default_agent_alias(name) or is_builtin_agent(name)
 
 
 def _require_agents_api_enabled() -> None:
@@ -88,7 +104,13 @@ def _require_agents_api_enabled() -> None:
         )
 
 
-def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False, *, user_id: str | None = None) -> AgentResponse:
+def _agent_config_to_response(
+    agent_cfg: AgentConfig,
+    include_soul: bool = False,
+    *,
+    user_id: str | None = None,
+    management_enabled: bool = True,
+) -> AgentResponse:
     """Convert AgentConfig to AgentResponse."""
     soul: str | None = None
     if include_soul:
@@ -101,27 +123,95 @@ def _agent_config_to_response(agent_cfg: AgentConfig, include_soul: bool = False
         tool_groups=agent_cfg.tool_groups,
         skills=agent_cfg.skills,
         soul=soul,
+        product=build_custom_agent_product(
+            agent_cfg.name,
+            management_enabled=management_enabled,
+        ),
     )
+
+
+def _builtin_agent_to_response(
+    definition: BuiltinAgentDefinition,
+    app_config: AppConfig,
+    *,
+    include_soul: bool = True,
+) -> AgentResponse:
+    runtime_config = definition.to_runtime_config()
+    return AgentResponse(
+        name=definition.name,
+        description=definition.description,
+        model=runtime_config.model,
+        tool_groups=runtime_config.tool_groups,
+        skills=runtime_config.skills,
+        soul=definition.soul if include_soul else None,
+        product=build_builtin_agent_product(definition, app_config),
+    )
+
+
+@router.get(
+    "/agent-catalog",
+    response_model=AgentCatalogResponse,
+    summary="List Agent Catalog",
+    description="List read-safe built-in and personal Agent metadata without exposing prompt content.",
+)
+async def list_agent_catalog(
+    config: AppConfig = Depends(get_config),
+) -> AgentCatalogResponse:
+    """List discoverable Agents without exposing persisted prompt content."""
+
+    management_enabled = get_agents_api_config().enabled
+    user_id = get_effective_user_id()
+    try:
+        builtins = [
+            _builtin_agent_to_response(
+                definition,
+                config,
+                include_soul=False,
+            )
+            for definition in list_builtin_agents()
+        ]
+        custom_agents = [agent for agent in list_custom_agents(user_id=user_id) if not _is_reserved_agent_name(agent.name)]
+        custom = [
+            _agent_config_to_response(
+                agent,
+                include_soul=False,
+                user_id=user_id,
+                management_enabled=management_enabled,
+            )
+            for agent in custom_agents
+        ]
+        return AgentCatalogResponse(
+            agents=[*builtins, *custom],
+            custom_agent_management_enabled=management_enabled,
+        )
+    except Exception as e:
+        logger.error(f"Failed to list Agent catalog: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list Agent catalog: {str(e)}",
+        )
 
 
 @router.get(
     "/agents",
     response_model=AgentsListResponse,
-    summary="List Custom Agents",
-    description="List all custom agents available in the agents directory, including their soul content.",
+    summary="List Agents",
+    description="List curated built-in Agents and the current user's custom Agents.",
 )
-async def list_agents() -> AgentsListResponse:
-    """List all custom agents.
+async def list_agents(config: AppConfig = Depends(get_config)) -> AgentsListResponse:
+    """List all catalog Agents.
 
     Returns:
-        List of all custom agents with their metadata and soul content.
+        Curated built-in Agents followed by the current user's custom Agents.
     """
     _require_agents_api_enabled()
 
     user_id = get_effective_user_id()
     try:
-        agents = list_custom_agents(user_id=user_id)
-        return AgentsListResponse(agents=[_agent_config_to_response(a, include_soul=True, user_id=user_id) for a in agents])
+        builtins = [_builtin_agent_to_response(definition, config) for definition in list_builtin_agents()]
+        custom_agents = [agent for agent in list_custom_agents(user_id=user_id) if not _is_reserved_agent_name(agent.name)]
+        custom = [_agent_config_to_response(agent, include_soul=True, user_id=user_id) for agent in custom_agents]
+        return AgentsListResponse(agents=[*builtins, *custom])
     except Exception as e:
         logger.error(f"Failed to list agents: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to list agents: {str(e)}")
@@ -145,8 +235,9 @@ async def check_agent_name(name: str) -> dict:
         HTTPException: 422 if the name is invalid.
     """
     _require_agents_api_enabled()
-    _validate_agent_name(name)
     normalized = _normalize_agent_name(name)
+    if _is_reserved_agent_name(normalized):
+        return {"available": False, "name": normalized}
     user_id = get_effective_user_id()
     paths = get_paths()
     # Treat the name as taken if either the per-user path or the legacy shared
@@ -159,11 +250,14 @@ async def check_agent_name(name: str) -> dict:
 @router.get(
     "/agents/{name}",
     response_model=AgentResponse,
-    summary="Get Custom Agent",
-    description="Retrieve details and SOUL.md content for a specific custom agent.",
+    summary="Get Agent",
+    description="Retrieve runtime and product details for a specific catalog Agent.",
 )
-async def get_agent(name: str) -> AgentResponse:
-    """Get a specific custom agent by name.
+async def get_agent(
+    name: str,
+    config: AppConfig = Depends(get_config),
+) -> AgentResponse:
+    """Get a specific built-in or custom Agent by name.
 
     Args:
         name: The agent name.
@@ -174,9 +268,15 @@ async def get_agent(name: str) -> AgentResponse:
     Raises:
         HTTPException: 404 if agent not found.
     """
-    _require_agents_api_enabled()
-    _validate_agent_name(name)
     name = _normalize_agent_name(name)
+    builtin = get_builtin_agent(name)
+    if builtin is not None:
+        return _builtin_agent_to_response(builtin, config)
+
+    if is_default_agent_alias(name):
+        raise HTTPException(status_code=404, detail=f"Agent '{name}' not found")
+
+    _require_agents_api_enabled()
     user_id = get_effective_user_id()
 
     try:
@@ -209,8 +309,12 @@ async def create_agent_endpoint(request: AgentCreateRequest) -> AgentResponse:
         HTTPException: 409 if agent already exists, 422 if name is invalid.
     """
     _require_agents_api_enabled()
-    _validate_agent_name(request.name)
     normalized_name = _normalize_agent_name(request.name)
+    if _is_reserved_agent_name(normalized_name):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Agent name '{normalized_name}' is reserved by the runtime",
+        )
     user_id = get_effective_user_id()
     paths = get_paths()
 
@@ -290,8 +394,12 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
         HTTPException: 404 if agent not found.
     """
     _require_agents_api_enabled()
-    _validate_agent_name(name)
     name = _normalize_agent_name(name)
+    if _is_reserved_agent_name(name):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Reserved Agent '{name}' cannot be modified",
+        )
     user_id = get_effective_user_id()
 
     try:
@@ -438,8 +546,12 @@ async def delete_agent(name: str) -> None:
             shared copy exists (suggesting the migration script).
     """
     _require_agents_api_enabled()
-    _validate_agent_name(name)
     name = _normalize_agent_name(name)
+    if _is_reserved_agent_name(name):
+        raise HTTPException(
+            status_code=403,
+            detail=f"Reserved Agent '{name}' cannot be deleted",
+        )
     user_id = get_effective_user_id()
     paths = get_paths()
 

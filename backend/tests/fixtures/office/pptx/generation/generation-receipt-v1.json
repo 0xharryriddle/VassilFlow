@@ -1,0 +1,241 @@
+{
+  "assets": [
+    {
+      "alt_text_sha256": "9d6472febc2d797e66684afaab090f9e5f23880b17cc4fd93176e75d3965b3f6",
+      "element_id": "detail-image",
+      "format": "png",
+      "height_px": 540,
+      "sha256": "a3092907f5e2aff3b988356f38900dc3fd059a4ca58c9829897571ea7a814924",
+      "size_bytes": 5848,
+      "width_px": 960
+    },
+    {
+      "alt_text_sha256": "632561f030643b21d063baa2d5cfa9107b52df2ea169edf2474d913c7f9fb10e",
+      "element_id": "evidence-image",
+      "format": "png",
+      "height_px": 540,
+      "sha256": "a3092907f5e2aff3b988356f38900dc3fd059a4ca58c9829897571ea7a814924",
+      "size_bytes": 5848,
+      "width_px": 960
+    }
+  ],
+  "bounds": {
+    "assets_returned": 2,
+    "assets_truncated": false,
+    "objects_returned": 15,
+    "objects_truncated": false,
+    "slides_returned": 5,
+    "slides_truncated": false
+  },
+  "compiler": {
+    "id": "vassilflow-native-pptx",
+    "version": 1
+  },
+  "intent": {
+    "schema": "vassilflow.office.presentation_intent.v1",
+    "sha256": "3c6ef806aed0969af3c089a4459ed7788c10508f27d2e8eeab99d1fbc5876c26",
+    "size_bytes": 2945
+  },
+  "output": {
+    "format": "pptx",
+    "sha256": "1d2d405a6acdfd251b3e72057e14d3646d128f3f02142e540cdac876e1b66551",
+    "size_bytes": 36419
+  },
+  "presentation": {
+    "aspect_ratio": "16:9",
+    "mapping_sha256": "adf5b617c089c0b14cdf0a49f7bd5bc11143ec1cddf7ab4dca5dd6fc9b56eda3",
+    "object_count": 15,
+    "slide_count": 5,
+    "slide_height_emu": 6858000,
+    "slide_width_emu": 12191999,
+    "title": "Native Generation Corpus"
+  },
+  "schema": "vassilflow.office.presentation_generation_receipt.v1",
+  "slides": [
+    {
+      "layout": "title",
+      "object_count": 3,
+      "objects": [
+        {
+          "authored_name": "VFGEN:opening:opening-accent",
+          "element_id": "opening-accent",
+          "element_kind": "shape",
+          "object_kind": "shape",
+          "object_path": "/slide[1]/shape[@id=3]",
+          "role": "accent_bar",
+          "slide_id": "opening"
+        },
+        {
+          "authored_name": "VFGEN:opening:opening-title",
+          "element_id": "opening-title",
+          "element_kind": "text",
+          "object_kind": "title",
+          "object_path": "/slide[1]/shape[@id=2]",
+          "role": "title",
+          "slide_id": "opening"
+        },
+        {
+          "authored_name": "VFGEN:opening:opening-subtitle",
+          "element_id": "opening-subtitle",
+          "element_kind": "text",
+          "object_kind": "text_box",
+          "object_path": "/slide[1]/shape[@id=4]",
+          "role": "subtitle",
+          "slide_id": "opening"
+        }
+      ],
+      "purpose": "Verify the native title layout",
+      "slide_id": "opening",
+      "slide_index": 1,
+      "slide_path": "/slide[1]"
+    },
+    {
+      "layout": "title_content",
+      "object_count": 3,
+      "objects": [
+        {
+          "authored_name": "VFGEN:summary:summary-title",
+          "element_id": "summary-title",
+          "element_kind": "text",
+          "object_kind": "title",
+          "object_path": "/slide[2]/shape[@id=2]",
+          "role": "title",
+          "slide_id": "summary"
+        },
+        {
+          "authored_name": "VFGEN:summary:summary-content",
+          "element_id": "summary-content",
+          "element_kind": "text",
+          "object_kind": "text_box",
+          "object_path": "/slide[2]/shape[@id=4]",
+          "role": "content",
+          "slide_id": "summary"
+        },
+        {
+          "authored_name": "VFGEN:summary:summary-mark",
+          "element_id": "summary-mark",
+          "element_kind": "shape",
+          "object_kind": "shape",
+          "object_path": "/slide[2]/shape[@id=3]",
+          "role": "top_right",
+          "slide_id": "summary"
+        }
+      ],
+      "purpose": "Verify native bullet text and decoration",
+      "slide_id": "summary",
+      "slide_index": 2,
+      "slide_path": "/slide[2]"
+    },
+    {
+      "layout": "two_column",
+      "object_count": 3,
+      "objects": [
+        {
+          "authored_name": "VFGEN:evidence:evidence-title",
+          "element_id": "evidence-title",
+          "element_kind": "text",
+          "object_kind": "title",
+          "object_path": "/slide[3]/shape[@id=2]",
+          "role": "title",
+          "slide_id": "evidence"
+        },
+        {
+          "authored_name": "VFGEN:evidence:evidence-image",
+          "element_id": "evidence-image",
+          "element_kind": "image",
+          "object_kind": "picture",
+          "object_path": "/slide[3]/picture[@id=3]",
+          "role": "left",
+          "slide_id": "evidence"
+        },
+        {
+          "authored_name": "VFGEN:evidence:evidence-notes",
+          "element_id": "evidence-notes",
+          "element_kind": "text",
+          "object_kind": "text_box",
+          "object_path": "/slide[3]/shape[@id=4]",
+          "role": "right",
+          "slide_id": "evidence"
+        }
+      ],
+      "purpose": "Verify cover imagery beside text",
+      "slide_id": "evidence",
+      "slide_index": 3,
+      "slide_path": "/slide[3]"
+    },
+    {
+      "layout": "picture_caption",
+      "object_count": 3,
+      "objects": [
+        {
+          "authored_name": "VFGEN:detail:detail-title",
+          "element_id": "detail-title",
+          "element_kind": "text",
+          "object_kind": "title",
+          "object_path": "/slide[4]/shape[@id=2]",
+          "role": "title",
+          "slide_id": "detail"
+        },
+        {
+          "authored_name": "VFGEN:detail:detail-image",
+          "element_id": "detail-image",
+          "element_kind": "image",
+          "object_kind": "picture",
+          "object_path": "/slide[4]/picture[@id=3]",
+          "role": "media",
+          "slide_id": "detail"
+        },
+        {
+          "authored_name": "VFGEN:detail:detail-caption",
+          "element_id": "detail-caption",
+          "element_kind": "text",
+          "object_kind": "text_box",
+          "object_path": "/slide[4]/shape[@id=4]",
+          "role": "caption",
+          "slide_id": "detail"
+        }
+      ],
+      "purpose": "Verify contained imagery and caption text",
+      "slide_id": "detail",
+      "slide_index": 4,
+      "slide_path": "/slide[4]"
+    },
+    {
+      "layout": "closing",
+      "object_count": 3,
+      "objects": [
+        {
+          "authored_name": "VFGEN:closing:closing-mark",
+          "element_id": "closing-mark",
+          "element_kind": "shape",
+          "object_kind": "shape",
+          "object_path": "/slide[5]/shape[@id=3]",
+          "role": "bottom_left",
+          "slide_id": "closing"
+        },
+        {
+          "authored_name": "VFGEN:closing:closing-title",
+          "element_id": "closing-title",
+          "element_kind": "text",
+          "object_kind": "title",
+          "object_path": "/slide[5]/shape[@id=2]",
+          "role": "title",
+          "slide_id": "closing"
+        },
+        {
+          "authored_name": "VFGEN:closing:closing-subtitle",
+          "element_id": "closing-subtitle",
+          "element_kind": "text",
+          "object_kind": "text_box",
+          "object_path": "/slide[5]/shape[@id=4]",
+          "role": "subtitle",
+          "slide_id": "closing"
+        }
+      ],
+      "purpose": "Verify the native closing layout",
+      "slide_id": "closing",
+      "slide_index": 5,
+      "slide_path": "/slide[5]"
+    }
+  ]
+}

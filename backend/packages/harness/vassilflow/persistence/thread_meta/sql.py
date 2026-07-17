@@ -185,6 +185,30 @@ class ThreadMetaRepository(ThreadMetaStore):
             await session.execute(update(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id).values(status=status, updated_at=datetime.now(UTC)))
             await session.commit()
 
+    async def update_assistant_id(
+        self,
+        thread_id: str,
+        assistant_id: str,
+        *,
+        user_id: str | None | _AutoSentinel = AUTO,
+    ) -> None:
+        resolved_user_id = resolve_user_id(
+            user_id,
+            method_name="ThreadMetaRepository.update_assistant_id",
+        )
+        async with self._sf() as session:
+            if not await self._check_ownership(session, thread_id, resolved_user_id):
+                return
+            await session.execute(
+                update(ThreadMetaRow)
+                .where(ThreadMetaRow.thread_id == thread_id)
+                .values(
+                    assistant_id=assistant_id,
+                    updated_at=datetime.now(UTC),
+                )
+            )
+            await session.commit()
+
     async def update_metadata(
         self,
         thread_id: str,

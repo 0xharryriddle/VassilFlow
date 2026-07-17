@@ -16,6 +16,7 @@ Usage:
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import mimetypes
@@ -33,11 +34,21 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
+from vassilflow.agents.agent_policy import (
+    filter_tools_by_agent_policy,
+    inject_agent_runtime_policy,
+    resolve_agent_runtime_policy,
+)
 from vassilflow.agents.lead_agent.agent import build_middlewares
 from vassilflow.agents.lead_agent.prompt import apply_prompt_template, get_enabled_skills_for_config
 from vassilflow.agents.thread_state import ThreadState
-from vassilflow.config.agents_config import AGENT_NAME_PATTERN
+from vassilflow.config.agent_contract import DEFAULT_ASSISTANT_ID, resolve_agent_identity
+from vassilflow.config.agents_config import load_agent_config, load_agent_soul
 from vassilflow.config.app_config import get_app_config, reload_app_config
+from vassilflow.config.builtin_agents import (
+    get_builtin_agent,
+    resolve_builtin_agent_config,
+)
 from vassilflow.config.env_aliases import env_value
 from vassilflow.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from vassilflow.config.paths import get_paths
@@ -158,15 +169,17 @@ class VassilFlowClient:
             reload_app_config(config_path)
         self._app_config = get_app_config()
 
-        if agent_name is not None and not AGENT_NAME_PATTERN.match(agent_name):
-            raise ValueError(f"Invalid agent name '{agent_name}'. Must match pattern: {AGENT_NAME_PATTERN.pattern}")
+        try:
+            identity = resolve_agent_identity(agent_name)
+        except ValueError as exc:
+            raise ValueError(f"Invalid agent name {agent_name!r}: {exc}") from exc
 
         self._checkpointer = checkpointer
         self._model_name = model_name
         self._thinking_enabled = thinking_enabled
         self._subagent_enabled = subagent_enabled
         self._plan_mode = plan_mode
-        self._agent_name = agent_name
+        self._agent_name = identity.agent_name
         self._available_skills = set(available_skills) if available_skills is not None else None
         self._middlewares = list(middlewares) if middlewares else []
         self._environment = environment
@@ -224,16 +237,32 @@ class VassilFlowClient:
     def _ensure_agent(self, config: RunnableConfig):
         """Create (or recreate) the agent when config-dependent params change."""
         cfg = config.get("configurable", {})
+        builtin_agent = get_builtin_agent(self._agent_name)
+        builtin_config = resolve_builtin_agent_config(self._agent_name, self._app_config) if builtin_agent is not None else None
+        agent_config = builtin_config or load_agent_config(self._agent_name)
+        agent_policy = resolve_agent_runtime_policy(
+            agent_config=agent_config,
+            builtin_agent=builtin_agent,
+            app_config=self._app_config,
+        )
+        inject_agent_runtime_policy(config, agent_policy)
+        available_skills = self._available_skills
+        if available_skills is None and agent_config is not None and agent_config.skills is not None:
+            available_skills = set(agent_config.skills)
         skills_config = getattr(self._app_config, "skills", None)
         skill_discovery_enabled = getattr(skills_config, "deferred_discovery", False) is True
         skills_container_path = str(getattr(skills_config, "container_path", "/mnt/skills") or "/mnt/skills")
+        soul_content = builtin_agent.soul if builtin_agent is not None else load_agent_soul(self._agent_name)
+        soul_digest = hashlib.sha256((soul_content or "").encode("utf-8")).hexdigest()
         key = (
-            cfg.get("model_name"),
+            cfg.get("model_name") or (agent_config.model if agent_config else None),
             cfg.get("thinking_enabled"),
             cfg.get("is_plan_mode"),
             cfg.get("subagent_enabled"),
             self._agent_name,
-            frozenset(self._available_skills) if self._available_skills is not None else None,
+            agent_config.model_dump_json() if agent_config is not None else None,
+            soul_digest,
+            frozenset(available_skills) if available_skills is not None else None,
             skill_discovery_enabled,
             skills_container_path,
         )
@@ -242,23 +271,43 @@ class VassilFlowClient:
             return
 
         thinking_enabled = cfg.get("thinking_enabled", True)
-        model_name = cfg.get("model_name")
+        model_name = cfg.get("model_name") or (agent_config.model if agent_config else None)
         subagent_enabled = cfg.get("subagent_enabled", False)
         max_concurrent_subagents = cfg.get("max_concurrent_subagents", 3)
 
-        tools = self._get_tools(model_name=model_name, subagent_enabled=subagent_enabled)
+        raw_tools = self._get_tools(
+            model_name=model_name,
+            subagent_enabled=subagent_enabled,
+            groups=agent_config.tool_groups if agent_config else None,
+        )
+        tools = filter_tools_by_agent_policy(raw_tools, agent_policy)
         final_tools, deferred_setup = assemble_deferred_tools(tools, enabled=self._app_config.tool_search.enabled)
         mcp_routing_hints_section = get_mcp_routing_hints_prompt_section(tools, deferred_names=deferred_setup.deferred_names)
         skills_for_discovery = get_enabled_skills_for_config(self._app_config) if skill_discovery_enabled else []
-        if self._available_skills is not None:
-            skills_for_discovery = [skill for skill in skills_for_discovery if any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in self._available_skills)]
+        if available_skills is not None:
+            skills_for_discovery = [skill for skill in skills_for_discovery if any(skill_reference_matches(skill.name, skill.category, allowed) for allowed in available_skills)]
         skill_setup = build_skill_search_setup(
             skills_for_discovery,
             enabled=skill_discovery_enabled,
             container_base_path=skills_container_path,
         )
-        if skill_setup.describe_skill_tool is not None:
+        if skill_setup.describe_skill_tool is not None and (agent_policy is None or agent_policy.allowed_tool_names is None or skill_setup.describe_skill_tool.name in agent_policy.allowed_tool_names):
             final_tools.append(skill_setup.describe_skill_tool)
+        metadata = config.setdefault("metadata", {})
+        metadata.update(
+            {
+                "assistant_id": self._agent_name or DEFAULT_ASSISTANT_ID,
+                "agent_origin": ("builtin" if builtin_agent is not None else "personal" if self._agent_name else "default"),
+                "tool_groups": agent_config.tool_groups if agent_config else None,
+                "allowed_tools": (sorted(agent_policy.allowed_tool_names) if agent_policy is not None and agent_policy.allowed_tool_names is not None else None),
+                "agent_data_access": (sorted(agent_policy.data_access) if agent_policy is not None and agent_policy.data_access is not None else None),
+                "available_skills": (sorted(available_skills) if available_skills is not None else None),
+            }
+        )
+        if self._agent_name is None:
+            metadata.pop("agent_name", None)
+        else:
+            metadata["agent_name"] = self._agent_name
         kwargs: dict[str, Any] = {
             # attach_tracing=False because ``stream()`` injects tracing
             # callbacks at the graph invocation root so a single embedded run
@@ -270,16 +319,17 @@ class VassilFlowClient:
                 config,
                 model_name=model_name,
                 agent_name=self._agent_name,
-                available_skills=self._available_skills,
+                available_skills=available_skills,
                 custom_middlewares=self._middlewares,
                 app_config=self._app_config,
                 deferred_setup=deferred_setup,
+                agent_policy=agent_policy,
             ),
             "system_prompt": apply_prompt_template(
                 subagent_enabled=subagent_enabled,
                 max_concurrent_subagents=max_concurrent_subagents,
                 agent_name=self._agent_name,
-                available_skills=self._available_skills,
+                available_skills=available_skills,
                 app_config=self._app_config,
                 deferred_names=deferred_setup.deferred_names,
                 mcp_routing_hints_section=mcp_routing_hints_section,
@@ -299,12 +349,22 @@ class VassilFlowClient:
         self._agent_config_key = key
         logger.info("Agent created: agent_name=%s, model=%s, thinking=%s", self._agent_name, model_name, thinking_enabled)
 
-    @staticmethod
-    def _get_tools(*, model_name: str | None, subagent_enabled: bool):
+    def _get_tools(
+        self,
+        *,
+        model_name: str | None,
+        subagent_enabled: bool,
+        groups: list[str] | None = None,
+    ):
         """Lazy import to avoid circular dependency at module level."""
         from vassilflow.tools import get_available_tools
 
-        return get_available_tools(model_name=model_name, subagent_enabled=subagent_enabled)
+        return get_available_tools(
+            model_name=model_name,
+            subagent_enabled=subagent_enabled,
+            groups=groups,
+            app_config=self._app_config,
+        )
 
     @staticmethod
     def _serialize_tool_calls(tool_calls) -> list[dict]:
@@ -647,7 +707,7 @@ class VassilFlowClient:
             config,
             thread_id=thread_id,
             user_id=get_effective_user_id(),
-            assistant_id=self._agent_name or "lead-agent",
+            assistant_id=self._agent_name or DEFAULT_ASSISTANT_ID,
             model_name=configurable.get("model_name") or self._model_name,
             environment=self._environment or env_value("VASSILFLOW_ENV") or os.environ.get("ENVIRONMENT"),
         )

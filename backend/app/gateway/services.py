@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import re
 from collections.abc import Mapping
 from types import SimpleNamespace
 from typing import Any
@@ -23,8 +22,26 @@ from langgraph.types import Command
 from app.gateway.auth_disabled import AUTH_SOURCE_INTERNAL
 from app.gateway.deps import get_checkpointer, get_local_provider, get_run_context, get_run_manager, get_stream_bridge
 from app.gateway.internal_auth import INTERNAL_SYSTEM_ROLE, get_trusted_internal_owner_user_id
+from app.gateway.office_selection import extract_office_selection_input
 from app.gateway.utils import sanitize_log_param
+from vassilflow.community.office.errors import (
+    OfficeOperationError,
+    OfficePackageError,
+    OfficeRevisionConflictError,
+    OfficeRevisionError,
+    OfficeRevisionIntegrityError,
+)
+from vassilflow.community.office.revisions import OfficeRevisionStore
+from vassilflow.community.office.selection import resolve_pptx_selection
+from vassilflow.config.agent_contract import (
+    DEFAULT_ASSISTANT_ID,
+    CanonicalAgentIdentity,
+    resolve_agent_identity,
+    validate_agent_identity_claim,
+)
 from vassilflow.config.app_config import get_app_config
+from vassilflow.config.builtin_agents import is_builtin_agent
+from vassilflow.config.paths import get_paths
 from vassilflow.runtime import (
     END_SENTINEL,
     HEARTBEAT_SENTINEL,
@@ -119,7 +136,7 @@ def normalize_input(raw_input: dict[str, Any] | None) -> dict[str, Any]:
     return raw_input
 
 
-_DEFAULT_ASSISTANT_ID = "lead_agent"
+_DEFAULT_ASSISTANT_ID = DEFAULT_ASSISTANT_ID
 _DEFAULT_RECURSION_LIMIT = 100
 _DEFAULT_MAX_RECURSION_LIMIT = 1000
 
@@ -139,8 +156,8 @@ _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset(
         "is_plan_mode",
         "subagent_enabled",
         "max_concurrent_subagents",
-        "agent_name",
         "is_bootstrap",
+        "bootstrap_agent_name",
     }
 )
 
@@ -153,6 +170,195 @@ _CONTEXT_INTERNAL_CALLER_KEYS: frozenset[str] = frozenset({"non_interactive"})
 # into ``config['configurable']``. ``configurable`` is persisted in checkpoints,
 # so request-scoped secrets such as ``github_token`` must stay out of it.
 _CONTEXT_RUNTIME_ONLY_KEYS: frozenset[str] = frozenset({"github_token", "disable_clarification"})
+_SERVER_OWNED_CONTEXT_KEYS: frozenset[str] = frozenset(
+    {
+        "agent_name",
+        "assistant_id",
+        "bootstrap_agent_name",
+        "agent_allowed_tools",
+        "agent_allow_acp_agents",
+        "agent_allow_mcp_tools",
+        "agent_data_access",
+        "agent_policy",
+        "office_selection",
+        "office_selection_request",
+    }
+)
+_SERVER_OWNED_METADATA_KEYS: frozenset[str] = frozenset(
+    {
+        "agent_name",
+        "assistant_id",
+        "agent_origin",
+        "tool_groups",
+        "allowed_tools",
+        "agent_data_access",
+        "agent_allow_acp_agents",
+        "agent_allow_mcp_tools",
+        "agent_policy_version",
+        "available_skills",
+    }
+)
+
+
+def sanitize_run_metadata(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Remove runtime-owned identity and policy claims from client metadata."""
+
+    if not metadata:
+        return {}
+    return {key: value for key, value in metadata.items() if not (isinstance(key, str) and (key.startswith("__") or key in _SERVER_OWNED_METADATA_KEYS))}
+
+
+def sanitize_thread_metadata(
+    metadata: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Build thread metadata without duplicating the canonical identity."""
+
+    return sanitize_run_metadata(metadata)
+
+
+def validate_run_agent_identity_claims(
+    identity: CanonicalAgentIdentity,
+    *,
+    request_config: Mapping[str, Any] | None = None,
+    request_context: Mapping[str, Any] | None = None,
+) -> None:
+    """Validate legacy identity hints without allowing them to route a run."""
+
+    if request_config:
+        for section_name in ("configurable", "context"):
+            section = request_config.get(section_name)
+            if isinstance(section, Mapping) and "agent_name" in section:
+                validate_agent_identity_claim(
+                    identity,
+                    section.get("agent_name"),
+                    source=f"config.{section_name}",
+                )
+    if request_context and "agent_name" in request_context:
+        validate_agent_identity_claim(
+            identity,
+            request_context.get("agent_name"),
+            source="context",
+        )
+
+
+def inject_canonical_agent_identity(
+    config: dict[str, Any],
+    identity: CanonicalAgentIdentity,
+) -> None:
+    """Stamp the server-owned identity into every runtime-visible container."""
+
+    for section_name in ("configurable", "context"):
+        section = config.get(section_name)
+        if section is None and identity.is_default:
+            continue
+        if section is None:
+            section = config.setdefault(section_name, {})
+        if not isinstance(section, dict):
+            raise ValueError(f"request config {section_name!r} must be an object")
+        if identity.agent_name is None:
+            section.pop("agent_name", None)
+        else:
+            section["agent_name"] = identity.agent_name
+
+    metadata = config.setdefault("metadata", {})
+    if not isinstance(metadata, dict):
+        raise ValueError("request config 'metadata' must be an object")
+    metadata["assistant_id"] = identity.assistant_id
+    if identity.agent_name is None:
+        metadata.pop("agent_name", None)
+    else:
+        metadata["agent_name"] = identity.agent_name
+
+
+async def enforce_thread_agent_identity(
+    thread_store: Any,
+    thread_id: str,
+    identity: CanonicalAgentIdentity,
+    *,
+    record: Mapping[str, Any] | None = None,
+) -> None:
+    """Keep one canonical Agent identity for the lifetime of a thread."""
+
+    if record is None:
+        record = await thread_store.get(thread_id)
+    if record is None:
+        return
+    try:
+        stored = resolve_agent_identity(record.get("assistant_id"))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="Thread has an invalid stored assistant identity",
+        ) from exc
+    if stored.assistant_id == identity.assistant_id:
+        return
+
+    # Before canonical assistant IDs, Agent chats were stored as lead_agent
+    # with the real name only in metadata. Upgrade that exact legacy shape.
+    legacy_name = (record.get("metadata") or {}).get("agent_name")
+    if stored.is_default and identity.agent_name is not None:
+        try:
+            legacy_identity = resolve_agent_identity(legacy_name)
+        except ValueError:
+            legacy_identity = None
+        if legacy_identity is not None and legacy_identity == identity:
+            await thread_store.update_assistant_id(thread_id, identity.assistant_id)
+            return
+
+    raise HTTPException(
+        status_code=409,
+        detail=(f"Thread is bound to assistant {stored.assistant_id!r}, not {identity.assistant_id!r}"),
+    )
+
+
+async def bind_thread_agent_identity(
+    thread_store: Any,
+    thread_id: str,
+    identity: CanonicalAgentIdentity,
+    *,
+    metadata: Mapping[str, Any] | None,
+    owner_user_id: str | None,
+) -> None:
+    """Atomically create or validate the thread's canonical Agent binding.
+
+    The caller must hold ``thread_context_lock(thread_id)``. Database uniqueness
+    remains the cross-worker arbiter; when another worker wins creation, the
+    winning row is re-read and validated before this run can proceed.
+    """
+
+    existing = await thread_store.get(thread_id)
+    if existing is None and owner_user_id:
+        unscoped = await thread_store.get(thread_id, user_id=None)
+        if unscoped is not None:
+            if unscoped.get("user_id") != owner_user_id:
+                await thread_store.update_owner(
+                    thread_id,
+                    owner_user_id,
+                    user_id=None,
+                )
+            existing = await thread_store.get(thread_id)
+
+    if existing is None:
+        try:
+            await thread_store.create(
+                thread_id,
+                assistant_id=identity.assistant_id,
+                metadata=sanitize_thread_metadata(metadata),
+            )
+            return
+        except Exception:
+            # A different worker may have inserted the globally unique thread
+            # between our read and create. Only continue if its binding agrees.
+            existing = await thread_store.get(thread_id)
+            if existing is None:
+                raise
+
+    await enforce_thread_agent_identity(
+        thread_store,
+        thread_id,
+        identity,
+        record=existing,
+    )
 
 
 def strip_internal_context_keys(config: dict[str, Any]) -> None:
@@ -163,6 +369,96 @@ def strip_internal_context_keys(config: dict[str, Any]) -> None:
         if isinstance(value, dict):
             for key in _CONTEXT_INTERNAL_CALLER_KEYS:
                 value.pop(key, None)
+
+
+def strip_untrusted_office_context_keys(config: dict[str, Any]) -> None:
+    """Remove stale Office selections without erasing canonical Agent context."""
+
+    for section in ("context", "configurable"):
+        value = config.get(section)
+        if isinstance(value, dict):
+            for key in ("office_selection", "office_selection_request"):
+                value.pop(key, None)
+
+
+def inject_resolved_office_selection(
+    config: dict[str, Any],
+    resolved_selection: dict[str, Any] | None,
+) -> None:
+    """Stamp a server-resolved Office selection into request-scoped runtime context."""
+
+    strip_untrusted_office_context_keys(config)
+    if resolved_selection is None:
+        return
+    runtime_context = config.setdefault("context", {})
+    if not isinstance(runtime_context, dict):
+        raise HTTPException(status_code=400, detail="request config context must be an object")
+    runtime_context["office_selection"] = resolved_selection
+
+
+async def resolve_office_selection_for_run(
+    selection: Any,
+    *,
+    assistant_id: str | None,
+    request: Request,
+    owner_user_id: str | None,
+) -> dict[str, Any] | None:
+    """Resolve a client selection against exact, user-scoped canonical bytes."""
+
+    if selection is None:
+        return None
+    identity = resolve_agent_identity(assistant_id)
+    if identity.agent_name != "office":
+        raise HTTPException(
+            status_code=400,
+            detail="Office selections can only be used with the Office agent",
+        )
+    user = getattr(getattr(request, "state", None), "user", None)
+    user_id = owner_user_id or (str(user.id) if user is not None and getattr(user, "id", None) is not None else "default")
+    values = selection.model_dump() if hasattr(selection, "model_dump") else dict(selection)
+
+    def resolve() -> dict[str, Any]:
+        store = OfficeRevisionStore(get_paths().user_office_dir(user_id))
+        project = store.load_project(values["project_id"])
+        if project["current_revision_id"] != values["revision_id"]:
+            raise OfficeRevisionConflictError("Office selection must target the current project revision")
+        revision, artifact = store.read_revision_artifact(
+            values["project_id"],
+            values["revision_id"],
+        )
+        if revision["format"] != "pptx" or project["format"] != "pptx":
+            raise OfficeOperationError("Office object selection requires a PPTX project")
+        resolved = resolve_pptx_selection(
+            artifact,
+            slide_index=values["slide_index"],
+            source_sha256=values["source_sha256"],
+            object_path=values["object_path"],
+            object_fingerprint=values["object_fingerprint"],
+        )
+        return {
+            **resolved,
+            "project_id": values["project_id"],
+            "revision_id": values["revision_id"],
+            "artifact_size_bytes": revision["artifact"]["size_bytes"],
+        }
+
+    try:
+        return await asyncio.to_thread(resolve)
+    except OfficeRevisionConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except OfficeRevisionIntegrityError as exc:
+        logger.error("Office run selection failed revision integrity checks", exc_info=True)
+        raise HTTPException(
+            status_code=409,
+            detail="Office selection failed revision integrity checks.",
+        ) from exc
+    except OfficeRevisionError as exc:
+        raise HTTPException(status_code=404, detail="Office selection was not found.") from exc
+    except (OfficeOperationError, OfficePackageError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except OSError as exc:
+        logger.error("Office run selection could not be read", exc_info=True)
+        raise HTTPException(status_code=500, detail="Office selection could not be read.") from exc
 
 
 def merge_run_context_overrides(config: dict[str, Any], context: Mapping[str, Any] | None, *, internal: bool = False) -> None:
@@ -188,10 +484,30 @@ def merge_run_context_overrides(config: dict[str, Any], context: Mapping[str, An
     keys = _CONTEXT_CONFIGURABLE_KEYS | _CONTEXT_INTERNAL_CALLER_KEYS if internal else _CONTEXT_CONFIGURABLE_KEYS
     for key in keys:
         if key in context:
+            value = context[key]
+            if key == "bootstrap_agent_name":
+                bootstrap_enabled = (
+                    context.get("is_bootstrap") is True or (isinstance(configurable, Mapping) and configurable.get("is_bootstrap") is True) or (isinstance(runtime_context, Mapping) and runtime_context.get("is_bootstrap") is True)
+                )
+                if not bootstrap_enabled:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="bootstrap_agent_name requires bootstrap mode",
+                    )
+                try:
+                    target_identity = resolve_agent_identity(value)
+                except ValueError as exc:
+                    raise HTTPException(status_code=400, detail=str(exc)) from exc
+                if target_identity.is_default or is_builtin_agent(target_identity.agent_name):
+                    raise HTTPException(
+                        status_code=400,
+                        detail="bootstrap_agent_name must identify a new personal Agent",
+                    )
+                value = target_identity.agent_name
             if isinstance(configurable, dict):
-                configurable.setdefault(key, context[key])
+                configurable.setdefault(key, value)
             if isinstance(runtime_context, dict):
-                runtime_context.setdefault(key, context[key])
+                runtime_context.setdefault(key, value)
     for key in _CONTEXT_RUNTIME_ONLY_KEYS:
         if key in context and isinstance(runtime_context, dict):
             runtime_context.setdefault(key, context[key])
@@ -302,9 +618,9 @@ def build_run_config(
     both ``configurable`` and ``context`` so it is visible to legacy
     configurable readers and to LangGraph ``ToolRuntime.context`` consumers
     (e.g. the ``setup_agent`` tool, which since LangGraph >=1.1.9 no longer
-    falls back from ``context`` to ``configurable``).  An explicit
-    ``agent_name`` in either container takes precedence over the value
-    derived from ``assistant_id``.  ``make_lead_agent`` reads this key to
+    falls back from ``context`` to ``configurable``). Client-supplied
+    ``agent_name`` hints are accepted only when they match the canonical
+    identity derived from ``assistant_id``. ``make_lead_agent`` reads this key to
     load the matching ``agents/<name>/SOUL.md`` and per-agent config —
     without it the agent silently runs as the default lead agent.
 
@@ -312,6 +628,9 @@ def build_run_config(
     the LangGraph Platform-compatible HTTP API and the IM channel path behave
     identically.
     """
+    identity = resolve_agent_identity(assistant_id)
+    validate_run_agent_identity_claims(identity, request_config=request_config)
+
     # Lead-agent recursion budget (LangGraph super-steps for the lead graph
     # only). Independent of subagent depth: a `task()` dispatch runs the whole
     # subagent inside ONE lead tools-node step, and subagents enforce their own
@@ -334,11 +653,7 @@ def build_run_config(
             if context_value is None:
                 context = {}
             elif isinstance(context_value, Mapping):
-                context = {
-                    key: value
-                    for key, value in context_value.items()
-                    if not (isinstance(key, str) and key.startswith("__"))
-                }
+                context = {key: value for key, value in context_value.items() if not (isinstance(key, str) and (key.startswith("__") or key in _SERVER_OWNED_CONTEXT_KEYS))}
             else:
                 raise ValueError("request config 'context' must be a mapping or null.")
             context["thread_id"] = thread_id
@@ -346,11 +661,21 @@ def build_run_config(
             config["configurable"] = {"thread_id": thread_id}
         else:
             configurable = {"thread_id": thread_id}
-            configurable.update(request_config.get("configurable", {}))
+            requested_configurable = request_config.get("configurable", {})
+            if requested_configurable is None:
+                requested_configurable = {}
+            if not isinstance(requested_configurable, Mapping):
+                raise ValueError("request config 'configurable' must be a mapping or null.")
+            configurable.update({key: value for key, value in requested_configurable.items() if key != "thread_id" and key not in _SERVER_OWNED_CONTEXT_KEYS})
             config["configurable"] = configurable
         for k, v in request_config.items():
-            if k not in ("configurable", "context"):
+            if k not in ("configurable", "context", "metadata"):
                 config[k] = v
+        request_metadata = request_config.get("metadata")
+        if request_metadata is not None:
+            if not isinstance(request_metadata, Mapping):
+                raise ValueError("request config 'metadata' must be a mapping or null.")
+            config["metadata"] = sanitize_run_metadata(request_metadata)
         if "recursion_limit" in request_config:
             max_limit = _resolve_max_recursion_limit()
             clamped = _clamp_recursion_limit(request_config["recursion_limit"], max_limit)
@@ -366,27 +691,12 @@ def build_run_config(
     else:
         config["configurable"] = {"thread_id": thread_id}
 
-    # Inject custom agent name when the caller specified a non-default assistant.
-    # Honour an explicit agent_name in either runtime options container.
-    if assistant_id and assistant_id != _DEFAULT_ASSISTANT_ID:
-        normalized = assistant_id.strip().lower().replace("_", "-")
-        if not normalized or not re.fullmatch(r"[a-z0-9-]+", normalized):
-            raise ValueError(f"Invalid assistant_id {assistant_id!r}: must contain only letters, digits, and hyphens after normalization.")
-        configurable = config.setdefault("configurable", {})
-        runtime_context = config.setdefault("context", {})
-        explicit_agent_name: str | None = None
-        if isinstance(configurable, dict) and isinstance(configurable.get("agent_name"), str):
-            explicit_agent_name = configurable["agent_name"]
-        elif isinstance(runtime_context, dict) and isinstance(runtime_context.get("agent_name"), str):
-            explicit_agent_name = runtime_context["agent_name"]
-        effective_agent_name = explicit_agent_name or normalized
-        if isinstance(configurable, dict):
-            configurable["agent_name"] = effective_agent_name
-        if isinstance(runtime_context, dict):
-            runtime_context["agent_name"] = effective_agent_name
-        config.setdefault("run_name", resolve_root_run_name(config, normalized))
-    if metadata:
-        config.setdefault("metadata", {}).update(metadata)
+    if not identity.is_default:
+        config.setdefault("run_name", resolve_root_run_name(config, identity.agent_name))
+    sanitized_metadata = sanitize_run_metadata(metadata)
+    if sanitized_metadata:
+        config.setdefault("metadata", {}).update(sanitized_metadata)
+    inject_canonical_agent_identity(config, identity)
     return config
 
 
@@ -475,6 +785,16 @@ async def start_run(
     run_mgr = get_run_manager(request)
     run_ctx = get_run_context(request)
 
+    try:
+        identity = resolve_agent_identity(body.assistant_id)
+        validate_run_agent_identity_claims(
+            identity,
+            request_config=getattr(body, "config", None),
+            request_context=getattr(body, "context", None),
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     disconnect = DisconnectMode.cancel if body.on_disconnect == "cancel" else DisconnectMode.continue_
 
     body_context = getattr(body, "context", None) or {}
@@ -520,66 +840,84 @@ async def start_run(
 
     owner_context_token = set_current_user(SimpleNamespace(id=owner_user_id)) if owner_user_id else None
     try:
-        try:
-            async with thread_context_lock(thread_id):
-                record = await run_mgr.create_or_reject(
-                    thread_id,
-                    body.assistant_id,
-                    on_disconnect=disconnect,
-                    metadata=body.metadata or {},
-                    kwargs={"input": body.input, "config": redact_config_secrets(body.config)},
-                    multitask_strategy=body.multitask_strategy,
-                    model_name=model_name,
-                    user_id=owner_user_id,
-                )
-        except ConflictError as exc:
-            raise HTTPException(status_code=409, detail=str(exc)) from exc
-        except UnsupportedStrategyError as exc:
-            raise HTTPException(status_code=501, detail=str(exc)) from exc
-
-        # Upsert thread metadata so the thread appears in /threads/search,
-        # even for threads that were never explicitly created via POST /threads
-        # (e.g. stateless runs).
-        try:
-            existing = await run_ctx.thread_store.get(thread_id)
-            if existing is None and owner_user_id:
-                unscoped_existing = await run_ctx.thread_store.get(thread_id, user_id=None)
-                if unscoped_existing is not None:
-                    if unscoped_existing.get("user_id") != owner_user_id:
-                        await run_ctx.thread_store.update_owner(thread_id, owner_user_id, user_id=None)
-                    existing = await run_ctx.thread_store.get(thread_id)
-            if existing is None:
-                await run_ctx.thread_store.create(
-                    thread_id,
-                    assistant_id=body.assistant_id,
-                    metadata=body.metadata,
-                )
-            else:
-                await run_ctx.thread_store.update_status(thread_id, "running")
-        except Exception:
-            logger.warning("Failed to upsert thread_meta for %s (non-fatal)", sanitize_log_param(thread_id))
-
-        agent_factory = resolve_agent_factory(body.assistant_id)
+        resolved_office_selection = await resolve_office_selection_for_run(
+            extract_office_selection_input(body),
+            assistant_id=identity.assistant_id,
+            request=request,
+            owner_user_id=owner_user_id,
+        )
+        agent_factory = resolve_agent_factory(identity.assistant_id)
         command = getattr(body, "command", None)
         if command and command.get("resume") is not None:
             graph_input = Command(resume=command["resume"])
         else:
             graph_input = normalize_input(body.input)
-        config = build_run_config(thread_id, body.config, body.metadata, assistant_id=body.assistant_id)
-        await apply_checkpoint_to_run_config(config, body=body, thread_id=thread_id, request=request)
+        try:
+            config = build_run_config(
+                thread_id,
+                body.config,
+                body.metadata,
+                assistant_id=identity.assistant_id,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        await apply_checkpoint_to_run_config(
+            config,
+            body=body,
+            thread_id=thread_id,
+            request=request,
+        )
 
-        # Merge VassilFlow-specific context overrides into both ``configurable`` and ``context``.
-        # The ``context`` field is a custom extension for the langgraph-compat layer
-        # that carries agent configuration (model_name, thinking_enabled, etc.).
-        # Only agent-relevant keys are forwarded; unknown keys (e.g. thread_id) are ignored.
         is_internal_caller = getattr(getattr(request, "state", None), "auth_source", None) == AUTH_SOURCE_INTERNAL
-        merge_run_context_overrides(config, getattr(body, "context", None), internal=is_internal_caller)
+        merge_run_context_overrides(
+            config,
+            getattr(body, "context", None),
+            internal=is_internal_caller,
+        )
         if not is_internal_caller:
             strip_internal_context_keys(config)
-        internal_owner_user = await resolve_trusted_internal_owner_for_attribution(request, owner_user_id)
-        inject_authenticated_user_context(config, request, internal_owner_user=internal_owner_user)
-
+        internal_owner_user = await resolve_trusted_internal_owner_for_attribution(
+            request,
+            owner_user_id,
+        )
+        inject_authenticated_user_context(
+            config,
+            request,
+            internal_owner_user=internal_owner_user,
+        )
+        inject_resolved_office_selection(config, resolved_office_selection)
         stream_modes = normalize_stream_modes(body.stream_mode)
+
+        try:
+            async with thread_context_lock(thread_id):
+                await bind_thread_agent_identity(
+                    run_ctx.thread_store,
+                    thread_id,
+                    identity,
+                    metadata=body.metadata,
+                    owner_user_id=owner_user_id,
+                )
+                record = await run_mgr.create_or_reject(
+                    thread_id,
+                    identity.assistant_id,
+                    on_disconnect=disconnect,
+                    metadata=sanitize_run_metadata(body.metadata),
+                    kwargs={"input": body.input, "config": redact_config_secrets(body.config)},
+                    multitask_strategy=body.multitask_strategy,
+                    model_name=model_name,
+                    user_id=owner_user_id,
+                )
+                try:
+                    await run_ctx.thread_store.update_status(thread_id, "running")
+                except Exception:
+                    logger.warning(
+                        "Failed to mark thread_meta running for %s (non-fatal)",
+                        sanitize_log_param(thread_id),
+                    )
+        except ConflictError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except UnsupportedStrategyError as exc:
+            raise HTTPException(status_code=501, detail=str(exc)) from exc
 
         task = asyncio.create_task(
             run_agent(

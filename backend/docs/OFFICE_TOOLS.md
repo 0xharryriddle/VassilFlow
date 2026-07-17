@@ -13,9 +13,9 @@ make config-upgrade
 make doctor
 ```
 
-`office_inspect` belongs to `file:read`. `office_edit` and `office_render`
-belong to `file:write`, so custom agents that omit the write group cannot
-modify documents or create visual-QA artifacts.
+`office_inspect` belongs to `file:read`. `office_generate`, `office_edit`, and
+`office_render` belong to `file:write`, so custom agents that omit the write
+group cannot create or modify documents or create visual-QA artifacts.
 
 Docker deployments start the isolated Office renderer automatically. For a
 local backend, start only the renderer sidecar when visual QA is needed:
@@ -77,7 +77,78 @@ readiness gate remains satisfied. Corpus tests exercise writes on every verified
 including same-font metadata preservation, exact semantic readback,
 touched-part isolation, native reopen, and rendered visual QA.
 
-## Supported workflow
+New native generation is independently gated by
+`tests/fixtures/office/pptx/generation`. Its deterministic seed covers all five
+semantic layouts, stable compiler-authored object names, editable title and
+text objects, simple shapes, embedded images, accessible descriptions, and
+both `cover` and `contain` fitting. Microsoft PowerPoint 16 and WPS
+Presentation 12 must preserve that semantic contract and support a subsequent
+exact-path VassilFlow edit before the generation lane is considered ready.
+
+Read-only grouped geometry is gated separately by
+`tests/fixtures/office/pptx/geometry`. Its deterministic three-slide seed
+covers nested child coordinate spaces, anisotropic scaling, rotation, flips,
+non-zero child offsets, effective PPI through groups, fully outside frames,
+and materially clipped picture frames. Microsoft PowerPoint 16 and WPS
+Presentation 12 must preserve the exact paths and measurements. The corpus also
+stores source-bound static preflight evidence plus hashes from a full rendered
+visual review; the stored hashes do not replace review when a fixture changes.
+
+## New editable PPTX workflow
+
+Use `office_generate` for a new presentation. It accepts only versioned
+semantic intent: stable slide and element IDs, one of five compiler-owned
+layouts, bounded theme tokens, text or bullets, optional embedded images with
+alt text, and simple decorations. Coordinates, raw OOXML, relationship IDs,
+and arbitrary object formatting are not part of this input contract.
+
+The supported layouts are `title`, `title_content`, `two_column`,
+`picture_caption`, and `closing`. Every slide requires a non-bulleted title.
+Image sources must be bounded PNG or baseline JPEG files under
+`/mnt/user-data`; network URLs, data URIs, and inline base64 are rejected.
+
+```json
+{
+  "intent": {
+    "schema": "vassilflow.office.presentation_intent.v1",
+    "title": "Quarterly Review",
+    "aspect_ratio": "16:9",
+    "slides": [
+      {
+        "id": "opening",
+        "purpose": "Open the review",
+        "layout": "title",
+        "elements": [
+          {
+            "kind": "text",
+            "id": "opening-title",
+            "role": "title",
+            "text": "Quarterly Review"
+          },
+          {
+            "kind": "text",
+            "id": "opening-subtitle",
+            "role": "subtitle",
+            "text": "Decisions, evidence, and next actions"
+          }
+        ]
+      }
+    ]
+  },
+  "output_path": "/mnt/user-data/outputs/quarterly-review.pptx",
+  "overwrite_output": false
+}
+```
+
+A successful call creates a trusted Office Project and an initial generation
+revision. Preserve the returned project and revision IDs, artifact SHA-256,
+intent hash, object-path mapping, validation, and complete preflight evidence.
+Then inspect the exact output, render every slide window, inspect every rendered
+PNG with `view_image` in a separate model step, and use `present_files` only
+after visual review passes. Package validation and preflight do not replace
+visual QA.
+
+## Existing document workflow
 
 1. Upload or place a `.docx`, `.xlsx`, or `.pptx` file under `/mnt/user-data`.
 2. Call `office_inspect`. For DOCX, read a bounded paragraph view and set
@@ -91,7 +162,15 @@ touched-part isolation, native reopen, and rendered visual QA.
    comments, or `include_pptx_dynamics: true` for authored animation effects.
    Set `include_pptx_media_gc_plan: true` only when a package-wide,
    non-destructive image cleanup dry-run is needed; this analysis is independent
-   of the selected slide window and object selector.
+   of the selected slide window and object selector. For package-wide static
+   quality evidence, call `office_inspect` with
+   `analysis_mode: "pptx_quality_preflight"` and no bounded-inspection options.
+   The report is source-hash-bound and read-only. It resolves bounded affine
+   rectangle frames through nested groups, measures supported picture PPI after
+   source crop and destination `fillRect`, and reports fully outside object
+   frames plus materially clipped picture frames with polygon evidence. These
+   are frame-level review findings, not proof about rendered text, custom
+   geometry, effects, overlap, or visual correctness.
 3. Call `office_edit` with format-specific typed operations. PPTX accepts
    paragraph-local literal replacement on exact authored-ID shape paths and
    direct formatting on exact shape, connector-line, run, paragraph, or slide
@@ -110,6 +189,35 @@ touched-part isolation, native reopen, and rendered visual QA.
    cannot inspect the pages. Present the final Office document with that explicit
    warning and do not claim visual QA passed.
 9. Call `present_files` for the final Office document, not the internal QA images.
+
+## Selected PPTX project object workflow
+
+The Office Project preview can start a narrower edit for one supported object in
+the current PPTX revision:
+
+1. Open the current project preview and select an object from the slide overlay
+   or accessible object list. The browser receives only a read-only surface
+   derived from the exact canonical artifact.
+2. Choose **Ask Office Agent**. The chat route carries project ID, revision ID,
+   source SHA-256, slide index, authored-ID object path, and object fingerprint.
+   It does not put object text or a host filesystem path in the URL.
+3. Describe the change. The Gateway resolves the typed identity again for the
+   authenticated user, current revision, and Office Agent before the run starts.
+   Client-authored `office_selection` runtime context is discarded.
+4. The agent proposes `office_edit` with `source_path: null`. The runtime supplies
+   the canonical source, enforces the selected object's operation allowlist, and
+   rejects every operation target outside the selected object path.
+5. Review the exact JSON proposal and choose **Approve and apply** or **Cancel**.
+   The first turn cannot mutate the file. Approval is valid only for the
+   SHA-256-bound selection and complete tool arguments shown in that review;
+   changed arguments require another review.
+6. On approval, `office_edit` verifies the semantic receipt is complete and that
+   every receipt path remains inside the selected object before publishing the
+   output and new revision.
+
+This flow currently supports one object in the current PPTX revision. Historical
+revisions are read-only, and DOCX selection, XLSX range selection, multi-object
+transactions, and slide-background selection are not part of this contract.
 
 Example edit operation:
 
@@ -886,8 +994,16 @@ sandbox path as authoritative in that case.
 
 ## Current scope
 
-The current implementation supports literal replacement and typed formatting
-in main-body DOCX text, including paragraphs inside table cells. XLSX supports
+The current implementation supports deterministic creation of new editable
+native PPTX files through versioned semantic intent. Generated presentations
+contain native title placeholders, text boxes, embedded pictures, and simple
+shapes, and their initial Office Project revision stores a source-bound
+generation receipt and static preflight evidence. PPTX quality preflight now
+resolves bounded affine object frames through nested groups, measures supported
+picture PPI after source crop and destination fill rectangles, and returns
+reproducible polygon/slide intersection evidence without claiming visual QA. It
+also supports literal replacement and typed formatting in main-body DOCX text,
+including paragraphs inside table cells. XLSX supports
 bounded workbook/sheet/range inspection and direct cell formatting over
 existing declared cells. PPTX supports bounded, relationship-aware inspection
 with exact typed object selection, structured read-only interactions, optional
@@ -912,9 +1028,9 @@ remain outside the edit contract. XLSX value/formula writes, formula
 evaluation, cell creation, rich-text mutation, borders, conditional-format
 mutation, charts, pivots, slicers, macros, and external links are deferred.
 Regex/CSS-like selector grammars, theme mutation, raw XML mutation, and all
-broader PPTX writes remain outside the current contract. Slide
-creation/reordering, custom or adjusted geometry, z-order or connector-routing
-changes, non-circle path gradients, pattern or image line fills,
+broader PPTX writes remain outside the current contract. Arbitrary slide
+creation/reordering through `office_edit`, custom or adjusted geometry, z-order
+or connector-routing changes, non-circle path gradients, pattern or image line fills,
 custom-dash, effect/3D changes, picture creation/removal/crop/framing/effect
 mutation, inherited/theme/master/layout backgrounds, text
 creation/reconstruction, table or table-cell picture replacement, charts,

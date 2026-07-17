@@ -3,11 +3,14 @@
 import logging
 import os
 import shutil
+from collections.abc import Mapping
 from typing import Annotated, Any
 
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool, InjectedToolArg, StructuredTool
 from pydantic import BaseModel, Field
+
+from vassilflow.config.agent_contract import deserialize_agent_runtime_policy
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +18,21 @@ logger = logging.getLogger(__name__)
 class _InvokeACPAgentInput(BaseModel):
     agent: str = Field(description="Name of the ACP agent to invoke")
     prompt: str = Field(description="The concise task prompt to send to the agent")
+
+
+def _acp_policy_error(config: RunnableConfig | None) -> str | None:
+    """Re-check delegated-process permission at the execution boundary."""
+
+    metadata = (config or {}).get("metadata")
+    policy = deserialize_agent_runtime_policy(metadata if isinstance(metadata, Mapping) else None)
+    if policy is None:
+        return None
+    if not policy.allow_acp_agents:
+        return "Error: This Agent is not permitted to invoke ACP agents."
+    allowed_tools = policy.allowed_tool_names
+    if allowed_tools is not None and "invoke_acp_agent" not in allowed_tools:
+        return "Error: Tool 'invoke_acp_agent' is not permitted by this Agent's runtime policy."
+    return None
 
 
 def _get_work_dir(thread_id: str | None) -> str:
@@ -163,6 +181,8 @@ def build_invoke_acp_agent_tool(agents: dict) -> BaseTool:
     _agents = dict(agents)
 
     async def _invoke(agent: str, prompt: str, config: Annotated[RunnableConfig, InjectedToolArg] = None) -> str:
+        if policy_error := _acp_policy_error(config):
+            return policy_error
         logger.info("Invoking ACP agent %s (prompt length: %d)", agent, len(prompt))
         logger.debug("Invoking ACP agent %s with prompt: %.200s%s", agent, prompt, "..." if len(prompt) > 200 else "")
         if agent not in _agents:

@@ -24,6 +24,8 @@ from app.gateway.routers import (
     mcp,
     memory,
     models,
+    office_projects,
+    office_templates,
     runs,
     skills,
     suggestions,
@@ -311,6 +313,10 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
                 "description": "Access and download thread artifacts and generated files",
             },
             {
+                "name": "office-templates",
+                "description": "Manage trusted personal Office template versions and evidence",
+            },
+            {
                 "name": "uploads",
                 "description": "Upload and manage user files for threads",
             },
@@ -392,6 +398,12 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
 
     # Agents API is mounted at /api/agents
     app.include_router(agents.router)
+
+    # Office Project API is mounted at /api/office/projects
+    app.include_router(office_projects.router)
+
+    # Office Template API is mounted at /api/office/templates
+    app.include_router(office_templates.router)
 
     # Suggestions API is mounted at /api/threads/{thread_id}/suggestions
     app.include_router(suggestions.router)

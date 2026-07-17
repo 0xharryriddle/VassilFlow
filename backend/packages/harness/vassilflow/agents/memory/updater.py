@@ -9,6 +9,7 @@ import logging
 import math
 import re
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -538,13 +539,18 @@ class MemoryUpdater:
         thread_id: str | None,
         agent_name: str | None,
         user_id: str | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
     ) -> bool:
         """Parse the model response, apply updates, and persist memory."""
+        if is_cancelled is not None and is_cancelled():
+            return False
         update_data = _parse_memory_update_response(response_content)
         # Deep-copy before in-place mutation so a subsequent save() failure
         # cannot corrupt the still-cached original object reference.
         updated_memory = self._apply_updates(copy.deepcopy(current_memory), update_data, thread_id)
         updated_memory = _strip_upload_mentions_from_memory(updated_memory)
+        if is_cancelled is not None and is_cancelled():
+            return False
         return get_memory_storage().save(updated_memory, agent_name, user_id=user_id)
 
     async def aupdate_memory(
@@ -555,6 +561,7 @@ class MemoryUpdater:
         correction_detected: bool = False,
         reinforcement_detected: bool = False,
         user_id: str | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
     ) -> bool:
         """Update memory asynchronously by delegating to the sync path.
 
@@ -572,6 +579,7 @@ class MemoryUpdater:
             correction_detected=correction_detected,
             reinforcement_detected=reinforcement_detected,
             user_id=user_id,
+            is_cancelled=is_cancelled,
         )
 
     def _do_update_memory_sync(
@@ -582,6 +590,7 @@ class MemoryUpdater:
         correction_detected: bool = False,
         reinforcement_detected: bool = False,
         user_id: str | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
     ) -> bool:
         """Pure-sync memory update using ``model.invoke()``.
 
@@ -592,6 +601,8 @@ class MemoryUpdater:
         possible.
         """
         try:
+            if is_cancelled is not None and is_cancelled():
+                return False
             prepared = self._prepare_update_prompt(
                 messages=messages,
                 agent_name=agent_name,
@@ -603,6 +614,8 @@ class MemoryUpdater:
                 return False
 
             current_memory, prompt = prepared
+            if is_cancelled is not None and is_cancelled():
+                return False
             model = self._get_model()
             response = model.invoke(prompt, config={"run_name": "memory_agent"})
             return self._finalize_update(
@@ -611,6 +624,7 @@ class MemoryUpdater:
                 thread_id=thread_id,
                 agent_name=agent_name,
                 user_id=user_id,
+                is_cancelled=is_cancelled,
             )
         except json.JSONDecodeError as e:
             logger.warning("Failed to parse LLM response for memory update: %s", e)
@@ -627,6 +641,7 @@ class MemoryUpdater:
         correction_detected: bool = False,
         reinforcement_detected: bool = False,
         user_id: str | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
     ) -> bool:
         """Synchronously update memory using the sync LLM path.
 
@@ -646,6 +661,7 @@ class MemoryUpdater:
             correction_detected: Whether recent turns include an explicit correction signal.
             reinforcement_detected: Whether recent turns include a positive reinforcement signal.
             user_id: If provided, scopes memory to a specific user.
+            is_cancelled: Optional callback checked before model work and persistence.
 
         Returns:
             True if update was successful, False otherwise.
@@ -665,6 +681,7 @@ class MemoryUpdater:
                     correction_detected=correction_detected,
                     reinforcement_detected=reinforcement_detected,
                     user_id=user_id,
+                    is_cancelled=is_cancelled,
                 )
                 return future.result()
             except Exception:
@@ -678,6 +695,7 @@ class MemoryUpdater:
             correction_detected=correction_detected,
             reinforcement_detected=reinforcement_detected,
             user_id=user_id,
+            is_cancelled=is_cancelled,
         )
 
     def _apply_updates(

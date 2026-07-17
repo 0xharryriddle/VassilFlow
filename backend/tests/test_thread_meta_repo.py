@@ -109,6 +109,13 @@ class TestThreadMetaRepository:
         assert record["status"] == "busy"
 
     @pytest.mark.anyio
+    async def test_update_assistant_id(self, repo):
+        await repo.create("t1", assistant_id="lead_agent")
+        await repo.update_assistant_id("t1", "office")
+        record = await repo.get("t1")
+        assert record["assistant_id"] == "office"
+
+    @pytest.mark.anyio
     async def test_delete(self, repo):
         await repo.create("t1")
         await repo.delete("t1")

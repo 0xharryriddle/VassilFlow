@@ -267,6 +267,7 @@ export function InputBox({
   autoFocus,
   status = "ready",
   context,
+  contextHeader,
   extraHeader,
   isWelcomeMode,
   threadId,
@@ -287,6 +288,7 @@ export function InputBox({
     mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
     reasoning_effort?: "minimal" | "low" | "medium" | "high";
   };
+  contextHeader?: React.ReactNode;
   extraHeader?: React.ReactNode;
   /**
    * Whether to render the input in welcome layout (vertically centered,
@@ -326,6 +328,17 @@ export function InputBox({
   const compactAbortControllerRef = useRef<AbortController | null>(null);
   const promptHistoryIndexRef = useRef<number | null>(null);
   const promptHistoryDraftRef = useRef("");
+  const initialValueAppliedRef = useRef(false);
+
+  useEffect(() => {
+    if (initialValueAppliedRef.current || initialValue === undefined) {
+      return;
+    }
+    initialValueAppliedRef.current = true;
+    if (!textInput.value) {
+      textInput.setInput(initialValue);
+    }
+  }, [initialValue, textInput]);
 
   const [followups, setFollowups] = useState<string[]>([]);
   const { data: suggestionsConfig } = useSuggestionsConfig();
@@ -504,8 +517,6 @@ export function InputBox({
     try {
       const result = await compactThreadContext(threadId, {
         signal: controller.signal,
-        agentName:
-          typeof context.agent_name === "string" ? context.agent_name : null,
       });
 
       if (compactAbortControllerRef.current !== controller) {
@@ -545,7 +556,6 @@ export function InputBox({
       }
     }
   }, [
-    context.agent_name,
     isWelcomeMode,
     queryClient,
     t.inputBox.compactFailed,
@@ -1089,6 +1099,7 @@ export function InputBox({
           </div>
         )}
         <PromptInputHeader className="flex-wrap px-3 pt-3 pb-0 empty:hidden">
+          {contextHeader && <div className="w-full">{contextHeader}</div>}
           <PromptInputAttachments className="contents p-0">
             {(attachment) => (
               <div className="max-w-60">
@@ -1110,7 +1121,6 @@ export function InputBox({
             disabled={disabled}
             placeholder={t.inputBox.placeholder}
             autoFocus={autoFocus}
-            defaultValue={initialValue}
             onBlur={() => setTextareaFocused(false)}
             onChange={handlePromptTextareaChange}
             onFocus={() => setTextareaFocused(true)}

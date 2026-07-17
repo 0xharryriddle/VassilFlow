@@ -21,8 +21,13 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.errors import GraphRecursionError
 
+from vassilflow.agents.agent_policy import (
+    filter_tools_by_agent_policy,
+    inject_agent_runtime_policy,
+)
 from vassilflow.agents.thread_state import SandboxState, ThreadDataState, ThreadState
 from vassilflow.config import get_app_config
+from vassilflow.config.agent_contract import AgentRuntimePolicy
 from vassilflow.config.app_config import AppConfig
 from vassilflow.config.env_aliases import env_value
 from vassilflow.models import create_chat_model
@@ -329,6 +334,7 @@ class SubagentExecutor:
         oauth_id: str | None = None,
         run_id: str | None = None,
         channel_user_id: str | None = None,
+        agent_policy: AgentRuntimePolicy | None = None,
     ):
         """Initialize the executor.
 
@@ -352,6 +358,7 @@ class SubagentExecutor:
             run_id: Parent run id, so delegated guardrail decisions attribute to
                 the same run as the lead agent.
             channel_user_id: Raw IM-channel sender id captured by the parent run.
+            agent_policy: Canonical parent Agent policy inherited by delegation.
         """
         self.config = config
         self.app_config = app_config
@@ -375,9 +382,10 @@ class SubagentExecutor:
         self.oauth_id = oauth_id
         self.run_id = run_id
         self.channel_user_id = channel_user_id
+        self.agent_policy = agent_policy
 
         self._base_tools = _filter_tools(
-            tools,
+            filter_tools_by_agent_policy(tools, agent_policy),
             config.tools,
             config.disallowed_tools,
         )
@@ -401,6 +409,10 @@ class SubagentExecutor:
 
         # Reuse shared middleware composition with lead agent.
         middlewares = build_subagent_runtime_middlewares(app_config=app_config, model_name=self.model_name, lazy_init=True, deferred_setup=deferred_setup)
+        if self.agent_policy is not None:
+            from vassilflow.agents.middlewares.agent_policy_middleware import AgentPolicyMiddleware
+
+            middlewares.insert(0, AgentPolicyMiddleware(self.agent_policy))
 
         # system_prompt is included in initial state messages (see _build_initial_state)
         # to avoid multiple SystemMessages which some LLM APIs don't support.
@@ -591,6 +603,7 @@ class SubagentExecutor:
                 "callbacks": [collector],
                 "tags": [collector_caller],
             }
+            inject_agent_runtime_policy(run_config, self.agent_policy)
 
             # Inject tracing callbacks at the graph level so a single subagent run
             # produces one trace with all node / LLM / tool calls as child spans.
@@ -639,6 +652,9 @@ class SubagentExecutor:
             if self.channel_user_id:
                 context["channel_user_id"] = self.channel_user_id
             context["is_subagent"] = True
+            policy_context = run_config.get("context")
+            if isinstance(policy_context, dict) and "agent_policy" in policy_context:
+                context["agent_policy"] = policy_context["agent_policy"]
 
             logger.info(f"[trace={self.trace_id}] Subagent {self.config.name} starting async execution with max_turns={self.config.max_turns}")
 

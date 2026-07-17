@@ -18,8 +18,8 @@ import { getAPIClient } from "../api";
 import { fetch } from "../api/fetcher";
 import { getBackendBaseURL } from "../config";
 import { useI18n } from "../i18n/hooks";
-import { isHiddenFromUIMessage } from "../messages/utils";
-import type { FileInMessage } from "../messages/utils";
+import { isHiddenFromUIMessage, type FileInMessage } from "../messages/utils";
+import type { OfficePptxObjectSelectionRequest } from "../office/types";
 import type { LocalSettings } from "../settings";
 import { isSidecarThread, SIDECAR_METADATA_KEY } from "../sidecar/thread";
 import { useUpdateSubtask } from "../tasks/context";
@@ -36,6 +36,7 @@ import {
 import { threadTokenUsageQueryKey } from "./token-usage";
 import type {
   AgentThread,
+  AgentThreadContext,
   AgentThreadState,
   RunMessage,
   ThreadTokenUsageResponse,
@@ -49,7 +50,9 @@ export type ToolEndEvent = {
 export type ThreadStreamOptions = {
   threadId?: string | null | undefined;
   displayThreadId?: string | null | undefined;
-  context: LocalSettings["context"];
+  assistantId?: string;
+  context: LocalSettings["context"] &
+    Partial<Pick<AgentThreadContext, "agent_name">>;
   isMock?: boolean;
   onSend?: (threadId: string) => void;
   onStart?: (threadId: string, runId: string) => void;
@@ -57,9 +60,10 @@ export type ThreadStreamOptions = {
   onToolEnd?: (event: ToolEndEvent) => void;
 };
 
-type SendMessageOptions = {
+export type SendMessageOptions = {
   additionalKwargs?: Record<string, unknown>;
   additionalInputMessages?: Message[];
+  officeSelection?: OfficePptxObjectSelectionRequest;
   onSent?: () => void;
 };
 
@@ -693,6 +697,7 @@ function isThreadMissingError(error: unknown): boolean {
 export function useThreadStream({
   threadId,
   displayThreadId,
+  assistantId = "lead_agent",
   context,
   isMock,
   onSend,
@@ -793,10 +798,15 @@ export function useThreadStream({
 
   const queryClient = useQueryClient();
   const updateSubtask = useUpdateSubtask();
+  const runtimeContext = useMemo(() => {
+    const values = { ...context };
+    delete values.agent_name;
+    return values;
+  }, [context]);
 
   const thread = useStream<AgentThreadState>({
     client: getAPIClient(isMock),
-    assistantId: "lead_agent",
+    assistantId,
     threadId: onStreamThreadId,
     reconnectOnMount: true,
     fetchStateHistory: { limit: 1 },
@@ -805,9 +815,10 @@ export function useThreadStream({
       const now = new Date().toISOString();
       upsertThreadInSearchCache(queryClient, {
         thread_id: meta.thread_id,
+        assistant_id: assistantId,
         created_at: now,
         updated_at: now,
-        metadata: context.agent_name ? { agent_name: context.agent_name } : {},
+        metadata: {},
         status: "busy",
         values: {
           title: t.pages.newChat,
@@ -818,9 +829,10 @@ export function useThreadStream({
       });
       upsertThreadInInfiniteCache(queryClient, {
         thread_id: meta.thread_id,
+        assistant_id: assistantId,
         created_at: now,
         updated_at: now,
-        metadata: context.agent_name ? { agent_name: context.agent_name } : {},
+        metadata: {},
         status: "busy",
         values: {
           title: t.pages.newChat,
@@ -829,13 +841,6 @@ export function useThreadStream({
         },
         interrupts: {},
       });
-      if (context.agent_name && !isMock) {
-        void getAPIClient()
-          .threads.update(meta.thread_id, {
-            metadata: { agent_name: context.agent_name },
-          })
-          .catch(() => ({}));
-      }
     },
     onLangChainEvent(event) {
       if (event.event === "on_tool_end") {
@@ -1119,9 +1124,15 @@ export function useThreadStream({
         }),
       );
 
-      const hideFromUI = options?.additionalKwargs?.hide_from_ui === true;
-      const optimisticAdditionalKwargs = {
+      const messageAdditionalKwargs: Record<string, unknown> = {
         ...options?.additionalKwargs,
+        ...(options?.officeSelection
+          ? { office_selection_request: options.officeSelection }
+          : {}),
+      };
+      const hideFromUI = messageAdditionalKwargs.hide_from_ui === true;
+      const optimisticAdditionalKwargs = {
+        ...messageAdditionalKwargs,
         ...(optimisticFiles.length > 0 ? { files: optimisticFiles } : {}),
       };
 
@@ -1196,7 +1207,10 @@ export function useThreadStream({
                   return [
                     {
                       ...humanMessage,
-                      additional_kwargs: { files: uploadedFiles },
+                      additional_kwargs: {
+                        ...humanMessage.additional_kwargs,
+                        files: uploadedFiles,
+                      },
                     },
                     ...messages.slice(1),
                   ];
@@ -1233,7 +1247,7 @@ export function useThreadStream({
           {
             messages: buildThreadSubmitMessages({
               text,
-              additionalKwargs: options?.additionalKwargs,
+              additionalKwargs: messageAdditionalKwargs,
               additionalInputMessages: options?.additionalInputMessages,
               filesForSubmit,
             }),
@@ -1247,7 +1261,7 @@ export function useThreadStream({
             },
             context: {
               ...extraContext,
-              ...context,
+              ...runtimeContext,
               thinking_enabled: context.mode !== "flash",
               is_plan_mode: context.mode === "pro" || context.mode === "ultra",
               subagent_enabled: context.mode === "ultra",
@@ -1261,6 +1275,9 @@ export function useThreadStream({
                       ? "low"
                       : undefined),
               thread_id: threadId,
+              ...(options?.officeSelection
+                ? { office_selection_request: options.officeSelection }
+                : {}),
             },
           },
         );
@@ -1282,6 +1299,7 @@ export function useThreadStream({
       thread,
       t.uploads.uploadingFiles,
       context,
+      runtimeContext,
       queryClient,
       humanMessageCount,
       persistedMessages,
@@ -1352,7 +1370,7 @@ export function useThreadStream({
             recursion_limit: 1000,
           },
           context: {
-            ...context,
+            ...runtimeContext,
             thinking_enabled: context.mode !== "flash",
             is_plan_mode: context.mode === "pro" || context.mode === "ultra",
             subagent_enabled: context.mode === "ultra",
@@ -1392,7 +1410,14 @@ export function useThreadStream({
         sendInFlightRef.current = false;
       }
     },
-    [context, humanMessageCount, persistedMessages, queryClient, thread],
+    [
+      context,
+      humanMessageCount,
+      persistedMessages,
+      queryClient,
+      runtimeContext,
+      thread,
+    ],
   );
 
   // Cache the latest thread messages in a ref to compare against incoming history messages for deduplication,

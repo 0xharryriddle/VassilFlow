@@ -1,6 +1,6 @@
 import threading
 import time
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 from vassilflow.agents.memory.queue import ConversationContext, MemoryUpdateQueue
 from vassilflow.config.memory_config import MemoryConfig
@@ -51,6 +51,7 @@ def test_process_queue_forwards_correction_flag_to_updater() -> None:
         correction_detected=True,
         reinforcement_detected=False,
         user_id=None,
+        is_cancelled=ANY,
     )
 
 
@@ -92,6 +93,7 @@ def test_process_queue_forwards_reinforcement_flag_to_updater() -> None:
         correction_detected=False,
         reinforcement_detected=True,
         user_id=None,
+        is_cancelled=ANY,
     )
 
 
@@ -235,6 +237,7 @@ def test_process_queue_updates_different_agents_in_same_thread_separately() -> N
                 correction_detected=False,
                 reinforcement_detected=False,
                 user_id=None,
+                is_cancelled=ANY,
             ),
             call(
                 messages=["agent-b"],
@@ -243,6 +246,51 @@ def test_process_queue_updates_different_agents_in_same_thread_separately() -> N
                 correction_detected=False,
                 reinforcement_detected=False,
                 user_id=None,
+                is_cancelled=ANY,
             ),
         ]
     )
+
+
+def test_discard_thread_cancels_pending_updates_and_rejects_late_enqueue() -> None:
+    queue = MemoryUpdateQueue()
+
+    with (
+        patch("vassilflow.agents.memory.queue.get_memory_config", return_value=_memory_config(enabled=True)),
+        patch.object(queue, "_reset_timer"),
+    ):
+        queue.add(thread_id="thread-1", messages=["agent-a"], agent_name="agent-a", user_id="user-a")
+        queue.add(thread_id="thread-1", messages=["agent-b"], agent_name="agent-b", user_id="user-a")
+        queue.add(thread_id="thread-1", messages=["other-user"], agent_name="agent-a", user_id="user-b")
+
+        discarded = queue.discard_thread("thread-1", user_id="user-a")
+        queue.add(thread_id="thread-1", messages=["late"], agent_name="agent-a", user_id="user-a")
+
+    assert discarded == 2
+    assert queue.pending_count == 1
+    assert queue._queue[0].messages == ["other-user"]
+
+
+def test_allow_thread_removes_deletion_tombstone() -> None:
+    queue = MemoryUpdateQueue()
+    queue.discard_thread("thread-1", user_id="user-a")
+    queue.allow_thread("thread-1", user_id="user-a")
+
+    with (
+        patch("vassilflow.agents.memory.queue.get_memory_config", return_value=_memory_config(enabled=True)),
+        patch.object(queue, "_reset_timer"),
+    ):
+        queue.add(thread_id="thread-1", messages=["new conversation"], user_id="user-a")
+
+    assert queue.pending_count == 1
+
+
+def test_discard_thread_marks_active_update_as_cancelled() -> None:
+    queue = MemoryUpdateQueue()
+    context = ConversationContext(thread_id="thread-1", messages=["active"], user_id="user-a")
+    queue._active_contexts = [context]
+
+    discarded = queue.discard_thread("thread-1", user_id="user-a")
+
+    assert discarded == 1
+    assert context.cancelled.is_set() is True

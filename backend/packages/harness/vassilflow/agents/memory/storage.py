@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from vassilflow.config.agents_config import AGENT_NAME_PATTERN
+from vassilflow.config.agents_config import validate_agent_name
 from vassilflow.config.memory_config import get_memory_config
 from vassilflow.config.paths import get_paths
 
@@ -70,22 +70,21 @@ class FileMemoryStorage(MemoryStorage):
         # Guards all reads and writes to _memory_cache across concurrent callers.
         self._cache_lock = threading.Lock()
 
-    def _validate_agent_name(self, agent_name: str) -> None:
-        """Validate that the agent name is safe to use in filesystem paths.
+    def _validate_agent_name(self, agent_name: str) -> str:
+        """Resolve a filesystem-safe canonical Agent identity."""
 
-        Uses the repository's established AGENT_NAME_PATTERN to ensure consistency
-        across the codebase and prevent path traversal or other problematic characters.
-        """
         if not agent_name:
             raise ValueError("Agent name must be a non-empty string.")
-        if not AGENT_NAME_PATTERN.match(agent_name):
-            raise ValueError(f"Invalid agent name {agent_name!r}: names must match {AGENT_NAME_PATTERN.pattern}")
+        canonical = validate_agent_name(agent_name)
+        if canonical is None:  # pragma: no cover - guarded by the str input
+            raise ValueError("Agent name must identify a personal Agent.")
+        return canonical
 
     def _get_memory_file_path(self, agent_name: str | None = None, *, user_id: str | None = None) -> Path:
         """Get the path to the memory file."""
         if user_id is not None:
             if agent_name is not None:
-                self._validate_agent_name(agent_name)
+                agent_name = self._validate_agent_name(agent_name)
                 return get_paths().user_agent_memory_file(user_id, agent_name)
             config = get_memory_config()
             if config.storage_path and Path(config.storage_path).is_absolute():
@@ -93,7 +92,7 @@ class FileMemoryStorage(MemoryStorage):
             return get_paths().user_memory_file(user_id)
         # Legacy: no user_id
         if agent_name is not None:
-            self._validate_agent_name(agent_name)
+            agent_name = self._validate_agent_name(agent_name)
             return get_paths().agent_memory_file(agent_name)
         config = get_memory_config()
         if config.storage_path:
@@ -122,6 +121,8 @@ class FileMemoryStorage(MemoryStorage):
 
     def load(self, agent_name: str | None = None, *, user_id: str | None = None) -> dict[str, Any]:
         """Load memory data (cached with file modification time check)."""
+        if agent_name is not None:
+            agent_name = self._validate_agent_name(agent_name)
         file_path = self._get_memory_file_path(agent_name, user_id=user_id)
         cache_key = self._cache_key(agent_name, user_id=user_id)
 
@@ -144,6 +145,8 @@ class FileMemoryStorage(MemoryStorage):
 
     def reload(self, agent_name: str | None = None, *, user_id: str | None = None) -> dict[str, Any]:
         """Reload memory data from file, forcing cache invalidation."""
+        if agent_name is not None:
+            agent_name = self._validate_agent_name(agent_name)
         file_path = self._get_memory_file_path(agent_name, user_id=user_id)
         memory_data = self._load_memory_from_file(agent_name, user_id=user_id)
         cache_key = self._cache_key(agent_name, user_id=user_id)
@@ -159,6 +162,8 @@ class FileMemoryStorage(MemoryStorage):
 
     def save(self, memory_data: dict[str, Any], agent_name: str | None = None, *, user_id: str | None = None) -> bool:
         """Save memory data to file and update cache."""
+        if agent_name is not None:
+            agent_name = self._validate_agent_name(agent_name)
         file_path = self._get_memory_file_path(agent_name, user_id=user_id)
         cache_key = self._cache_key(agent_name, user_id=user_id)
 

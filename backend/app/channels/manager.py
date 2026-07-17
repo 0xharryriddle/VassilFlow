@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import mimetypes
-import re
 import time
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable, Mapping
@@ -28,7 +27,9 @@ from app.channels.message_bus import (
 from app.channels.store import ChannelStore
 from app.gateway.csrf_middleware import CSRF_COOKIE_NAME, CSRF_HEADER_NAME, generate_csrf_token
 from app.gateway.internal_auth import create_internal_auth_headers
+from vassilflow.config.agent_contract import DEFAULT_ASSISTANT_ID, resolve_agent_identity
 from vassilflow.config.agents_config import load_agent_config
+from vassilflow.config.builtin_agents import get_builtin_agent
 from vassilflow.config.paths import make_safe_user_id
 from vassilflow.runtime.user_context import get_effective_user_id
 from vassilflow.skills.slash import parse_slash_skill_reference
@@ -40,9 +41,6 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_LANGGRAPH_URL = "http://localhost:8001/api"
 DEFAULT_GATEWAY_URL = "http://localhost:8001"
-DEFAULT_ASSISTANT_ID = "lead_agent"
-CUSTOM_AGENT_NAME_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
-
 # Lead-agent recursion budget (LangGraph super-steps for the lead graph only).
 # This is independent of subagent depth: a `task()` dispatch runs the whole
 # subagent inside ONE lead tools-node step, and subagents enforce their own
@@ -195,12 +193,13 @@ def _merge_dicts(*layers: Any) -> dict[str, Any]:
 
 def _normalize_custom_agent_name(raw_value: str) -> str:
     """Normalize legacy channel assistant IDs into valid custom agent names."""
-    normalized = raw_value.strip().lower().replace("_", "-")
-    if not normalized:
-        raise InvalidChannelSessionConfigError("Channel session assistant_id is empty. Use 'lead_agent' or a valid custom agent name.")
-    if not CUSTOM_AGENT_NAME_PATTERN.fullmatch(normalized):
-        raise InvalidChannelSessionConfigError(f"Invalid channel session assistant_id {raw_value!r}. Use 'lead_agent' or a custom agent name containing only letters, digits, and hyphens.")
-    return normalized
+    try:
+        identity = resolve_agent_identity(raw_value)
+    except ValueError as exc:
+        raise InvalidChannelSessionConfigError(f"Invalid channel session assistant_id {raw_value!r}. Use 'lead_agent' or a custom agent name containing only letters, digits, and hyphens.") from exc
+    if identity.agent_name is None:
+        raise InvalidChannelSessionConfigError("Channel session assistant_id must name a custom Agent in this context.")
+    return identity.agent_name
 
 
 def _extract_response_text(result: dict | list) -> str:
@@ -835,12 +834,19 @@ class ChannelManager:
         user_layer = _as_dict(users_layer.get(msg.user_id))
         return channel_layer, user_layer
 
+    def _resolve_session_assistant_id(self, msg: InboundMessage) -> str:
+        channel_layer, user_layer = self._resolve_session_layer(msg)
+        raw_assistant_id = user_layer.get("assistant_id") or channel_layer.get("assistant_id") or self._default_session.get("assistant_id") or self._assistant_id
+        if not isinstance(raw_assistant_id, str) or not raw_assistant_id.strip():
+            raw_assistant_id = self._assistant_id
+        try:
+            return resolve_agent_identity(raw_assistant_id).assistant_id
+        except ValueError as exc:
+            raise InvalidChannelSessionConfigError(f"Invalid channel session assistant_id {raw_assistant_id!r}. Use 'lead_agent' or a custom agent name containing only letters, digits, and hyphens.") from exc
+
     def _resolve_run_params(self, msg: InboundMessage, thread_id: str) -> tuple[str, dict[str, Any], dict[str, Any]]:
         channel_layer, user_layer = self._resolve_session_layer(msg)
-
-        assistant_id = user_layer.get("assistant_id") or channel_layer.get("assistant_id") or self._default_session.get("assistant_id") or self._assistant_id
-        if not isinstance(assistant_id, str) or not assistant_id.strip():
-            assistant_id = self._assistant_id
+        assistant_id = self._resolve_session_assistant_id(msg)
 
         run_config = _merge_dicts(
             DEFAULT_RUN_CONFIG,
@@ -882,26 +888,27 @@ class ChannelManager:
             run_context_identity,
         )
 
-        # Custom agents are implemented as lead_agent + agent_name context.
-        # Keep backward compatibility for channel configs that set
-        # assistant_id: <custom-agent-name> by routing through lead_agent.
-        if assistant_id != DEFAULT_ASSISTANT_ID:
-            run_context.setdefault("agent_name", _normalize_custom_agent_name(assistant_id))
-            assistant_id = DEFAULT_ASSISTANT_ID
+        # Identity is carried by assistant_id. Remove legacy context routing so
+        # the Gateway can enforce one canonical source for every caller.
+        run_context.pop("agent_name", None)
 
         return assistant_id, run_config, run_context
 
     def _resolve_available_skill_names(self, msg: InboundMessage) -> set[str] | None:
         thread_id = self.store.get_thread_id(msg.channel_name, msg.chat_id, topic_id=msg.topic_id) or ""
-        _, _, run_context = self._resolve_run_params(msg, thread_id)
+        assistant_id, _, run_context = self._resolve_run_params(msg, thread_id)
         if run_context.get("is_bootstrap"):
             return {"bootstrap"}
 
-        agent_name = run_context.get("agent_name")
-        if not isinstance(agent_name, str) or not agent_name.strip():
+        identity = resolve_agent_identity(assistant_id)
+        agent_name = identity.agent_name
+        if agent_name is None:
             return None
 
-        agent_config = load_agent_config(_normalize_custom_agent_name(agent_name))
+        builtin = get_builtin_agent(agent_name)
+        if builtin is not None:
+            return set(builtin.skills)
+        agent_config = load_agent_config(agent_name)
         if agent_config and agent_config.skills is not None:
             return set(agent_config.skills)
         return None
@@ -1200,14 +1207,27 @@ class ChannelManager:
             user_id=msg.user_id,
         )
 
-    async def _create_thread(self, client, msg: InboundMessage) -> str:
+    async def _create_thread(
+        self,
+        client,
+        msg: InboundMessage,
+        assistant_id: str | None = None,
+    ) -> str:
         """Create a new thread through Gateway and store the mapping."""
         metadata = _thread_channel_metadata(msg)
+        assistant_id = assistant_id or self._resolve_session_assistant_id(msg)
         owner_headers = _owner_headers(msg)
         if owner_headers:
-            thread = await client.threads.create(metadata=metadata, headers=owner_headers)
+            thread = await client.threads.create(
+                assistant_id=assistant_id,
+                metadata=metadata,
+                headers=owner_headers,
+            )
         else:
-            thread = await client.threads.create(metadata=metadata)
+            thread = await client.threads.create(
+                assistant_id=assistant_id,
+                metadata=metadata,
+            )
         thread_id = thread["thread_id"]
         await self._store_thread_id(msg, thread_id)
         logger.info("[Manager] new thread created through Gateway: thread_id=%s for chat_id=%s topic_id=%s", thread_id, msg.chat_id, msg.topic_id)
@@ -1218,7 +1238,12 @@ class ChannelManager:
             return ("connection", msg.connection_id, msg.chat_id, msg.topic_id)
         return ("channel", msg.channel_name, msg.chat_id, msg.topic_id)
 
-    async def _get_or_create_thread(self, client, msg: InboundMessage) -> tuple[str, bool]:
+    async def _get_or_create_thread(
+        self,
+        client,
+        msg: InboundMessage,
+        assistant_id: str | None = None,
+    ) -> tuple[str, bool]:
         """Return ``(thread_id, created)``, creating at most one thread per conversation."""
         thread_id = await self._lookup_thread_id(msg)
         if thread_id:
@@ -1233,19 +1258,25 @@ class ChannelManager:
                 thread_id = await self._lookup_thread_id(msg)
                 if thread_id:
                     return thread_id, False
-                return await self._create_thread(client, msg), True
+                return await self._create_thread(client, msg, assistant_id), True
         finally:
             if self._thread_create_locks.get(key) is lock:
                 self._thread_create_locks.pop(key, None)
 
-    async def _update_thread_channel_metadata(self, client, msg: InboundMessage, thread_id: str) -> None:
+    async def _update_thread_channel_metadata(
+        self,
+        client,
+        msg: InboundMessage,
+        thread_id: str,
+    ) -> None:
         """Best-effort source metadata backfill for existing IM-created threads."""
         # The metadata (provider/chat/topic) is constant for a thread, so one
         # successful backfill per manager lifetime is enough — skip the
         # redundant PATCH on every subsequent inbound message.
         if thread_id in self._channel_metadata_synced:
             return
-        update_kwargs: dict[str, Any] = {"metadata": _thread_channel_metadata(msg)}
+        metadata = _thread_channel_metadata(msg)
+        update_kwargs: dict[str, Any] = {"metadata": metadata}
         if owner_headers := _owner_headers(msg):
             update_kwargs["headers"] = owner_headers
         try:
@@ -1278,12 +1309,26 @@ class ChannelManager:
         # Look up or create the VassilFlow thread with a per-conversation lock.
         # topic_id may be None (e.g. Telegram private chats) — the store
         # handles this by using the "channel:chat_id" key without a topic suffix.
-        thread_id, created = await self._get_or_create_thread(client, msg)
+        assistant_id = self._resolve_session_assistant_id(msg)
+        thread_id, created = await self._get_or_create_thread(
+            client,
+            msg,
+            assistant_id,
+        )
         if not created:
             logger.info("[Manager] reusing thread: thread_id=%s for topic_id=%s", thread_id, msg.topic_id)
-            await self._update_thread_channel_metadata(client, msg, thread_id)
+            await self._update_thread_channel_metadata(
+                client,
+                msg,
+                thread_id,
+            )
 
-        assistant_id, run_config, run_context = self._resolve_run_params(msg, thread_id)
+        resolved_assistant_id, run_config, run_context = self._resolve_run_params(
+            msg,
+            thread_id,
+        )
+        if resolved_assistant_id != assistant_id:
+            raise InvalidChannelSessionConfigError("Channel Agent identity changed while preparing the run")
 
         # If the inbound message contains file attachments, let the channel
         # materialize (download) them and update msg.text to include sandbox file paths.

@@ -1,10 +1,10 @@
-import type { PageMapItem } from "nextra";
 import { getPageMap } from "nextra/page-map";
 import { Layout } from "nextra-theme-docs";
 
 import { Footer } from "@/components/landing/footer";
 import { Header } from "@/components/landing/header";
 import { APP_DOCS_REPOSITORY_BASE } from "@/core/brand";
+import { buildDocsPageMap } from "@/core/docs/page-map";
 import { getLocaleByLang } from "@/core/i18n/locale";
 import "nextra-theme-docs/style.css";
 
@@ -13,23 +13,11 @@ const i18n = [
   { locale: "zh", name: "中文" },
 ];
 
-function formatPageRoute(base: string, items: PageMapItem[]): PageMapItem[] {
-  return items.map((item) => {
-    if ("route" in item && !item.route.startsWith(base)) {
-      item.route = `${base}${item.route}`;
-    }
-    if ("children" in item && item.children) {
-      item.children = formatPageRoute(base, item.children);
-    }
-    return item;
-  });
-}
-
 export default async function DocLayout({ children, params }) {
   const { lang } = await params;
   const locale = getLocaleByLang(lang);
   const pages = await getPageMap(`/${lang}`);
-  const pageMap = formatPageRoute(`/${lang}/docs`, pages);
+  const pageMap = buildDocsPageMap(`/${lang}/docs`, pages);
 
   return (
     <Layout

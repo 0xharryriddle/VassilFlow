@@ -629,6 +629,36 @@ class TestUpdateMemoryStructuredResponse:
         assert result is True
         model.invoke.assert_called_once()
 
+    def test_cancellation_during_model_call_prevents_memory_persistence(self):
+        updater = MemoryUpdater()
+        valid_json = '{"user": {}, "history": {}, "newFacts": [], "factsToRemove": []}'
+        model = self._make_mock_model(valid_json)
+        cancelled = False
+
+        def invoke_and_cancel(*_args, **_kwargs):
+            nonlocal cancelled
+            cancelled = True
+            response = MagicMock()
+            response.content = valid_json
+            return response
+
+        model.invoke.side_effect = invoke_and_cancel
+        mock_storage = MagicMock()
+
+        with (
+            patch.object(updater, "_get_model", return_value=model),
+            patch("vassilflow.agents.memory.updater.get_memory_config", return_value=_memory_config(enabled=True)),
+            patch("vassilflow.agents.memory.updater.get_memory_data", return_value=_make_memory()),
+            patch("vassilflow.agents.memory.updater.get_memory_storage", return_value=mock_storage),
+        ):
+            msg = MagicMock(type="human", content="Delete this conversation")
+            ai_msg = MagicMock(type="ai", content="Acknowledged", tool_calls=[])
+            result = updater.update_memory([msg, ai_msg], is_cancelled=lambda: cancelled)
+
+        assert result is False
+        model.invoke.assert_called_once()
+        mock_storage.save.assert_not_called()
+
     def test_list_content_response_parses(self):
         """LLM response as list-of-blocks should be extracted, not repr'd."""
         updater = MemoryUpdater()

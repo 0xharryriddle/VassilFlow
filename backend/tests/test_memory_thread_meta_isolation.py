@@ -103,6 +103,22 @@ async def test_update_status_denied(store):
 
 @pytest.mark.anyio
 @pytest.mark.no_auto_user
+async def test_update_assistant_id_denied(store):
+    """User B cannot rebind User A's thread to another Agent."""
+    with _as_user(USER_A):
+        await store.create("t-alpha", assistant_id="lead_agent")
+
+    with _as_user(USER_B):
+        await store.update_assistant_id("t-alpha", "office")
+
+    with _as_user(USER_A):
+        row = await store.get("t-alpha")
+        assert row is not None
+        assert row["assistant_id"] == "lead_agent"
+
+
+@pytest.mark.anyio
+@pytest.mark.no_auto_user
 async def test_update_metadata_denied(store):
     """User B cannot modify metadata of User A's thread."""
     with _as_user(USER_A):

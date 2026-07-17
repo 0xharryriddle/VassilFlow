@@ -12,9 +12,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
-from langchain_core.tools import BaseTool, StructuredTool
+from langchain_core.tools import BaseTool, StructuredTool, ToolException
 from langgraph.config import get_config
 
+from vassilflow.agents.data_policy import ALL_DATA_SCOPES, referenced_data_scopes
+from vassilflow.config.agent_contract import deserialize_agent_runtime_policy
 from vassilflow.config.extensions_config import ExtensionsConfig, resolve_effective_mcp_routing
 from vassilflow.config.paths import VIRTUAL_PATH_PREFIX, Paths, get_paths
 from vassilflow.mcp.client import build_servers_config
@@ -48,6 +50,49 @@ _LOCAL_PATH_IN_TEXT_RE = re.compile(r"(?:file://)?(?:/[^\s'\"<>|*?]+|[A-Za-z]:[\
 _TEXT_PATH_TRAILING_CHARS = ".,;:!?)]}>\"'`"
 
 _FILE_SNAPSHOT = dict[Path, tuple[int, int, str]]
+
+
+def _runtime_agent_policy(runtime: Runtime | None):
+    if runtime is None:
+        return None
+    context = getattr(runtime, "context", None)
+    if isinstance(context, Mapping):
+        policy = context.get("agent_policy")
+        if isinstance(policy, Mapping):
+            resolved = deserialize_agent_runtime_policy(policy)
+            if resolved is not None:
+                return resolved
+    config = getattr(runtime, "config", None)
+    metadata = config.get("metadata") if isinstance(config, Mapping) else None
+    return deserialize_agent_runtime_policy(metadata if isinstance(metadata, Mapping) else None)
+
+
+def _enforce_mcp_agent_policy(
+    runtime: Runtime | None,
+    arguments: Mapping[str, Any],
+    *,
+    tool_name: str,
+    is_stdio: bool,
+) -> None:
+    """Re-check MCP provenance and data scope at the final call boundary."""
+
+    policy = _runtime_agent_policy(runtime)
+    if policy is None:
+        return
+    if not policy.allow_mcp_tools:
+        raise ToolException("This Agent is not permitted to call MCP tools.")
+    allowed_tools = policy.allowed_tool_names
+    if allowed_tools is not None and tool_name not in allowed_tools:
+        raise ToolException(f"MCP tool '{tool_name}' is not permitted by this Agent's runtime policy.")
+    allowed_data = policy.data_access
+    if allowed_data is None:
+        return
+    if is_stdio and allowed_data != ALL_DATA_SCOPES:
+        raise ToolException("This Agent's data policy does not permit a local MCP process.")
+    denied = referenced_data_scopes(arguments) - allowed_data
+    if denied:
+        scopes = ", ".join(sorted(denied))
+        raise ToolException(f"This Agent is not permitted to access: {scopes}.")
 
 
 def _file_content_digest(path: Path) -> str | None:
@@ -477,6 +522,12 @@ def _make_session_pool_tool(
         # SSE/HTTP servers have no local cwd to pin, so skip the filesystem work
         # entirely for them (avoids needless dir creation and recursive walks).
         is_stdio = session_connection.get("transport", "stdio") == "stdio"
+        _enforce_mcp_agent_policy(
+            runtime,
+            arguments,
+            tool_name=tool.name,
+            is_stdio=is_stdio,
+        )
         source_base_dir: Path | None = None
         process_cwd: Path | None = None
         before_files: _FILE_SNAPSHOT | None = None
@@ -514,6 +565,16 @@ def _make_session_pool_tool(
             from langchain_mcp_adapters.interceptors import MCPToolCallRequest
 
             async def base_handler(request: MCPToolCallRequest) -> Any:
+                if request.name != original_name:
+                    raise ToolException("MCP interceptors cannot change the canonical tool identity.")
+                if not isinstance(request.args, Mapping):
+                    raise ToolException("MCP tool arguments must be an object.")
+                _enforce_mcp_agent_policy(
+                    runtime,
+                    request.args,
+                    tool_name=tool.name,
+                    is_stdio=is_stdio,
+                )
                 # Preserve interceptor-injected headers for stdio MCP calls by
                 # forwarding them through MCP call meta.
                 kwargs = dict(call_kwargs)

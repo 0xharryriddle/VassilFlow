@@ -1,161 +1,199 @@
+"""Explicit fallback for composing flattened slide images into a PPTX.
+
+The resulting slides contain one raster image each. Use the Office generation
+tool for editable native presentations.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
 import json
 import os
-from io import BytesIO
+import tempfile
+from pathlib import Path
+from typing import Any
 
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 from pptx import Presentation
 from pptx.util import Inches
+
+_SLIDE_SIZES = {
+    "16:9": (Inches(13.333), Inches(7.5)),
+    "4:3": (Inches(10), Inches(7.5)),
+}
+_SUPPORTED_IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
+
+
+def _load_plan(plan_file: str) -> dict[str, Any]:
+    path = Path(plan_file)
+    try:
+        value = json.loads(path.read_text(encoding="utf-8-sig"))
+    except FileNotFoundError as exc:
+        raise ValueError(f"Plan file does not exist: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Plan file is not valid JSON: {exc.msg}") from exc
+    if not isinstance(value, dict):
+        raise ValueError("Plan must be a JSON object")
+    slides = value.get("slides")
+    if not isinstance(slides, list) or not slides:
+        raise ValueError("Plan must contain a non-empty slides array")
+    if not all(isinstance(slide, dict) for slide in slides):
+        raise ValueError("Every plan slide must be a JSON object")
+    return value
+
+
+def _validated_image(path_value: str) -> tuple[Path, int, int]:
+    path = Path(path_value)
+    if path.suffix.lower() not in _SUPPORTED_IMAGE_SUFFIXES:
+        raise ValueError(f"Slide image must be PNG or JPEG: {path}")
+    if not path.is_file():
+        raise ValueError(f"Slide image does not exist: {path}")
+    try:
+        with Image.open(path) as image:
+            image.verify()
+        with Image.open(path) as image:
+            width, height = image.size
+    except (OSError, UnidentifiedImageError) as exc:
+        raise ValueError(f"Slide image is invalid: {path}") from exc
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Slide image has invalid dimensions: {path}")
+    return path, width, height
+
+
+def _add_notes(slide: Any, slide_info: dict[str, Any]) -> None:
+    notes: list[str] = []
+    for label, field in (("Title", "title"), ("Subtitle", "subtitle")):
+        value = slide_info.get(field)
+        if isinstance(value, str) and value.strip():
+            notes.append(f"{label}: {value.strip()}")
+    key_points = slide_info.get("key_points")
+    if isinstance(key_points, list) and key_points:
+        notes.append("Key Points:")
+        notes.extend(f"  - {point}" for point in key_points if isinstance(point, str))
+    if notes:
+        text_frame = slide.notes_slide.notes_text_frame
+        if text_frame is not None:
+            text_frame.text = "\n".join(notes)
 
 
 def generate_ppt(
     plan_file: str,
     slide_images: list[str],
     output_file: str,
-) -> str:
-    """
-    Generate a PowerPoint presentation from slide images.
+    *,
+    acknowledge_flattened_output: bool = False,
+    overwrite: bool = False,
+) -> dict[str, Any]:
+    """Compose a flattened, image-only PPTX after explicit acknowledgement."""
 
-    Args:
-        plan_file: Path to JSON file containing presentation plan
-        slide_images: List of paths to slide images in order
-        output_file: Path to output PPTX file
+    if not acknowledge_flattened_output:
+        raise ValueError(
+            "Flattened output must be acknowledged explicitly; use office_generate "
+            "for editable native PPTX output"
+        )
 
-    Returns:
-        Status message
-    """
-    # Load presentation plan
-    with open(plan_file, encoding="utf-8-sig") as f:
-        plan = json.load(f)
-
-    # Determine slide dimensions based on aspect ratio
+    plan = _load_plan(plan_file)
     aspect_ratio = plan.get("aspect_ratio", "16:9")
-    if aspect_ratio == "16:9":
-        slide_width = Inches(13.333)
-        slide_height = Inches(7.5)
-    elif aspect_ratio == "4:3":
-        slide_width = Inches(10)
-        slide_height = Inches(7.5)
-    else:
-        # Default to 16:9
-        slide_width = Inches(13.333)
-        slide_height = Inches(7.5)
+    if aspect_ratio not in _SLIDE_SIZES:
+        raise ValueError("aspect_ratio must be 16:9 or 4:3")
+    slides_info = plan["slides"]
+    if len(slide_images) != len(slides_info):
+        raise ValueError(
+            f"Slide image count ({len(slide_images)}) must match plan slide count "
+            f"({len(slides_info)})"
+        )
 
-    # Create presentation with specified dimensions
-    prs = Presentation()
-    prs.slide_width = slide_width
-    prs.slide_height = slide_height
+    output = Path(output_file)
+    if output.suffix.lower() != ".pptx":
+        raise ValueError("Output file must end with .pptx")
+    if output.exists() and not overwrite:
+        raise FileExistsError(f"Output already exists: {output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
 
-    # Get blank layout
-    blank_layout = prs.slide_layouts[6]  # Blank layout
+    images = [_validated_image(value) for value in slide_images]
+    slide_width, slide_height = _SLIDE_SIZES[aspect_ratio]
+    presentation = Presentation()
+    presentation.slide_width = slide_width
+    presentation.slide_height = slide_height
+    blank_layout = presentation.slide_layouts[6]
 
-    # Add each slide image
-    slides_info = plan.get("slides", [])
+    for index, (image_path, image_width, image_height) in enumerate(images):
+        slide = presentation.slides.add_slide(blank_layout)
+        image_aspect = image_width / image_height
+        slide_aspect = int(slide_width) / int(slide_height)
+        if image_aspect > slide_aspect:
+            width = int(slide_width)
+            height = round(width / image_aspect)
+            left = 0
+            top = (int(slide_height) - height) // 2
+        else:
+            height = int(slide_height)
+            width = round(height * image_aspect)
+            left = (int(slide_width) - width) // 2
+            top = 0
+        slide.shapes.add_picture(str(image_path), left, top, width, height)
+        _add_notes(slide, slides_info[index])
 
-    for i, image_path in enumerate(slide_images):
-        if not os.path.exists(image_path):
-            return f"Error: Slide image not found: {image_path}"
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            prefix=f".{output.stem}-",
+            suffix=".pptx",
+            dir=output.parent,
+            delete=False,
+        ) as temporary:
+            temporary_path = Path(temporary.name)
+        presentation.save(temporary_path)
+        os.replace(temporary_path, output)
+        temporary_path = None
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
-        # Add a blank slide
-        slide = prs.slides.add_slide(blank_layout)
-
-        # Load and process image
-        with Image.open(image_path) as img:
-            # Convert to RGB if necessary (for PNG with transparency)
-            if img.mode in ("RGBA", "P"):
-                img = img.convert("RGB")
-
-            # Calculate dimensions to fill slide while maintaining aspect ratio
-            img_width, img_height = img.size
-            img_aspect = img_width / img_height
-            slide_aspect = slide_width / slide_height
-
-            # Convert to EMU for calculations
-            slide_width_emu = int(slide_width)
-            slide_height_emu = int(slide_height)
-
-            if img_aspect > slide_aspect:
-                # Image is wider - fit to width
-                new_width_emu = slide_width_emu
-                new_height_emu = int(slide_width_emu / img_aspect)
-                left = Inches(0)
-                top = Inches((slide_height_emu - new_height_emu) / 914400)
-            else:
-                # Image is taller - fit to height
-                new_height_emu = slide_height_emu
-                new_width_emu = int(slide_height_emu * img_aspect)
-                left = Inches((slide_width_emu - new_width_emu) / 914400)
-                top = Inches(0)
-
-            # Save processed image to bytes
-            img_bytes = BytesIO()
-            img.save(img_bytes, format="JPEG", quality=95)
-            img_bytes.seek(0)
-
-            # Add image to slide
-            slide.shapes.add_picture(
-                img_bytes, left, top, Inches(new_width_emu / 914400), Inches(new_height_emu / 914400)
-            )
-
-        # Add speaker notes if available in plan
-        if i < len(slides_info):
-            slide_info = slides_info[i]
-            notes = []
-
-            if slide_info.get("title"):
-                notes.append(f"Title: {slide_info['title']}")
-
-            if slide_info.get("subtitle"):
-                notes.append(f"Subtitle: {slide_info['subtitle']}")
-
-            if slide_info.get("key_points"):
-                notes.append("Key Points:")
-                for point in slide_info["key_points"]:
-                    notes.append(f"  • {point}")
-
-            if notes:
-                notes_slide = slide.notes_slide
-                text_frame = notes_slide.notes_text_frame
-                if text_frame is not None:
-                    text_frame.text = "\n".join(notes)
-
-    # Save presentation
-    prs.save(output_file)
-
-    return f"Successfully generated presentation with {len(slide_images)} slides to {output_file}"
+    payload = output.read_bytes()
+    return {
+        "ok": True,
+        "output_mode": "raster_composite",
+        "editable_objects": False,
+        "slide_count": len(images),
+        "output_path": str(output),
+        "output_sha256": hashlib.sha256(payload).hexdigest(),
+    }
 
 
-if __name__ == "__main__":
-    import argparse
-
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Generate PowerPoint presentation from slide images"
+        description="Compose an explicitly flattened image-only PowerPoint presentation"
     )
-    parser.add_argument(
-        "--plan-file",
-        required=True,
-        help="Absolute path to JSON presentation plan file",
-    )
+    parser.add_argument("--plan-file", required=True, help="Path to the JSON presentation plan")
     parser.add_argument(
         "--slide-images",
         nargs="+",
         required=True,
-        help="Absolute paths to slide images in order (space-separated)",
+        help="PNG or JPEG slide images in plan order",
     )
+    parser.add_argument("--output-file", required=True, help="Output .pptx path")
     parser.add_argument(
-        "--output-file",
-        required=True,
-        help="Output path for generated PPTX file",
+        "--acknowledge-flattened-output",
+        action="store_true",
+        help="Acknowledge that slide elements will not be independently editable",
     )
+    parser.add_argument("--overwrite", action="store_true", help="Replace an existing output")
+    return parser
 
-    args = parser.parse_args()
 
+if __name__ == "__main__":
+    argument_parser = _parser()
+    arguments = argument_parser.parse_args()
     try:
-        print(
-            generate_ppt(
-                args.plan_file,
-                args.slide_images,
-                args.output_file,
-            )
+        result = generate_ppt(
+            arguments.plan_file,
+            arguments.slide_images,
+            arguments.output_file,
+            acknowledge_flattened_output=arguments.acknowledge_flattened_output,
+            overwrite=arguments.overwrite,
         )
-    except Exception as e:
-        print(f"Error while generating presentation: {e}")
+    except Exception as exc:
+        argument_parser.exit(1, f"Error: {exc}\n")
+    print(json.dumps(result, indent=2, sort_keys=True))

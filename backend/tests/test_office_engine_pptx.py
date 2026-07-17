@@ -1249,6 +1249,191 @@ def test_edit_pptx_replaces_only_picture_source_and_preserves_shared_rich_metada
     assert refreshed == edited
 
 
+def test_pptx_edit_receipt_records_picture_relationship_part_and_semantic_changes() -> None:
+    source = _picture_source_pptx()
+    primary = {
+        item["name"]: item
+        for item in inspect_pptx(
+            source,
+            max_slides=1,
+            include_formatting=True,
+        )["slides"][0]["objects"]
+    }["Hero image"]
+    replacement_path = "/mnt/user-data/uploads/replacement.jpg"
+    replacement = _jpeg()
+    operation = PptxPictureSourceReplacementOperation(
+        pictures=PptxPictureSelector(
+            targets=[
+                PptxPictureTarget(
+                    path=primary["path"],
+                    expected_name=primary["name"],
+                    expected_source_sha256=primary["source"]["sha256"],
+                )
+            ]
+        ),
+        image_path=replacement_path,
+    )
+
+    edited, reports, receipt = office_engine.edit_with_receipt(
+        source,
+        suffix=".pptx",
+        operations=[operation],
+        image_assets={replacement_path: replacement},
+    )
+
+    operation_id = reports[0]["operation_id"]
+    assert receipt["source"]["sha256"] == hashlib.sha256(source).hexdigest()
+    assert receipt["result"]["sha256"] == hashlib.sha256(edited).hexdigest()
+    assert receipt["applied_operation_ids"] == [operation_id]
+    assert receipt["operations"][0]["target_paths"] == [primary["path"]]
+    assert receipt["semantic_changes"]["changed_target_paths"] == [primary["path"]]
+    deltas = {delta["property"]: (delta["before"], delta["after"]) for delta in receipt["semantic_changes"]["semantic_deltas"]}
+    assert deltas["source.sha256"] == (
+        hashlib.sha256(_png()).hexdigest(),
+        hashlib.sha256(replacement).hexdigest(),
+    )
+    assert deltas["source.part_name"] == (
+        "ppt/media/image1.png",
+        "ppt/media/image2.jpg",
+    )
+    assert {change["part_name"] for change in receipt["package_changes"]["parts"]} == {
+        "ppt/media/image2.jpg",
+        "ppt/slides/_rels/slide2.xml.rels",
+        "ppt/slides/slide2.xml",
+    }
+    assert receipt["package_changes"]["relationships"] == [
+        {
+            "status": "added",
+            "before": None,
+            "after": {
+                "source_part": "ppt/slides/slide2.xml",
+                "relationship_id": "rId1",
+                "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+                "target": "../media/image2.jpg",
+                "external": False,
+            },
+        }
+    ]
+
+
+def test_pptx_edit_receipt_covers_typed_text_and_formatting_surfaces() -> None:
+    background = """<p:bg><p:bgPr><a:solidFill><a:srgbClr val="112233"/></a:solidFill></p:bgPr></p:bg>"""
+    cases = [
+        (
+            _pptx(slide2=_slide(_shape("old value"))),
+            PptxTextReplacement(
+                paths=["/slide[1]/shape[@id=2]"],
+                find="old",
+                replace="new",
+            ),
+            "/slide[1]/shape[@id=2]",
+            "pptx_shape_text",
+        ),
+        (
+            _pptx(slide2=_slide(_formatted_shape())),
+            PptxRunFormatOperation(
+                runs=PptxRunSelector(
+                    targets=[
+                        PptxRunTarget(
+                            path="/slide[1]/shape[@id=7]/paragraph[1]/run[1]",
+                            expected_text="Alpha",
+                        )
+                    ]
+                ),
+                formatting=PptxRunFormatting(bold=False),
+            ),
+            "/slide[1]/shape[@id=7]/paragraph[1]/run[1]",
+            "pptx_run_format",
+        ),
+        (
+            _pptx(slide2=_slide(_formatted_shape())),
+            PptxParagraphFormatOperation(
+                paragraphs=PptxParagraphSelector(
+                    targets=[
+                        PptxParagraphTarget(
+                            path="/slide[1]/shape[@id=7]/paragraph[1]",
+                            expected_text="AlphaBeta\n\t42",
+                        )
+                    ]
+                ),
+                formatting=PptxParagraphFormatting(alignment="left"),
+            ),
+            "/slide[1]/shape[@id=7]/paragraph[1]",
+            "pptx_paragraph_format",
+        ),
+        (
+            _pptx(slide2=_slide(_formatted_shape())),
+            PptxShapeFormatOperation(
+                shapes=PptxShapeSelector(
+                    targets=[
+                        PptxShapeTarget(
+                            path="/slide[1]/shape[@id=7]",
+                            expected_name="Styled copy",
+                        )
+                    ]
+                ),
+                formatting=PptxShapeFormatting(
+                    fill=PptxShapeFillFormatting(
+                        type="solid",
+                        color="#123ABC",
+                    )
+                ),
+            ),
+            "/slide[1]/shape[@id=7]",
+            "pptx_shape_style",
+        ),
+        (
+            _pptx(slide2=_slide(_formatted_connector())),
+            PptxLineFormatOperation(
+                lines=PptxLineSelector(
+                    targets=[
+                        PptxLineTarget(
+                            path="/slide[1]/connector[@id=9]",
+                            expected_name="Authored connector",
+                        )
+                    ]
+                ),
+                formatting=PptxLineFormatting(compound="thick_thin"),
+            ),
+            "/slide[1]/connector[@id=9]",
+            "pptx_line_style",
+        ),
+        (
+            _pptx(
+                slide2=_slide(
+                    _shape("Keep me"),
+                    background=background,
+                )
+            ),
+            PptxSlideBackgroundFormatOperation(
+                slides=PptxSlideSelector(
+                    targets=[
+                        PptxSlideTarget(
+                            path="/slide[1]",
+                            expected_part_name="ppt/slides/slide2.xml",
+                        )
+                    ]
+                ),
+                formatting=PptxSlideBackgroundFormatting(type="none"),
+            ),
+            "/slide[1]",
+            "pptx_slide_background",
+        ),
+    ]
+
+    for source, operation, path, semantic_kind in cases:
+        _, reports, receipt = office_engine.edit_with_receipt(
+            source,
+            suffix=".pptx",
+            operations=[operation],
+        )
+
+        assert receipt["applied_operation_ids"] == [reports[0]["operation_id"]]
+        assert receipt["operations"][0]["target_paths"] == [path]
+        assert receipt["semantic_changes"]["changed_target_paths"] == [path]
+        assert {delta["semantic_kind"] for delta in receipt["semantic_changes"]["semantic_deltas"]} == {semantic_kind}
+
+
 def test_edit_pptx_picture_replacement_preflights_all_name_and_digest_guards(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

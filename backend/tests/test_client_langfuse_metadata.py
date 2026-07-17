@@ -101,7 +101,7 @@ def test_stream_injects_langfuse_metadata_when_enabled(monkeypatch):
     config = captured["config"]
     metadata = config.get("metadata") or {}
     assert metadata.get("langfuse_session_id") == "thread-client-1"
-    assert metadata.get("langfuse_trace_name") == "lead-agent"
+    assert metadata.get("langfuse_trace_name") == "lead_agent"
     # Default no-auth context falls back to ``"default"`` user.
     assert metadata.get("langfuse_user_id") in {"default", "test-user-autouse"}
     callbacks = config.get("callbacks") or []
@@ -176,4 +176,4 @@ def test_stream_preserves_caller_metadata_overrides(monkeypatch):
     assert metadata["langfuse_session_id"] == "explicit-session-override"
     assert metadata["langfuse_user_id"] == "explicit-user"
     # ``trace_name`` was not supplied by caller so the worker still fills it.
-    assert metadata["langfuse_trace_name"] == "lead-agent"
+    assert metadata["langfuse_trace_name"] == "lead_agent"

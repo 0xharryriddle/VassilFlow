@@ -26,7 +26,12 @@ rs.mock("@/core/config", () => ({
   getBackendBaseURL: () => "",
 }));
 
-import { AgentsApiDisabledError, checkAgentName } from "@/core/agents/api";
+import {
+  AgentsApiDisabledError,
+  checkAgentName,
+  listAgentCatalog,
+  listAgents,
+} from "@/core/agents/api";
 import { fetch as fetcher } from "@/core/api/fetcher";
 
 const mockedFetch = rs.mocked(fetcher);
@@ -147,5 +152,128 @@ describe("checkAgentName", () => {
     await expect(checkAgentName("deal.agent")).rejects.not.toBeInstanceOf(
       AgentsApiDisabledError,
     );
+  });
+});
+
+describe("listAgents", () => {
+  test("keeps server-provided product metadata", async () => {
+    mockedFetch.mockResolvedValueOnce(
+      jsonResponse(200, {
+        agents: [
+          {
+            name: "office",
+            description: "Office work",
+            model: null,
+            tool_groups: [],
+            skills: [],
+            product: {
+              id: "builtin:office",
+              display_name: "Office",
+              origin: "builtin",
+              category: "create",
+              icon: "files",
+              status: "available",
+              launch: {
+                kind: "project",
+                path: "/workspace/projects/new?kind=office",
+                project_kind: "office",
+              },
+              management: { can_edit: false, can_delete: false },
+            },
+          },
+        ],
+      }),
+    );
+
+    const [agent] = await listAgents();
+    expect(agent).toBeDefined();
+    expect(agent!.product).toMatchObject({
+      id: "builtin:office",
+      display_name: "Office",
+      origin: "builtin",
+      launch: { kind: "project", project_kind: "office" },
+      management: { can_delete: false },
+    });
+  });
+
+  test("normalizes responses from an older custom-agent API", async () => {
+    mockedFetch.mockResolvedValueOnce(
+      jsonResponse(200, {
+        agents: [
+          {
+            name: "reviewer",
+            description: "Reviews code",
+            model: null,
+            tool_groups: ["file:read"],
+            skills: ["review"],
+          },
+        ],
+      }),
+    );
+
+    const [agent] = await listAgents();
+    expect(agent).toBeDefined();
+    expect(agent!.product).toEqual({
+      id: "personal:reviewer",
+      display_name: "reviewer",
+      origin: "personal",
+      category: "custom",
+      icon: "bot",
+      status: "available",
+      required_tools: [],
+      missing_requirements: [],
+      data_access: [],
+      starter_prompts: [],
+      launch: {
+        kind: "chat",
+        path: "/workspace/agents/reviewer/chats/new",
+        project_kind: null,
+      },
+      management: { can_edit: true, can_delete: true },
+    });
+  });
+});
+
+describe("listAgentCatalog", () => {
+  test("normalizes catalog Agents and preserves the management boundary", async () => {
+    mockedFetch.mockResolvedValueOnce(
+      jsonResponse(200, {
+        agents: [
+          {
+            name: "office",
+            description: "Office work",
+            model: null,
+            tool_groups: ["file:read", "file:write"],
+            skills: [],
+            product: {
+              id: "builtin:office",
+              display_name: "Office",
+              origin: "builtin",
+              category: "create",
+              icon: "files",
+              status: "available",
+              required_tools: ["office_inspect"],
+              launch: {
+                kind: "chat",
+                path: "/workspace/agents/office/chats/new",
+                project_kind: null,
+              },
+              management: { can_edit: false, can_delete: false },
+            },
+          },
+        ],
+        custom_agent_management_enabled: false,
+      }),
+    );
+
+    const catalog = await listAgentCatalog();
+
+    expect(catalog.custom_agent_management_enabled).toBe(false);
+    expect(catalog.agents).toHaveLength(1);
+    expect(catalog.agents[0]!.product).toMatchObject({
+      id: "builtin:office",
+      required_tools: ["office_inspect"],
+      management: { can_edit: false, can_delete: false },
+    });
   });
 });

@@ -1,5 +1,6 @@
 import type { Message, Thread } from "@langchain/langgraph-sdk";
 
+import type { OfficePptxObjectSelectionRequest } from "../office/types";
 import type { Todo } from "../todos";
 
 export interface AgentThreadState extends Record<string, unknown> {
@@ -17,9 +18,11 @@ export interface AgentThreadContext extends Record<string, unknown> {
   subagent_enabled: boolean;
   reasoning_effort?: "minimal" | "low" | "medium" | "high";
   agent_name?: string;
+  office_selection_request?: OfficePptxObjectSelectionRequest;
 }
 
 export interface AgentThread extends Thread<AgentThreadState> {
+  assistant_id?: string | null;
   context?: AgentThreadContext;
 }
 

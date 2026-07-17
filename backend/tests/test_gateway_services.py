@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -32,6 +33,88 @@ def test_format_sse_with_event_id():
 
     frame = format_sse("metadata", {"run_id": "abc"}, event_id="123-0")
     assert "id: 123-0" in frame
+
+
+@pytest.mark.anyio
+async def test_thread_agent_identity_migrates_exact_legacy_metadata():
+    from app.gateway.services import enforce_thread_agent_identity
+    from vassilflow.config.agent_contract import resolve_agent_identity
+
+    store = MagicMock()
+    store.get = AsyncMock(
+        return_value={
+            "assistant_id": "lead_agent",
+            "metadata": {"agent_name": "report-agent"},
+        }
+    )
+    store.update_assistant_id = AsyncMock()
+
+    await enforce_thread_agent_identity(
+        store,
+        "thread-1",
+        resolve_agent_identity("report-agent"),
+    )
+
+    store.update_assistant_id.assert_awaited_once_with("thread-1", "report-agent")
+
+
+@pytest.mark.anyio
+async def test_thread_agent_identity_rejects_cross_agent_reuse():
+    from fastapi import HTTPException
+
+    from app.gateway.services import enforce_thread_agent_identity
+    from vassilflow.config.agent_contract import resolve_agent_identity
+
+    store = MagicMock()
+    store.get = AsyncMock(return_value={"assistant_id": "writer", "metadata": {"agent_name": "writer"}})
+    store.update_assistant_id = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await enforce_thread_agent_identity(
+            store,
+            "thread-1",
+            resolve_agent_identity("researcher"),
+        )
+
+    assert exc_info.value.status_code == 409
+    store.update_assistant_id.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_thread_agent_binding_rechecks_cross_worker_create_winner():
+    from fastapi import HTTPException
+
+    from app.gateway.services import bind_thread_agent_identity
+    from vassilflow.config.agent_contract import resolve_agent_identity
+
+    class RacingStore:
+        def __init__(self):
+            self.record = None
+
+        async def get(self, _thread_id, **_kwargs):
+            return self.record
+
+        async def create(self, _thread_id, **_kwargs):
+            self.record = {
+                "assistant_id": "writer",
+                "metadata": {"agent_name": "writer"},
+            }
+            raise RuntimeError("duplicate")
+
+        async def update_assistant_id(self, *_args, **_kwargs):
+            raise AssertionError("winner must not be relabeled")
+
+    store = RacingStore()
+    with pytest.raises(HTTPException) as exc_info:
+        await bind_thread_agent_identity(
+            store,
+            "thread-race",
+            resolve_agent_identity("researcher"),
+            metadata={},
+            owner_user_id=None,
+        )
+
+    assert exc_info.value.status_code == 409
 
 
 def test_format_sse_end_event_null():
@@ -357,19 +440,19 @@ def test_build_run_config_none_assistant_id_no_agent_name():
     assert "run_name" not in config
 
 
-def test_build_run_config_explicit_agent_name_not_overwritten():
-    """An explicit configurable['agent_name'] in the request must take precedence."""
+def test_build_run_config_rejects_conflicting_configurable_agent_name():
+    """Client config cannot route a run to a different Agent."""
+    import pytest
+
     from app.gateway.services import build_run_config
 
-    config = build_run_config(
-        "thread-1",
-        {"configurable": {"agent_name": "explicit-agent"}},
-        None,
-        assistant_id="other-agent",
-    )
-    assert config["configurable"]["agent_name"] == "explicit-agent"
-    assert config["context"]["agent_name"] == "explicit-agent"
-    assert config["run_name"] == "explicit-agent"
+    with pytest.raises(ValueError, match="conflicts with assistant_id"):
+        build_run_config(
+            "thread-1",
+            {"configurable": {"agent_name": "explicit-agent"}},
+            None,
+            assistant_id="other-agent",
+        )
 
 
 def test_build_run_config_context_custom_agent_injects_agent_name():
@@ -424,40 +507,30 @@ def test_build_run_config_configurable_custom_agent_dual_writes_agent_name():
     assert config["context"]["agent_name"] == "finalis"
 
 
-def test_build_run_config_context_explicit_agent_name_not_overwritten():
-    """An explicit ``context['agent_name']`` from the request must take
-    precedence over the value derived from ``assistant_id`` and be mirrored
-    to ``configurable`` so the two containers never diverge.
-    """
+def test_build_run_config_rejects_conflicting_context_agent_name():
+    """A legacy identity hint cannot override the canonical assistant ID."""
+    import pytest
+
     from app.gateway.services import build_run_config
 
-    config = build_run_config(
-        "thread-1",
-        {"context": {"agent_name": "explicit-agent"}},
-        None,
-        assistant_id="other-agent",
-    )
-
-    assert config["context"]["agent_name"] == "explicit-agent"
-    assert config["configurable"]["agent_name"] == "explicit-agent"
-    assert config["run_name"] == "explicit-agent"
+    with pytest.raises(ValueError, match="conflicts with assistant_id"):
+        build_run_config(
+            "thread-1",
+            {"context": {"agent_name": "explicit-agent"}},
+            None,
+            assistant_id="other-agent",
+        )
 
 
-def test_build_run_config_dual_write_matches_merge_run_context_overrides_shape():
-    """The shape produced by ``build_run_config`` for a custom agent must be
-    indistinguishable from what ``merge_run_context_overrides`` would produce
-    when ``agent_name`` is supplied via ``body.context`` — guarding against
-    the two code paths drifting apart again (issue #3549).
-    """
+def test_merge_run_context_cannot_override_canonical_agent_identity():
+    """Later context merging cannot change the canonical agent identity."""
     from app.gateway.services import build_run_config, merge_run_context_overrides
 
-    via_assistant_id = build_run_config("thread-1", None, None, assistant_id="finalis")
+    config = build_run_config("thread-1", None, None, assistant_id="finalis")
+    merge_run_context_overrides(config, {"agent_name": "other-agent"})
 
-    via_context = build_run_config("thread-1", None, None)
-    merge_run_context_overrides(via_context, {"agent_name": "finalis"})
-
-    assert via_assistant_id["configurable"]["agent_name"] == via_context["configurable"]["agent_name"]
-    assert via_assistant_id["context"]["agent_name"] == via_context["context"]["agent_name"]
+    assert config["configurable"]["agent_name"] == "finalis"
+    assert config["context"]["agent_name"] == "finalis"
 
 
 # ---------------------------------------------------------------------------
@@ -494,6 +567,135 @@ def test_run_create_request_context_defaults_to_none():
 
     body = RunCreateRequest(input=None)
     assert body.context is None
+
+
+def test_run_create_request_validates_typed_office_selection():
+    from pydantic import ValidationError
+
+    from app.gateway.routers.thread_runs import RunCreateRequest
+
+    selection = {
+        "kind": "pptx_object",
+        "project_id": f"ofp_{'1' * 32}",
+        "revision_id": f"ofr_{'2' * 32}",
+        "source_sha256": "a" * 64,
+        "slide_index": 1,
+        "object_path": "/slide[1]/shape[@id=3]",
+        "object_fingerprint": "b" * 64,
+    }
+    body = RunCreateRequest(assistant_id="office", office_selection=selection)
+
+    assert body.office_selection is not None
+    assert body.office_selection.object_path == "/slide[1]/shape[@id=3]"
+
+    with pytest.raises(ValidationError):
+        RunCreateRequest(
+            assistant_id="office",
+            office_selection={**selection, "selected_text": "client supplied"},
+        )
+
+
+def test_sdk_context_office_selection_is_parsed_by_typed_envelope():
+    from app.gateway.office_selection import extract_office_selection_input
+    from app.gateway.routers.thread_runs import RunCreateRequest
+
+    payload = {
+        "kind": "pptx_object",
+        "project_id": f"ofp_{'1' * 32}",
+        "revision_id": f"ofr_{'2' * 32}",
+        "source_sha256": "a" * 64,
+        "slide_index": 1,
+        "object_path": "/slide[1]/shape[@id=3]",
+        "object_fingerprint": "b" * 64,
+    }
+    body = RunCreateRequest(
+        assistant_id="office",
+        context={"office_selection_request": payload},
+    )
+
+    parsed = extract_office_selection_input(body)
+
+    assert parsed is not None
+    assert parsed.model_dump() == payload
+
+
+def test_sdk_context_office_selection_rejects_unknown_fields():
+    from fastapi import HTTPException
+
+    from app.gateway.office_selection import extract_office_selection_input
+    from app.gateway.routers.thread_runs import RunCreateRequest
+
+    body = RunCreateRequest(
+        assistant_id="office",
+        context={
+            "office_selection_request": {
+                "kind": "pptx_object",
+                "project_id": f"ofp_{'1' * 32}",
+                "revision_id": f"ofr_{'2' * 32}",
+                "source_sha256": "a" * 64,
+                "slide_index": 1,
+                "object_path": "/slide[1]/shape[@id=3]",
+                "object_fingerprint": "b" * 64,
+                "selected_text": "untrusted",
+            }
+        },
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        extract_office_selection_input(body)
+
+    assert exc_info.value.status_code == 400
+
+
+def test_build_run_config_pins_thread_and_strips_server_owned_context():
+    from app.gateway.services import build_run_config
+
+    config = build_run_config(
+        "authorized-thread",
+        {
+            "configurable": {
+                "thread_id": "spoofed-thread",
+                "office_selection": {"trusted": False},
+                "model_name": "configured-model",
+            }
+        },
+        None,
+    )
+    context_config = build_run_config(
+        "authorized-thread",
+        {
+            "context": {
+                "thread_id": "spoofed-thread",
+                "office_selection": {"trusted": False},
+            }
+        },
+        None,
+    )
+
+    assert config["configurable"] == {
+        "thread_id": "authorized-thread",
+        "model_name": "configured-model",
+    }
+    assert context_config["context"] == {"thread_id": "authorized-thread"}
+    assert context_config["configurable"] == {"thread_id": "authorized-thread"}
+
+
+def test_inject_resolved_office_selection_replaces_every_client_copy():
+    from app.gateway.services import inject_resolved_office_selection
+
+    config = {
+        "context": {"office_selection": {"trusted": False}},
+        "configurable": {
+            "thread_id": "thread-1",
+            "office_selection": {"trusted": False},
+        },
+    }
+    resolved = {"schema": "selection-v1", "object_path": "/slide[1]/shape[@id=3]"}
+
+    inject_resolved_office_selection(config, resolved)
+
+    assert config["context"]["office_selection"] == resolved
+    assert "office_selection" not in config["configurable"]
 
 
 def test_apply_checkpoint_to_run_config_writes_checkpoint_fields():
@@ -609,25 +811,95 @@ def test_context_merges_into_configurable():
     assert "thread_id" not in {k for k in context if k in _CONTEXT_CONFIGURABLE_KEYS}
 
 
-def test_merge_run_context_overrides_propagates_to_runtime_context():
-    """Regression for issue #2677: ``agent_name`` (and other whitelisted keys) from
-    ``body.context`` must be propagated into BOTH ``config['configurable']`` and
-    ``config['context']``. Previously only ``configurable`` was populated, so after
-    the LangGraph 1.1.x upgrade removed the fallback from ``configurable``, the
-    ``setup_agent`` tool read ``runtime.context`` with ``agent_name=None`` and
-    silently wrote SOUL.md to the global base_dir.
-    """
+def test_merge_run_context_overrides_keeps_agent_name_server_owned():
+    """Generic request context cannot claim an Agent identity."""
     from app.gateway.services import build_run_config, merge_run_context_overrides
 
     config = build_run_config("thread-1", None, None)
-    merge_run_context_overrides(config, {"agent_name": "my-agent", "is_bootstrap": True, "thread_id": "ignored"})
+    merge_run_context_overrides(
+        config,
+        {
+            "agent_name": "my-agent",
+            "bootstrap_agent_name": "new-agent",
+            "is_bootstrap": True,
+            "thread_id": "ignored",
+        },
+    )
 
-    assert config["configurable"]["agent_name"] == "my-agent"
+    assert "agent_name" not in config["configurable"]
     assert config["configurable"]["is_bootstrap"] is True
-    assert config["context"]["agent_name"] == "my-agent"
+    assert "agent_name" not in config["context"]
     assert config["context"]["is_bootstrap"] is True
+    assert config["configurable"]["bootstrap_agent_name"] == "new-agent"
+    assert config["context"]["bootstrap_agent_name"] == "new-agent"
     # Non-whitelisted keys are not forwarded.
     assert "thread_id" not in config["context"]
+
+
+def test_merge_run_context_rejects_bootstrap_target_outside_bootstrap_mode():
+    from fastapi import HTTPException
+
+    from app.gateway.services import build_run_config, merge_run_context_overrides
+
+    config = build_run_config("thread-1", None, None)
+
+    with pytest.raises(HTTPException, match="requires bootstrap mode"):
+        merge_run_context_overrides(
+            config,
+            {"bootstrap_agent_name": "new-agent"},
+        )
+
+
+def test_office_selection_injection_preserves_canonical_agent_identity():
+    from app.gateway.services import (
+        build_run_config,
+        inject_resolved_office_selection,
+    )
+
+    config = build_run_config(
+        "thread-1",
+        {
+            "context": {
+                "office_selection": {"forged": True},
+                "office_selection_request": {"forged": True},
+            }
+        },
+        None,
+        assistant_id="report-agent",
+    )
+
+    inject_resolved_office_selection(config, None)
+
+    assert config["context"]["agent_name"] == "report-agent"
+    assert config["configurable"]["agent_name"] == "report-agent"
+    assert "office_selection" not in config["context"]
+
+
+def test_build_run_config_strips_policy_claims_from_both_metadata_inputs():
+    from app.gateway.services import build_run_config
+
+    config = build_run_config(
+        "thread-1",
+        {
+            "metadata": {
+                "allowed_tools": ["invoke_acp_agent"],
+                "agent_allow_mcp_tools": True,
+                "client_label": "kept",
+            }
+        },
+        {
+            "agent_data_access": ["thread_outputs"],
+            "other_label": "kept-too",
+        },
+        assistant_id="report-agent",
+    )
+
+    assert config["metadata"] == {
+        "client_label": "kept",
+        "other_label": "kept-too",
+        "assistant_id": "report-agent",
+        "agent_name": "report-agent",
+    }
 
 
 def test_merge_run_context_overrides_runtime_only_keys_stay_out_of_configurable():
@@ -850,6 +1122,153 @@ async def _capture_start_run_graph_input(body):
         await record.task
 
     return captured["graph_input"]
+
+
+def test_start_run_injects_only_resolved_office_selection(_stub_app_config):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from langgraph.checkpoint.memory import InMemorySaver
+    from langgraph.store.memory import InMemoryStore
+
+    from app.gateway.routers.thread_runs import RunCreateRequest
+    from app.gateway.services import start_run
+    from vassilflow.persistence.thread_meta.memory import MemoryThreadMetaStore
+    from vassilflow.runtime import RunManager
+    from vassilflow.runtime.runs.store.memory import MemoryRunStore
+
+    async def scenario() -> dict:
+        state = SimpleNamespace(
+            stream_bridge=SimpleNamespace(),
+            run_manager=RunManager(store=MemoryRunStore()),
+            checkpointer=InMemorySaver(),
+            store=InMemoryStore(),
+            run_event_store=SimpleNamespace(),
+            run_events_config=None,
+            thread_store=MemoryThreadMetaStore(InMemoryStore()),
+        )
+        request = SimpleNamespace(
+            headers={},
+            state=SimpleNamespace(),
+            app=SimpleNamespace(state=state),
+        )
+        body = RunCreateRequest(
+            assistant_id="office",
+            input={"messages": [{"role": "human", "content": "Change it"}]},
+            config={
+                "context": {
+                    "office_selection": {"trusted": False},
+                }
+            },
+            office_selection={
+                "kind": "pptx_object",
+                "project_id": f"ofp_{'1' * 32}",
+                "revision_id": f"ofr_{'2' * 32}",
+                "source_sha256": "a" * 64,
+                "slide_index": 1,
+                "object_path": "/slide[1]/shape[@id=3]",
+                "object_fingerprint": "b" * 64,
+            },
+        )
+        trusted = {
+            "schema": "selection-v1",
+            "project_id": f"ofp_{'1' * 32}",
+            "revision_id": f"ofr_{'2' * 32}",
+            "object_path": "/slide[1]/shape[@id=3]",
+        }
+        captured: dict = {}
+
+        async def fake_resolve(*_args, **_kwargs):
+            return trusted
+
+        async def fake_run_agent(*_args, **kwargs):
+            captured.update(kwargs["config"])
+
+        with (
+            patch(
+                "app.gateway.services.resolve_office_selection_for_run",
+                side_effect=fake_resolve,
+            ),
+            patch("app.gateway.services.resolve_agent_factory", return_value=object()),
+            patch("app.gateway.services.run_agent", side_effect=fake_run_agent),
+        ):
+            record = await start_run(body, "authorized-thread", request)
+            await record.task
+
+        return captured
+
+    config = asyncio.run(scenario())
+
+    assert config["context"]["office_selection"]["schema"] == "selection-v1"
+    assert config["context"]["thread_id"] == "authorized-thread"
+    assert config["configurable"]["thread_id"] == "authorized-thread"
+    assert "office_selection" not in config["configurable"]
+
+
+def test_start_run_rejects_invalid_office_selection_before_record_creation(
+    _stub_app_config,
+):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from fastapi import HTTPException
+    from langgraph.checkpoint.memory import InMemorySaver
+    from langgraph.store.memory import InMemoryStore
+
+    from app.gateway.routers.thread_runs import RunCreateRequest
+    from app.gateway.services import start_run
+    from vassilflow.persistence.thread_meta.memory import MemoryThreadMetaStore
+
+    class RunManagerProbe:
+        called = False
+
+        async def create_or_reject(self, *_args, **_kwargs):
+            self.called = True
+            raise AssertionError("run record must not be created")
+
+    async def scenario() -> bool:
+        run_manager = RunManagerProbe()
+        state = SimpleNamespace(
+            stream_bridge=SimpleNamespace(),
+            run_manager=run_manager,
+            checkpointer=InMemorySaver(),
+            store=InMemoryStore(),
+            run_event_store=SimpleNamespace(),
+            run_events_config=None,
+            thread_store=MemoryThreadMetaStore(InMemoryStore()),
+        )
+        request = SimpleNamespace(
+            headers={},
+            state=SimpleNamespace(),
+            app=SimpleNamespace(state=state),
+        )
+        body = RunCreateRequest(
+            assistant_id="office",
+            office_selection={
+                "kind": "pptx_object",
+                "project_id": f"ofp_{'1' * 32}",
+                "revision_id": f"ofr_{'2' * 32}",
+                "source_sha256": "a" * 64,
+                "slide_index": 1,
+                "object_path": "/slide[1]/shape[@id=3]",
+                "object_fingerprint": "b" * 64,
+            },
+        )
+
+        async def reject(*_args, **_kwargs):
+            raise HTTPException(status_code=409, detail="stale selection")
+
+        with patch(
+            "app.gateway.services.resolve_office_selection_for_run",
+            side_effect=reject,
+        ):
+            with pytest.raises(HTTPException, match="stale selection"):
+                await start_run(body, "authorized-thread", request)
+        return run_manager.called
+
+    assert asyncio.run(scenario()) is False
 
 
 def test_start_run_translates_resume_command_to_langgraph_command(_stub_app_config):
@@ -1140,7 +1559,7 @@ def test_build_run_config_context_plus_configurable_warns(caplog):
                 "configurable": {"model_name": "gpt-4"},
             },
             None,
-    )
+        )
     assert "context" in config
     assert config["context"]["user_id"] == "u-42"
     assert config["configurable"] == {"thread_id": "thread-1"}

@@ -62,6 +62,18 @@ class ThreadMetaStore(abc.ABC):
         pass
 
     @abc.abstractmethod
+    async def update_assistant_id(
+        self,
+        thread_id: str,
+        assistant_id: str,
+        *,
+        user_id: str | None | _AutoSentinel = AUTO,
+    ) -> None:
+        """Bind a thread to its canonical Agent identity."""
+
+        pass
+
+    @abc.abstractmethod
     async def update_metadata(self, thread_id: str, metadata: dict, *, user_id: str | None | _AutoSentinel = AUTO) -> None:
         """Merge ``metadata`` into the thread's metadata field.
 

@@ -17,6 +17,30 @@ class OfficeOperationError(OfficeError):
     """An Office edit could not be applied without risking document damage."""
 
 
+class OfficeRevisionError(OfficeError):
+    """An Office project revision could not be persisted safely."""
+
+
+class OfficeRevisionConflictError(OfficeRevisionError):
+    """An Office project advanced beyond the caller's expected parent revision."""
+
+
+class OfficeRevisionIntegrityError(OfficeRevisionError):
+    """Persisted Office project metadata or artifact bytes failed integrity checks."""
+
+
+class OfficeTemplateError(OfficeError):
+    """An Office template could not be imported, mapped, or published safely."""
+
+
+class OfficeTemplateConflictError(OfficeTemplateError):
+    """An Office template changed beyond the caller's expected draft state."""
+
+
+class OfficeTemplateIntegrityError(OfficeTemplateError):
+    """Persisted Office template metadata or source bytes failed integrity checks."""
+
+
 class OfficeRenderError(OfficeError):
     """An Office document could not be rendered within the supported contract."""
 

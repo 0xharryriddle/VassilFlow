@@ -117,6 +117,24 @@ class MemoryThreadMetaStore(ThreadMetaStore):
         record["updated_at"] = now_iso()
         await self._store.aput(THREADS_NS, thread_id, record)
 
+    async def update_assistant_id(
+        self,
+        thread_id: str,
+        assistant_id: str,
+        *,
+        user_id: str | None | _AutoSentinel = AUTO,
+    ) -> None:
+        record = await self._get_owned_record(
+            thread_id,
+            user_id,
+            "MemoryThreadMetaStore.update_assistant_id",
+        )
+        if record is None:
+            return
+        record["assistant_id"] = assistant_id
+        record["updated_at"] = now_iso()
+        await self._store.aput(THREADS_NS, thread_id, record)
+
     async def update_metadata(self, thread_id: str, metadata: dict, *, user_id: str | None | _AutoSentinel = AUTO) -> None:
         record = await self._get_owned_record(thread_id, user_id, "MemoryThreadMetaStore.update_metadata")
         if record is None:

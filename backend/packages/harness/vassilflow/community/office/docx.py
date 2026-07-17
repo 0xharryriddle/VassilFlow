@@ -28,6 +28,7 @@ from .models import (
     DocxTextReplacement,
 )
 from .opc import enforce_package_preservation
+from .receipt import OfficeEditTrace
 
 _DOCUMENT_XML = "word/document.xml"
 _CONTENT_TYPES_XML = "[Content_Types].xml"
@@ -1141,7 +1142,13 @@ def _apply_paragraph_formatting(paragraph: Any, formatting: DocxParagraphFormatt
             indentation.attrib.pop(f"{{{_WORD_NS}}}firstLine", None)
 
 
-def _format_runs(document: Any, operation: DocxRunFormatOperation) -> int:
+def _format_runs(
+    document: Any,
+    operation: DocxRunFormatOperation,
+    *,
+    operation_index: int,
+    receipt_trace: OfficeEditTrace | None,
+) -> int:
     match_count = 0
     for paragraph_index, paragraph in enumerate(_body_paragraphs(document), start=1):
         if not _matches_paragraph_selector(paragraph, paragraph_index, operation.paragraphs):
@@ -1157,18 +1164,36 @@ def _format_runs(document: Any, operation: DocxRunFormatOperation) -> int:
                 raise OfficeOperationError(f"Run formatting inside {reason} is outside the current Office contract")
             _apply_run_formatting(run, operation.formatting)
             match_count += 1
+            if receipt_trace is not None:
+                receipt_trace.add_target(
+                    operation_index,
+                    path=(f"/document/paragraph[{paragraph_index}]/run[{run_index}]"),
+                    kind="docx_run_format",
+                )
             if operation.occurrence == "first":
                 return match_count
     return match_count
 
 
-def _format_paragraphs(document: Any, operation: DocxParagraphFormatOperation) -> int:
+def _format_paragraphs(
+    document: Any,
+    operation: DocxParagraphFormatOperation,
+    *,
+    operation_index: int,
+    receipt_trace: OfficeEditTrace | None,
+) -> int:
     match_count = 0
     for paragraph_index, paragraph in enumerate(_body_paragraphs(document), start=1):
         if not _matches_paragraph_selector(paragraph, paragraph_index, operation.paragraphs):
             continue
         _apply_paragraph_formatting(paragraph, operation.formatting)
         match_count += 1
+        if receipt_trace is not None:
+            receipt_trace.add_target(
+                operation_index,
+                path=f"/document/paragraph[{paragraph_index}]",
+                kind="docx_paragraph_format",
+            )
         if operation.occurrence == "first":
             break
     return match_count
@@ -1194,7 +1219,12 @@ def _serialize_package(package: _Package) -> bytes:
     return result
 
 
-def edit_docx(data: bytes, operations: list[DocxEditOperation]) -> tuple[bytes, list[dict[str, Any]]]:
+def edit_docx(
+    data: bytes,
+    operations: list[DocxEditOperation],
+    *,
+    receipt_trace: OfficeEditTrace | None = None,
+) -> tuple[bytes, list[dict[str, Any]]]:
     """Apply all operations in memory and serialize once when every operation succeeds."""
     if not operations:
         raise OfficeOperationError("At least one Office edit operation is required")
@@ -1203,9 +1233,14 @@ def edit_docx(data: bytes, operations: list[DocxEditOperation]) -> tuple[bytes, 
     reports: list[dict[str, Any]] = []
     total_match_count = 0
     for operation_index, operation in enumerate(operations, start=1):
+        if receipt_trace is not None:
+            receipt_trace.start_operation(operation_index, operation.type)
         if isinstance(operation, DocxTextReplacement):
             match_count = 0
-            for paragraph in _body_paragraphs(package.document):
+            for paragraph_index, paragraph in enumerate(
+                _body_paragraphs(package.document),
+                start=1,
+            ):
                 count = _replace_in_paragraph(
                     paragraph,
                     operation.find,
@@ -1213,12 +1248,28 @@ def edit_docx(data: bytes, operations: list[DocxEditOperation]) -> tuple[bytes, 
                     first_only=operation.occurrence == "first",
                 )
                 match_count += count
+                if count and receipt_trace is not None:
+                    receipt_trace.add_target(
+                        operation_index,
+                        path=f"/document/paragraph[{paragraph_index}]",
+                        kind="docx_paragraph_text",
+                    )
                 if operation.occurrence == "first" and count:
                     break
         elif isinstance(operation, DocxRunFormatOperation):
-            match_count = _format_runs(package.document, operation)
+            match_count = _format_runs(
+                package.document,
+                operation,
+                operation_index=operation_index,
+                receipt_trace=receipt_trace,
+            )
         elif isinstance(operation, DocxParagraphFormatOperation):
-            match_count = _format_paragraphs(package.document, operation)
+            match_count = _format_paragraphs(
+                package.document,
+                operation,
+                operation_index=operation_index,
+                receipt_trace=receipt_trace,
+            )
         else:
             raise OfficeOperationError(f"Unsupported Office operation at position {operation_index}")
         if operation.require_match and match_count == 0:
@@ -1232,6 +1283,11 @@ def edit_docx(data: bytes, operations: list[DocxEditOperation]) -> tuple[bytes, 
                 "match_count": match_count,
             }
         )
+        if receipt_trace is not None:
+            receipt_trace.finish_operation(
+                operation_index,
+                match_count=match_count,
+            )
     if total_match_count == 0:
         return data, reports
     result = _serialize_package(package)

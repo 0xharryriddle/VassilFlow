@@ -12,6 +12,7 @@ type ThreadRouteTarget =
   | string
   | {
       thread_id: string;
+      assistant_id?: string | null;
       context?: Pick<AgentThreadContext, "agent_name"> | null;
       metadata?: Record<string, unknown> | null;
     };
@@ -25,11 +26,20 @@ export function pathOfThread(
   if (typeof thread === "string") {
     agentName = context?.agent_name;
   } else {
-    agentName = thread.context?.agent_name;
-    if (!agentName) {
-      const metaAgent = thread.metadata?.agent_name;
-      if (typeof metaAgent === "string") {
-        agentName = metaAgent;
+    if (typeof thread.assistant_id === "string") {
+      if (
+        thread.assistant_id !== "lead_agent" &&
+        thread.assistant_id !== "lead-agent"
+      ) {
+        agentName = thread.assistant_id;
+      }
+    } else {
+      agentName = thread.context?.agent_name;
+      if (!agentName) {
+        const metaAgent = thread.metadata?.agent_name;
+        if (typeof metaAgent === "string") {
+          agentName = metaAgent;
+        }
       }
     }
   }

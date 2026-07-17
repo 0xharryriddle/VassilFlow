@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "corpus_id": "vassilflow-pptx-native-generation-v1",
+  "seed": {
+    "file": "seed-v1.pptx",
+    "sha256": "1d2d405a6acdfd251b3e72057e14d3646d128f3f02142e540cdac876e1b66551",
+    "generator": "backend/scripts/build_pptx_generation_seed.py",
+    "intent": {
+      "file": "intent-v1.json",
+      "sha256": "b857e207a5816b4d2a8e3368f3dc3a5e29d53474e4439871ec8426d3f4db7f11"
+    },
+    "asset": {
+      "file": "asset-v1.png",
+      "sha256": "a3092907f5e2aff3b988356f38900dc3fd059a4ca58c9829897571ea7a814924"
+    },
+    "generation_receipt": {
+      "file": "generation-receipt-v1.json",
+      "sha256": "76bf65c58208a9fe8b60f3a2290ae4301f5943504df507263461cf0a140814f4"
+    },
+    "preflight": {
+      "file": "preflight-v1.json",
+      "sha256": "78e37da55828b03aa0a40766aece6967afc631d4e24a39dd9f84e99c6f2747e8"
+    }
+  },
+  "required_producers": [
+    "microsoft_powerpoint",
+    "wps_presentation"
+  ],
+  "lanes": [
+    {
+      "producer": "microsoft_powerpoint",
+      "status": "verified",
+      "fixture": "powerpoint-16-v1.pptx",
+      "receipt": "powerpoint-16-v1.receipt.json",
+      "native_observation": {
+        "entry_count": 46,
+        "slide_size_emu": {
+          "width": 12192000,
+          "height": 6858000
+        }
+      }
+    },
+    {
+      "producer": "wps_presentation",
+      "status": "verified",
+      "fixture": "wps-v1.pptx",
+      "receipt": "wps-v1.receipt.json",
+      "native_observation": {
+        "entry_count": 59,
+        "slide_size_emu": {
+          "width": 12191365,
+          "height": 6858000
+        }
+      }
+    }
+  ],
+  "generation_readiness": {
+    "ready": true,
+    "verified_producers": [
+      "microsoft_powerpoint",
+      "wps_presentation"
+    ],
+    "blocked_by": []
+  },
+  "semantic_contract": {
+    "slide_size_emu": {
+      "baseline_width": 12191999,
+      "baseline_height": 6858000,
+      "max_native_width_drift": 1000,
+      "max_native_height_drift": 0
+    },
+    "slide_count": 5,
+    "object_count": 15,
+    "required_objects": [
+      {
+        "name": "VFGEN:opening:opening-accent",
+        "path": "/slide[1]/shape[@id=3]",
+        "kind": "shape",
+        "text": ""
+      },
+      {
+        "name": "VFGEN:opening:opening-title",
+        "path": "/slide[1]/shape[@id=2]",
+        "kind": "title",
+        "text": "Native Generation Corpus"
+      },
+      {
+        "name": "VFGEN:opening:opening-subtitle",
+        "path": "/slide[1]/shape[@id=4]",
+        "kind": "text_box",
+        "text": "Editable objects across native producers"
+      },
+      {
+        "name": "VFGEN:summary:summary-mark",
+        "path": "/slide[2]/shape[@id=3]",
+        "kind": "shape",
+        "text": ""
+      },
+      {
+        "name": "VFGEN:summary:summary-title",
+        "path": "/slide[2]/shape[@id=2]",
+        "kind": "title",
+        "text": "Semantic content"
+      },
+      {
+        "name": "VFGEN:summary:summary-content",
+        "path": "/slide[2]/shape[@id=4]",
+        "kind": "text_box",
+        "text": "Stable intent IDs map to authored object paths\nNative text remains independently editable\nVisual evidence remains bound to one artifact"
+      },
+      {
+        "name": "VFGEN:evidence:evidence-title",
+        "path": "/slide[3]/shape[@id=2]",
+        "kind": "title",
+        "text": "Evidence and interpretation"
+      },
+      {
+        "name": "VFGEN:evidence:evidence-image",
+        "path": "/slide[3]/picture[@id=3]",
+        "kind": "picture",
+        "alt_text": "Three colored evidence bands crossed by a white diagonal"
+      },
+      {
+        "name": "VFGEN:evidence:evidence-notes",
+        "path": "/slide[3]/shape[@id=4]",
+        "kind": "text_box",
+        "text": "The image is embedded, not linked\nThe crop is compiler-owned and deterministic"
+      },
+      {
+        "name": "VFGEN:detail:detail-title",
+        "path": "/slide[4]/shape[@id=2]",
+        "kind": "title",
+        "text": "Contained visual evidence"
+      },
+      {
+        "name": "VFGEN:detail:detail-image",
+        "path": "/slide[4]/picture[@id=3]",
+        "kind": "picture",
+        "alt_text": "Complete three-band corpus image with its dark border visible"
+      },
+      {
+        "name": "VFGEN:detail:detail-caption",
+        "path": "/slide[4]/shape[@id=4]",
+        "kind": "text_box",
+        "text": "Contain preserves the complete source image and its border."
+      },
+      {
+        "name": "VFGEN:closing:closing-mark",
+        "path": "/slide[5]/shape[@id=3]",
+        "kind": "shape",
+        "text": ""
+      },
+      {
+        "name": "VFGEN:closing:closing-title",
+        "path": "/slide[5]/shape[@id=2]",
+        "kind": "title",
+        "text": "Native generation verified"
+      },
+      {
+        "name": "VFGEN:closing:closing-subtitle",
+        "path": "/slide[5]/shape[@id=4]",
+        "kind": "text_box",
+        "text": "Inspect, render, review, then deliver"
+      }
+    ]
+  }
+}

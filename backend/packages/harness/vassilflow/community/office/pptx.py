@@ -50,6 +50,7 @@ from .models import (
     PptxTextReplacement,
 )
 from .opc import enforce_package_preservation
+from .receipt import OfficeEditTrace
 
 _CONTENT_TYPES_XML = "[Content_Types].xml"
 _ROOT_RELATIONSHIPS_XML = "_rels/.rels"
@@ -2624,7 +2625,10 @@ def _object_geometry(ref: _ObjectRef) -> dict[str, Any]:
     }
     rotation = _integer_attribute(transform, "rot", path=ref.path)
     if rotation is not None:
-        geometry["rotation_degrees"] = round(rotation / 60_000, 6)
+        try:
+            geometry["rotation_degrees"] = round(rotation / 60_000, 6)
+        except OverflowError as exc:
+            raise OfficePackageError(f"PPTX object {ref.path} has invalid geometry") from exc
     if (transform.get("flipH") or "").lower() in {"1", "on", "true"}:
         geometry["flip_horizontal"] = True
     if (transform.get("flipV") or "").lower() in {"1", "on", "true"}:
@@ -9094,6 +9098,7 @@ def edit_pptx(
     operations: list[PptxEditOperation],
     *,
     image_assets: dict[str, bytes] | None = None,
+    receipt_trace: OfficeEditTrace | None = None,
 ) -> tuple[bytes, list[dict[str, Any]]]:
     """Apply bounded text, formatting, and picture-source edits as one PPTX transaction."""
     if not operations:
@@ -9238,7 +9243,30 @@ def edit_pptx(
     total_text_replacements = 0
     total_formatting_targets = 0
     changed_parts: set[str] = set()
+
+    def record_receipt_targets(
+        operation_index: int,
+        *,
+        paths: list[str],
+        kind: str,
+        match_count: int,
+    ) -> None:
+        if receipt_trace is None:
+            return
+        for path in paths:
+            receipt_trace.add_target(
+                operation_index,
+                path=path,
+                kind=kind,
+            )
+        receipt_trace.finish_operation(
+            operation_index,
+            match_count=match_count,
+        )
+
     for operation_index, operation in enumerate(operations, start=1):
+        if receipt_trace is not None:
+            receipt_trace.start_operation(operation_index, operation.type)
         if isinstance(operation, PptxTextReplacement):
             missing_paths = [path for path in operation.paths if path not in refs_by_path]
             if missing_paths:
@@ -9274,6 +9302,12 @@ def edit_pptx(
                     break
             if operation.require_match and match_count == 0:
                 raise OfficeOperationError(f"Operation {operation_index} matched no targets; no presentation changes were written")
+            record_receipt_targets(
+                operation_index,
+                paths=matched_paths,
+                kind="pptx_shape_text",
+                match_count=match_count,
+            )
             reports.append(
                 {
                     "operation": operation_index,
@@ -9312,6 +9346,12 @@ def edit_pptx(
                 ):
                     changed_parts.add(target.slide.part_name)
             matched_paths = [path for path, _ in resolved]
+            record_receipt_targets(
+                operation_index,
+                paths=matched_paths,
+                kind="pptx_run_format",
+                match_count=len(resolved),
+            )
             reports.append(
                 {
                     "operation": operation_index,
@@ -9346,6 +9386,12 @@ def edit_pptx(
                 ):
                     changed_parts.add(target.slide.part_name)
             matched_paths = [path for path, _ in resolved]
+            record_receipt_targets(
+                operation_index,
+                paths=matched_paths,
+                kind="pptx_paragraph_format",
+                match_count=len(resolved),
+            )
             reports.append(
                 {
                     "operation": operation_index,
@@ -9392,6 +9438,12 @@ def edit_pptx(
                 if changed:
                     changed_parts.add(target.slide.part_name)
             matched_paths = [path for path, _ in resolved]
+            record_receipt_targets(
+                operation_index,
+                paths=matched_paths,
+                kind="pptx_shape_style",
+                match_count=len(resolved),
+            )
             reports.append(
                 {
                     "operation": operation_index,
@@ -9431,6 +9483,12 @@ def edit_pptx(
                 if changed:
                     changed_parts.add(target.slide.part_name)
             matched_paths = [path for path, _ in resolved]
+            record_receipt_targets(
+                operation_index,
+                paths=matched_paths,
+                kind="pptx_line_style",
+                match_count=len(resolved),
+            )
             reports.append(
                 {
                     "operation": operation_index,
@@ -9462,6 +9520,12 @@ def edit_pptx(
                 if changed:
                     changed_parts.add(raw_target.slide.part_name)
             matched_paths = [path for path, _ in resolved]
+            record_receipt_targets(
+                operation_index,
+                paths=matched_paths,
+                kind="pptx_slide_background",
+                match_count=len(resolved),
+            )
             reports.append(
                 {
                     "operation": operation_index,
@@ -9498,6 +9562,12 @@ def edit_pptx(
                 ):
                     changed_parts.add(raw_target.slide.part_name)
             matched_paths = [path for path, _ in resolved]
+            record_receipt_targets(
+                operation_index,
+                paths=matched_paths,
+                kind="pptx_picture_source",
+                match_count=len(resolved),
+            )
             reports.append(
                 {
                     "operation": operation_index,

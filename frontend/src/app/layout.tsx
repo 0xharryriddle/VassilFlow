@@ -2,6 +2,7 @@ import "katex/dist/katex.min.css";
 import "@/styles/globals.css";
 
 import { type Metadata } from "next";
+import Script from "next/script";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { APP_BRAND_DESCRIPTION, APP_BRAND_NAME } from "@/core/brand";
@@ -62,10 +63,12 @@ export default async function RootLayout({
     <html lang={locale} suppressContentEditableWarning suppressHydrationWarning>
       <body>
         {process.env.NODE_ENV !== "production" ? (
-          <script
+          <Script
             id="vassilflow-performance-measure-guard"
-            dangerouslySetInnerHTML={{ __html: devPerformanceMeasureGuard }}
-          />
+            strategy="beforeInteractive"
+          >
+            {devPerformanceMeasureGuard}
+          </Script>
         ) : null}
         <ThemeProvider attribute="class" enableSystem disableTransitionOnChange>
           <I18nProvider initialLocale={locale}>{children}</I18nProvider>

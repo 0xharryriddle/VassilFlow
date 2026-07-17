@@ -204,6 +204,8 @@ from vassilflow.config import get_app_config
 
 Lead-agent middlewares are assembled in strict append order across `packages/harness/vassilflow/agents/middlewares/tool_error_handling_middleware.py` (`build_lead_runtime_middlewares`) and `packages/harness/vassilflow/agents/lead_agent/agent.py` (`build_middlewares`):
 
+For a restricted built-in or personal Agent, `AgentPolicyMiddleware` is prepended to this chain. It filters model-visible schemas and re-checks tool identity/provenance plus thread-data scope before execution; delegated subagents inherit the same serialized policy. MCP and ACP process boundaries perform an additional policy check. Do not derive this policy from request metadata or frontend catalog fields.
+
 1. **ThreadDataMiddleware** - Creates per-thread directories under the user's isolation scope (`{runtime_home}/users/{user_id}/threads/{thread_id}/user-data/{workspace,uploads,outputs}`; `runtime_home` defaults to `.vassilflow`); resolves `user_id` via `get_effective_user_id()` (falls back to `"default"` in no-auth mode); Web UI thread deletion now follows LangGraph thread removal with Gateway cleanup of the local thread directory
 2. **UploadsMiddleware** - Tracks and injects newly uploaded files into conversation
 3. **SandboxMiddleware** - Acquires sandbox, stores `sandbox_id` in state
@@ -543,7 +545,7 @@ LangSmith and Langfuse are both supported. The wiring lives in two layers:
 |-----------------------|----------------------------------------------|
 | `langfuse_session_id` | LangGraph `thread_id`                         |
 | `langfuse_user_id`    | `get_effective_user_id()` (`default` in no-auth); for subagents, captured from `runtime.context` at `task_tool` time via `resolve_runtime_user_id()` |
-| `langfuse_trace_name` | `RunRecord.assistant_id` / client `agent_name` (defaults to `lead-agent`); for subagents, `subagent:<name>` (lowercased, `_` → `-`) |
+| `langfuse_trace_name` | `RunRecord.assistant_id` / client Agent identity (defaults to `lead_agent`); for subagents, `subagent:<name>` (lowercased, `_` → `-`) |
 | `langfuse_tags`       | `env:<VASSILFLOW_ENV>` + `model:<model_name>` |
 
 Returns `{}` when Langfuse is not in the enabled providers — LangSmith-only deployments are unaffected. Set `VASSILFLOW_ENV` (or `ENVIRONMENT`) to tag traces by deployment environment. Tests live in `tests/test_tracing_factory.py`, `tests/test_tracing_metadata.py`, `tests/test_worker_langfuse_metadata.py`, `tests/test_client_langfuse_metadata.py`, and `tests/test_subagent_executor.py::TestSubagentTracingWiring`.
@@ -718,6 +720,24 @@ slots changed. Focused coverage lives in
 `tests/test_office_render.py`, with OPC invariants in
 `tests/test_office_opc.py`; the user/tool contract is documented in
 `docs/OFFICE_TOOLS.md`.
+
+Office Projects add a user-scoped, read-only PPTX object-selection surface at
+`GET /api/office/projects/{project_id}/revisions/{revision_id}/selection`.
+Selections are derived from exact canonical revision bytes and bind source
+SHA-256, slide index, authored-ID object path, object fingerprint, overlay
+geometry, and an operation allowlist. Browser selection data is never runtime
+authority: the Gateway strips server-owned context keys, resolves the identity
+again for the current user and current PPTX revision, and injects the verified
+selection only into request-scoped runtime context.
+
+Selected-object `office_edit` calls must use `source_path: null`. The tool reads
+the canonical project revision, rejects targets or receipt records outside the
+selected path and operation allowlist, and publishes only after the semantic
+receipt is complete. `OfficeSelectionApprovalMiddleware` stops the graph before
+mutation and emits a structured human-input review bound by SHA-256 to the exact
+selection plus complete tool arguments. A matching later approval releases only
+that proposal; cancellation, stale context, changed arguments, forged replies,
+and oversized reviews fail closed.
 
 ### File Upload
 

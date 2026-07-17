@@ -193,7 +193,7 @@ export default function NewAgentPage() {
         text: t.agents.nameStepBootstrapMessage.replace("{name}", trimmed),
         files: [],
       },
-      { agent_name: trimmed },
+      { bootstrap_agent_name: trimmed },
     );
   }, [
     nameInput,
@@ -222,7 +222,7 @@ export default function NewAgentPage() {
       await sendMessage(
         threadId,
         { text: trimmed, files: [] },
-        { agent_name: agentName },
+        { bootstrap_agent_name: agentName },
       );
     },
     [agentName, sendMessage, thread.isLoading, threadId],
@@ -239,7 +239,7 @@ export default function NewAgentPage() {
           text: buildHumanInputResponseText(request, response),
           files: [],
         },
-        { agent_name: agentName },
+        { bootstrap_agent_name: agentName },
         {
           additionalKwargs: {
             hide_from_ui: true,
@@ -267,7 +267,7 @@ export default function NewAgentPage() {
       await sendMessage(
         threadId,
         { text: t.agents.saveCommandMessage, files: [] },
-        { agent_name: agentName },
+        { bootstrap_agent_name: agentName },
         { additionalKwargs: { hide_from_ui: true } },
       );
       toast.success(t.agents.saveRequested);

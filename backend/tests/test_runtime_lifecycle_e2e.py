@@ -505,7 +505,7 @@ def test_stream_run_executes_real_lead_agent_setup_agent_business_path(isolated_
                 ]
             },
             context={
-                "agent_name": agent_name,
+                "bootstrap_agent_name": agent_name,
                 "is_bootstrap": True,
                 "thinking_enabled": False,
                 "is_plan_mode": False,

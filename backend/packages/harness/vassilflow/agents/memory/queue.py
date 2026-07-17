@@ -23,6 +23,7 @@ class ConversationContext:
     user_id: str | None = None
     correction_detected: bool = False
     reinforcement_detected: bool = False
+    cancelled: threading.Event = field(default_factory=threading.Event, repr=False, compare=False)
 
 
 class MemoryUpdateQueue:
@@ -39,6 +40,8 @@ class MemoryUpdateQueue:
         self._lock = threading.Lock()
         self._timer: threading.Timer | None = None
         self._processing = False
+        self._active_contexts: list[ConversationContext] = []
+        self._discarded_threads: set[tuple[str, str | None]] = set()
 
     @staticmethod
     def _queue_key(
@@ -75,7 +78,7 @@ class MemoryUpdateQueue:
             return
 
         with self._lock:
-            self._enqueue_locked(
+            enqueued = self._enqueue_locked(
                 thread_id=thread_id,
                 messages=messages,
                 agent_name=agent_name,
@@ -83,6 +86,8 @@ class MemoryUpdateQueue:
                 correction_detected=correction_detected,
                 reinforcement_detected=reinforcement_detected,
             )
+            if not enqueued:
+                return
             self._reset_timer()
 
         logger.info("Memory update queued for thread %s, queue size: %d", thread_id, len(self._queue))
@@ -102,7 +107,7 @@ class MemoryUpdateQueue:
             return
 
         with self._lock:
-            self._enqueue_locked(
+            enqueued = self._enqueue_locked(
                 thread_id=thread_id,
                 messages=messages,
                 agent_name=agent_name,
@@ -110,6 +115,8 @@ class MemoryUpdateQueue:
                 correction_detected=correction_detected,
                 reinforcement_detected=reinforcement_detected,
             )
+            if not enqueued:
+                return
             self._schedule_timer(0)
 
         logger.info("Memory update queued for immediate processing on thread %s, queue size: %d", thread_id, len(self._queue))
@@ -123,7 +130,11 @@ class MemoryUpdateQueue:
         user_id: str | None,
         correction_detected: bool,
         reinforcement_detected: bool,
-    ) -> None:
+    ) -> bool:
+        if self._is_thread_discarded_locked(thread_id, user_id):
+            logger.debug("Ignored memory update for deleted thread %s", thread_id)
+            return False
+
         queue_key = self._queue_key(thread_id, user_id, agent_name)
         existing_context = next(
             (context for context in self._queue if self._queue_key(context.thread_id, context.user_id, context.agent_name) == queue_key),
@@ -142,6 +153,42 @@ class MemoryUpdateQueue:
 
         self._queue = [context for context in self._queue if self._queue_key(context.thread_id, context.user_id, context.agent_name) != queue_key]
         self._queue.append(context)
+        return True
+
+    def _is_thread_discarded_locked(self, thread_id: str, user_id: str | None) -> bool:
+        return (thread_id, user_id) in self._discarded_threads or (thread_id, None) in self._discarded_threads
+
+    @staticmethod
+    def _matches_thread(context: ConversationContext, thread_id: str, user_id: str | None) -> bool:
+        return context.thread_id == thread_id and (user_id is None or context.user_id == user_id)
+
+    def discard_thread(self, thread_id: str, *, user_id: str | None = None) -> int:
+        """Cancel queued and active memory updates for a deleted thread.
+
+        The tombstone also rejects updates that race with deletion after the
+        run middleware has already captured the conversation.
+        """
+        with self._lock:
+            self._discarded_threads.add((thread_id, user_id))
+            discarded = [context for context in self._queue if self._matches_thread(context, thread_id, user_id)]
+            self._queue = [context for context in self._queue if not self._matches_thread(context, thread_id, user_id)]
+
+            active = [context for context in self._active_contexts if self._matches_thread(context, thread_id, user_id)]
+            for context in [*discarded, *active]:
+                context.cancelled.set()
+
+            if not self._queue and self._timer is not None:
+                self._timer.cancel()
+                self._timer = None
+
+        return len(discarded) + len(active)
+
+    def allow_thread(self, thread_id: str, *, user_id: str | None = None) -> None:
+        """Remove a deletion tombstone when a thread is created again."""
+        with self._lock:
+            self._discarded_threads.discard((thread_id, user_id))
+            if user_id is not None:
+                self._discarded_threads.discard((thread_id, None))
 
     def _reset_timer(self) -> None:
         """Reset the debounce timer."""
@@ -180,6 +227,7 @@ class MemoryUpdateQueue:
             self._processing = True
             contexts_to_process = self._queue.copy()
             self._queue.clear()
+            self._active_contexts = contexts_to_process
             self._timer = None
 
         logger.info("Processing %d queued memory updates", len(contexts_to_process))
@@ -189,6 +237,9 @@ class MemoryUpdateQueue:
 
             for context in contexts_to_process:
                 try:
+                    if context.cancelled.is_set():
+                        logger.info("Skipped cancelled memory update for thread %s", context.thread_id)
+                        continue
                     logger.info("Updating memory for thread %s", context.thread_id)
                     success = updater.update_memory(
                         messages=context.messages,
@@ -197,6 +248,7 @@ class MemoryUpdateQueue:
                         correction_detected=context.correction_detected,
                         reinforcement_detected=context.reinforcement_detected,
                         user_id=context.user_id,
+                        is_cancelled=context.cancelled.is_set,
                     )
                     if success:
                         logger.info("Memory updated successfully for thread %s", context.thread_id)
@@ -211,6 +263,7 @@ class MemoryUpdateQueue:
 
         finally:
             with self._lock:
+                self._active_contexts.clear()
                 self._processing = False
 
     def flush(self) -> None:
@@ -241,8 +294,10 @@ class MemoryUpdateQueue:
             if self._timer is not None:
                 self._timer.cancel()
                 self._timer = None
+            for context in self._active_contexts:
+                context.cancelled.set()
             self._queue.clear()
-            self._processing = False
+            self._discarded_threads.clear()
 
     @property
     def pending_count(self) -> int:

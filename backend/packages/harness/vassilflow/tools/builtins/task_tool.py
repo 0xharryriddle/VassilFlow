@@ -11,6 +11,10 @@ from langchain_core.callbacks import BaseCallbackManager
 from langgraph.config import get_stream_writer
 
 from vassilflow.config import get_app_config
+from vassilflow.config.agent_contract import (
+    AgentRuntimePolicy,
+    deserialize_agent_runtime_policy,
+)
 from vassilflow.runtime.user_context import resolve_runtime_user_id
 from vassilflow.sandbox.security import LOCAL_BASH_SUBAGENT_DISABLED_MESSAGE, is_host_bash_allowed
 from vassilflow.subagents import SubagentExecutor, get_available_subagent_names, get_subagent_config
@@ -53,13 +57,17 @@ def pop_cached_subagent_usage(tool_call_id: str) -> dict | None:
 
 def _is_subagent_terminal(result: Any) -> bool:
     """Return whether a background subagent result is safe to clean up."""
-    return result.status in {
-        SubagentStatus.COMPLETED,
-        SubagentStatus.FAILED,
-        SubagentStatus.CANCELLED,
-        SubagentStatus.TIMED_OUT,
-        SubagentStatus.MAX_TURNS_REACHED,
-    } or getattr(result, "completed_at", None) is not None
+    return (
+        result.status
+        in {
+            SubagentStatus.COMPLETED,
+            SubagentStatus.FAILED,
+            SubagentStatus.CANCELLED,
+            SubagentStatus.TIMED_OUT,
+            SubagentStatus.MAX_TURNS_REACHED,
+        }
+        or getattr(result, "completed_at", None) is not None
+    )
 
 
 async def _await_subagent_terminal(task_id: str, max_polls: int) -> Any | None:
@@ -190,6 +198,12 @@ def _merge_skill_allowlists(parent: list[str] | None, child: list[str] | None) -
     return [skill for skill in child if skill in parent_set]
 
 
+def _agent_policy_from_metadata(metadata: dict) -> AgentRuntimePolicy | None:
+    """Rehydrate the server-owned parent policy for delegated execution."""
+
+    return deserialize_agent_runtime_policy(metadata)
+
+
 @tool("task", parse_docstring=True)
 async def task_tool(
     runtime: Runtime,
@@ -308,6 +322,7 @@ async def task_tool(
 
     # Inherit parent agent's tool_groups so subagents respect the same restrictions
     parent_tool_groups = metadata.get("tool_groups")
+    agent_policy = _agent_policy_from_metadata(metadata)
     resolved_app_config = runtime_app_config
     if config.model == "inherit" and parent_model is None and resolved_app_config is None:
         resolved_app_config = get_app_config()
@@ -338,6 +353,7 @@ async def task_tool(
         "oauth_id": oauth_id,
         "run_id": run_id,
         "channel_user_id": channel_user_id,
+        "agent_policy": agent_policy,
     }
     if resolved_app_config is not None:
         executor_kwargs["app_config"] = resolved_app_config

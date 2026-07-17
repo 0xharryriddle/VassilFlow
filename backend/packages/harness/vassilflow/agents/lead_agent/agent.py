@@ -26,6 +26,11 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.runnables import RunnableConfig
 
+from vassilflow.agents.agent_policy import (
+    filter_tools_by_agent_policy,
+    inject_agent_runtime_policy,
+    resolve_agent_runtime_policy,
+)
 from vassilflow.agents.lead_agent.prompt import apply_prompt_template
 from vassilflow.agents.middlewares.clarification_middleware import ClarificationMiddleware
 from vassilflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
@@ -39,8 +44,13 @@ from vassilflow.agents.middlewares.token_usage_middleware import TokenUsageMiddl
 from vassilflow.agents.middlewares.tool_error_handling_middleware import build_lead_runtime_middlewares
 from vassilflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from vassilflow.agents.thread_state import ThreadState
+from vassilflow.config.agent_contract import DEFAULT_ASSISTANT_ID, AgentRuntimePolicy
 from vassilflow.config.agents_config import load_agent_config, validate_agent_name
 from vassilflow.config.app_config import AppConfig, get_app_config
+from vassilflow.config.builtin_agents import (
+    get_builtin_agent,
+    resolve_builtin_agent_config,
+)
 from vassilflow.models import create_chat_model
 from vassilflow.skills.tool_policy import SKILL_LOADING_TOOL_NAMES, filter_tools_by_skill_allowed_tools
 from vassilflow.skills.types import Skill, skill_reference_matches
@@ -214,6 +224,7 @@ def build_middlewares(
     available_skills: set[str] | None = None,
     app_config: AppConfig | None = None,
     deferred_setup=None,
+    agent_policy: AgentRuntimePolicy | None = None,
 ):
     """Build the lead-agent middleware chain based on runtime configuration.
 
@@ -237,11 +248,31 @@ def build_middlewares(
     resolved_app_config = app_config or get_app_config()
     middlewares = build_lead_runtime_middlewares(app_config=resolved_app_config, lazy_init=True)
 
+    if agent_policy is not None:
+        from vassilflow.agents.middlewares.agent_policy_middleware import AgentPolicyMiddleware
+
+        middlewares.insert(0, AgentPolicyMiddleware(agent_policy))
+
     # Always inject current date (and optionally memory) as <system-reminder> into the
     # first HumanMessage to keep the system prompt fully static for prefix-cache reuse.
     from vassilflow.agents.middlewares.dynamic_context_middleware import DynamicContextMiddleware
 
     middlewares.append(DynamicContextMiddleware(agent_name=agent_name, app_config=resolved_app_config))
+
+    # Exact canonical Office selections are request-scoped model context. The
+    # middleware keeps document-authored content at human authority and does
+    # not persist selection data into the thread checkpoint.
+    from vassilflow.agents.middlewares.office_selection_context_middleware import OfficeSelectionContextMiddleware
+
+    middlewares.append(OfficeSelectionContextMiddleware())
+
+    # Selected-object Office writes pause on a structured, hash-bound approval
+    # card. Only an exact replay after approval reaches office_edit.
+    from vassilflow.agents.middlewares.office_selection_approval_middleware import (
+        OfficeSelectionApprovalMiddleware,
+    )
+
+    middlewares.append(OfficeSelectionApprovalMiddleware())
 
     # Deterministically load a full SKILL.md when the user starts the turn with
     # /skill-name. This keeps the base system prompt metadata-only while giving
@@ -395,7 +426,17 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
     is_bootstrap = cfg.get("is_bootstrap", False)
     agent_name = validate_agent_name(cfg.get("agent_name"))
 
-    agent_config = load_agent_config(agent_name) if not is_bootstrap else None
+    builtin_agent = get_builtin_agent(agent_name) if not is_bootstrap else None
+    builtin_config = resolve_builtin_agent_config(agent_name, resolved_app_config) if builtin_agent is not None else None
+    agent_config = None
+    if not is_bootstrap:
+        agent_config = builtin_config or load_agent_config(agent_name)
+    agent_policy = resolve_agent_runtime_policy(
+        agent_config=agent_config,
+        builtin_agent=builtin_agent,
+        app_config=resolved_app_config,
+    )
+    inject_agent_runtime_policy(config, agent_policy)
     available_skills = _available_skill_names(agent_config, is_bootstrap)
     # Custom agent model from agent config (if any), or None to let _resolve_model_name pick the default
     agent_model_name = agent_config.model if agent_config and agent_config.model else None
@@ -428,16 +469,23 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
 
     config["metadata"].update(
         {
-            "agent_name": agent_name or "default",
+            "assistant_id": agent_name or DEFAULT_ASSISTANT_ID,
+            "agent_origin": "builtin" if builtin_agent is not None else "personal" if agent_name else "default",
             "model_name": model_name or "default",
             "thinking_enabled": thinking_enabled,
             "reasoning_effort": reasoning_effort,
             "is_plan_mode": is_plan_mode,
             "subagent_enabled": subagent_enabled,
             "tool_groups": agent_config.tool_groups if agent_config else None,
+            "allowed_tools": sorted(agent_policy.allowed_tool_names) if agent_policy is not None and agent_policy.allowed_tool_names is not None else None,
+            "agent_data_access": sorted(agent_policy.data_access) if agent_policy is not None and agent_policy.data_access is not None else None,
             "available_skills": sorted(available_skills) if available_skills is not None else None,
         }
     )
+    if agent_name is None:
+        config["metadata"].pop("agent_name", None)
+    else:
+        config["metadata"]["agent_name"] = agent_name
 
     # Inject tracing callbacks at the graph invocation root so a single LangGraph
     # run produces one trace with all node / LLM / tool calls as child spans,
@@ -496,20 +544,20 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
             state_schema=ThreadState,
         )
 
-    # Custom agents can update their own SOUL.md / config via update_agent.
-    # The default agent (no agent_name) does not see this tool.
+    # Only user-owned custom Agents can update their persisted SOUL/config.
     skill_setup = build_skill_search_setup(
         skills_for_tool_policy,
         enabled=skill_search_enabled,
         container_base_path=skills_container_path,
     )
-    extra_tools = [update_agent] if agent_name else []
+    extra_tools = [update_agent] if agent_name and builtin_agent is None else []
     # Default lead agent (unchanged behavior)
     raw_tools = get_available_tools(model_name=model_name, groups=agent_config.tool_groups if agent_config else None, subagent_enabled=subagent_enabled, app_config=resolved_app_config)
-    filtered = filter_tools_by_skill_allowed_tools(raw_tools + extra_tools, skills_for_tool_policy, always_allowed_tool_names=SKILL_LOADING_TOOL_NAMES)
+    policy_filtered = filter_tools_by_agent_policy(raw_tools + extra_tools, agent_policy)
+    filtered = filter_tools_by_skill_allowed_tools(policy_filtered, skills_for_tool_policy, always_allowed_tool_names=SKILL_LOADING_TOOL_NAMES)
     final_tools, setup = assemble_deferred_tools(filtered, enabled=resolved_app_config.tool_search.enabled)
     mcp_routing_hints_section = get_mcp_routing_hints_prompt_section(filtered, deferred_names=setup.deferred_names)
-    if skill_setup.describe_skill_tool is not None:
+    if skill_setup.describe_skill_tool is not None and (agent_policy is None or agent_policy.allowed_tool_names is None or skill_setup.describe_skill_tool.name in agent_policy.allowed_tool_names):
         final_tools.append(skill_setup.describe_skill_tool)
     return create_agent(
         model=create_chat_model(name=model_name, thinking_enabled=thinking_enabled, reasoning_effort=reasoning_effort, app_config=resolved_app_config, attach_tracing=False),
@@ -521,6 +569,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
             available_skills=available_skills,
             app_config=resolved_app_config,
             deferred_setup=setup,
+            agent_policy=agent_policy,
         ),
         system_prompt=apply_prompt_template(
             subagent_enabled=subagent_enabled,

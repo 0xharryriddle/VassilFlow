@@ -17,6 +17,9 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.brand import PRODUCT_NAME
+from vassilflow.config.agent_contract import resolve_agent_identity
+from vassilflow.config.app_config import get_app_config
+from vassilflow.config.builtin_agents import evaluate_builtin_agent, list_builtin_agents
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/assistants", tags=["assistants-compat"])
@@ -61,18 +64,49 @@ def _get_default_assistant() -> AssistantResponse:
 def _list_assistants() -> list[AssistantResponse]:
     """List all available assistants from config."""
     assistants = [_get_default_assistant()]
+    assistant_ids = {assistants[0].assistant_id}
+
+    try:
+        app_config = get_app_config()
+        now = datetime.now(UTC).isoformat()
+        for definition in list_builtin_agents():
+            if not evaluate_builtin_agent(definition, app_config).available:
+                continue
+            assistants.append(
+                AssistantResponse(
+                    assistant_id=definition.name,
+                    graph_id="lead_agent",
+                    name=definition.name,
+                    config={},
+                    metadata={"created_by": "system", "origin": "builtin"},
+                    description=definition.description,
+                    created_at=now,
+                    updated_at=now,
+                    version=1,
+                )
+            )
+            assistant_ids.add(definition.name)
+    except Exception:
+        logger.debug("Could not load built-in agents for assistants list", exc_info=True)
 
     # Also include custom agents from config.yaml agents directory
     try:
         from vassilflow.config.agents_config import list_custom_agents
 
         for agent_cfg in list_custom_agents():
+            try:
+                identity = resolve_agent_identity(agent_cfg.name)
+            except ValueError:
+                logger.warning("Skipping custom Agent with invalid identity: %r", agent_cfg.name)
+                continue
+            if identity.is_default or identity.assistant_id in assistant_ids:
+                continue
             now = datetime.now(UTC).isoformat()
             assistants.append(
                 AssistantResponse(
-                    assistant_id=agent_cfg.name,
+                    assistant_id=identity.assistant_id,
                     graph_id="lead_agent",  # All agents use the same graph
-                    name=agent_cfg.name,
+                    name=identity.assistant_id,
                     config={},
                     metadata={"created_by": "user"},
                     description=agent_cfg.description or "",
@@ -81,6 +115,7 @@ def _list_assistants() -> list[AssistantResponse]:
                     version=1,
                 )
             )
+            assistant_ids.add(identity.assistant_id)
     except Exception:
         logger.debug("Could not load custom agents for assistants list")
 

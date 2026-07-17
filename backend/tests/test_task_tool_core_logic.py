@@ -248,20 +248,30 @@ def test_task_tool_propagates_tool_groups_to_subagent(monkeypatch):
     """Verify tool_groups from parent metadata are passed to get_available_tools(groups=...)."""
     config = _make_subagent_config()
     parent_tool_groups = ["file:read", "file:write", "bash"]
+    allowed_tools = ["read_file", "task", "tool_search"]
     runtime = SimpleNamespace(
         state={
             "sandbox": {"sandbox_id": "local"},
             "thread_data": {"workspace_path": "/tmp/workspace"},
         },
         context={"thread_id": "thread-1"},
-        config={"metadata": {"model_name": "ark-model", "trace_id": "trace-1", "tool_groups": parent_tool_groups}},
+        config={
+            "metadata": {
+                "model_name": "ark-model",
+                "trace_id": "trace-1",
+                "tool_groups": parent_tool_groups,
+                "allowed_tools": allowed_tools,
+                "agent_data_access": ["thread_workspace"],
+            }
+        },
     )
     events = []
+    captured = {}
     get_available_tools = MagicMock(return_value=["tool-a"])
 
     class DummyExecutor:
         def __init__(self, **kwargs):
-            pass
+            captured.update(kwargs)
 
         def execute_async(self, prompt, task_id=None):
             return task_id or "generated-task-id"
@@ -289,6 +299,20 @@ def test_task_tool_propagates_tool_groups_to_subagent(monkeypatch):
     assert output == "Task Succeeded. Result: done"
     # The key assertion: groups should be propagated from parent metadata
     get_available_tools.assert_called_once_with(model_name="ark-model", groups=parent_tool_groups, subagent_enabled=False)
+    assert captured["agent_policy"].allowed_tool_names == frozenset(allowed_tools)
+    assert captured["agent_policy"].data_access == frozenset({"thread_workspace"})
+
+
+def test_delegated_policy_preserves_unrestricted_dimensions():
+    tool_policy = task_tool_module._agent_policy_from_metadata({"allowed_tools": ["read_file"], "agent_data_access": None})
+    data_policy = task_tool_module._agent_policy_from_metadata({"allowed_tools": None, "agent_data_access": ["thread_workspace"]})
+
+    assert tool_policy is not None
+    assert tool_policy.allowed_tool_names == frozenset({"read_file"})
+    assert tool_policy.data_access is None
+    assert data_policy is not None
+    assert data_policy.allowed_tool_names is None
+    assert data_policy.data_access == frozenset({"thread_workspace"})
 
 
 def test_task_tool_uses_subagent_model_override_for_tool_loading(monkeypatch):

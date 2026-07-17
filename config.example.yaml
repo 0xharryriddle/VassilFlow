@@ -20,7 +20,7 @@
 # ============================================================================
 # Bump this number when the config schema changes.
 # Run `make config-upgrade` to merge new fields into your local config.yaml.
-config_version: 19
+config_version: 20
 
 # ============================================================================
 # Logging
@@ -795,6 +795,10 @@ tools:
   - name: office_edit
     group: file:write
     use: vassilflow.community.office.tools:office_edit_tool
+
+  - name: office_generate
+    group: file:write
+    use: vassilflow.community.office.tools:office_generate_tool
 
   - name: office_render
     group: file:write

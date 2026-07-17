@@ -1002,6 +1002,25 @@ class TestAsyncExecutionPath:
 
 
 class TestSkillAllowedTools:
+    def test_parent_agent_policy_filters_before_subagent_rules(
+        self,
+        classes,
+        base_config,
+    ):
+        from vassilflow.config.agent_contract import AgentRuntimePolicy
+
+        SubagentExecutor = classes["SubagentExecutor"]
+        executor = SubagentExecutor(
+            config=base_config,
+            tools=[NamedTool("read_file"), NamedTool("mcp_private")],
+            agent_policy=AgentRuntimePolicy(
+                allowed_tool_names=frozenset({"read_file", "task", "tool_search"}),
+                data_access=frozenset({"thread_workspace"}),
+            ),
+        )
+
+        assert [tool.name for tool in executor.tools] == ["read_file"]
+
     @pytest.mark.anyio
     async def test_skill_allowed_tools_union_filters_agent_tools(self, classes, base_config, mock_agent, msg):
         SubagentExecutor = classes["SubagentExecutor"]

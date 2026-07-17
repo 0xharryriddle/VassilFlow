@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import zipfile
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -33,6 +34,11 @@ from vassilflow.community.office.models import (
     XlsxCellFormatOperation,
 )
 from vassilflow.community.office.render import OfficeRenderResult, RenderedOfficePage
+from vassilflow.community.office.revisions import OfficeRevisionCommit, OfficeRevisionStore
+from vassilflow.community.office.selection import (
+    build_pptx_selection_surface,
+    resolve_pptx_selection,
+)
 from vassilflow.community.office.tools import (
     _mirror_binary_to_gateway_if_needed,
     _office_inspect_async,
@@ -58,6 +64,11 @@ def _jpeg() -> bytes:
 
 
 _JPEG = _jpeg()
+
+_FAKE_PROJECT_ID = f"ofp_{'1' * 32}"
+_FAKE_BASELINE_REVISION_ID = f"ofr_{'2' * 32}"
+_FAKE_REVISION_ID = f"ofr_{'3' * 32}"
+_PPTX_CORPUS = Path(__file__).parent / "fixtures" / "office" / "pptx" / "roundtrip" / "seed-v1.pptx"
 
 
 def _docx(text: str) -> bytes:
@@ -179,6 +190,21 @@ class _Sandbox:
         return [path, *matching] if matching else []
 
 
+class _FakeRevisionStore:
+    def commit_edit(self, *, result: bytes, **_kwargs) -> OfficeRevisionCommit:
+        return OfficeRevisionCommit(
+            project_id=_FAKE_PROJECT_ID,
+            revision_id=_FAKE_REVISION_ID,
+            parent_revision_id=_FAKE_BASELINE_REVISION_ID,
+            sequence=2,
+            project_created=True,
+            revision_count=2,
+            artifact_sha256=hashlib.sha256(result).hexdigest(),
+            artifact_size_bytes=len(result),
+            baseline_revision_id=_FAKE_BASELINE_REVISION_ID,
+        )
+
+
 def _patch_sandbox(monkeypatch, sandbox: _Sandbox) -> None:
     monkeypatch.setattr(
         "vassilflow.community.office.tools.ensure_sandbox_initialized",
@@ -187,6 +213,10 @@ def _patch_sandbox(monkeypatch, sandbox: _Sandbox) -> None:
     monkeypatch.setattr(
         "vassilflow.community.office.tools.ensure_thread_directories_exist",
         lambda _runtime: None,
+    )
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools._office_revision_store",
+        lambda _runtime: _FakeRevisionStore(),
     )
 
 
@@ -202,12 +232,64 @@ def _runtime() -> ToolRuntime:
     )
 
 
+def _seed_selected_pptx(
+    store: OfficeRevisionStore,
+) -> tuple[ToolRuntime, str, str, bytes]:
+    source = _PPTX_CORPUS.read_bytes()
+    result, _reports, receipt = office_engine.edit_with_receipt(
+        source,
+        suffix=".pptx",
+        operations=[
+            PptxTextReplacement(
+                paths=["/slide[1]/shape[@id=5]"],
+                find="Final",
+                replace="Reviewed",
+            )
+        ],
+    )
+    commit = store.commit_edit(
+        source=source,
+        result=result,
+        suffix=".pptx",
+        source_path="/mnt/user-data/uploads/source.pptx",
+        output_path="/mnt/user-data/outputs/result.pptx",
+        thread_id="office-thread",
+        receipt=receipt,
+        source_validation=office_engine.validate(source, suffix=".pptx"),
+        result_validation=office_engine.validate(result, suffix=".pptx"),
+    )
+    surface = build_pptx_selection_surface(result, slide_index=1)
+    selected = next(item for item in surface["objects"] if item["path"] == "/slide[1]/shape[@id=3]")
+    resolved = resolve_pptx_selection(
+        result,
+        slide_index=1,
+        source_sha256=surface["source_sha256"],
+        object_path=selected["path"],
+        object_fingerprint=selected["object_fingerprint"],
+    )
+    runtime = _runtime()
+    runtime.context["office_selection"] = {
+        **resolved,
+        "project_id": commit.project_id,
+        "revision_id": commit.revision_id,
+        "artifact_size_bytes": len(result),
+    }
+    return runtime, commit.project_id, commit.revision_id, result
+
+
 def test_office_tool_names_and_nested_operation_schema() -> None:
     assert office_inspect_tool.name == "office_inspect"
     assert office_edit_tool.name == "office_edit"
     assert office_render_tool.name == "office_render"
 
     schema = office_edit_tool.tool_call_schema.model_json_schema()
+    assert "source_path" in schema["required"]
+    assert {item.get("type") for item in schema["properties"]["source_path"]["anyOf"]} == {
+        "string",
+        "null",
+    }
+    assert schema["properties"]["project_id"]["default"] is None
+    assert schema["properties"]["parent_revision_id"]["default"] is None
     for selector_name in (
         "PptxRunSelector",
         "PptxParagraphSelector",
@@ -290,10 +372,22 @@ def test_office_tool_names_and_nested_operation_schema() -> None:
     assert "source SHA-256 guards" in office_edit_tool.description
     assert "preserves crop, framing, effects, geometry, alt text, and interactions" in office_edit_tool.description
     assert "occurrence and require_match are not accepted" in office_edit_tool.description
+    assert "semantic change receipt built before commit" in office_edit_tool.description
+    assert "package part/relationship changes" in office_edit_tool.description
     inspect_schema = office_inspect_tool.tool_call_schema.model_json_schema()
+    analysis_mode_schema = inspect_schema["properties"]["analysis_mode"]
+    assert analysis_mode_schema["enum"] == [
+        "inspect",
+        "pptx_quality_preflight",
+    ]
+    assert "does not mutate, render, or claim visual QA" in (analysis_mode_schema["description"])
     media_gc_description = inspect_schema["properties"]["include_pptx_media_gc_plan"]["description"]
     assert "non-destructive dry-run" in media_gc_description
     assert "never deletes data" in media_gc_description
+    render_schema = office_render_tool.tool_call_schema.model_json_schema()
+    assert render_schema["properties"]["project_id"]["default"] is None
+    assert render_schema["properties"]["revision_id"]["default"] is None
+    assert "persist its manifest and preview PNGs" in office_render_tool.description
 
     parsed = office_edit_tool.tool_call_schema.model_validate(
         {
@@ -709,6 +803,87 @@ def test_office_inspect_returns_opt_in_pptx_media_gc_plan(monkeypatch) -> None:
     assert result["media_gc_plan"]["part_candidate_count"] == 0
 
 
+def test_office_inspect_runs_explicit_pptx_quality_preflight(monkeypatch) -> None:
+    path = "/mnt/user-data/uploads/in.pptx"
+    document = _pptx("hello")
+    sandbox = _Sandbox({path: document})
+    _patch_sandbox(monkeypatch, sandbox)
+
+    result = json.loads(
+        office_inspect_tool.func(
+            SimpleNamespace(),
+            path,
+            analysis_mode="pptx_quality_preflight",
+        )
+    )
+
+    assert result["ok"] is True
+    assert result["path"] == path
+    assert result["analysis"] == "quality_preflight"
+    assert result["source_sha256"] == hashlib.sha256(document).hexdigest()
+    assert result["visual_review_status"] == "not_performed"
+
+
+def test_office_inspect_rejects_invalid_quality_preflight_combinations(
+    monkeypatch,
+) -> None:
+    pptx_path = "/mnt/user-data/uploads/in.pptx"
+    docx_path = "/mnt/user-data/uploads/in.docx"
+    sandbox = _Sandbox(
+        {
+            pptx_path: _pptx("hello"),
+            docx_path: _docx("hello"),
+        }
+    )
+    _patch_sandbox(monkeypatch, sandbox)
+
+    with_window = json.loads(
+        office_inspect_tool.func(
+            SimpleNamespace(),
+            pptx_path,
+            start_slide=2,
+            analysis_mode="pptx_quality_preflight",
+        )
+    )
+    wrong_format = json.loads(
+        office_inspect_tool.func(
+            SimpleNamespace(),
+            docx_path,
+            analysis_mode="pptx_quality_preflight",
+        )
+    )
+
+    assert with_window == {
+        "ok": False,
+        "error": ("PPTX quality preflight cannot be combined with inspect windows, selectors, or detail flags"),
+    }
+    assert wrong_format == {
+        "ok": False,
+        "error": "PPTX quality preflight requires a .pptx document",
+    }
+
+
+def test_office_inspect_rejects_unknown_analysis_mode_for_direct_callers(
+    monkeypatch,
+) -> None:
+    path = "/mnt/user-data/uploads/in.pptx"
+    sandbox = _Sandbox({path: _pptx("hello")})
+    _patch_sandbox(monkeypatch, sandbox)
+
+    result = json.loads(
+        office_inspect_tool.func(
+            SimpleNamespace(),
+            path,
+            analysis_mode="unexpected",
+        )
+    )
+
+    assert result == {
+        "ok": False,
+        "error": "Unsupported Office inspection analysis mode: unexpected",
+    }
+
+
 def test_office_inspect_async_forwards_pptx_options_and_selector(monkeypatch) -> None:
     captured: dict[str, object] = {}
 
@@ -760,6 +935,7 @@ def test_office_inspect_async_forwards_pptx_options_and_selector(monkeypatch) ->
         "include_pptx_annotations": True,
         "include_pptx_dynamics": True,
         "include_pptx_media_gc_plan": True,
+        "analysis_mode": "inspect",
     }
 
 
@@ -784,9 +960,55 @@ def test_office_edit_keeps_upload_immutable_and_writes_valid_output(monkeypatch)
     assert result["gateway_mirror_status"] == "available"
     assert result["replacement_count"] == 1
     assert result["validation"]["valid"] is True
+    assert result["project"] == {
+        "schema": "vassilflow.office.project.v1",
+        "project_id": _FAKE_PROJECT_ID,
+        "created": True,
+        "current_revision_id": _FAKE_REVISION_ID,
+        "revision_count": 2,
+        "storage_scope": "trusted_user",
+    }
+    assert result["revision"]["revision_id"] == _FAKE_REVISION_ID
+    assert result["revision"]["parent_revision_id"] == _FAKE_BASELINE_REVISION_ID
     assert sandbox.files[source] == original
+    receipt = result["receipt"]
+    assert receipt["source"]["sha256"] == hashlib.sha256(original).hexdigest()
+    assert receipt["result"]["sha256"] == hashlib.sha256(sandbox.files[output]).hexdigest()
+    assert receipt["applied_operation_ids"] == [result["operations"][0]["operation_id"]]
+    assert receipt["semantic_changes"]["changed_target_paths"] == ["/document/paragraph[1]"]
     inspected = json.loads(office_inspect_tool.func(SimpleNamespace(), output))
     assert inspected["paragraphs"][0]["text"] == "new value"
+
+
+def test_office_edit_does_not_commit_when_receipt_construction_fails(
+    monkeypatch,
+) -> None:
+    source = "/mnt/user-data/uploads/in.docx"
+    output = "/mnt/user-data/workspace/out.docx"
+    original = _docx("old value")
+    sandbox = _Sandbox({source: original})
+    _patch_sandbox(monkeypatch, sandbox)
+
+    def fail_receipt(*_args, **_kwargs):
+        raise RuntimeError("receipt construction failed")
+
+    monkeypatch.setattr(
+        "vassilflow.community.office.engine.build_semantic_change_receipt",
+        fail_receipt,
+    )
+
+    result = json.loads(
+        office_edit_tool.func(
+            SimpleNamespace(),
+            source,
+            output,
+            [DocxTextReplacement(find="old", replace="new")],
+        )
+    )
+
+    assert result["ok"] is False
+    assert sandbox.files[source] == original
+    assert output not in sandbox.files
 
 
 def test_office_edit_writes_bounded_pptx_text_replacement(monkeypatch) -> None:
@@ -1425,8 +1647,234 @@ def test_office_edit_atomic_replace_failure_preserves_existing_output(monkeypatc
     )
 
     assert result["ok"] is False
+    assert result["commit_status"] == "revision_committed_output_failed"
+    assert result["project"]["current_revision_id"] == _FAKE_REVISION_ID
+    assert result["revision"]["revision_id"] == _FAKE_REVISION_ID
     assert sandbox.files[source] != sandbox.files[output]
     assert sandbox.files[output] == existing
+
+
+def test_office_edit_persists_and_continues_a_real_revision_chain(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    source = "/mnt/user-data/uploads/in.docx"
+    first_output = "/mnt/user-data/workspace/v1.docx"
+    second_output = "/mnt/user-data/workspace/v2.docx"
+    rejected_output = "/mnt/user-data/workspace/rejected.docx"
+    stale_output = "/mnt/user-data/workspace/stale.docx"
+    original = _docx("first value")
+    sandbox = _Sandbox({source: original})
+    _patch_sandbox(monkeypatch, sandbox)
+    store = OfficeRevisionStore(tmp_path / "office")
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools._office_revision_store",
+        lambda _runtime: store,
+    )
+
+    first = json.loads(
+        office_edit_tool.func(
+            _runtime(),
+            source,
+            first_output,
+            [DocxTextReplacement(find="first", replace="second")],
+        )
+    )
+    rejected = json.loads(
+        office_edit_tool.func(
+            _runtime(),
+            first_output,
+            rejected_output,
+            [DocxTextReplacement(find="second", replace="rejected")],
+            False,
+            first["project"]["project_id"],
+        )
+    )
+    second = json.loads(
+        office_edit_tool.func(
+            _runtime(),
+            first_output,
+            second_output,
+            [DocxTextReplacement(find="second", replace="third")],
+            False,
+            first["project"]["project_id"],
+            first["revision"]["revision_id"],
+        )
+    )
+    stale = json.loads(
+        office_edit_tool.func(
+            _runtime(),
+            first_output,
+            stale_output,
+            [DocxTextReplacement(find="second", replace="stale")],
+            False,
+            first["project"]["project_id"],
+            first["revision"]["revision_id"],
+        )
+    )
+
+    assert first["ok"] is True
+    assert first["project"]["created"] is True
+    assert rejected["ok"] is False
+    assert "provided together" in rejected["error"]
+    assert rejected_output not in sandbox.files
+    assert second["ok"] is True
+    assert second["project"]["created"] is False
+    assert second["project"]["project_id"] == first["project"]["project_id"]
+    assert second["revision"]["parent_revision_id"] == first["revision"]["revision_id"]
+    assert second["revision"]["sequence"] == 3
+    assert stale["ok"] is False
+    assert "newer current revision" in stale["error"]
+    assert stale_output not in sandbox.files
+    project = store.load_project(first["project"]["project_id"])
+    assert project["primary_thread_id"] == "office-thread"
+    assert project["current_revision_id"] == second["revision"]["revision_id"]
+    assert project["revision_count"] == 3
+
+
+def test_office_edit_reads_verified_selection_from_canonical_project(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    output = "/mnt/user-data/workspace/selected-object.pptx"
+    sandbox = _Sandbox({})
+    _patch_sandbox(monkeypatch, sandbox)
+    store = OfficeRevisionStore(tmp_path / "office")
+    runtime, project_id, revision_id, source = _seed_selected_pptx(store)
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools._office_revision_store",
+        lambda _runtime: store,
+    )
+
+    result = json.loads(
+        office_edit_tool.func(
+            runtime,
+            None,
+            output,
+            [
+                PptxTextReplacement(
+                    paths=["/slide[1]/shape[@id=3]"],
+                    find="Alpha",
+                    replace="Gamma",
+                )
+            ],
+        )
+    )
+
+    assert result["ok"] is True
+    assert result["source_path"] is None
+    assert result["project"]["project_id"] == project_id
+    assert result["revision"]["parent_revision_id"] == revision_id
+    assert sandbox.files[output] != source
+    with zipfile.ZipFile(io.BytesIO(sandbox.files[output])) as archive:
+        slide = archive.read("ppt/slides/slide1.xml")
+    assert b"Gamma" in slide
+    assert b"Alpha" not in slide
+    current = store.load_project(project_id)
+    assert current["revision_count"] == 3
+    assert current["current_revision_id"] == result["revision"]["revision_id"]
+
+
+def test_office_edit_selection_rejects_source_path_and_sibling_target(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    output = "/mnt/user-data/workspace/rejected-selection.pptx"
+    sandbox = _Sandbox({})
+    _patch_sandbox(monkeypatch, sandbox)
+    store = OfficeRevisionStore(tmp_path / "office")
+    runtime, project_id, _revision_id, _source = _seed_selected_pptx(store)
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools._office_revision_store",
+        lambda _runtime: store,
+    )
+
+    with_source = json.loads(
+        office_edit_tool.func(
+            runtime,
+            "/mnt/user-data/uploads/spoofed.pptx",
+            output,
+            [
+                PptxTextReplacement(
+                    paths=["/slide[1]/shape[@id=3]"],
+                    find="Alpha",
+                    replace="Gamma",
+                )
+            ],
+        )
+    )
+    sibling = json.loads(
+        office_edit_tool.func(
+            runtime,
+            None,
+            output,
+            [
+                PptxTextReplacement(
+                    paths=["/slide[1]/shape[@id=5]"],
+                    find="Reviewed",
+                    replace="Escaped",
+                )
+            ],
+        )
+    )
+
+    assert with_source == {
+        "ok": False,
+        "error": "source_path must be null for a verified Office project selection",
+    }
+    assert sibling == {
+        "ok": False,
+        "error": "Office edit operation escapes the selected object scope",
+    }
+    assert output not in sandbox.files
+    assert store.load_project(project_id)["revision_count"] == 2
+
+
+def test_office_edit_selection_rejects_out_of_scope_semantic_receipt(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    output = "/mnt/user-data/workspace/rejected-receipt.pptx"
+    sandbox = _Sandbox({})
+    _patch_sandbox(monkeypatch, sandbox)
+    store = OfficeRevisionStore(tmp_path / "office")
+    runtime, project_id, _revision_id, _source = _seed_selected_pptx(store)
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools._office_revision_store",
+        lambda _runtime: store,
+    )
+    original_edit = office_engine.edit_with_receipt
+
+    def tamper_receipt(*args, **kwargs):
+        edited, reports, receipt = original_edit(*args, **kwargs)
+        semantic = receipt["semantic_changes"]
+        semantic["changed_target_paths"] = ["/slide[1]/shape[@id=5]"]
+        semantic["semantic_deltas"][0]["path"] = "/slide[1]/shape[@id=5]"
+        return edited, reports, receipt
+
+    monkeypatch.setattr(office_engine, "edit_with_receipt", tamper_receipt)
+
+    result = json.loads(
+        office_edit_tool.func(
+            runtime,
+            None,
+            output,
+            [
+                PptxTextReplacement(
+                    paths=["/slide[1]/shape[@id=3]"],
+                    find="Alpha",
+                    replace="Gamma",
+                )
+            ],
+        )
+    )
+
+    assert result == {
+        "ok": False,
+        "error": "Office selection semantic changes escape the selected object scope",
+    }
+    assert output not in sandbox.files
+    assert store.load_project(project_id)["revision_count"] == 2
 
 
 def test_remote_office_artifact_is_mirrored_for_gateway_file_tools(monkeypatch, tmp_path) -> None:
@@ -1559,6 +2007,194 @@ def test_office_render_writes_pages_then_pending_review_manifest(monkeypatch) ->
     assert manifest["pages"][0]["source_slide"] == 1
     assert manifest["visual_review_status"] == "pending"
     assert manifest["gateway_page_access"] == "available"
+
+
+def test_office_render_persists_preview_evidence_for_exact_revision(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    source = "/mnt/user-data/uploads/in.docx"
+    edited_path = "/mnt/user-data/workspace/edited.docx"
+    output_dir = "/mnt/user-data/workspace/rendered"
+    sandbox = _Sandbox({source: _docx("old")})
+    _patch_sandbox(monkeypatch, sandbox)
+    store = OfficeRevisionStore(tmp_path / "office")
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools._office_revision_store",
+        lambda _runtime: store,
+    )
+    edited = json.loads(
+        office_edit_tool.func(
+            _runtime(),
+            source,
+            edited_path,
+            [DocxTextReplacement(find="old", replace="new")],
+        )
+    )
+    edited_bytes = sandbox.files[edited_path]
+    page_sha256 = hashlib.sha256(_PNG).hexdigest()
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools.office_engine.render",
+        lambda *_args, **_kwargs: OfficeRenderResult(
+            format="docx",
+            renderer="test-renderer",
+            renderer_version="1.0",
+            pdfium_version="5.11.0",
+            source_sha256=hashlib.sha256(edited_bytes).hexdigest(),
+            pipeline_fingerprint="b" * 64,
+            page_count=1,
+            start_page=1,
+            dpi=120,
+            pages=(
+                RenderedOfficePage(
+                    page=1,
+                    filename="page-001.png",
+                    width=1,
+                    height=1,
+                    sha256=page_sha256,
+                    data=_PNG,
+                ),
+            ),
+        ),
+    )
+
+    rendered = json.loads(
+        office_render_tool.func(
+            SimpleNamespace(tools=[SimpleNamespace(name="view_image")]),
+            edited_path,
+            output_dir,
+            1,
+            1,
+            120,
+            edited["project"]["project_id"],
+            edited["revision"]["revision_id"],
+        )
+    )
+
+    assert rendered["ok"] is True
+    evidence = rendered["render_evidence"]
+    assert evidence["schema"] == "vassilflow.office.render_evidence.v1"
+    assert evidence["project_id"] == edited["project"]["project_id"]
+    assert evidence["revision_id"] == edited["revision"]["revision_id"]
+    assert evidence["source_sha256"] == hashlib.sha256(edited_bytes).hexdigest()
+    manifest = json.loads(sandbox.files[f"{output_dir}/render-manifest.json"])
+    assert manifest["schema"] == "vassilflow.office.render_manifest.v1"
+    assert manifest["project_id"] == evidence["project_id"]
+    assert manifest["revision_id"] == evidence["revision_id"]
+    persisted = store.load_render_evidence(evidence["project_id"], evidence["evidence_id"])
+    assert persisted["render_manifest"] == manifest
+    assert persisted["preview_pages"][0]["sha256"] == page_sha256
+
+
+def test_office_render_rejects_partial_revision_binding_before_render(
+    monkeypatch,
+) -> None:
+    source = "/mnt/user-data/uploads/in.docx"
+    output_dir = "/mnt/user-data/workspace/rendered"
+    sandbox = _Sandbox({source: _docx("hello")})
+    _patch_sandbox(monkeypatch, sandbox)
+    render_called = False
+
+    def render_should_not_run(*_args, **_kwargs):
+        nonlocal render_called
+        render_called = True
+        raise AssertionError("render should not run")
+
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools.office_engine.render",
+        render_should_not_run,
+    )
+
+    result = json.loads(
+        office_render_tool.func(
+            SimpleNamespace(),
+            source,
+            output_dir,
+            project_id=_FAKE_PROJECT_ID,
+        )
+    )
+
+    assert result["ok"] is False
+    assert "provided together" in result["error"]
+    assert render_called is False
+    assert not any(path.startswith(f"{output_dir}/") for path in sandbox.files)
+
+
+def test_office_render_reports_committed_evidence_when_manifest_write_fails(
+    monkeypatch,
+    tmp_path,
+) -> None:
+    source = "/mnt/user-data/uploads/in.docx"
+    edited_path = "/mnt/user-data/workspace/edited.docx"
+    output_dir = "/mnt/user-data/workspace/rendered"
+
+    class ManifestFailingSandbox(_Sandbox):
+        def update_file(self, path: str, content: bytes) -> None:
+            if path.endswith("render-manifest.json"):
+                raise OSError(errno.EIO, "manifest write failed", path)
+            super().update_file(path, content)
+
+    sandbox = ManifestFailingSandbox({source: _docx("old")})
+    _patch_sandbox(monkeypatch, sandbox)
+    store = OfficeRevisionStore(tmp_path / "office")
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools._office_revision_store",
+        lambda _runtime: store,
+    )
+    edited = json.loads(
+        office_edit_tool.func(
+            _runtime(),
+            source,
+            edited_path,
+            [DocxTextReplacement(find="old", replace="new")],
+        )
+    )
+    edited_bytes = sandbox.files[edited_path]
+    monkeypatch.setattr(
+        "vassilflow.community.office.tools.office_engine.render",
+        lambda *_args, **_kwargs: OfficeRenderResult(
+            format="docx",
+            renderer="test-renderer",
+            renderer_version="1.0",
+            pdfium_version="5.11.0",
+            source_sha256=hashlib.sha256(edited_bytes).hexdigest(),
+            pipeline_fingerprint="b" * 64,
+            page_count=1,
+            start_page=1,
+            dpi=120,
+            pages=(
+                RenderedOfficePage(
+                    page=1,
+                    filename="page-001.png",
+                    width=1,
+                    height=1,
+                    sha256=hashlib.sha256(_PNG).hexdigest(),
+                    data=_PNG,
+                ),
+            ),
+        ),
+    )
+
+    result = json.loads(
+        office_render_tool.func(
+            SimpleNamespace(tools=[SimpleNamespace(name="view_image")]),
+            edited_path,
+            output_dir,
+            1,
+            1,
+            120,
+            edited["project"]["project_id"],
+            edited["revision"]["revision_id"],
+        )
+    )
+
+    assert result["ok"] is False
+    assert result["commit_status"] == "render_evidence_committed_output_failed"
+    evidence = result["render_evidence"]
+    assert f"{output_dir}/page-001.png" in sandbox.files
+    assert f"{output_dir}/render-manifest.json" not in sandbox.files
+    persisted = store.load_render_evidence(evidence["project_id"], evidence["evidence_id"])
+    assert persisted["revision_id"] == edited["revision"]["revision_id"]
 
 
 def test_office_render_commits_with_external_review_when_gateway_mirror_fails(monkeypatch) -> None:

@@ -20,7 +20,7 @@ class _DummyRuntime(SimpleNamespace):
 
 def _make_runtime(agent_name: str | None = "test-agent") -> MagicMock:
     runtime = MagicMock()
-    runtime.context = {"agent_name": agent_name}
+    runtime.context = {"bootstrap_agent_name": agent_name}
     runtime.tool_call_id = "call_1"
     return runtime
 
@@ -54,7 +54,10 @@ def test_setup_agent_rejects_invalid_agent_name_before_writing(tmp_path, monkeyp
     monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
     outside_dir = tmp_path.parent / "outside-target"
     traversal_agent = f"../../../{outside_dir.name}/evil"
-    runtime = _DummyRuntime(context={"agent_name": traversal_agent}, tool_call_id="tool-1")
+    runtime = _DummyRuntime(
+        context={"bootstrap_agent_name": traversal_agent},
+        tool_call_id="tool-1",
+    )
 
     result = setup_agent.func(soul="test soul", description="desc", runtime=runtime)
 
@@ -68,7 +71,10 @@ def test_setup_agent_rejects_invalid_agent_name_before_writing(tmp_path, monkeyp
 def test_setup_agent_rejects_absolute_agent_name_before_writing(tmp_path, monkeypatch):
     monkeypatch.setenv("VASSILFLOW_HOME", str(tmp_path))
     absolute_agent = str(tmp_path / "outside-agent")
-    runtime = _DummyRuntime(context={"agent_name": absolute_agent}, tool_call_id="tool-2")
+    runtime = _DummyRuntime(
+        context={"bootstrap_agent_name": absolute_agent},
+        tool_call_id="tool-2",
+    )
 
     result = setup_agent.func(soul="test soul", description="desc", runtime=runtime)
 
@@ -137,7 +143,10 @@ class TestSetupAgentNoDataLoss:
     def test_runtime_user_id_used_when_contextvar_missing(self, tmp_path: Path):
         """setup_agent should not fall back to default when runtime carries user_id."""
         runtime = _DummyRuntime(
-            context={"agent_name": "test-agent", "user_id": "auth-user-42"},
+            context={
+                "bootstrap_agent_name": "test-agent",
+                "user_id": "auth-user-42",
+            },
             tool_call_id="tool-3",
         )
 
@@ -193,7 +202,10 @@ class TestSetupAgentEmptySoulGuard:
             setup_agent.func(
                 soul="",
                 description="desc",
-                runtime=_DummyRuntime(context={"agent_name": None}, tool_call_id="tool-empty"),
+                runtime=_DummyRuntime(
+                    context={"bootstrap_agent_name": None},
+                    tool_call_id="tool-empty",
+                ),
             )
 
         assert global_soul.read_text(encoding="utf-8") == "original global soul"

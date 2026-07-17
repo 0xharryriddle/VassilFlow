@@ -3,7 +3,9 @@ import { expect, test } from "@playwright/test";
 import { mockLangGraphAPI } from "./utils/mock-api";
 
 test.describe("Sidebar navigation", () => {
-  test("sidebar contains Chats and Agents nav links", async ({ page }) => {
+  test("sidebar contains Chats, Agents, and Office nav links", async ({
+    page,
+  }) => {
     mockLangGraphAPI(page);
 
     await page.goto("/workspace/chats/new");
@@ -14,6 +16,7 @@ test.describe("Sidebar navigation", () => {
       timeout: 15_000,
     });
     await expect(sidebar.locator("a[href='/workspace/agents']")).toBeVisible();
+    await expect(sidebar.locator("a[href='/workspace/office']")).toBeVisible();
   });
 
   test("Agents link navigates to agents page", async ({ page }) => {
@@ -68,6 +71,9 @@ test.describe("Sidebar navigation", () => {
     ).toBeVisible();
     await expect(
       mobileSidebar.locator("a[href='/workspace/agents']"),
+    ).toBeVisible();
+    await expect(
+      mobileSidebar.locator("a[href='/workspace/office']"),
     ).toBeVisible();
   });
 });
