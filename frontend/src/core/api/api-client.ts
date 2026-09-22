@@ -15,8 +15,8 @@ import { isStateChangingMethod, readCsrfCookie } from "./fetcher";
 import { sanitizeRunStreamOptions } from "./stream-mode";
 
 /**
- * SDK ``onRequest`` hook that mints the ``X-CSRF-Token`` header from the
- * live ``csrf_token`` cookie just before each outbound fetch.
+ * Default SDK session credentials and a live ``X-CSRF-Token`` header only
+ * inside the configured backend origin/path. Explicit caller settings win.
  *
  * Reading the cookie per-request (rather than baking it into the SDK's
  * ``defaultHeaders`` at construction) handles login / logout / password
@@ -25,17 +25,72 @@ import { sanitizeRunStreamOptions } from "./stream-mode";
  * share :func:`readCsrfCookie` and :const:`STATE_CHANGING_METHODS` so
  * the contract stays in lockstep.
  */
-function injectCsrfHeader(_url: URL, init: RequestInit): RequestInit {
-  if (!isStateChangingMethod(init.method ?? "GET")) {
+export function authorizeSdkRequest(
+  url: URL,
+  init: RequestInit,
+  apiUrl: string,
+): RequestInit {
+  const configured = new URL(apiUrl);
+  const basePath = configured.pathname.replace(/\/+$/, "");
+  if (
+    url.origin !== configured.origin ||
+    (url.pathname !== basePath && !url.pathname.startsWith(`${basePath}/`))
+  ) {
     return init;
   }
+  const authorized = { ...init, credentials: init.credentials ?? "include" };
+  // Explicit omit/same-origin requests must not acquire ambient CSRF secrets
+  // when their credential policy excludes cookies for this request.
+  const sendsCookies =
+    authorized.credentials === "include" ||
+    (authorized.credentials === "same-origin" &&
+      typeof window !== "undefined" &&
+      url.origin === window.location.origin);
+  if (!sendsCookies || !isStateChangingMethod(init.method ?? "GET"))
+    return authorized;
   const token = readCsrfCookie();
-  if (!token) return init;
+  if (!token) return authorized;
   const headers = new Headers(init.headers);
   if (!headers.has("X-CSRF-Token")) {
     headers.set("X-CSRF-Token", token);
   }
-  return { ...init, headers };
+  return { ...authorized, headers };
+}
+
+function bindThreadCreateToAssistant(
+  url: URL,
+  init: RequestInit,
+  assistantId?: string,
+): RequestInit {
+  const identity = assistantId?.trim();
+  if (
+    !identity ||
+    (init.method ?? "GET").toUpperCase() !== "POST" ||
+    !url.pathname.endsWith("/threads") ||
+    typeof init.body !== "string"
+  ) {
+    return init;
+  }
+
+  try {
+    const payload = JSON.parse(init.body) as unknown;
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      Array.isArray(payload)
+    ) {
+      return init;
+    }
+    return {
+      ...init,
+      body: JSON.stringify({
+        ...payload,
+        assistant_id: identity,
+      }),
+    };
+  } catch {
+    return init;
+  }
 }
 
 const TERMINAL_RUN_STATUSES = new Set([
@@ -107,7 +162,10 @@ export function clearReconnectRun(
   }
 }
 
-function createCompatibleClient(isMock?: boolean): LangGraphClient {
+function createCompatibleClient(
+  isMock?: boolean,
+  assistantId?: string,
+): LangGraphClient {
   if (isStaticWebsiteOnly() && !isMock) {
     return createStaticClient();
   }
@@ -116,7 +174,12 @@ function createCompatibleClient(isMock?: boolean): LangGraphClient {
   console.log(`Creating API client with base URL: ${apiUrl}`);
   const client = new LangGraphClient({
     apiUrl,
-    onRequest: injectCsrfHeader,
+    onRequest: (url, init) =>
+      bindThreadCreateToAssistant(
+        url,
+        authorizeSdkRequest(url, init, apiUrl),
+        assistantId,
+      ),
   });
 
   const originalRunStream = client.runs.stream.bind(client.runs);
@@ -203,12 +266,16 @@ function createStaticClient(): LangGraphClient {
 }
 
 const _clients = new Map<string, LangGraphClient>();
-export function getAPIClient(isMock?: boolean): LangGraphClient {
-  const cacheKey = isMock ? "mock" : "default";
+export function getAPIClient(
+  isMock?: boolean,
+  assistantId?: string,
+): LangGraphClient {
+  const scopedAssistantId = assistantId?.trim() ?? "unbound";
+  const cacheKey = `${isMock ? "mock" : "default"}:${scopedAssistantId}`;
   let client = _clients.get(cacheKey);
 
   if (!client) {
-    client = createCompatibleClient(isMock);
+    client = createCompatibleClient(isMock, assistantId);
     _clients.set(cacheKey, client);
   }
 

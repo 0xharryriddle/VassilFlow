@@ -43,7 +43,9 @@ def _token_usage_cache_enabled(app_config: "AppConfig | None") -> bool:
             app_config = get_app_config()
         except FileNotFoundError:
             return False
-    return bool(getattr(getattr(app_config, "token_usage", None), "enabled", False))
+    # Reporting is optional, but an enabled parent budget must still include
+    # completed child usage before allowing another tool execution.
+    return bool(getattr(getattr(app_config, "token_usage", None), "enabled", False) or getattr(getattr(app_config, "token_budget", None), "enabled", False))
 
 
 def _cache_subagent_usage(tool_call_id: str, usage: dict | None, *, enabled: bool = True) -> None:

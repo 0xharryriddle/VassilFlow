@@ -275,10 +275,7 @@ class ExtensionsConfig(BaseModel):
             resolved: dict[Any, Any] = {}
             for key, value in config.items():
                 if key == "routing" and isinstance(value, dict):
-                    resolved[key] = {
-                        routing_key: routing_value if routing_key == "keywords" else cls.resolve_env_variables(routing_value)
-                        for routing_key, routing_value in value.items()
-                    }
+                    resolved[key] = {routing_key: routing_value if routing_key == "keywords" else cls.resolve_env_variables(routing_value) for routing_key, routing_value in value.items()}
                 else:
                     resolved[key] = cls.resolve_env_variables(value)
             return resolved

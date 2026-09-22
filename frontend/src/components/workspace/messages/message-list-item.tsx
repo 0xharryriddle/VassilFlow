@@ -20,10 +20,7 @@ import {
   MessageContent as AIElementMessageContent,
   MessageToolbar,
 } from "@/components/ai-elements/message";
-import {
-  Reasoning,
-  ReasoningTrigger,
-} from "@/components/ai-elements/reasoning";
+import { ReasoningTrigger } from "@/components/ai-elements/reasoning";
 import { Task, TaskTrigger } from "@/components/ai-elements/task";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -54,6 +51,7 @@ import { ReferenceAttachmentSummary } from "../sidecar/reference-attachments";
 
 import { MarkdownContent } from "./markdown-content";
 import { createMarkdownLinkComponent } from "./markdown-link";
+import { MessageReasoning } from "./message-reasoning";
 
 function FeedbackButtons({
   threadId,
@@ -343,7 +341,7 @@ function MessageContent_({
   if (!isHuman && reasoningContent && !rawContent) {
     return (
       <AIElementMessageContent className={className}>
-        <Reasoning
+        <MessageReasoning
           isStreaming={isLoading}
           startTimeProp={turnStartTime}
           duration={turnDuration}
@@ -351,7 +349,7 @@ function MessageContent_({
         >
           <ReasoningTrigger />
           <SafeReasoningContent>{reasoningContent}</SafeReasoningContent>
-        </Reasoning>
+        </MessageReasoning>
       </AIElementMessageContent>
     );
   }
@@ -392,7 +390,7 @@ function MessageContent_({
       {filesList}
       {!isHuman &&
         (!!reasoningContent || wasLoading || turnDuration !== undefined) && (
-          <Reasoning
+          <MessageReasoning
             isStreaming={isLoading}
             startTimeProp={turnStartTime}
             duration={turnDuration}
@@ -402,7 +400,7 @@ function MessageContent_({
             {reasoningContent && (
               <SafeReasoningContent>{reasoningContent}</SafeReasoningContent>
             )}
-          </Reasoning>
+          </MessageReasoning>
         )}
       <MarkdownContent
         content={contentToDisplay}

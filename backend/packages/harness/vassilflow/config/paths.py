@@ -213,9 +213,13 @@ class Paths:
         """Per-user memory file: `{base_dir}/users/{user_id}/memory.json`."""
         return self.user_dir(user_id) / "memory.json"
 
-    def user_office_dir(self, user_id: str) -> Path:
-        """Trusted Office project/library root: `{base_dir}/users/{user_id}/office/`."""
-        return self.user_dir(user_id) / "office"
+    def user_actions_dir(self, user_id: str) -> Path:
+        """Append-only action journal: `{base_dir}/users/{user_id}/actions/`."""
+        return self.user_dir(user_id) / "actions"
+
+    def user_lifecycle_dir(self, user_id: str) -> Path:
+        """Durable lifecycle projection journal for one user."""
+        return self.user_dir(user_id) / "lifecycle"
 
     def user_agents_dir(self, user_id: str) -> Path:
         """Per-user root for that user's custom agents: `{base_dir}/users/{user_id}/agents/`."""

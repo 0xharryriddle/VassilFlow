@@ -541,10 +541,7 @@ class TestResolvedClarificationContext:
         config = {"configurable": {"thread_id": "clarification-graph-follow-up"}}
 
         first = agent.invoke({"messages": [HumanMessage(content="Deep research harness", id="u1")]}, config)
-        assert any(
-            isinstance(message, ToolMessage) and message.name == "ask_clarification"
-            for message in first["messages"]
-        )
+        assert any(isinstance(message, ToolMessage) and message.name == "ask_clarification" for message in first["messages"])
 
         second = agent.invoke({"messages": [HumanMessage(content="harness agent", id="u2")]}, config)
 
@@ -556,9 +553,4 @@ class TestResolvedClarificationContext:
         assert "harness agent" in hidden[0].content
         assert second["messages"][-1].content == "Researching harness agents now."
         assert not any(is_resolved_clarification_context_message(message) for message in second["messages"])
-        assert not any(
-            isinstance(message, ToolMessage)
-            and message.name == "ask_clarification"
-            and getattr(message, "tool_call_id", None) == "clarify-repeat"
-            for message in second["messages"]
-        )
+        assert not any(isinstance(message, ToolMessage) and message.name == "ask_clarification" and getattr(message, "tool_call_id", None) == "clarify-repeat" for message in second["messages"])

@@ -4,11 +4,14 @@ from typing import get_type_hints
 from unittest.mock import MagicMock, patch
 
 import pytest
+from langchain_core.messages import AIMessage
 
 from vassilflow.agents import create_vassilflow_agent
 from vassilflow.agents.features import Next, Prev, RuntimeFeatures
+from vassilflow.agents.middlewares.token_budget_middleware import TokenBudgetMiddleware
 from vassilflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from vassilflow.agents.thread_state import ThreadState
+from vassilflow.config.token_budget_config import TokenBudgetConfig
 
 
 def _make_mock_model():
@@ -193,6 +196,68 @@ def test_agent_features_defaults():
     assert f.auto_title is False
     assert f.guardrail is False
     assert f.loop_detection is True
+    assert f.token_budget is False
+
+
+@pytest.mark.parametrize("features", [None, RuntimeFeatures(sandbox=False, token_budget=False)], ids=["default", "explicit-false"])
+@patch("vassilflow.agents.factory.create_agent")
+def test_token_budget_disabled_omits_middleware(mock_create_agent, features):
+    create_vassilflow_agent(_make_mock_model(), features=features)
+
+    middleware = mock_create_agent.call_args.kwargs["middleware"]
+    assert not any(isinstance(mw, TokenBudgetMiddleware) for mw in middleware)
+
+
+def _make_budget_response(message_id: str, tokens: int) -> AIMessage:
+    return AIMessage(
+        id=message_id,
+        content="Continue working",
+        tool_calls=[{"name": "search", "args": {}, "id": f"call-{message_id}"}],
+        usage_metadata={"input_tokens": tokens, "output_tokens": 0, "total_tokens": tokens},
+    )
+
+
+@patch("vassilflow.agents.factory.create_agent")
+def test_token_budget_true_enforces_default_limit(mock_create_agent):
+    create_vassilflow_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False, token_budget=True))
+
+    budgets = [mw for mw in mock_create_agent.call_args.kwargs["middleware"] if isinstance(mw, TokenBudgetMiddleware)]
+    assert len(budgets) == 1
+    budget = budgets[0]
+    runtime = MagicMock(context={"run_id": "sdk-default-budget"})
+    budget.before_agent({"messages": []}, runtime)
+
+    limit = TokenBudgetConfig().max_tokens
+    first_response = _make_budget_response("first", limit // 2)
+    assert budget.after_model({"messages": [first_response]}, runtime) is None
+
+    second_response = _make_budget_response("second", limit // 2 + 1)
+    result = budget.after_model({"messages": [first_response, second_response]}, runtime)
+
+    assert result is not None
+    assert result["messages"][0].tool_calls == []
+    assert "TOKEN BUDGET EXCEEDED" in result["messages"][0].content
+    assert second_response.tool_calls  # The original model response is not mutated.
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+@patch("vassilflow.agents.factory.create_agent")
+def test_token_budget_custom_middleware_preserves_explicit_config(mock_create_agent, enabled):
+    custom = TokenBudgetMiddleware.from_config(TokenBudgetConfig(enabled=enabled, max_tokens=1000))
+    create_vassilflow_agent(_make_mock_model(), features=RuntimeFeatures(sandbox=False, token_budget=custom))
+
+    budgets = [mw for mw in mock_create_agent.call_args.kwargs["middleware"] if isinstance(mw, TokenBudgetMiddleware)]
+    assert budgets == [custom]
+    runtime = MagicMock(context={"run_id": "sdk-custom-budget"})
+    custom.before_agent({"messages": []}, runtime)
+    result = custom.after_model({"messages": [_make_budget_response("response", 1001)]}, runtime)
+
+    if enabled:
+        assert result is not None
+        assert result["messages"][0].tool_calls == []
+        assert "TOKEN BUDGET EXCEEDED" in result["messages"][0].content
+    else:
+        assert result is None
 
 
 # ---------------------------------------------------------------------------

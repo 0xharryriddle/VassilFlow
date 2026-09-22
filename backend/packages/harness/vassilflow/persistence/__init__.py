@@ -1,8 +1,8 @@
-"""VassilFlow application persistence layer (SQLAlchemy 2.0 async ORM).
+"""VassilFlow application and domain persistence contracts.
 
-This module manages VassilFlow's own application data -- runs metadata,
-thread ownership, cron jobs, users. It is completely separate from
-LangGraph's checkpointer, which manages graph execution state.
+The engine lifecycle manages SQL application data such as runs, thread
+ownership, users, and feedback. Domain repositories keep their own storage
+models and share only the operational readiness/inventory/migration contract.
 
 Usage:
     from vassilflow.persistence import init_engine, close_engine, get_session_factory

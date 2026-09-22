@@ -20,7 +20,7 @@
 # ============================================================================
 # Bump this number when the config schema changes.
 # Run `make config-upgrade` to merge new fields into your local config.yaml.
-config_version: 20
+config_version: 21
 
 # ============================================================================
 # Logging
@@ -40,10 +40,13 @@ token_usage:
 # ============================================================================
 # Token Budget — Per-run token limits
 # ============================================================================
-# Prevents runaway API costs by enforcing hard token limits per run.
+# Checks reported token usage after each model response to bound long runs.
 # When warn_threshold is crossed, the agent receives an in-context warning.
-# When hard_stop_threshold is crossed, tool_calls are stripped and the agent
-# is forced to produce a final answer immediately.
+# When hard_stop_threshold is crossed, tool_calls are stripped and the run stops.
+# Enabled limits also apply independently to each delegated subagent task.
+# Completed child usage is included in the lead budget even without usage logging.
+# A response or concurrent children may overshoot: limits are not token reservations
+# and require the model provider to return usage metadata.
 token_budget:
   enabled: false                # Set to true to activate budget enforcement
   max_tokens: 200000            # Total token limit (input + output) per run
@@ -770,10 +773,6 @@ tools:
     group: file:read
     use: vassilflow.sandbox.tools:read_file_tool
 
-  - name: office_inspect
-    group: file:read
-    use: vassilflow.community.office.tools:office_inspect_tool
-
   - name: glob
     group: file:read
     use: vassilflow.sandbox.tools:glob_tool
@@ -791,18 +790,6 @@ tools:
   - name: str_replace
     group: file:write
     use: vassilflow.sandbox.tools:str_replace_tool
-
-  - name: office_edit
-    group: file:write
-    use: vassilflow.community.office.tools:office_edit_tool
-
-  - name: office_generate
-    group: file:write
-    use: vassilflow.community.office.tools:office_generate_tool
-
-  - name: office_render
-    group: file:write
-    use: vassilflow.community.office.tools:office_render_tool
 
   # Bash execution tool
   # Active only when using an isolated shell sandbox or when
@@ -1186,7 +1173,9 @@ title:
   enabled: true
   max_words: 6
   max_chars: 60
-  model_name: null # Use default model (first model in models list)
+  # null uses a fast local title derived from the first user message. Set this
+  # to a configured model name when you want model-generated titles.
+  model_name: null
 
 # ============================================================================
 # Summarization Configuration

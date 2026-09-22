@@ -30,7 +30,7 @@ describe("buildDocsPageMap", () => {
         children: [
           {
             name: "template",
-            route: "/workspace/office/templates/[template_id]",
+            route: "/workspace/sample/templates/[template_id]",
           },
         ],
       },

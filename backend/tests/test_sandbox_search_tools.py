@@ -303,12 +303,12 @@ def test_find_grep_matches_raises_not_a_directory(tmp_path) -> None:
         pass
 
 
-def test_find_grep_matches_skips_symlink_outside_root(tmp_path) -> None:
+def test_find_grep_matches_skips_symlink_outside_root(tmp_path, symlink_or_skip) -> None:
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     outside = tmp_path / "outside.txt"
     outside.write_text("TODO outside\n", encoding="utf-8")
-    (workspace / "outside-link.txt").symlink_to(outside)
+    symlink_or_skip(workspace / "outside-link.txt", outside)
 
     matches, truncated = find_grep_matches(workspace, "TODO")
 

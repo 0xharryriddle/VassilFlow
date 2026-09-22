@@ -30,10 +30,7 @@ class SkillsConfig(BaseModel):
     )
     deferred_discovery: bool = Field(
         default=False,
-        description=(
-            "When enabled, the system prompt lists skill names only and exposes "
-            "describe_skill for on-demand skill metadata lookup."
-        ),
+        description=("When enabled, the system prompt lists skill names only and exposes describe_skill for on-demand skill metadata lookup."),
     )
 
     def get_skills_path(self) -> Path:

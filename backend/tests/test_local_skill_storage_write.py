@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import stat
 
 import pytest
@@ -121,24 +120,24 @@ def test_rejects_dotdot_only(storage):
 # ---------------------------------------------------------------------------
 
 
-def test_rejects_symlink_pointing_outside(tmp_path, storage, skill_dir):
+def test_rejects_symlink_pointing_outside(tmp_path, storage, skill_dir, symlink_or_skip):
     outside = tmp_path / "outside.txt"
     link = skill_dir / "escape_link.txt"
-    os.symlink(outside, link)
+    symlink_or_skip(link, outside)
     with pytest.raises(ValueError, match="skill directory"):
         storage.write_custom_skill("demo-skill", "escape_link.txt", "x")
 
 
-def test_rejects_symlink_dir_pointing_outside(tmp_path, storage, skill_dir):
+def test_rejects_symlink_dir_pointing_outside(tmp_path, storage, skill_dir, symlink_or_skip):
     outside_dir = tmp_path / "outside_dir"
     outside_dir.mkdir()
     link_dir = skill_dir / "linked_dir"
-    os.symlink(outside_dir, link_dir)
+    symlink_or_skip(link_dir, outside_dir, target_is_directory=True)
     with pytest.raises(ValueError, match="skill directory"):
         storage.write_custom_skill("demo-skill", "linked_dir/file.txt", "x")
 
 
-def test_allows_symlink_within_skill_dir(tmp_path, storage, skill_dir):
+def test_allows_symlink_within_skill_dir(tmp_path, storage, skill_dir, symlink_or_skip):
     """A symlink that resolves inside the skill directory is allowed.
 
     Because target is resolved before writing, the write goes to the real file
@@ -148,7 +147,7 @@ def test_allows_symlink_within_skill_dir(tmp_path, storage, skill_dir):
     real_file = skill_dir / "real.md"
     real_file.write_text("real")
     link = skill_dir / "alias.md"
-    os.symlink(real_file, link)
+    symlink_or_skip(link, real_file)
     # Should not raise
     storage.write_custom_skill("demo-skill", "alias.md", "updated")
     # resolve() writes through to the real target file

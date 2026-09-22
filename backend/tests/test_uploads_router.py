@@ -586,12 +586,12 @@ def test_upload_files_rejects_dotdot_and_dot_filenames(tmp_path):
     assert [f.name for f in thread_uploads_dir.iterdir()] == ["passwd"]
 
 
-def test_upload_files_rejects_preexisting_symlink_destination(tmp_path):
+def test_upload_files_rejects_preexisting_symlink_destination(tmp_path, symlink_or_skip):
     thread_uploads_dir = tmp_path / "uploads"
     thread_uploads_dir.mkdir(parents=True)
     outside_file = tmp_path / "outside.txt"
     outside_file.write_text("protected", encoding="utf-8")
-    (thread_uploads_dir / "victim.txt").symlink_to(outside_file)
+    symlink_or_skip(thread_uploads_dir / "victim.txt", outside_file)
 
     provider = MagicMock()
     provider.uses_thread_data_mounts = True
@@ -612,11 +612,11 @@ def test_upload_files_rejects_preexisting_symlink_destination(tmp_path):
     assert (thread_uploads_dir / "victim.txt").is_symlink()
 
 
-def test_upload_files_rejects_dangling_symlink_destination(tmp_path):
+def test_upload_files_rejects_dangling_symlink_destination(tmp_path, symlink_or_skip):
     thread_uploads_dir = tmp_path / "uploads"
     thread_uploads_dir.mkdir(parents=True)
     missing_target = tmp_path / "missing-target.txt"
-    (thread_uploads_dir / "victim.txt").symlink_to(missing_target)
+    symlink_or_skip(thread_uploads_dir / "victim.txt", missing_target)
 
     provider = MagicMock()
     provider.uses_thread_data_mounts = True

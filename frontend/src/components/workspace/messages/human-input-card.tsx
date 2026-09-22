@@ -61,8 +61,6 @@ export function HumanInputCard({
     request.input_mode === "free_text" ||
     request.input_mode === "choice_with_other";
   const options = request.options ?? [];
-  const isOfficeSelectionApproval =
-    request.source === "office_selection_approval";
   const readOnly = !onSubmit;
   const isDisabled =
     disabled || pending || Boolean(answeredResponse) || readOnly;
@@ -127,7 +125,7 @@ export function HumanInputCard({
               <h2 id={titleId} className="text-sm leading-5 font-medium">
                 {request.title ?? t.toolCalls.needYourHelp}
               </h2>
-              {request.context && !isOfficeSelectionApproval ? (
+              {request.context ? (
                 <div className="text-muted-foreground text-sm leading-6">
                   <MarkdownContent
                     content={request.context}
@@ -157,23 +155,9 @@ export function HumanInputCard({
             ) : null}
           </div>
 
-          {isOfficeSelectionApproval ? (
-            <div className="text-foreground text-sm leading-6">
-              <MarkdownContent content={request.question} isLoading={false} />
-            </div>
-          ) : null}
-
-          {isOfficeSelectionApproval && request.context ? (
-            <div className="text-muted-foreground max-h-32 overflow-auto rounded-md border text-sm leading-6">
-              <MarkdownContent content={request.context} isLoading={false} />
-            </div>
-          ) : null}
-
-          {!isOfficeSelectionApproval ? (
-            <div className="text-foreground text-sm leading-6">
-              <MarkdownContent content={request.question} isLoading={false} />
-            </div>
-          ) : null}
+          <div className="text-foreground text-sm leading-6">
+            <MarkdownContent content={request.question} isLoading={false} />
+          </div>
 
           {options.length > 0 ? (
             <div className="grid gap-2">

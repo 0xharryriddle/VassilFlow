@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -83,7 +84,7 @@ export function RecentChatList() {
     isFetchingNextPage,
   } = useInfiniteThreads();
   const threads = useMemo(
-    () => infiniteThreads?.pages.flat() ?? [],
+    () => infiniteThreads?.pages.flatMap((page) => page.threads) ?? [],
     [infiniteThreads],
   );
 
@@ -363,6 +364,9 @@ export function RecentChatList() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{t.common.rename}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t.common.renameDescription}
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input

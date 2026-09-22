@@ -105,10 +105,14 @@ function LoadMoreHistoryIndicator({
   isLoading,
   hasMore,
   loadMore,
+  error = false,
+  retry,
 }: {
   isLoading?: boolean;
   hasMore?: boolean;
   loadMore?: () => void;
+  error?: boolean;
+  retry?: () => void;
 }) {
   const { t } = useI18n();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -116,7 +120,7 @@ function LoadMoreHistoryIndicator({
   const lastLoadRef = useRef(0);
 
   const throttledLoadMore = useCallback(() => {
-    if (!hasMore || isLoading) {
+    if (!hasMore || isLoading || error) {
       return;
     }
 
@@ -136,17 +140,17 @@ function LoadMoreHistoryIndicator({
 
     timeoutRef.current = setTimeout(() => {
       timeoutRef.current = null;
-      if (!hasMore || isLoading) {
+      if (!hasMore || isLoading || error) {
         return;
       }
       lastLoadRef.current = Date.now();
       loadMore?.();
     }, remaining);
-  }, [hasMore, isLoading, loadMore]);
+  }, [hasMore, isLoading, loadMore, error]);
 
   useEffect(() => {
     const element = sentinelRef.current;
-    if (!element || !hasMore) {
+    if (!element || !hasMore || error) {
       return;
     }
 
@@ -166,15 +170,36 @@ function LoadMoreHistoryIndicator({
     return () => {
       observer.disconnect();
     };
-  }, [hasMore, throttledLoadMore]);
+  }, [hasMore, throttledLoadMore, error]);
 
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
-  }, []);
+  }, [hasMore, isLoading, error, loadMore]);
+
+  if (error) {
+    return (
+      <div
+        role="alert"
+        className="text-destructive flex flex-col items-center gap-2 text-sm"
+      >
+        <p>{t.conversation.historyFailed}</p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          onClick={retry}
+        >
+          {t.conversation.retryHistory}
+        </Button>
+      </div>
+    );
+  }
 
   if (!hasMore && !isLoading) {
     return null;
@@ -215,6 +240,8 @@ export function MessageList({
   hasMoreHistory,
   loadMoreHistory,
   isHistoryLoading,
+  historyError,
+  retryHistory,
   onRegenerateMessage,
   onBranchTurn,
   onSubmitHumanInput,
@@ -231,6 +258,8 @@ export function MessageList({
   hasMoreHistory?: boolean;
   loadMoreHistory?: () => void;
   isHistoryLoading?: boolean;
+  historyError?: boolean;
+  retryHistory?: () => void;
   onRegenerateMessage?: (
     messageId: string,
     supersededMessageIds: string[],
@@ -661,7 +690,7 @@ export function MessageList({
     [thread.isLoading, tokenDebugSteps, tokenUsageInlineMode],
   );
 
-  if (thread.isThreadLoading && messages.length === 0) {
+  if (thread.isThreadLoading && messages.length === 0 && !historyError) {
     return <MessageListSkeleton />;
   }
 
@@ -675,6 +704,8 @@ export function MessageList({
             isLoading={isHistoryLoading}
             hasMore={hasMoreHistory}
             loadMore={loadMoreHistory}
+            error={historyError}
+            retry={retryHistory}
           />
           {groupedMessages.map((group, groupIndex) => {
             const groupKey = group.id ?? `${group.type}-${groupIndex}`;

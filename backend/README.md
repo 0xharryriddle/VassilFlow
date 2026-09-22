@@ -10,6 +10,30 @@ and backend-only development.
 
 ## Architecture
 
+The base ships no built-in product Agents. The default lead Agent, personal
+Agents, and delegated workers remain available for reusable agent workflows.
+Generic capability, Action, lifecycle, and repository contracts support future
+domain extensions without shipping a domain product.
+
+When composing an agent in Python, `RuntimeFeatures(token_budget=True)` enables
+the default per-run token limits. Pass a configured `TokenBudgetMiddleware` to
+customize those limits; omitting the feature leaves it disabled.
+
+For the configured lead-agent workflow, enabling `token_budget` also applies
+the same limits independently to every delegated task. Completed child usage is
+included in the lead's budget before further tools can execute, even when
+`token_usage.enabled` is false. These are checks after model responses using
+provider usage metadata, not prepaid reservations: a response or concurrent
+children can exceed the remaining parent allowance before the next check.
+
+Gateway supports one process with one worker, including on PostgreSQL.
+`GATEWAY_WORKERS` and `WEB_CONCURRENCY`, when set, must both be `1`.
+
+The canonical backend architecture, including the Agent contract, capability
+adapter boundary, Action provenance, two-plane project model, readiness, and the
+extension sequence for future Agents, is maintained in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ```
                         ┌──────────────────────────────────────┐
                         │          Nginx (Port 2026)           │

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -39,6 +40,9 @@ export function MobileNav({ links }: { links: MobileNavLink[] }) {
           <SheetTitle className="text-xl font-semibold">
             {APP_BRAND_NAME}
           </SheetTitle>
+          <SheetDescription className="sr-only">
+            {links.map((link) => link.label).join(", ")}
+          </SheetDescription>
         </SheetHeader>
         <nav className="flex flex-col gap-1 px-4 text-base font-medium">
           {links.map((link) => (

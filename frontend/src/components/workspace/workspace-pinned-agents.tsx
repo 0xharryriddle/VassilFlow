@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   iconForAgent,
+  isAgentLaunchActive,
   isSafeAgentLaunchPath,
   partitionPinnedAgents,
   retainAvailablePinnedAgentIds,
@@ -47,9 +48,8 @@ export function WorkspacePinnedAgents() {
             const product = agent.product;
             const AgentIcon = iconForAgent(product.icon);
             const launchable =
-              product.status === "available" &&
+              product.status !== "unavailable" &&
               isSafeAgentLaunchPath(product.launch.path);
-            const activePrefix = `/workspace/agents/${encodeURIComponent(agent.name)}/`;
             const content = (
               <>
                 <AgentIcon />
@@ -62,7 +62,11 @@ export function WorkspacePinnedAgents() {
                 {launchable ? (
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname.startsWith(activePrefix)}
+                    isActive={isAgentLaunchActive(
+                      pathname,
+                      agent.name,
+                      product.launch,
+                    )}
                     tooltip={product.display_name}
                   >
                     <Link

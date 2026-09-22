@@ -56,6 +56,55 @@ def _make_llm_response(content="Hello", usage=None, tool_calls=None, additional_
     return response
 
 
+class TestActionEvents:
+    @pytest.mark.anyio
+    async def test_record_action_links_terminal_action_to_exact_run(
+        self,
+        journal_setup,
+    ):
+        journal, store = journal_setup
+        journal.record_action(
+            {
+                "action_id": f"act_{'1' * 32}",
+                "operation": "sample.edit",
+                "source": "agent_run",
+                "assistant_id": "sample",
+                "thread_id": "t1",
+                "run_id": "r1",
+                "status": "succeeded",
+                "references": [
+                    {
+                        "kind": "sample.revision",
+                        "id": "ofr_1",
+                        "role": "created",
+                    }
+                ],
+                "evidence": [],
+            }
+        )
+        await journal.flush()
+
+        [event] = await store.list_events("t1", "r1")
+        assert event["event_type"] == "domain.action"
+        assert event["category"] == "action"
+        assert event["content"]["operation"] == "sample.edit"
+        assert event["content"]["status"] == "succeeded"
+        assert event["metadata"]["assistant_id"] == "sample"
+
+    def test_record_action_rejects_cross_run_identity(self, journal_setup):
+        journal, _store = journal_setup
+
+        with pytest.raises(ValueError, match="does not match"):
+            journal.record_action(
+                {
+                    "source": "agent_run",
+                    "thread_id": "t1",
+                    "run_id": "other-run",
+                    "status": "succeeded",
+                }
+            )
+
+
 class TestLlmCallbacks:
     @pytest.mark.anyio
     async def test_on_llm_end_produces_trace_event(self, journal_setup):

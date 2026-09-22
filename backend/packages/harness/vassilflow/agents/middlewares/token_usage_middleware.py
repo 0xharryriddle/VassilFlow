@@ -267,6 +267,12 @@ def _build_attribution(message: AIMessage, todos: list[Todo]) -> dict[str, Any]:
 class TokenUsageMiddleware(AgentMiddleware):
     """Logs token usage from model responses and annotates the AI step."""
 
+    def __init__(self, *, report_usage: bool = True) -> None:
+        super().__init__()
+        # Budget enforcement still needs delegated usage when optional logging
+        # and step attribution are disabled in the application configuration.
+        self._report_usage = report_usage
+
     def _apply(self, state: AgentState) -> dict | None:
         messages = state.get("messages", [])
         if not messages:
@@ -312,6 +318,9 @@ class TokenUsageMiddleware(AgentMiddleware):
                             break
                         dispatch_idx -= 1
                 idx -= 1
+
+        if not self._report_usage:
+            return {"messages": [state_updates[idx] for idx in sorted(state_updates)]} if state_updates else None
 
         last = messages[-1]
         if not isinstance(last, AIMessage):

@@ -219,12 +219,8 @@ def test_merge_preserves_omitted_routing_tools_and_timeout():
 
 
 def test_merge_accepts_explicit_routing_update():
-    incoming = McpServerConfigResponse(
-        routing={"mode": "prefer", "priority": 25, "keywords": ["analytics"]}
-    )
-    existing = McpServerConfigResponse(
-        routing={"mode": "prefer", "priority": 80, "keywords": ["orders"]}
-    )
+    incoming = McpServerConfigResponse(routing={"mode": "prefer", "priority": 25, "keywords": ["analytics"]})
+    existing = McpServerConfigResponse(routing={"mode": "prefer", "priority": 80, "keywords": ["orders"]})
 
     merged = _merge_preserving_secrets(incoming, existing)
 

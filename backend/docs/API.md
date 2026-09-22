@@ -115,6 +115,23 @@ nested subagent graphs.
 - `thinking_enabled` (boolean): Enable extended thinking for supported models
 - `is_plan_mode` (boolean): Enable TodoList middleware for task tracking
 
+**Capability Inputs:**
+
+The generic `capability_inputs` field is reserved for bounded, typed context
+owned by registered server-side Agent capability adapters. The base distribution
+ships no built-in product Agents or concrete capability inputs.
+
+Each item uses the `vassilflow.capability_input.v1` schema, a registered
+`capability` name, a domain-defined `kind`, and a bounded `payload`. A domain
+extension must validate its own payload and resolve canonical user-owned state;
+these fields are not an API for invoking an arbitrary unregistered capability.
+
+REST clients may send an array in the top-level `capability_inputs` field.
+SDK clients may send the same array under `context.capability_inputs`. Client
+payloads are optimistic guards, not runtime authority: the Gateway removes
+client copies and injects only values resolved by the selected Agent's
+server-owned capability adapter.
+
 **Response:** Server-Sent Events (SSE) stream
 
 ```

@@ -1,6 +1,6 @@
 # VassilFlow - Unified Development Environment
 
-.PHONY: help config config-upgrade check install setup doctor support-bundle detect-thread-boundaries detect-blocking-io dev dev-daemon start start-daemon stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
+.PHONY: help config config-upgrade check install setup doctor support-bundle repository-inventory repository-migration-plan repository-migrate projection-repair-status projection-repair-plan projection-repair detect-thread-boundaries detect-blocking-io dev dev-daemon start start-daemon stop up down clean docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
 
 BASH ?= bash
 BACKEND_UV_RUN = cd backend && uv run
@@ -21,6 +21,12 @@ help:
 	@echo "  make setup           - Interactive setup wizard (recommended for new users)"
 	@echo "  make doctor          - Check configuration and system requirements"
 	@echo "  make support-bundle  - Create a redacted troubleshooting bundle"
+	@echo "  make repository-inventory      - Inspect project repository schemas"
+	@echo "  make repository-migration-plan - Plan registered repository migrations"
+	@echo "  make repository-migrate        - Apply registered repository migrations"
+	@echo "  make projection-repair-status  - Inspect unresolved lifecycle and Action state"
+	@echo "  make projection-repair-plan    - Plan durable projection repair"
+	@echo "  make projection-repair         - Apply evidence-backed projection repair"
 	@echo "  make config          - Generate local config files (aborts if config already exists)"
 	@echo "  make config-upgrade  - Merge new fields from config.example.yaml into config.yaml"
 	@echo "  make check           - Check if all required tools are installed"
@@ -56,6 +62,24 @@ doctor:
 
 support-bundle:
 	@$(BACKEND_UV_RUN) python ../scripts/support_bundle.py --include-doctor
+
+repository-inventory:
+	@$(BACKEND_UV_RUN) python scripts/domain_repositories.py inventory
+
+repository-migration-plan:
+	@$(BACKEND_UV_RUN) python scripts/domain_repositories.py migrate
+
+repository-migrate:
+	@$(BACKEND_UV_RUN) python scripts/domain_repositories.py migrate --apply
+
+projection-repair-status:
+	@$(BACKEND_UV_RUN) python scripts/projection_repair.py inspect
+
+projection-repair-plan:
+	@$(BACKEND_UV_RUN) python scripts/projection_repair.py repair
+
+projection-repair:
+	@$(BACKEND_UV_RUN) python scripts/projection_repair.py repair --apply
 
 detect-thread-boundaries:
 	@$(PYTHON) ./scripts/detect_thread_boundaries.py

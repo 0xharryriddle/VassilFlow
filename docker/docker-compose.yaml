@@ -5,8 +5,6 @@
 #   - nginx:       Reverse proxy (port 2026, configurable via PORT env var)
 #   - frontend:    Next.js production server
 #   - gateway:     FastAPI Gateway API + agent runtime
-#   - office-renderer: Isolated DOCX page renderer
-#   - office-renderer-proxy: Fixed-route bridge to the renderer
 #   - provisioner: (optional) Sandbox provisioner for Kubernetes mode
 #
 # Key environment variables (set via environment/.env or scripts/deploy.sh):
@@ -26,64 +24,6 @@
 # Access: http://localhost:${PORT:-2026}
 
 services:
-  office-renderer:
-    build:
-      context: ./office-renderer
-      dockerfile: Dockerfile
-      args:
-        APT_MIRROR: ${APT_MIRROR:-}
-        PIP_INDEX_URL: ${PIP_INDEX_URL:-}
-    container_name: vassilflow-office-renderer
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=768m,mode=1777
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    pids_limit: 128
-    mem_limit: 1g
-    cpus: 1.0
-    networks:
-      - vassilflow-office
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health', timeout=8)"]
-      interval: 10s
-      timeout: 10s
-      retries: 6
-      start_period: 30s
-
-  office-renderer-proxy:
-    image: nginx:alpine
-    container_name: vassilflow-office-renderer-proxy
-    user: "101:101"
-    entrypoint: ["nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
-    volumes:
-      - ./office-renderer/proxy.conf:/etc/nginx/nginx.conf:ro
-    read_only: true
-    tmpfs:
-      - /tmp:rw,noexec,nosuid,size=16m,mode=1777
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    pids_limit: 32
-    mem_limit: 64m
-    cpus: 0.25
-    depends_on:
-      office-renderer:
-        condition: service_healthy
-    networks:
-      - vassilflow-office
-      - vassilflow
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8004/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
   # ── Reverse Proxy ──────────────────────────────────────────────────────────
   nginx:
     image: nginx:alpine
@@ -137,7 +77,7 @@ services:
     # worker: with >1 worker and no nginx sticky sessions, run cancel, SSE
     # reconnect, request dedup, and per-worker IM channel services all break
     # across workers until a shared (e.g. redis) stream bridge lands, which is
-    # not yet implemented. Override GATEWAY_WORKERS only once that is in place.
+    # not yet implemented. Startup rejects GATEWAY_WORKERS values other than 1.
     command: sh -c "cd backend && PYTHONPATH=. uv run uvicorn app.gateway.app:app --host 0.0.0.0 --port 8001 --workers ${GATEWAY_WORKERS:-1}"
     volumes:
       - ${VASSILFLOW_CONFIG_PATH:-../config.yaml}:/app/backend/config.yaml:ro
@@ -156,11 +96,10 @@ services:
       # opt-in docker-compose.cli-auth.yaml overlay. Prefer an env token
       # (CLAUDE_CODE_OAUTH_TOKEN, see .env.example / backend/docs/CONFIGURATION.md).
     working_dir: /app
-    depends_on:
-      office-renderer-proxy:
-        condition: service_healthy
     environment:
       - CI=true
+      # Forward the CLI count so the runtime startup guard sees Compose overrides.
+      - GATEWAY_WORKERS=${GATEWAY_WORKERS:-1}
       - VASSILFLOW_PROJECT_ROOT=/app
       - VASSILFLOW_HOME=/app/backend/.vassilflow
       - VASSILFLOW_CONFIG_PATH=/app/backend/config.yaml
@@ -171,11 +110,10 @@ services:
       - VASSILFLOW_HOST_BASE_DIR=${VASSILFLOW_HOME:-../backend/.vassilflow}
       - VASSILFLOW_HOST_SKILLS_PATH=${VASSILFLOW_REPO_ROOT:-..}/skills
       - VASSILFLOW_SANDBOX_HOST=host.docker.internal
-      - VASSILFLOW_OFFICE_RENDERER_URL=http://office-renderer-proxy:8004
       # Proxy values (HTTP_PROXY/HTTPS_PROXY/ALL_PROXY) are inherited from ../.env via env_file.
       # Only NO_PROXY is declared here so internal service hostnames are always exempt from the proxy.
-      - NO_PROXY=${NO_PROXY:-}${NO_PROXY:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,office-renderer-proxy,host.docker.internal
-      - no_proxy=${no_proxy:-}${no_proxy:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,office-renderer-proxy,host.docker.internal
+      - NO_PROXY=${NO_PROXY:-}${NO_PROXY:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,host.docker.internal
+      - no_proxy=${no_proxy:-}${no_proxy:+,}localhost,127.0.0.1,::1,gateway,frontend,nginx,provisioner,host.docker.internal
     env_file:
       - ../.env
     extra_hosts:
@@ -222,6 +160,3 @@ services:
 networks:
   vassilflow:
     driver: bridge
-  vassilflow-office:
-    driver: bridge
-    internal: true

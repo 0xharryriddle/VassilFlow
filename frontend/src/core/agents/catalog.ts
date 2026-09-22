@@ -1,4 +1,9 @@
-import type { Agent, AgentCategory, AgentOrigin } from "./types";
+import type {
+  Agent,
+  AgentCategory,
+  AgentLaunchMetadata,
+  AgentOrigin,
+} from "./types";
 
 export const PINNED_AGENT_IDS_KEY_PREFIX = "vassilflow.agents.pinned.";
 export const AGENT_PINS_CHANGED_EVENT = "vassilflow:agent-pins-changed";
@@ -169,4 +174,21 @@ export function savePinnedAgentIds(
 
 export function isSafeAgentLaunchPath(path: string): boolean {
   return path.startsWith("/workspace/") && !path.startsWith("//");
+}
+
+export function isAgentLaunchActive(
+  pathname: string,
+  agentName: string,
+  launch: AgentLaunchMetadata,
+): boolean {
+  const agentRoute = `/workspace/agents/${encodeURIComponent(agentName)}/`;
+  if (pathname.startsWith(agentRoute)) {
+    return true;
+  }
+  if (launch.kind !== "project") {
+    return false;
+  }
+
+  const projectRoute = launch.path.split("?", 1)[0]!.replace(/\/$/, "");
+  return pathname === projectRoute || pathname.startsWith(`${projectRoute}/`);
 }

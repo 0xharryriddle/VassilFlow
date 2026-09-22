@@ -6,6 +6,7 @@ import {
   MessageSquareIcon,
   PinIcon,
   Trash2Icon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactElement, useState } from "react";
@@ -115,7 +116,7 @@ export function AgentCard({
 
   function handleLaunch() {
     if (
-      agent.product.status !== "available" ||
+      agent.product.status === "unavailable" ||
       !isSafeAgentLaunchPath(agent.product.launch.path)
     ) {
       toast.error(t.agents.launchUnavailable);
@@ -157,6 +158,15 @@ export function AgentCard({
                     <LaunchIcon />
                     {launchLabel}
                   </Badge>
+                  {agent.product.status === "degraded" && (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-500/50 text-amber-700 dark:text-amber-300"
+                    >
+                      <TriangleAlertIcon />
+                      {t.agents.statusDegraded}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
@@ -219,7 +229,7 @@ export function AgentCard({
             size="sm"
             className="flex-1"
             onClick={handleLaunch}
-            disabled={agent.product.status !== "available"}
+            disabled={agent.product.status === "unavailable"}
           >
             <LaunchIcon className="mr-1.5 h-3.5 w-3.5" />
             {launchLabel}

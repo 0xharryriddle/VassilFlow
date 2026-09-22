@@ -296,7 +296,7 @@ def _assemble_from_features(
             from vassilflow.agents.middlewares.token_budget_middleware import TokenBudgetMiddleware
             from vassilflow.config.token_budget_config import TokenBudgetConfig
 
-            chain.append(TokenBudgetMiddleware.from_config(TokenBudgetConfig()))
+            chain.append(TokenBudgetMiddleware.from_config(TokenBudgetConfig(enabled=True)))
 
     # --- [15] Clarification (always last among built-ins) ---
     chain.append(ClarificationMiddleware())

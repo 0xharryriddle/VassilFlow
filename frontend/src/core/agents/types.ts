@@ -1,6 +1,7 @@
 export type AgentOrigin = "builtin" | "personal" | "team";
 export type AgentLaunchKind = "chat" | "project";
-export type AgentAvailability = "available" | "unavailable";
+export type AgentAvailability = "available" | "degraded" | "unavailable";
+export type AgentReadinessStatus = "ready" | "degraded" | "unavailable";
 export type AgentCategory =
   | "general"
   | "create"
@@ -25,6 +26,14 @@ export interface AgentManagementMetadata {
   can_delete: boolean;
 }
 
+export interface AgentReadinessMetadata {
+  key: string;
+  status: AgentReadinessStatus;
+  required: boolean;
+  detail: string;
+  metadata: Record<string, string>;
+}
+
 export interface AgentProductMetadata {
   id: string;
   display_name: string;
@@ -34,8 +43,11 @@ export interface AgentProductMetadata {
   status: AgentAvailability;
   required_tools: string[];
   missing_requirements: string[];
+  degraded_requirements: string[];
+  readiness: AgentReadinessMetadata[];
   data_access: AgentDataAccess[];
   starter_prompts: string[];
+  chat_extension: string | null;
   launch: AgentLaunchMetadata;
   management: AgentManagementMetadata;
 }

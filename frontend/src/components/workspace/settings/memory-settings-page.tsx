@@ -790,6 +790,9 @@ export function MemorySettingsPage() {
             <DialogTitle>
               {factToEdit ? editFactTitle : addFactTitle}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {factContentPlaceholder}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

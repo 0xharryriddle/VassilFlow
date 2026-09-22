@@ -53,9 +53,15 @@ def test_core_docs_use_vassilflow_runtime_contracts():
             "`runtime_home` defaults to `.vassilflow`",
         ],
         "backend/docs/ARCHITECTURE.md": [
-            "overview of the VassilFlow backend architecture",
-            "VassilFlow-managed filesystem data",
-            '"path": "vassilflow.agents:make_lead_agent"',
+            "canonical architecture contract",
+            "VassilFlow is a reusable agent harness",
+            "default lead Agent, personal Agents, and delegated workers",
+            "Its shipped registry is empty",
+            "`assistant_id` is the authoritative external Agent identity",
+            "`vassilflow.capabilities.AgentCapabilityAdapter`",
+            "`vassilflow.actions` provides a generic append-only mutation journal",
+            "`vassilflow.runtime.thread_lifecycle` defines domain-neutral deletion and branch",
+            "`vassilflow.persistence.project_repository` is an operational contract",
         ],
     }
 

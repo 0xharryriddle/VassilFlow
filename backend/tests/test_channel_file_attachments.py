@@ -255,13 +255,13 @@ class TestResolveAttachments:
 
 
 class TestInboundFileIngestion:
-    def test_rejects_preexisting_symlink_destination(self, tmp_path):
+    def test_rejects_preexisting_symlink_destination(self, tmp_path, symlink_or_skip):
         from app.channels import manager
 
         uploads_dir = tmp_path / "uploads"
         uploads_dir.mkdir()
         outside_file = tmp_path / "outside-created.txt"
-        (uploads_dir / "victim.txt").symlink_to(outside_file)
+        symlink_or_skip(uploads_dir / "victim.txt", outside_file)
 
         msg = InboundMessage(
             channel_name="test-channel",
@@ -284,13 +284,13 @@ class TestInboundFileIngestion:
         assert not outside_file.exists()
         assert (uploads_dir / "victim.txt").is_symlink()
 
-    def test_rejects_dangling_symlink_destination(self, tmp_path):
+    def test_rejects_dangling_symlink_destination(self, tmp_path, symlink_or_skip):
         from app.channels import manager
 
         uploads_dir = tmp_path / "uploads"
         uploads_dir.mkdir()
         missing_target = tmp_path / "missing-created.txt"
-        (uploads_dir / "victim.txt").symlink_to(missing_target)
+        symlink_or_skip(uploads_dir / "victim.txt", missing_target)
 
         msg = InboundMessage(
             channel_name="test-channel",

@@ -93,53 +93,13 @@ MIGRATIONS = {
             ('src.tools.', 'vassilflow.tools.'),
         ],
     },
-    19: {
-        'description': 'Add structured VassilFlow Office tools alongside existing file capabilities',
-        'list_additions': [
+    21: {
+        'description': 'Remove retired built-in document tools from existing configurations',
+        'list_removals': [
             (
                 'tools',
-                'name',
-                {
-                    'name': 'office_inspect',
-                    'group': 'file:read',
-                    'use': 'vassilflow.community.office.tools:office_inspect_tool',
-                },
-                {'read_file'},
-            ),
-            (
-                'tools',
-                'name',
-                {
-                    'name': 'office_edit',
-                    'group': 'file:write',
-                    'use': 'vassilflow.community.office.tools:office_edit_tool',
-                },
-                {'write_file', 'str_replace'},
-            ),
-            (
-                'tools',
-                'name',
-                {
-                    'name': 'office_render',
-                    'group': 'file:write',
-                    'use': 'vassilflow.community.office.tools:office_render_tool',
-                },
-                {'write_file', 'str_replace'},
-            ),
-        ],
-    },
-    20: {
-        'description': 'Add editable presentation generation alongside existing file write capabilities',
-        'list_additions': [
-            (
-                'tools',
-                'name',
-                {
-                    'name': 'office_generate',
-                    'group': 'file:write',
-                    'use': 'vassilflow.community.office.tools:office_generate_tool',
-                },
-                {'write_file', 'str_replace', 'office_edit', 'office_render'},
+                'use',
+                ('vassilflow.community.office.', 'src.community.office.'),
             ),
         ],
     },
@@ -154,6 +114,7 @@ MIGRATIONS = {
 migrated = []
 value_replacements = []
 list_additions = []
+list_removals = []
 for version in range(user_version + 1, example_version + 1):
     migration = MIGRATIONS.get(version)
     if not migration:
@@ -165,9 +126,24 @@ for version in range(user_version + 1, example_version + 1):
             migrated.append(f'{old} -> {new}')
     value_replacements.extend(migration.get('value_replacements', []))
     list_additions.extend(migration.get('list_additions', []))
+    list_removals.extend(migration.get('list_removals', []))
 
 # Re-parse after text migrations
 user = yaml.safe_load(raw_text) or {}
+
+for list_key, value_key, prefixes in list_removals:
+    values = user.get(list_key)
+    if not isinstance(values, list):
+        continue
+    kept = []
+    for item in values:
+        value = item.get(value_key) if isinstance(item, dict) else None
+        if isinstance(value, str) and value.startswith(prefixes):
+            identity = item.get('name', value)
+            migrated.append(f'{list_key}: removed retired tool {identity}')
+        else:
+            kept.append(item)
+    user[list_key] = kept
 
 for list_key, identity_key, item, required_names in list_additions:
     values = user.get(list_key)

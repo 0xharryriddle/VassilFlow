@@ -18,6 +18,7 @@ Initialization is handled directly in ``app.py`` via :class:`AsyncExitStack`.
 from __future__ import annotations
 
 import asyncio
+import copy
 import logging
 import os
 from collections.abc import AsyncGenerator, Callable
@@ -46,22 +47,18 @@ logger = logging.getLogger(__name__)
 _RUN_DRAIN_TIMEOUT_SECONDS = 5.0
 
 
-def _enforce_postgres_for_multi_worker(config: AppConfig) -> None:
-    """Reject unsafe multi-process startup when persistence is not Postgres."""
-    try:
-        workers = int(os.environ.get("GATEWAY_WORKERS", "1"))
-    except (TypeError, ValueError):
-        workers = 1
-
-    if workers <= 1:
-        return
-
-    backend = getattr(config.database, "backend", None)
-    if backend != "postgres":
-        raise SystemExit(
-            f"GATEWAY_WORKERS={workers} requires database.backend='postgres', "
-            f"but database.backend is {backend!r}. Set GATEWAY_WORKERS=1 or switch to Postgres."
-        )
+def _enforce_single_worker() -> None:
+    """Reject configured worker counts unsupported by the process-local runtime."""
+    for variable in ("GATEWAY_WORKERS", "WEB_CONCURRENCY"):
+        value = os.environ.get(variable)
+        if value is None:
+            continue
+        try:
+            workers = int(value)
+        except ValueError:
+            raise SystemExit(f"Invalid {variable}={value!r}. Set {variable}=1; Gateway currently supports exactly one worker.") from None
+        if workers != 1:
+            raise SystemExit(f"{variable}={value} is unsupported: RunManager and StreamBridge are process-local, including with Postgres. Set {variable}=1. Multiple workers require shared run coordination and streaming.")
 
 
 async def _drain_inflight_runs(run_manager: RunManager) -> None:
@@ -190,7 +187,7 @@ async def langgraph_runtime(app: FastAPI, startup_config: AppConfig) -> AsyncGen
     from vassilflow.runtime.checkpointer.async_provider import make_checkpointer
     from vassilflow.runtime.events.store import make_run_event_store
 
-    _enforce_postgres_for_multi_worker(startup_config)
+    _enforce_single_worker()
 
     async with AsyncExitStack() as stack:
         config = startup_config
@@ -199,6 +196,9 @@ async def langgraph_runtime(app: FastAPI, startup_config: AppConfig) -> AsyncGen
 
         # Initialize persistence engine BEFORE checkpointer so that
         # auto-create-database logic runs first (postgres backend).
+        # Freeze the matching config on app.state so readiness never combines
+        # a hot-reloaded database section with the still-running startup engine.
+        app.state.database_config = copy.deepcopy(config.database)
         await init_engine_from_config(config.database)
 
         app.state.checkpointer = await stack.enter_async_context(make_checkpointer(config))

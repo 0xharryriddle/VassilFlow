@@ -9,6 +9,7 @@ MODULE_TO_PACKAGE_HINTS = {
 
 _VASSILFLOW_INTERNAL_ROOTS = {
     "agents",
+    "capabilities",
     "community",
     "config",
     "guardrails",

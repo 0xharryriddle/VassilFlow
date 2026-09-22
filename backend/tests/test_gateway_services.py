@@ -59,6 +59,29 @@ async def test_thread_agent_identity_migrates_exact_legacy_metadata():
 
 
 @pytest.mark.anyio
+async def test_thread_agent_identity_can_validate_legacy_without_mutating():
+    from app.gateway.services import enforce_thread_agent_identity
+    from vassilflow.config.agent_contract import resolve_agent_identity
+
+    store = MagicMock()
+    store.update_assistant_id = AsyncMock()
+    record = {
+        "assistant_id": "lead_agent",
+        "metadata": {"agent_name": "report-agent"},
+    }
+
+    await enforce_thread_agent_identity(
+        store,
+        "thread-1",
+        resolve_agent_identity("report-agent"),
+        record=record,
+        upgrade_legacy=False,
+    )
+
+    store.update_assistant_id.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_thread_agent_identity_rejects_cross_agent_reuse():
     from fastapi import HTTPException
 
@@ -569,80 +592,90 @@ def test_run_create_request_context_defaults_to_none():
     assert body.context is None
 
 
-def test_run_create_request_validates_typed_office_selection():
+def test_run_create_request_validates_typed_capability_input():
     from pydantic import ValidationError
 
     from app.gateway.routers.thread_runs import RunCreateRequest
 
-    selection = {
-        "kind": "pptx_object",
-        "project_id": f"ofp_{'1' * 32}",
-        "revision_id": f"ofr_{'2' * 32}",
-        "source_sha256": "a" * 64,
-        "slide_index": 1,
-        "object_path": "/slide[1]/shape[@id=3]",
-        "object_fingerprint": "b" * 64,
+    capability_input = {
+        "schema": "vassilflow.capability_input.v1",
+        "capability": "sample",
+        "kind": "pptx_object_selection",
+        "payload": {"object_path": "/slide[1]/shape[@id=3]"},
     }
-    body = RunCreateRequest(assistant_id="office", office_selection=selection)
+    body = RunCreateRequest(
+        assistant_id="sample",
+        capability_inputs=[capability_input],
+    )
 
-    assert body.office_selection is not None
-    assert body.office_selection.object_path == "/slide[1]/shape[@id=3]"
+    assert body.capability_inputs is not None
+    assert body.capability_inputs[0].capability == "sample"
+    assert body.capability_inputs[0].payload["object_path"] == ("/slide[1]/shape[@id=3]")
 
     with pytest.raises(ValidationError):
         RunCreateRequest(
-            assistant_id="office",
-            office_selection={**selection, "selected_text": "client supplied"},
+            assistant_id="sample",
+            capability_inputs=[
+                {
+                    **capability_input,
+                    "selected_text": "client supplied",
+                }
+            ],
         )
 
 
-def test_sdk_context_office_selection_is_parsed_by_typed_envelope():
-    from app.gateway.office_selection import extract_office_selection_input
+def test_sdk_context_capability_inputs_are_parsed_by_typed_envelope():
+    from app.gateway.capability_inputs import extract_capability_inputs
     from app.gateway.routers.thread_runs import RunCreateRequest
 
-    payload = {
-        "kind": "pptx_object",
-        "project_id": f"ofp_{'1' * 32}",
-        "revision_id": f"ofr_{'2' * 32}",
-        "source_sha256": "a" * 64,
-        "slide_index": 1,
-        "object_path": "/slide[1]/shape[@id=3]",
-        "object_fingerprint": "b" * 64,
+    capability_input = {
+        "schema": "vassilflow.capability_input.v1",
+        "capability": "sample",
+        "kind": "pptx_object_selection",
+        "payload": {
+            "kind": "pptx_object",
+            "project_id": f"ofp_{'1' * 32}",
+            "revision_id": f"ofr_{'2' * 32}",
+            "source_sha256": "a" * 64,
+            "slide_index": 1,
+            "object_path": "/slide[1]/shape[@id=3]",
+            "object_fingerprint": "b" * 64,
+        },
     }
     body = RunCreateRequest(
-        assistant_id="office",
-        context={"office_selection_request": payload},
+        assistant_id="sample",
+        context={"capability_inputs": [capability_input]},
     )
 
-    parsed = extract_office_selection_input(body)
+    parsed = extract_capability_inputs(body)
 
-    assert parsed is not None
-    assert parsed.model_dump() == payload
+    assert len(parsed) == 1
+    assert parsed[0].model_dump(mode="json", by_alias=True) == capability_input
 
 
-def test_sdk_context_office_selection_rejects_unknown_fields():
+def test_sdk_context_capability_input_rejects_unknown_envelope_fields():
     from fastapi import HTTPException
 
-    from app.gateway.office_selection import extract_office_selection_input
+    from app.gateway.capability_inputs import extract_capability_inputs
     from app.gateway.routers.thread_runs import RunCreateRequest
 
     body = RunCreateRequest(
-        assistant_id="office",
+        assistant_id="sample",
         context={
-            "office_selection_request": {
-                "kind": "pptx_object",
-                "project_id": f"ofp_{'1' * 32}",
-                "revision_id": f"ofr_{'2' * 32}",
-                "source_sha256": "a" * 64,
-                "slide_index": 1,
-                "object_path": "/slide[1]/shape[@id=3]",
-                "object_fingerprint": "b" * 64,
-                "selected_text": "untrusted",
-            }
+            "capability_inputs": [
+                {
+                    "schema": "vassilflow.capability_input.v1",
+                    "capability": "sample",
+                    "kind": "pptx_object_selection",
+                    "payload": {},
+                    "selected_text": "untrusted",
+                }
+            ]
         },
     )
 
     with pytest.raises(HTTPException) as exc_info:
-        extract_office_selection_input(body)
+        extract_capability_inputs(body)
 
     assert exc_info.value.status_code == 400
 
@@ -655,7 +688,7 @@ def test_build_run_config_pins_thread_and_strips_server_owned_context():
         {
             "configurable": {
                 "thread_id": "spoofed-thread",
-                "office_selection": {"trusted": False},
+                "capability_inputs": [{"trusted": False}],
                 "model_name": "configured-model",
             }
         },
@@ -666,7 +699,7 @@ def test_build_run_config_pins_thread_and_strips_server_owned_context():
         {
             "context": {
                 "thread_id": "spoofed-thread",
-                "office_selection": {"trusted": False},
+                "capability_inputs": [{"trusted": False}],
             }
         },
         None,
@@ -680,22 +713,36 @@ def test_build_run_config_pins_thread_and_strips_server_owned_context():
     assert context_config["configurable"] == {"thread_id": "authorized-thread"}
 
 
-def test_inject_resolved_office_selection_replaces_every_client_copy():
-    from app.gateway.services import inject_resolved_office_selection
+def test_inject_trusted_capability_inputs_replaces_every_client_copy():
+    from app.gateway.capability_inputs import (
+        CapabilityInputEnvelope,
+        inject_trusted_capability_inputs,
+    )
 
     config = {
-        "context": {"office_selection": {"trusted": False}},
+        "context": {"capability_inputs": [{"trusted": False}]},
         "configurable": {
             "thread_id": "thread-1",
-            "office_selection": {"trusted": False},
+            "capability_inputs": [{"trusted": False}],
         },
     }
-    resolved = {"schema": "selection-v1", "object_path": "/slide[1]/shape[@id=3]"}
+    resolved = CapabilityInputEnvelope(
+        capability="sample",
+        kind="pptx_object_selection",
+        payload={"object_path": "/slide[1]/shape[@id=3]"},
+    )
 
-    inject_resolved_office_selection(config, resolved)
+    inject_trusted_capability_inputs(config, [resolved])
 
-    assert config["context"]["office_selection"] == resolved
-    assert "office_selection" not in config["configurable"]
+    assert config["context"]["capability_inputs"] == [
+        {
+            "schema": "vassilflow.capability_input.v1",
+            "capability": "sample",
+            "kind": "pptx_object_selection",
+            "payload": {"object_path": "/slide[1]/shape[@id=3]"},
+        }
+    ]
+    assert "capability_inputs" not in config["configurable"]
 
 
 def test_apply_checkpoint_to_run_config_writes_checkpoint_fields():
@@ -850,29 +897,26 @@ def test_merge_run_context_rejects_bootstrap_target_outside_bootstrap_mode():
         )
 
 
-def test_office_selection_injection_preserves_canonical_agent_identity():
-    from app.gateway.services import (
-        build_run_config,
-        inject_resolved_office_selection,
-    )
+def test_capability_input_injection_preserves_canonical_agent_identity():
+    from app.gateway.capability_inputs import inject_trusted_capability_inputs
+    from app.gateway.services import build_run_config
 
     config = build_run_config(
         "thread-1",
         {
             "context": {
-                "office_selection": {"forged": True},
-                "office_selection_request": {"forged": True},
+                "capability_inputs": [{"forged": True}],
             }
         },
         None,
         assistant_id="report-agent",
     )
 
-    inject_resolved_office_selection(config, None)
+    inject_trusted_capability_inputs(config, ())
 
     assert config["context"]["agent_name"] == "report-agent"
     assert config["configurable"]["agent_name"] == "report-agent"
-    assert "office_selection" not in config["context"]
+    assert "capability_inputs" not in config["context"]
 
 
 def test_build_run_config_strips_policy_claims_from_both_metadata_inputs():
@@ -1124,7 +1168,9 @@ async def _capture_start_run_graph_input(body):
     return captured["graph_input"]
 
 
-def test_start_run_injects_only_resolved_office_selection(_stub_app_config):
+def test_start_run_injects_only_adapter_resolved_capability_inputs(
+    _stub_app_config,
+):
     import asyncio
     from types import SimpleNamespace
     from unittest.mock import patch
@@ -1132,6 +1178,7 @@ def test_start_run_injects_only_resolved_office_selection(_stub_app_config):
     from langgraph.checkpoint.memory import InMemorySaver
     from langgraph.store.memory import InMemoryStore
 
+    from app.gateway.capability_inputs import CapabilityInputEnvelope
     from app.gateway.routers.thread_runs import RunCreateRequest
     from app.gateway.services import start_run
     from vassilflow.persistence.thread_meta.memory import MemoryThreadMetaStore
@@ -1154,41 +1201,56 @@ def test_start_run_injects_only_resolved_office_selection(_stub_app_config):
             app=SimpleNamespace(state=state),
         )
         body = RunCreateRequest(
-            assistant_id="office",
+            assistant_id="sample",
             input={"messages": [{"role": "human", "content": "Change it"}]},
             config={
                 "context": {
-                    "office_selection": {"trusted": False},
+                    "capability_inputs": [{"trusted": False}],
                 }
             },
-            office_selection={
-                "kind": "pptx_object",
+            capability_inputs=[
+                {
+                    "schema": "vassilflow.capability_input.v1",
+                    "capability": "sample",
+                    "kind": "pptx_object_selection",
+                    "payload": {
+                        "kind": "pptx_object",
+                        "project_id": f"ofp_{'1' * 32}",
+                        "revision_id": f"ofr_{'2' * 32}",
+                        "source_sha256": "a" * 64,
+                        "slide_index": 1,
+                        "object_path": "/slide[1]/shape[@id=3]",
+                        "object_fingerprint": "b" * 64,
+                    },
+                }
+            ],
+        )
+        trusted = CapabilityInputEnvelope(
+            capability="sample",
+            kind="pptx_object_selection",
+            payload={
+                "schema": "selection-v1",
                 "project_id": f"ofp_{'1' * 32}",
                 "revision_id": f"ofr_{'2' * 32}",
-                "source_sha256": "a" * 64,
-                "slide_index": 1,
                 "object_path": "/slide[1]/shape[@id=3]",
-                "object_fingerprint": "b" * 64,
             },
         )
-        trusted = {
-            "schema": "selection-v1",
-            "project_id": f"ofp_{'1' * 32}",
-            "revision_id": f"ofr_{'2' * 32}",
-            "object_path": "/slide[1]/shape[@id=3]",
-        }
         captured: dict = {}
 
         async def fake_resolve(*_args, **_kwargs):
-            return trusted
+            return (trusted,)
 
         async def fake_run_agent(*_args, **kwargs):
             captured.update(kwargs["config"])
 
         with (
             patch(
-                "app.gateway.services.resolve_office_selection_for_run",
+                "app.gateway.services.resolve_capability_inputs_for_run",
                 side_effect=fake_resolve,
+            ),
+            patch(
+                "app.gateway.services.enforce_agent_runtime_readiness",
+                return_value=None,
             ),
             patch("app.gateway.services.resolve_agent_factory", return_value=object()),
             patch("app.gateway.services.run_agent", side_effect=fake_run_agent),
@@ -1200,13 +1262,13 @@ def test_start_run_injects_only_resolved_office_selection(_stub_app_config):
 
     config = asyncio.run(scenario())
 
-    assert config["context"]["office_selection"]["schema"] == "selection-v1"
+    assert config["context"]["capability_inputs"][0]["payload"]["schema"] == ("selection-v1")
     assert config["context"]["thread_id"] == "authorized-thread"
     assert config["configurable"]["thread_id"] == "authorized-thread"
-    assert "office_selection" not in config["configurable"]
+    assert "capability_inputs" not in config["configurable"]
 
 
-def test_start_run_rejects_invalid_office_selection_before_record_creation(
+def test_start_run_rejects_invalid_capability_input_before_record_creation(
     _stub_app_config,
 ):
     import asyncio
@@ -1245,27 +1307,198 @@ def test_start_run_rejects_invalid_office_selection_before_record_creation(
             app=SimpleNamespace(state=state),
         )
         body = RunCreateRequest(
-            assistant_id="office",
-            office_selection={
-                "kind": "pptx_object",
-                "project_id": f"ofp_{'1' * 32}",
-                "revision_id": f"ofr_{'2' * 32}",
-                "source_sha256": "a" * 64,
-                "slide_index": 1,
-                "object_path": "/slide[1]/shape[@id=3]",
-                "object_fingerprint": "b" * 64,
-            },
+            assistant_id="sample",
+            capability_inputs=[
+                {
+                    "schema": "vassilflow.capability_input.v1",
+                    "capability": "sample",
+                    "kind": "pptx_object_selection",
+                    "payload": {},
+                }
+            ],
         )
 
         async def reject(*_args, **_kwargs):
             raise HTTPException(status_code=409, detail="stale selection")
 
         with patch(
-            "app.gateway.services.resolve_office_selection_for_run",
+            "app.gateway.services.resolve_capability_inputs_for_run",
             side_effect=reject,
         ):
             with pytest.raises(HTTPException, match="stale selection"):
                 await start_run(body, "authorized-thread", request)
+        return run_manager.called
+
+    assert asyncio.run(scenario()) is False
+
+
+def test_start_run_rejects_agent_mismatch_before_domain_or_checkpoint_reads(
+    _stub_app_config,
+):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from fastapi import HTTPException
+    from langgraph.checkpoint.memory import InMemorySaver
+    from langgraph.store.memory import InMemoryStore
+
+    from app.gateway.routers.thread_runs import RunCreateRequest
+    from app.gateway.services import start_run
+    from vassilflow.persistence.thread_meta.memory import (
+        MemoryThreadMetaStore,
+    )
+    from vassilflow.runtime.user_context import (
+        reset_current_user,
+        set_current_user,
+    )
+
+    async def scenario() -> None:
+        thread_store = MemoryThreadMetaStore(InMemoryStore())
+        await thread_store.create(
+            "bound-thread",
+            assistant_id="sample",
+            user_id="default",
+        )
+        state = SimpleNamespace(
+            stream_bridge=SimpleNamespace(),
+            run_manager=SimpleNamespace(),
+            checkpointer=InMemorySaver(),
+            store=InMemoryStore(),
+            run_event_store=SimpleNamespace(),
+            run_events_config=None,
+            thread_store=thread_store,
+        )
+        request = SimpleNamespace(
+            headers={},
+            state=SimpleNamespace(
+                user=SimpleNamespace(
+                    id="default",
+                    system_role=None,
+                )
+            ),
+            app=SimpleNamespace(state=state),
+        )
+        body = RunCreateRequest(
+            assistant_id="lead_agent",
+            input={
+                "messages": [
+                    {
+                        "role": "human",
+                        "content": "Continue",
+                    }
+                ]
+            },
+        )
+        capability_probe = AsyncMock()
+        readiness_probe = AsyncMock()
+        checkpoint_probe = AsyncMock()
+        factory_probe = MagicMock()
+        token = set_current_user(SimpleNamespace(id="default"))
+        try:
+            with (
+                patch(
+                    "app.gateway.services.resolve_capability_inputs_for_run",
+                    capability_probe,
+                ),
+                patch(
+                    "app.gateway.services.enforce_agent_runtime_readiness",
+                    readiness_probe,
+                ),
+                patch(
+                    "app.gateway.services.apply_checkpoint_to_run_config",
+                    checkpoint_probe,
+                ),
+                patch(
+                    "app.gateway.services.resolve_agent_factory",
+                    factory_probe,
+                ),
+            ):
+                with pytest.raises(HTTPException) as exc_info:
+                    await start_run(body, "bound-thread", request)
+        finally:
+            reset_current_user(token)
+
+        assert exc_info.value.status_code == 409
+        capability_probe.assert_not_awaited()
+        readiness_probe.assert_not_awaited()
+        checkpoint_probe.assert_not_awaited()
+        factory_probe.assert_not_called()
+
+    asyncio.run(scenario())
+
+
+def test_start_run_rejects_unavailable_builtin_before_record_creation(
+    _stub_app_config,
+):
+    import asyncio
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from fastapi import HTTPException
+    from langgraph.checkpoint.memory import InMemorySaver
+    from langgraph.store.memory import InMemoryStore
+
+    from app.gateway.routers.thread_runs import RunCreateRequest
+    from app.gateway.services import start_run
+    from vassilflow.persistence.thread_meta.memory import MemoryThreadMetaStore
+
+    class RunManagerProbe:
+        called = False
+
+        async def create_or_reject(self, *_args, **_kwargs):
+            self.called = True
+            raise AssertionError("run record must not be created")
+
+    async def scenario() -> bool:
+        run_manager = RunManagerProbe()
+        state = SimpleNamespace(
+            stream_bridge=SimpleNamespace(),
+            run_manager=run_manager,
+            checkpointer=InMemorySaver(),
+            store=InMemoryStore(),
+            run_event_store=SimpleNamespace(),
+            run_events_config=None,
+            thread_store=MemoryThreadMetaStore(InMemoryStore()),
+        )
+        request = SimpleNamespace(
+            headers={},
+            state=SimpleNamespace(),
+            app=SimpleNamespace(state=state),
+        )
+        body = RunCreateRequest(
+            assistant_id="sample",
+            input={
+                "messages": [
+                    {
+                        "role": "human",
+                        "content": "Inspect this presentation",
+                    }
+                ]
+            },
+        )
+
+        async def reject(identity, _config, *, user_id):
+            assert identity.assistant_id == "sample"
+            assert user_id == "default"
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "agent_unavailable"},
+            )
+
+        with patch(
+            "app.gateway.services.enforce_agent_runtime_readiness",
+            side_effect=reject,
+        ):
+            with pytest.raises(HTTPException) as exc_info:
+                await start_run(
+                    body,
+                    "authorized-thread",
+                    request,
+                )
+
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.detail == {"code": "agent_unavailable"}
         return run_manager.called
 
     assert asyncio.run(scenario()) is False

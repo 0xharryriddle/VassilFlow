@@ -1,34 +1,37 @@
 # Documentation
 
-This directory contains detailed documentation for the VassilFlow backend.
+This directory contains detailed documentation for the reusable VassilFlow agent
+backend. The base ships no built-in product Agents; the capability, Action,
+lifecycle, and repository extension contracts remain available.
 
 ## Quick Links
 
-| Document | Description |
-|----------|-------------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture overview |
-| [API.md](API.md) | Complete API reference |
-| [AUTH_DESIGN.md](AUTH_DESIGN.md) | User authentication, CSRF, and per-user isolation design |
-| [CONFIGURATION.md](CONFIGURATION.md) | Configuration options |
-| [../../docs/SETUP.md](../../docs/SETUP.md) | Full fresh-clone setup guide |
-| [SETUP.md](SETUP.md) | Backend-only setup notes |
+| Document                                               | Description                                                               |
+| ------------------------------------------------------ | ------------------------------------------------------------------------- |
+| [ARCHITECTURE.md](ARCHITECTURE.md)                     | Canonical runtime, Agent, capability, project, and extension architecture |
+| [API.md](API.md)                                       | Complete API reference                                                    |
+| [AUTH_DESIGN.md](AUTH_DESIGN.md)                       | User authentication, CSRF, and per-user isolation design                  |
+| [CONFIGURATION.md](CONFIGURATION.md)                   | Configuration options                                                     |
+| [../../docs/PERSISTENCE.md](../../docs/PERSISTENCE.md) | Storage authority, readiness, backup, repository operations, and repair   |
+| [../../docs/SETUP.md](../../docs/SETUP.md)             | Full fresh-clone setup guide                                              |
+| [SETUP.md](SETUP.md)                                   | Backend-only setup notes                                                  |
 
 ## Feature Documentation
 
-| Document | Description |
-|----------|-------------|
-| [STREAMING.md](STREAMING.md) | Token-level streaming design: Gateway vs VassilFlowClient path, `stream_mode` semantics, per-id dedup |
-| [FILE_UPLOAD.md](FILE_UPLOAD.md) | File upload functionality |
-| [PATH_EXAMPLES.md](PATH_EXAMPLES.md) | Path types and usage examples |
-| [SANDBOX_MEMORY_PROFILING.md](SANDBOX_MEMORY_PROFILING.md) | Sandbox memory baseline and runtime comparison guide |
-| [summarization.md](summarization.md) | Context summarization feature |
-| [plan_mode_usage.md](plan_mode_usage.md) | Plan mode with TodoList |
-| [AUTO_TITLE_GENERATION.md](AUTO_TITLE_GENERATION.md) | Automatic title generation |
+| Document                                                   | Description                                                                                           |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| [STREAMING.md](STREAMING.md)                               | Token-level streaming design: Gateway vs VassilFlowClient path, `stream_mode` semantics, per-id dedup |
+| [FILE_UPLOAD.md](FILE_UPLOAD.md)                           | File upload functionality                                                                             |
+| [PATH_EXAMPLES.md](PATH_EXAMPLES.md)                       | Path types and usage examples                                                                         |
+| [SANDBOX_MEMORY_PROFILING.md](SANDBOX_MEMORY_PROFILING.md) | Sandbox memory baseline and runtime comparison guide                                                  |
+| [summarization.md](summarization.md)                       | Context summarization feature                                                                         |
+| [plan_mode_usage.md](plan_mode_usage.md)                   | Plan mode with TodoList                                                                               |
+| [AUTO_TITLE_GENERATION.md](AUTO_TITLE_GENERATION.md)       | Automatic title generation                                                                            |
 
 ## Development
 
-| Document | Description |
-|----------|-------------|
+| Document           | Description                       |
+| ------------------ | --------------------------------- |
 | [TODO.md](TODO.md) | Planned features and known issues |
 
 ## Getting Started

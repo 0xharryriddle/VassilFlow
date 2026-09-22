@@ -33,7 +33,7 @@ export default function ChatsPage() {
     isFetchingNextPage,
   } = useInfiniteThreads();
   const threads = useMemo(
-    () => infiniteThreads?.pages.flat() ?? [],
+    () => infiniteThreads?.pages.flatMap((page) => page.threads) ?? [],
     [infiniteThreads],
   );
   const [search, setSearch] = useState("");

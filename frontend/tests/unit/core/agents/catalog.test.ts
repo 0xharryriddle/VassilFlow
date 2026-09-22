@@ -4,6 +4,7 @@ import {
   MAX_PINNED_AGENTS,
   filterAgentCatalog,
   getPinnedAgentIdsKey,
+  isAgentLaunchActive,
   isSafeAgentLaunchPath,
   loadPinnedAgentIds,
   partitionPinnedAgents,
@@ -38,8 +39,11 @@ function makeAgent(
       status: "available",
       required_tools: [],
       missing_requirements: [],
+      degraded_requirements: [],
+      readiness: [],
       data_access: [],
       starter_prompts: [],
+      chat_extension: null,
       launch: {
         kind: "chat",
         path: `/workspace/agents/${name}/chats/new`,
@@ -96,7 +100,7 @@ describe("agent catalog", () => {
 
   test("filters by product origin", () => {
     const agents = [
-      makeAgent("office", { origin: "builtin" }),
+      makeAgent("sample", { origin: "builtin" }),
       makeAgent("proposal", { origin: "team" }),
       makeAgent("reviewer"),
     ];
@@ -112,7 +116,7 @@ describe("agent catalog", () => {
 
   test("filters by product category", () => {
     const agents = [
-      makeAgent("office", { origin: "builtin", category: "create" }),
+      makeAgent("sample", { origin: "builtin", category: "create" }),
       makeAgent("reviewer", { category: "custom" }),
     ];
 
@@ -122,7 +126,7 @@ describe("agent catalog", () => {
         origin: "all",
         category: "create",
       }).map((agent) => agent.name),
-    ).toEqual(["office"]);
+    ).toEqual(["sample"]);
   });
 
   test("keeps pinned agents in the user's chosen order", () => {
@@ -200,5 +204,29 @@ describe("agent catalog", () => {
       false,
     );
     expect(isSafeAgentLaunchPath("//example.com/workspace/a")).toBe(false);
+  });
+
+  test("matches chat and project routes from the typed launch contract", () => {
+    expect(
+      isAgentLaunchActive("/workspace/agents/writer/chats/thread-1", "writer", {
+        kind: "chat",
+        path: "/workspace/agents/writer/chats/new",
+        project_kind: null,
+      }),
+    ).toBe(true);
+    expect(
+      isAgentLaunchActive("/workspace/sample/projects/project_1", "sample", {
+        kind: "project",
+        path: "/workspace/sample",
+        project_kind: "sample",
+      }),
+    ).toBe(true);
+    expect(
+      isAgentLaunchActive("/workspace/chats/thread-1", "sample", {
+        kind: "project",
+        path: "/workspace/sample",
+        project_kind: "sample",
+      }),
+    ).toBe(false);
   });
 });

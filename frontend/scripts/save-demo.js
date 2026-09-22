@@ -45,7 +45,11 @@ export async function main() {
 }
 
 function resolveBackendThreadRoot(threadId) {
-  return path.resolve(process.cwd(), "../backend/.vassilflow/threads", threadId);
+  return path.resolve(
+    process.cwd(),
+    "../backend/.vassilflow/threads",
+    threadId,
+  );
 }
 
 function copyFolder(relPath, rootPath, backendRootPath) {

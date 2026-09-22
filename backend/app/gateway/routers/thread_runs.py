@@ -21,8 +21,8 @@ from langchain_core.messages import BaseMessage
 from pydantic import BaseModel, Field
 
 from app.gateway.authz import require_permission
+from app.gateway.capability_inputs import CapabilityInputEnvelope
 from app.gateway.deps import get_checkpointer, get_current_user, get_feedback_repo, get_run_event_store, get_run_manager, get_run_store, get_stream_bridge
-from app.gateway.office_selection import OfficePptxObjectSelectionInput
 from app.gateway.pagination import trim_run_message_page
 from app.gateway.services import sse_consumer, start_run, wait_for_run_completion
 from vassilflow.runtime import RunRecord, RunStatus, serialize_channel_values_for_api
@@ -64,9 +64,10 @@ class RunCreateRequest(BaseModel):
     metadata: dict[str, Any] | None = Field(default=None, description="Run metadata")
     config: dict[str, Any] | None = Field(default=None, description="RunnableConfig overrides")
     context: dict[str, Any] | None = Field(default=None, description="VassilFlow context overrides (model_name, thinking_enabled, etc.)")
-    office_selection: OfficePptxObjectSelectionInput | None = Field(
+    capability_inputs: list[CapabilityInputEnvelope] | None = Field(
         default=None,
-        description="Typed Office preview selection; resolved again from trusted revision bytes",
+        max_length=8,
+        description="Typed capability inputs resolved again by server-owned adapters",
     )
     webhook: str | None = Field(default=None, description="Completion callback URL")
     checkpoint_id: str | None = Field(default=None, description="Resume from checkpoint")

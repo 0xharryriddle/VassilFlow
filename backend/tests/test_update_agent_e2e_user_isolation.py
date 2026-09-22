@@ -45,7 +45,13 @@ def _make_request(user_id_str: str | None) -> SimpleNamespace:
 
 
 def _assemble_config(*, body_context: dict | None, request_user_id: str | None, thread_id: str) -> dict:
-    config = build_run_config(thread_id, {"recursion_limit": 50}, None, assistant_id="lead_agent")
+    agent_name = (body_context or {}).get("agent_name")
+    config = build_run_config(
+        thread_id,
+        {"recursion_limit": 50},
+        None,
+        assistant_id=agent_name or "lead_agent",
+    )
     merge_run_context_overrides(config, body_context)
     inject_authenticated_user_context(config, _make_request(request_user_id))
     return config

@@ -64,14 +64,20 @@ describe("VassilFlow localStorage keys", () => {
   });
 
   test("ignores legacy local settings namespace", () => {
-    localStorage.setItem(`${OLD_STORAGE_PREFIX}.local-settings`, JSON.stringify({ context: { mode: "ultra" } }));
+    localStorage.setItem(
+      `${OLD_STORAGE_PREFIX}.local-settings`,
+      JSON.stringify({ context: { mode: "ultra" } }),
+    );
 
     expect(getLocalSettings()).toEqual(DEFAULT_LOCAL_SETTINGS);
     expect(localStorage.getItem(LOCAL_SETTINGS_KEY)).toBeNull();
   });
 
   test("loads current local settings", () => {
-    localStorage.setItem(`${OLD_STORAGE_PREFIX}.local-settings`, JSON.stringify({ context: { mode: "ultra" } }));
+    localStorage.setItem(
+      `${OLD_STORAGE_PREFIX}.local-settings`,
+      JSON.stringify({ context: { mode: "ultra" } }),
+    );
     localStorage.setItem(
       LOCAL_SETTINGS_KEY,
       JSON.stringify({ context: { mode: "flash" } }),
@@ -81,7 +87,10 @@ describe("VassilFlow localStorage keys", () => {
   });
 
   test("saves local settings to the VassilFlow key", () => {
-    localStorage.setItem(`${OLD_STORAGE_PREFIX}.local-settings`, JSON.stringify({ context: { mode: "ultra" } }));
+    localStorage.setItem(
+      `${OLD_STORAGE_PREFIX}.local-settings`,
+      JSON.stringify({ context: { mode: "ultra" } }),
+    );
     saveLocalSettings({
       ...DEFAULT_LOCAL_SETTINGS,
       context: {
@@ -90,41 +99,61 @@ describe("VassilFlow localStorage keys", () => {
       },
     });
 
-    expect(localStorage.getItem(`${OLD_STORAGE_PREFIX}.local-settings`)).not.toBeNull();
+    expect(
+      localStorage.getItem(`${OLD_STORAGE_PREFIX}.local-settings`),
+    ).not.toBeNull();
     expect(localStorage.getItem(LOCAL_SETTINGS_KEY)).toContain('"mode":"pro"');
   });
 
   test("ignores legacy thread model overrides", () => {
-    localStorage.setItem(`${OLD_STORAGE_PREFIX}.thread-model.thread-1`, "model-a");
+    localStorage.setItem(
+      `${OLD_STORAGE_PREFIX}.thread-model.thread-1`,
+      "model-a",
+    );
 
     expect(getThreadModelName("thread-1")).toBeUndefined();
-    expect(localStorage.getItem(`${THREAD_MODEL_KEY_PREFIX}thread-1`)).toBeNull();
+    expect(
+      localStorage.getItem(`${THREAD_MODEL_KEY_PREFIX}thread-1`),
+    ).toBeNull();
   });
 
   test("saves thread model overrides to the VassilFlow prefix", () => {
-    localStorage.setItem(`${OLD_STORAGE_PREFIX}.thread-model.thread-1`, "model-a");
+    localStorage.setItem(
+      `${OLD_STORAGE_PREFIX}.thread-model.thread-1`,
+      "model-a",
+    );
 
     saveThreadModelName("thread-1", "model-b");
 
-    expect(localStorage.getItem(`${OLD_STORAGE_PREFIX}.thread-model.thread-1`)).toBe("model-a");
+    expect(
+      localStorage.getItem(`${OLD_STORAGE_PREFIX}.thread-model.thread-1`),
+    ).toBe("model-a");
     expect(localStorage.getItem(`${THREAD_MODEL_KEY_PREFIX}thread-1`)).toBe(
       "model-b",
     );
   });
 
   test("ignores the legacy agent-create save hint flag", () => {
-    localStorage.setItem(`${OLD_STORAGE_PREFIX}.agent-create.save-hint-seen`, "1");
+    localStorage.setItem(
+      `${OLD_STORAGE_PREFIX}.agent-create.save-hint-seen`,
+      "1",
+    );
 
     expect(hasSeenAgentCreateSaveHint()).toBe(false);
     expect(localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY)).toBeNull();
   });
 
   test("marks the agent-create save hint with the VassilFlow key", () => {
-    localStorage.setItem(`${OLD_STORAGE_PREFIX}.agent-create.save-hint-seen`, "1");
+    localStorage.setItem(
+      `${OLD_STORAGE_PREFIX}.agent-create.save-hint-seen`,
+      "1",
+    );
 
     markAgentCreateSaveHintSeen();
 
     expect(localStorage.getItem(AGENT_CREATE_SAVE_HINT_KEY)).toBe("1");
-    expect(localStorage.getItem(`${OLD_STORAGE_PREFIX}.agent-create.save-hint-seen`)).toBe("1");
+    expect(
+      localStorage.getItem(`${OLD_STORAGE_PREFIX}.agent-create.save-hint-seen`),
+    ).toBe("1");
   });
 });

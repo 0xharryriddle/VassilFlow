@@ -44,6 +44,9 @@ from vassilflow.agents.middlewares.token_usage_middleware import TokenUsageMiddl
 from vassilflow.agents.middlewares.tool_error_handling_middleware import build_lead_runtime_middlewares
 from vassilflow.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from vassilflow.agents.thread_state import ThreadState
+from vassilflow.capabilities import (
+    capability_middlewares as resolve_capability_middlewares,
+)
 from vassilflow.config.agent_contract import DEFAULT_ASSISTANT_ID, AgentRuntimePolicy
 from vassilflow.config.agents_config import load_agent_config, validate_agent_name
 from vassilflow.config.app_config import AppConfig, get_app_config
@@ -220,6 +223,7 @@ def build_middlewares(
     model_name: str | None,
     agent_name: str | None = None,
     custom_middlewares: list[AgentMiddleware] | None = None,
+    capability_middlewares: list[AgentMiddleware] | None = None,
     *,
     available_skills: set[str] | None = None,
     app_config: AppConfig | None = None,
@@ -238,6 +242,8 @@ def build_middlewares(
         model_name: Resolved runtime model name; gates vision-only middleware.
         agent_name: If provided, MemoryMiddleware will use per-agent memory storage.
         custom_middlewares: Optional list of custom middlewares to inject into the chain.
+        capability_middlewares: Server-owned middleware contributions for the
+            selected built-in Agent.
         app_config: Explicit AppConfig; falls back to ``get_app_config()`` when omitted.
         deferred_setup: Optional deferred-MCP-tool setup that attaches
             ``DeferredToolFilterMiddleware`` when ``tool_search`` is enabled.
@@ -259,20 +265,8 @@ def build_middlewares(
 
     middlewares.append(DynamicContextMiddleware(agent_name=agent_name, app_config=resolved_app_config))
 
-    # Exact canonical Office selections are request-scoped model context. The
-    # middleware keeps document-authored content at human authority and does
-    # not persist selection data into the thread checkpoint.
-    from vassilflow.agents.middlewares.office_selection_context_middleware import OfficeSelectionContextMiddleware
-
-    middlewares.append(OfficeSelectionContextMiddleware())
-
-    # Selected-object Office writes pause on a structured, hash-bound approval
-    # card. Only an exact replay after approval reaches office_edit.
-    from vassilflow.agents.middlewares.office_selection_approval_middleware import (
-        OfficeSelectionApprovalMiddleware,
-    )
-
-    middlewares.append(OfficeSelectionApprovalMiddleware())
+    if capability_middlewares:
+        middlewares.extend(capability_middlewares)
 
     # Deterministically load a full SKILL.md when the user starts the turn with
     # /skill-name. This keeps the base system prompt metadata-only while giving
@@ -302,9 +296,16 @@ def build_middlewares(
     if todo_list_middleware is not None:
         middlewares.append(todo_list_middleware)
 
-    # Add TokenUsageMiddleware when token_usage tracking is enabled
-    if resolved_app_config.token_usage.enabled:
-        middlewares.append(TokenUsageMiddleware())
+    # after_model hooks run in reverse registration order. Merge delegated
+    # usage before checking the budget, so the next tool call cannot execute
+    # with a stale total that excludes the completed child task.
+    token_budget_config = resolved_app_config.token_budget
+    if token_budget_config.enabled:
+        from vassilflow.agents.middlewares.token_budget_middleware import TokenBudgetMiddleware
+
+        middlewares.append(TokenBudgetMiddleware.from_config(token_budget_config))
+    if resolved_app_config.token_usage.enabled or token_budget_config.enabled:
+        middlewares.append(TokenUsageMiddleware(report_usage=resolved_app_config.token_usage.enabled))
 
     # Add TitleMiddleware
     middlewares.append(TitleMiddleware(app_config=resolved_app_config))
@@ -343,13 +344,6 @@ def build_middlewares(
     loop_detection_config = resolved_app_config.loop_detection
     if loop_detection_config.enabled:
         middlewares.append(LoopDetectionMiddleware.from_config(loop_detection_config))
-
-    # TokenBudgetMiddleware - enforce per-run token limits
-    token_budget_config = resolved_app_config.token_budget
-    if token_budget_config.enabled:
-        from vassilflow.agents.middlewares.token_budget_middleware import TokenBudgetMiddleware
-
-        middlewares.append(TokenBudgetMiddleware.from_config(token_budget_config))
 
     # Inject custom middlewares before ClarificationMiddleware
     if custom_middlewares:
@@ -428,6 +422,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
 
     builtin_agent = get_builtin_agent(agent_name) if not is_bootstrap else None
     builtin_config = resolve_builtin_agent_config(agent_name, resolved_app_config) if builtin_agent is not None else None
+    agent_capability_middlewares = resolve_capability_middlewares(builtin_agent.capability_adapters) if builtin_agent is not None else []
     agent_config = None
     if not is_bootstrap:
         agent_config = builtin_config or load_agent_config(agent_name)
@@ -570,6 +565,7 @@ def _make_lead_agent(config: RunnableConfig, *, app_config: AppConfig):
             app_config=resolved_app_config,
             deferred_setup=setup,
             agent_policy=agent_policy,
+            capability_middlewares=agent_capability_middlewares,
         ),
         system_prompt=apply_prompt_template(
             subagent_enabled=subagent_enabled,

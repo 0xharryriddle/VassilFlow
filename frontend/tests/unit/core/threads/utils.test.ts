@@ -29,11 +29,11 @@ test("uses canonical assistant_id before legacy identity hints", () => {
   expect(
     pathOfThread({
       thread_id: "thread-canonical",
-      assistant_id: "office",
+      assistant_id: "sample",
       context: { agent_name: "from-context" },
       metadata: { agent_name: "from-metadata" },
     }),
-  ).toBe("/workspace/agents/office/chats/thread-canonical");
+  ).toBe("/workspace/agents/sample/chats/thread-canonical");
   expect(
     pathOfThread({
       thread_id: "thread-default",

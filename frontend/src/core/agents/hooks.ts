@@ -1,12 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useState } from "react";
 
-import {
-  createAgent,
-  deleteAgent,
-  listAgentCatalog,
-  updateAgent,
-} from "./api";
+import { createAgent, deleteAgent, listAgentCatalog, updateAgent } from "./api";
 import {
   AGENT_PINS_CHANGED_EVENT,
   getPinnedAgentIdsKey,

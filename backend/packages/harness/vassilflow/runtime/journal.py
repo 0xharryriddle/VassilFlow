@@ -627,6 +627,29 @@ class RunJournal(BaseCallbackHandler):
             content={"name": name, "hook": hook, "action": action, "changes": changes},
         )
 
+    def record_action(self, action: Mapping[str, Any]) -> None:
+        """Link one terminal domain action to this exact Agent run."""
+
+        if action.get("source") != "agent_run" or action.get("thread_id") != self.thread_id or action.get("run_id") != self.run_id:
+            raise ValueError("Action identity does not match the receiving run journal")
+        status = action.get("status")
+        if status not in {"succeeded", "rejected", "failed", "partial"}:
+            raise ValueError("Run journal accepts terminal actions only")
+        references = action.get("references")
+        evidence = action.get("evidence")
+        self._put(
+            event_type="domain.action",
+            category="action",
+            content={
+                "action_id": action.get("action_id"),
+                "operation": action.get("operation"),
+                "status": status,
+                "references": references if isinstance(references, list) else [],
+                "evidence": evidence if isinstance(evidence, list) else [],
+            },
+            metadata={"assistant_id": action.get("assistant_id")},
+        )
+
     async def flush(self) -> None:
         """Force flush remaining buffer. Called in worker's finally block."""
         if self._pending_flush_tasks:

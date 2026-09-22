@@ -135,15 +135,6 @@ class TestUserAgentDir:
             paths.user_agent_dir("../escape", "myagent")
 
 
-class TestUserOfficeDir:
-    def test_user_office_dir(self, paths: Paths):
-        assert paths.user_office_dir("alice") == paths.base_dir / "users" / "alice" / "office"
-
-    def test_user_office_dir_validates_user_id(self, paths: Paths):
-        with pytest.raises(ValueError, match="Invalid user_id"):
-            paths.user_office_dir("../escape")
-
-
 class TestUserThreadDir:
     def test_user_thread_dir(self, paths: Paths):
         expected = paths.base_dir / "users" / "u1" / "threads" / "t1"

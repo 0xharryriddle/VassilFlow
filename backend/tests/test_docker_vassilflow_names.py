@@ -43,12 +43,7 @@ def test_compose_container_and_network_names_use_vassilflow(compose_file: str, e
         if container_name:
             assert container_name.startswith("vassilflow-")
         networks = service.get("networks")
-        if service_name == "office-renderer":
-            assert networks == ["vassilflow-office"]
-        elif service_name == "office-renderer-proxy":
-            assert networks == ["vassilflow-office", expected_network]
-        else:
-            assert networks in ([expected_network], None)
+        assert networks in ([expected_network], None)
 
 
 @pytest.mark.parametrize("compose_file", ["docker-compose-dev.yaml", "docker-compose.yaml"])

@@ -1,16 +1,15 @@
 """Test configuration for the backend test suite.
 
-Sets up sys.path and pre-mocks modules that would cause circular import
-issues when unit-testing lightweight config/registry code in isolation.
+Sets up import paths and fixtures shared by the backend tests.
 """
 
 from __future__ import annotations
 
+import errno
 import importlib.util
 import sys
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -18,26 +17,36 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 
-# Break the circular import chain that exists in production code:
-#   vassilflow.subagents.__init__
-#     -> .executor (SubagentExecutor, SubagentResult)
-#       -> vassilflow.agents.thread_state
-#         -> vassilflow.agents.__init__
-#           -> lead_agent.agent
-#             -> subagent_limit_middleware
-#               -> vassilflow.subagents.executor  <-- circular!
-#
-# By injecting a mock for vassilflow.subagents.executor *before* any test module
-# triggers the import, __init__.py's "from .executor import ..." succeeds
-# immediately without running the real executor module.
-_executor_mock = MagicMock()
-_executor_mock.SubagentExecutor = MagicMock
-_executor_mock.SubagentResult = MagicMock
-_executor_mock.SubagentStatus = MagicMock
-_executor_mock.MAX_CONCURRENT_SUBAGENTS = 3
-_executor_mock.get_background_task_result = MagicMock()
 
-sys.modules["vassilflow.subagents.executor"] = _executor_mock
+@pytest.fixture()
+def symlink_or_skip():
+    """Create a symlink or skip when the host does not grant that capability."""
+
+    def create(
+        link: Path,
+        target: Path,
+        *,
+        target_is_directory: bool = False,
+    ) -> None:
+        try:
+            link.symlink_to(target, target_is_directory=target_is_directory)
+        except NotImplementedError as exc:
+            pytest.skip(f"symlinks are not available on this platform: {exc}")
+        except OSError as exc:
+            unavailable = (
+                exc.errno
+                in {
+                    errno.EACCES,
+                    errno.EPERM,
+                    errno.ENOTSUP,
+                }
+                or getattr(exc, "winerror", None) == 1314
+            )
+            if unavailable:
+                pytest.skip(f"symlink creation requires host support or elevated privileges: {exc}")
+            raise
+
+    return create
 
 
 @pytest.fixture(autouse=True)
@@ -143,3 +152,14 @@ def _auto_user_context(request):
         yield
     finally:
         reset_current_user(token)
+
+
+@pytest.fixture
+def sample_builtin_registry(monkeypatch):
+    """Install a sample domain only in tests exercising curated Agent contracts."""
+    from sample_agent_fixture import SAMPLE_AGENT
+
+    from vassilflow.config import builtin_agents
+
+    monkeypatch.setattr(builtin_agents, "_BUILTIN_AGENTS", (SAMPLE_AGENT,))
+    monkeypatch.setattr(builtin_agents, "_BUILTIN_AGENTS_BY_NAME", {SAMPLE_AGENT.name: SAMPLE_AGENT})

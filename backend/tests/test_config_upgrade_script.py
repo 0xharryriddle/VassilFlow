@@ -71,10 +71,10 @@ def test_config_upgrade_preserves_vassilflow_runtime_defaults(tmp_path: Path):
 
     upgraded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
-    assert "version 16 -> 20" in result.stdout
+    assert "version 16 -> 21" in result.stdout
     assert "Applied" not in result.stdout
     assert (tmp_path / "config.yaml.bak").exists()
-    assert upgraded["config_version"] == 20
+    assert upgraded["config_version"] == 21
     assert upgraded["database"]["sqlite_dir"] == ".vassilflow/data"
     assert upgraded["channel_connections"]["wechat"]["state_dir"] == "./.vassilflow/wechat/state"
     assert upgraded["memory"]["storage_path"] == ".vassilflow/memory.json"
@@ -86,11 +86,11 @@ def test_config_upgrade_preserves_vassilflow_runtime_defaults(tmp_path: Path):
         "office_generate",
         "office_edit",
         "office_render",
-    }.issubset(upgraded_tool_names)
+    }.isdisjoint(upgraded_tool_names)
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for config-upgrade tests")
-def test_config_upgrade_adds_office_tools_without_expanding_existing_file_permissions(tmp_path: Path):
+def test_config_upgrade_keeps_existing_read_tools_without_adding_removed_tools(tmp_path: Path):
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         """config_version: 18
@@ -105,7 +105,7 @@ tools:
         encoding="utf-8",
     )
 
-    result = subprocess.run(
+    subprocess.run(
         [BASH_EXECUTABLE, str(CONFIG_UPGRADE_SCRIPT)],
         cwd=REPO_ROOT,
         env={**os.environ, "VASSILFLOW_CONFIG_PATH": _bash_path(config_path)},
@@ -117,16 +117,15 @@ tools:
     upgraded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     tools = {tool["name"]: tool for tool in upgraded["tools"]}
 
-    assert "tools: added office_inspect" in result.stdout
     assert tools["custom_search"]["use"] == "example.tools:search"
-    assert tools["office_inspect"]["group"] == "file:read"
+    assert set(tools) == {"read_file", "custom_search"}
     assert "office_edit" not in tools
     assert "office_generate" not in tools
     assert "office_render" not in tools
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for config-upgrade tests")
-def test_config_upgrade_adds_generate_edit_and_render_with_existing_write_permission(
+def test_config_upgrade_keeps_existing_write_tool_without_adding_removed_tools(
     tmp_path: Path,
 ):
     config_path = tmp_path / "config.yaml"
@@ -152,9 +151,7 @@ tools:
     upgraded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     tools = {tool["name"]: tool for tool in upgraded["tools"]}
 
-    assert tools["office_edit"]["group"] == "file:write"
-    assert tools["office_generate"]["group"] == "file:write"
-    assert tools["office_render"]["group"] == "file:write"
+    assert set(tools) == {"write_file"}
 
 
 @pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for config-upgrade tests")
@@ -174,3 +171,41 @@ def test_config_upgrade_preserves_intentionally_empty_tool_list(tmp_path: Path):
     upgraded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
 
     assert upgraded["tools"] == []
+
+
+@pytest.mark.skipif(BASH_EXECUTABLE is None, reason="bash is required for config-upgrade tests")
+def test_config_upgrade_removes_legacy_domain_providers_and_preserves_custom_tools(tmp_path: Path):
+    config_path = tmp_path / "config.yaml"
+    custom_tool = {"name": "office_edit", "group": "custom", "use": "example.tools:custom_edit"}
+    read_tool = {"name": "read_file", "group": "file:read", "use": "vassilflow.sandbox.tools:read_file_tool"}
+    config_path.write_text(
+        yaml.safe_dump(
+            {
+                "config_version": 20,
+                "tools": [
+                    {"name": "office_inspect", "group": "file:read", "use": "vassilflow.community.office.tools:office_inspect_tool"},
+                    {"name": "renamed_old_tool", "group": "file:write", "use": "src.community.office.tools:office_render_tool"},
+                    custom_tool,
+                    read_tool,
+                ],
+                "memory": {"enabled": False, "storage_path": "custom-memory.json"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    subprocess.run(
+        [BASH_EXECUTABLE, str(CONFIG_UPGRADE_SCRIPT)],
+        cwd=REPO_ROOT,
+        env={**os.environ, "VASSILFLOW_CONFIG_PATH": _bash_path(config_path)},
+        text=True,
+        encoding="utf-8",
+        capture_output=True,
+        check=True,
+    )
+    upgraded = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+
+    assert upgraded["config_version"] == 21
+    assert upgraded["tools"] == [custom_tool, read_tool]
+    assert upgraded["memory"]["enabled"] is False
+    assert upgraded["memory"]["storage_path"] == "custom-memory.json"

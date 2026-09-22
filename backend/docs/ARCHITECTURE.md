@@ -1,486 +1,535 @@
-# Architecture Overview
+# Backend Architecture
 
-This document provides a comprehensive overview of the VassilFlow backend architecture.
+This document is the canonical architecture contract for the VassilFlow
+backend. It describes stable ownership and dependency boundaries rather than
+enumerating every middleware, tool, or route. Feature-specific behavior belongs
+in the linked documents at the end.
 
-## System Architecture
+## Design Goals
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                              Client (Browser)                             │
-└─────────────────────────────────┬────────────────────────────────────────┘
-                                  │
-                                  ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                          Nginx (Port 2026)                               │
-│                    Unified Reverse Proxy Entry Point                      │
-│  ┌────────────────────────────────────────────────────────────────────┐  │
-│  │  /api/langgraph/*  →  Gateway LangGraph-compatible runtime (8001)  │  │
-│  │  /api/*            →  Gateway REST APIs (8001)                     │  │
-│  │  /*                →  Frontend (3000)                               │  │
-│  └────────────────────────────────────────────────────────────────────┘  │
-└─────────────────────────────────┬────────────────────────────────────────┘
-                                  │
-          ┌───────────────────────┴───────────────────────┐
-          │                                               │
-          ▼                                               ▼
-┌─────────────────────────────────────────────┐ ┌─────────────────────┐
-│              Gateway API                    │ │     Frontend        │
-│              (Port 8001)                    │ │    (Port 3000)      │
-│                                             │ │                     │
-│  - LangGraph-compatible runs/threads API    │ │  - Next.js App      │
-│  - Embedded Agent Runtime                   │ │  - React UI         │
-│  - SSE Streaming                            │ │  - Chat Interface   │
-│  - Checkpointing                            │ │                     │
-│  - Models, MCP, Skills, Uploads, Artifacts  │ │                     │
-│  - Thread Cleanup                           │ │                     │
-└─────────────────────────────────────────────┘ └─────────────────────┘
-          │
-          ▼
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         Shared Configuration                              │
-│  ┌─────────────────────────┐  ┌────────────────────────────────────────┐ │
-│  │      config.yaml        │  │      extensions_config.json            │ │
-│  │  - Models               │  │  - MCP Servers                         │ │
-│  │  - Tools                │  │  - Skills State                        │ │
-│  │  - Sandbox              │  │                                        │ │
-│  │  - Summarization        │  │                                        │ │
-│  └─────────────────────────┘  └────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+VassilFlow is a reusable agent harness. The base distribution provides the
+default lead Agent, personal Agents, and delegated workers, with zero built-in
+product Agents. A specialized Agent can add tools, trusted inputs, middleware,
+readiness checks, and domain storage through the retained extension contracts
+without creating a second execution runtime.
 
-## Component Details
+The architecture is designed to preserve these properties:
 
-### Gateway Embedded Agent Runtime
+- one thread, run, stream, checkpoint, memory, sandbox, and tool runtime;
+- server-owned Agent identity and policy;
+- domain packages behind generic capability and repository contracts;
+- durable domain projects that do not depend on one conversation;
+- explicit provenance for mutations outside conversational run status;
+- a shared frontend chat shell with reviewed local domain extensions;
+- fail-closed authorization, integrity checks, and runtime readiness.
 
-The agent runtime is embedded in the FastAPI Gateway and built on LangGraph for robust multi-agent workflow orchestration. Nginx rewrites `/api/langgraph/*` to Gateway's native `/api/*` routes, so the public API remains compatible with LangGraph SDK clients without running a separate LangGraph server.
+## System Topology
 
-**Entry Point**: `vassilflow.agents:make_lead_agent`
-
-The implementation lives under `packages/harness/vassilflow/agents/lead_agent/agent.py`, and new integrations should use the public VassilFlow import above.
-
-**Key Responsibilities**:
-- Agent creation and configuration
-- Thread state management
-- Middleware chain execution
-- Tool execution orchestration
-- SSE streaming for real-time responses
-
-**Graph registry**: `langgraph.json` remains available for tooling, Studio, or direct LangGraph Server compatibility.
-It is not the default service entrypoint; scripts and Docker deployments run the Gateway embedded runtime.
-
-```json
-{
-  "agent": {
-    "type": "agent",
-    "path": "vassilflow.agents:make_lead_agent"
-  }
-}
+```text
+Browser, SDK clients, and IM channels
+                  |
+                  v
+        Nginx entry point :2026
+          |             |
+          |             +----------------------+
+          v                                    v
+  Gateway API :8001                     Next.js UI :3000
+  - REST and SSE                        - Agent catalog
+  - LangGraph-compatible API            - Shared chat shell
+  - embedded Agent runtime              - Personal Agent management
+  - extension composition
+          |
+          +-------------------+--------------------+
+          |                   |                    |
+          v                   v                    v
+  Application database   VASSILFLOW_HOME     External services
+  - users and threads    - workspaces        - model providers
+  - run/checkpoint data  - Action journal    - MCP/search providers
+                         - lifecycle journal  - sandbox/provisioner
 ```
 
-### Gateway API
+Nginx routes `/api/langgraph/*` to the Gateway's compatible `/api/*` runtime
+surface, routes other `/api/*` requests to the Gateway, and serves the frontend
+for non-API routes. The default deployment does not require a separate
+LangGraph server.
 
-FastAPI application providing REST endpoints plus the public LangGraph-compatible `/api/langgraph/*` runtime routes.
+The base has no product-specific renderer, project/template API, or domain
+workspace. External services are configured only for the enabled runtime tools
+and providers.
 
-**Entry Point**: `app/gateway/app.py`
+## Dependency Direction
 
-**Routers**:
-- `models.py` - `/api/models` - Model listing and details
-- `thread_runs.py` / `runs.py` - `/api/threads/{id}/runs`, `/api/runs/*` - LangGraph-compatible runs and streaming
-- `mcp.py` - `/api/mcp` - MCP server configuration
-- `skills.py` - `/api/skills` - Skills management
-- `uploads.py` - `/api/threads/{id}/uploads` - File upload
-- `threads.py` - `/api/threads/{id}` - Local VassilFlow thread data cleanup after LangGraph deletion
-- `artifacts.py` - `/api/threads/{id}/artifacts` - Artifact serving
-- `suggestions.py` - `/api/threads/{id}/suggestions` - Follow-up suggestion generation
-
-The web conversation delete flow first deletes Gateway-managed thread state through the LangGraph-compatible route, then the Gateway `threads.py` router removes VassilFlow-managed filesystem data via `Paths.delete_thread_dir()`.
-
-### Agent Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           make_lead_agent(config)                        │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            Middleware Chain                              │
-│  ┌──────────────────────────────────────────────────────────────────┐   │
-│  │ 1. ThreadDataMiddleware  - Initialize workspace/uploads/outputs  │   │
-│  │ 2. UploadsMiddleware     - Process uploaded files               │   │
-│  │ 3. SandboxMiddleware     - Acquire sandbox environment          │   │
-│  │ 4. VassilFlowSummarizationMiddleware - Context reduction        │   │
-│  │ 5. TitleMiddleware       - Auto-generate titles                 │   │
-│  │ 6. TodoListMiddleware    - Task tracking (if plan_mode)         │   │
-│  │ 7. ViewImageMiddleware   - Vision model support                 │   │
-│  │ 8. ClarificationMiddleware - Handle clarifications              │   │
-│  └──────────────────────────────────────────────────────────────────┘   │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              Agent Core                                  │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐   │
-│  │      Model       │  │      Tools       │  │    System Prompt     │   │
-│  │  (from factory)  │  │  (configured +   │  │  (with skills)       │   │
-│  │                  │  │   MCP + builtin) │  │                      │   │
-│  └──────────────────┘  └──────────────────┘  └──────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────────┘
+```text
+frontend
+   |
+   | HTTP/SSE contracts
+   v
+app/gateway
+   |
+   | imports and composes
+   v
+packages/harness/vassilflow
+   |
+   +-- generic runtime contracts
+   |     agents, actions, capabilities, persistence, runtime
+   |
+   `-- optional integrations
+         community/* and downstream domain packages
 ```
 
-### Thread State
+The dependency rules are:
 
-The `ThreadState` extends LangGraph's `AgentState` with additional fields:
+1. The harness package never imports `app.*`.
+2. Generic runtime modules do not statically import concrete domain implementations.
+3. Domain packages may depend on generic harness contracts, but not on Gateway
+   routers or request objects.
+4. Gateway composition roots and domain routers may import concrete domain
+   implementations.
+5. Built-in capability adapters are loaded only from server-owned definitions.
+6. Frontend catalog metadata may select only a locally registered extension.
+   It cannot load arbitrary remote components.
 
-```python
-class ThreadState(AgentState):
-    # Core state from AgentState
-    messages: list[BaseMessage]
+The important composition roots are:
 
-    # VassilFlow extensions
-    sandbox: dict             # Sandbox environment info
-    artifacts: list[str]      # Generated file paths
-    thread_data: dict         # {workspace, uploads, outputs} paths
-    title: str | None         # Auto-generated conversation title
-    todos: list[dict]         # Task tracking (plan mode)
-    viewed_images: dict       # Vision model image data
+- `app/gateway/app.py` for routers, runtime services, and health;
+- `app/gateway/domain_lifecycle.py` for enabled lifecycle handlers;
+- `vassilflow.config.builtin_agents` for curated Agent definitions;
+- `vassilflow.persistence.repository_registry` for operational repositories;
+- `frontend/src/components/workspace/agents/agent-chat-extension.tsx` for
+  reviewed chat extensions.
+
+## Two-Plane Model
+
+VassilFlow has one execution runtime. The retained domain contracts allow an
+extension to add a separate project state plane when needed; the base does not
+ship a project product.
+
+| Plane                  | Owns                                                                                     | Source of truth                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Conversation execution | Threads, messages, runs, checkpoints, stream state, thread files, model/tool execution   | Gateway runtime stores, checkpointer, and thread workspace |
+| Domain project         | Projects, immutable revisions, templates, reviews, final selections, and render evidence | Domain repository and canonical domain artifacts           |
+
+### Conversation Execution Plane
+
+```text
+assistant_id
+     |
+     v
+canonical Agent identity
+     |
+     +--> server-owned runtime policy
+     +--> trusted capability input resolution
+     +--> required readiness enforcement
+     |
+     v
+RunRecord -> embedded Agent runtime -> model/middleware/tools -> SSE/events
 ```
 
-### Sandbox System
+The conversation plane owns execution. It resolves the model, tools, skills,
+memory, sandbox, middleware, streaming, and checkpoint state. Built-in and
+personal Agents reuse this same path.
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           Sandbox Architecture                           │
-└─────────────────────────────────────────────────────────────────────────┘
+`assistant_id` is the authoritative external Agent identity. Client-supplied
+copies in metadata or context are rejected when they conflict. A thread remains
+bound to its canonical assistant identity after creation.
 
-                      ┌─────────────────────────┐
-                      │    SandboxProvider      │ (Abstract)
-                      │  - acquire()            │
-                      │  - get()                │
-                      │  - release()            │
-                      └────────────┬────────────┘
-                                   │
-              ┌────────────────────┼────────────────────┐
-              │                                         │
-              ▼                                         ▼
-┌─────────────────────────┐              ┌─────────────────────────┐
-│  LocalSandboxProvider   │              │  AioSandboxProvider     │
-│  (packages/harness/vassilflow/sandbox/local.py) │              │  (packages/harness/vassilflow/community/)       │
-│                         │              │                         │
-│  - Singleton instance   │              │  - Docker-based         │
-│  - Direct execution     │              │  - Isolated containers  │
-│  - Development use      │              │  - Production use       │
-└─────────────────────────┘              └─────────────────────────┘
+### Domain Project Plane
 
-                      ┌─────────────────────────┐
-                      │        Sandbox          │ (Abstract)
-                      │  - execute_command()    │
-                      │  - read_file()          │
-                      │  - write_file()         │
-                      │  - list_dir()           │
-                      └─────────────────────────┘
+```text
+Domain tool or authenticated domain API
+                  |
+                  v
+       domain service and integrity checks
+                  |
+          +-------+--------+
+          |                |
+          v                v
+   immutable Action   canonical project
+   start/outcome      revision or template
+                           |
+                           v
+                  derived render evidence
 ```
 
-**Virtual Path Mapping**:
+A domain extension can own durable product state that survives conversation
+deletion or branching. The following are design constraints for such an
+extension, not built-in product functionality:
 
-| Virtual Path | Physical Path |
-|-------------|---------------|
-| `/mnt/user-data/workspace` | `{runtime_home}/threads/{thread_id}/user-data/workspace` (`.vassilflow` by default) |
-| `/mnt/user-data/uploads` | `{runtime_home}/threads/{thread_id}/user-data/uploads` (`.vassilflow` by default) |
-| `/mnt/user-data/outputs` | `{runtime_home}/threads/{thread_id}/user-data/outputs` (`.vassilflow` by default) |
-| `/mnt/skills` | `skills/` under the project root by default |
+- source and result hashes bind every committed revision;
+- revisions are immutable and append-only;
+- restore creates another revision rather than changing history;
+- review and final selection are explicit records;
+- render evidence is derived from one exact revision;
+- a thread output is a materialized working copy, not the project source of
+  truth.
 
-### Tool System
+### Links Between The Planes
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                            Tool Sources                                  │
-└─────────────────────────────────────────────────────────────────────────┘
+The planes are linked explicitly but are not one transaction:
 
-┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐
-│   Built-in Tools    │  │  Configured Tools   │  │     MCP Tools       │
-│  (packages/harness/vassilflow/tools/)       │  │  (config.yaml)      │  │  (extensions.json)  │
-├─────────────────────┤  ├─────────────────────┤  ├─────────────────────┤
-│ - present_files     │  │ - web_search        │  │ - github            │
-│ - ask_clarification │  │ - web_fetch         │  │ - filesystem        │
-│ - view_image        │  │ - bash              │  │ - postgres          │
-│                     │  │ - read_file         │  │ - brave-search      │
-│                     │  │ - write_file        │  │ - puppeteer         │
-│                     │  │ - str_replace       │  │ - ...               │
-│                     │  │ - ls                │  │                     │
-└─────────────────────┘  └─────────────────────┘  └─────────────────────┘
-           │                       │                       │
-           └───────────────────────┴───────────────────────┘
-                                   │
-                                   ▼
-                      ┌─────────────────────────┐
-                      │   get_available_tools() │
-                      │   (packages/harness/vassilflow/tools/__init__)  │
-                      └─────────────────────────┘
-```
+- Action records can reference thread, run, project, revision, artifact, and
+  object-path identities.
+- Domain projects can retain attached or detached conversation links.
+- Materialization records describe where a canonical artifact was copied into
+  a thread workspace and whether that copy is current, stale, or missing.
+- Thread deletion dispatches a lifecycle event. Registered domain handlers can
+  detach a conversation while preserving their own project history.
+- A current-thread branch can clone the domain conversation link; a historical
+  branch with no workspace clone does not claim a copied materialization.
 
-### Model Factory
+Conversational run success does not prove every domain mutation succeeded. The
+canonical domain state and its semantic receipts are the mutation authority;
+Action records provide linked provenance evidence and may lag if terminal
+finalization fails.
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          Model Factory                                   │
-│                     (packages/harness/vassilflow/models/factory.py)                              │
-└─────────────────────────────────────────────────────────────────────────┘
+## Stable Contracts
 
-config.yaml:
-┌─────────────────────────────────────────────────────────────────────────┐
-│ models:                                                                  │
-│   - name: gpt-4                                                         │
-│     display_name: GPT-4                                                 │
-│     use: langchain_openai:ChatOpenAI                                    │
-│     model: gpt-4                                                        │
-│     api_key: $OPENAI_API_KEY                                            │
-│     max_tokens: 4096                                                    │
-│     supports_thinking: false                                            │
-│     supports_vision: true                                               │
-└─────────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-                      ┌─────────────────────────┐
-                      │   create_chat_model()   │
-                      │  - name: str            │
-                      │  - thinking_enabled     │
-                      └────────────┬────────────┘
-                                   │
-                                   ▼
-                      ┌─────────────────────────┐
-                      │   resolve_class()       │
-                      │  (reflection system)    │
-                      └────────────┬────────────┘
-                                   │
-                                   ▼
-                      ┌─────────────────────────┐
-                      │   BaseChatModel         │
-                      │  (LangChain instance)   │
-                      └─────────────────────────┘
-```
+### Agent Identity And Product Contract
 
-**Supported Providers**:
-- OpenAI (`langchain_openai:ChatOpenAI`)
-- Anthropic (`langchain_anthropic:ChatAnthropic`)
-- DeepSeek (`langchain_deepseek:ChatDeepSeek`)
-- Custom via LangChain integrations
+`vassilflow.config.agent_contract` normalizes external assistant identities and
+defines trusted runtime policy metadata.
 
-### MCP Integration
+`vassilflow.config.builtin_agents` retains the registration contract for
+immutable curated Agent definitions. Its shipped registry is empty. A downstream
+built-in definition declares:
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          MCP Integration                                 │
-│                        (packages/harness/vassilflow/mcp/manager.py)                              │
-└─────────────────────────────────────────────────────────────────────────┘
+- stable name and catalog identity;
+- chat or project launch behavior;
+- required and allowed tools;
+- allowed thread-data scopes;
+- skills and system instructions;
+- capability adapter import paths;
+- optional frontend chat-extension key.
 
-extensions_config.json:
-┌─────────────────────────────────────────────────────────────────────────┐
-│ {                                                                        │
-│   "mcpServers": {                                                       │
-│     "github": {                                                         │
-│       "enabled": true,                                                  │
-│       "type": "stdio",                                                  │
-│       "command": "npx",                                                 │
-│       "args": ["-y", "@modelcontextprotocol/server-github"],           │
-│       "env": {"GITHUB_TOKEN": "$GITHUB_TOKEN"}                          │
-│     }                                                                   │
-│   }                                                                     │
-│ }                                                                       │
-└─────────────────────────────────────────────────────────────────────────┘
-                                   │
-                                   ▼
-                      ┌─────────────────────────┐
-                      │  MultiServerMCPClient   │
-                      │  (langchain-mcp-adapters)│
-                      └────────────┬────────────┘
-                                   │
-              ┌────────────────────┼────────────────────┐
-              │                    │                    │
-              ▼                    ▼                    ▼
-       ┌───────────┐        ┌───────────┐        ┌───────────┐
-       │  stdio    │        │   SSE     │        │   HTTP    │
-       │ transport │        │ transport │        │ transport │
-       └───────────┘        └───────────┘        └───────────┘
-```
+The Agent catalog merges these built-ins with user-owned personal Agents.
+Product metadata is separate from prompt-management APIs and reports
+`available`, `degraded`, or `unavailable`.
 
-### Skills System
+### Runtime Policy Contract
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          Skills System                                   │
-│                       (packages/harness/vassilflow/skills/loader.py)                             │
-└─────────────────────────────────────────────────────────────────────────┘
+The Gateway validates canonical identity claims and strips or rejects attempts
+to set protected runtime metadata. During Agent graph construction, the harness
+derives built-in policy from the canonical server-owned definition and enforces
+it before model or tool execution.
 
-Directory Structure:
-┌─────────────────────────────────────────────────────────────────────────┐
-│ skills/                                                                  │
-│ ├── public/                        # Public skills (committed)           │
-│ │   ├── pdf-processing/                                                 │
-│ │   │   └── SKILL.md                                                    │
-│ │   ├── frontend-design/                                                │
-│ │   │   └── SKILL.md                                                    │
-│ │   └── ...                                                             │
-│ └── custom/                        # Custom skills (gitignored)          │
-│     └── user-installed/                                                 │
-│         └── SKILL.md                                                    │
-└─────────────────────────────────────────────────────────────────────────┘
+Tool allowlists and thread-data scopes are enforced in the harness. Unknown
+policy versions deserialize to deny-all rather than widening access. A
+restricted policy defaults MCP and ACP/subagent access to denied. The built-in
+definition contract has no opt-in fields for those channels; default and
+unrestricted personal Agents may instead inherit the general harness behavior
+through `policy=None`.
 
-SKILL.md Format:
-┌─────────────────────────────────────────────────────────────────────────┐
-│ ---                                                                      │
-│ name: PDF Processing                                                     │
-│ description: Handle PDF documents efficiently                            │
-│ license: MIT                                                            │
-│ allowed-tools:                                                          │
-│   - read_file                                                           │
-│   - write_file                                                          │
-│   - bash                                                                │
-│ ---                                                                      │
-│                                                                          │
-│ # Skill Instructions                                                     │
-│ Content injected into system prompt...                                   │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+Domain repository authorization is separate from thread-path policy. Domain
+routers and adapters resolve the authenticated user before reading a project,
+template, revision, or Action record.
 
-### Request Flow
+### Capability Adapter Contract
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Request Flow Example                             │
-│                    User sends message to agent                           │
-└─────────────────────────────────────────────────────────────────────────┘
+`vassilflow.capabilities.AgentCapabilityAdapter` is the boundary between a
+curated Agent and specialized domain behavior. An adapter may contribute:
 
-1. Client → Nginx
-   POST /api/langgraph/threads/{thread_id}/runs
-   {"input": {"messages": [{"role": "user", "content": "Hello"}]}}
+- optimistic-input validation and trusted runtime context;
+- fresh Agent middleware instances;
+- bounded, sanitized readiness checks;
+- scoped operational repository instances.
 
-2. Nginx → Gateway API (8001)
-   `/api/langgraph/*` is rewritten to Gateway's LangGraph-compatible `/api/*` routes
+A registered extension may send an optimistic capability envelope. The Gateway
+dispatches it to the selected Agent's server-owned adapter, which resolves
+canonical user-owned state before injecting trusted context. A client cannot
+directly author trusted capability context. No concrete capability adapter is
+registered by the base distribution.
 
-3. Gateway embedded runtime
-   a. Load/create thread state
-   b. Execute middleware chain:
-      - ThreadDataMiddleware: Set up paths
-      - UploadsMiddleware: Inject file list
-      - SandboxMiddleware: Acquire sandbox
-      - VassilFlowSummarizationMiddleware: Check token limits
-      - TitleMiddleware: Generate title if needed
-      - TodoListMiddleware: Load todos (if plan mode)
-      - ViewImageMiddleware: Process images
-      - ClarificationMiddleware: Check for clarifications
+Adapters are not a remote plugin surface. Their import paths come from immutable
+built-in definitions, and every frontend extension remains a reviewed local
+component.
 
-   c. Execute agent:
-      - Model processes messages
-      - May call tools (bash, web_search, etc.)
-      - Tools execute via sandbox
-      - Results added to messages
+### Action And Provenance Contract
 
-   d. Stream response via SSE
+`vassilflow.actions` provides a generic append-only mutation journal:
 
-4. Client receives streaming response
-```
+- the start record is immutable;
+- the terminal outcome is separately immutable;
+- public projection states are `running`, `succeeded`, `rejected`, `failed`,
+  and `partial`;
+- references and artifacts are bounded and normalized;
+- user-facing APIs never expose another user's records.
 
-## Data Flow
+Agent tools and direct domain APIs can use the same Action envelope. Domain-specific
+semantic receipts remain domain records and are linked by Action ID rather than
+flattened into a generic schema.
 
-### File Upload Flow
+Action outcome persistence is separate from a domain commit. The repair
+contract scans only stale `running` Actions, routes each owned operation to one
+domain reconciler, and appends a terminal outcome only when that reconciler
+finds an exact canonical Action marker or receipt. Missing, ambiguous, legacy,
+or unsupported evidence remains `indeterminate`; current domain state alone is
+not treated as proof that a particular Action caused it.
 
-```
-1. Client uploads file
-   POST /api/threads/{thread_id}/uploads
-   Content-Type: multipart/form-data
+New Actions carry a renewable worker lease. Integrations using the Action
+contract must heartbeat the lease while a mutation is executing. Repair can
+inspect an Action only after the lease expires and must acquire an atomic,
+short-lived claim before canonical reconciliation. Normal completion and repair
+completion use the same store lock, so they cannot publish competing terminal
+outcomes.
 
-2. Gateway receives file
-   - Validates file
-   - Stores in {runtime_home}/threads/{thread_id}/user-data/uploads/
-   - If document: converts to Markdown via markitdown
+Direct domain APIs should treat the typed domain commit as the handoff boundary. The
+domain mutation returns canonical identities and artifact facts, the router
+finalizes the Action from that commit, and only then performs response readback
+or projection. If the mutation call raises after it may have committed, the
+domain reconciler checks the exact Action marker immediately. A proven commit or
+non-commit receives that canonical outcome; an unresolved server error remains
+`running` for later repair rather than being guessed into `failed`.
 
-3. Returns response
-   {
-     "files": [{
-       "filename": "doc.pdf",
-       "path": ".vassilflow/.../uploads/doc.pdf",
-       "virtual_path": "/mnt/user-data/uploads/doc.pdf",
-       "artifact_url": "/api/threads/.../artifacts/mnt/.../doc.pdf"
-     }]
-   }
+### Thread Lifecycle Contract
 
-4. Next agent run
-   - UploadsMiddleware lists files
-   - Injects file list into messages
-   - Agent can access via virtual_path
-```
+`vassilflow.runtime.thread_lifecycle` defines domain-neutral deletion and branch
+events. Gateway routers prepare a durable source intent before changing core
+thread state. They then publish an immutable `source_committed` or
+`source_aborted` marker. Enabled domain handlers receive only committed events
+and project the lifecycle change into their own stores.
 
-### Thread Cleanup Flow
+Before invoking a handler, the dispatcher records an immutable attempt start.
+Success and failure outcomes are stored per stable handler key. Repeated
+dispatch and operator replay skip completed handlers, retry failed handlers,
+and reclaim an interrupted `running` attempt only after its lease expires.
+Each active attempt heartbeats a renewable lease with a monotonically
+increasing generation. A replay that reclaims an expired attempt owns the next
+generation; the older worker is fenced from renewing or publishing an outcome.
+Prepared intents without a source outcome remain visible but are never replayed
+automatically.
 
-```
-1. Client deletes conversation via the LangGraph-compatible Gateway route
-   DELETE /api/langgraph/threads/{thread_id}
+Lifecycle projection is still not a distributed transaction. A thread mutation
+is not rolled back when a later domain projection fails, and a handler that
+updates multiple resources can stop between resources. Handlers must therefore
+remain idempotent. The source intent closes the unrecorded cross-store gap; if
+the process stops before a source outcome can be written, the prepared state
+requires diagnosis rather than automatic guessing.
 
-2. Web UI follows up with Gateway cleanup
-   DELETE /api/threads/{thread_id}
+### Repository Contract
 
-3. Gateway removes local VassilFlow-managed files
-   - Deletes {runtime_home}/threads/{thread_id}/ recursively
-   - Missing directories are treated as a no-op
-   - Invalid thread IDs are rejected before filesystem access
-```
+`vassilflow.persistence.project_repository` is an operational contract, not a
+generic project CRUD model. Each domain continues to own its resource schema and
+artifact logic while exposing:
 
-### Configuration Reload
+- immutable repository identity and deployment metadata;
+- non-mutating readiness;
+- bounded schema inventory;
+- explicit migration planning;
+- exact migration apply.
 
-```
-1. Client updates MCP config or requests a cache reset
-   PUT /api/mcp/config
-   POST /api/mcp/cache/reset
+The registry rejects unknown, stale, altered, overlapping, cross-kind, or
+incomplete plans and re-inventories after apply. Multi-writer repositories must
+declare transactional migration safety. Current file-backed Action and lifecycle
+repositories are single-writer and require a maintenance window. Domain repositories declare their own concurrency
+and migration safety.
 
-2. Gateway updates runtime state
-   - PUT writes extensions_config.json and reloads configuration
-   - Both endpoints reset the MCP tools cache and persistent sessions
+### Readiness Contract
 
-3. MCP Manager reloads on next use
-   - get_cached_mcp_tools() lazily reinitializes MCP tools
-   - Loads current server configurations and tool lists
+`GET /health` is process liveness. `GET /health/ready` is the versioned
+operational readiness document.
 
-4. Next agent run uses new tools
-```
+Readiness combines:
 
-## Security Considerations
+- Gateway initialization;
+- application database connectivity and durability mode;
+- operational repository checks;
+- aggregate durable projection repair state;
+- built-in Agent tool requirements;
+- capability dependencies declared by registered Agent extensions.
 
-### Sandbox Isolation
+The projection check is deadline-bounded and reads only lifecycle backlog and
+Action lease state. It does not run domain reconciliation or scan canonical
+domain evidence; those reads belong to the explicit operator repair command.
 
-- Agent code executes within sandbox boundaries
-- Local sandbox: Direct execution (development only)
-- Docker sandbox: Container isolation (production recommended)
-- Path traversal prevention in file operations
+Independent Agent probes run concurrently. The caller's wait is
+deadline-bounded, single-flight, sanitized, and cached in-process for at most 15
+seconds. A timed-out synchronous probe can continue in its worker thread.
+Required failures make an Agent unavailable and are enforced again before a run
+record is created. Optional failures make an Agent degraded.
 
-### API Security
+Readiness evidence is not authorization and can become stale. Every operation
+retains its own dependency, ownership, and integrity checks.
 
-- Thread isolation: Each thread has separate data directories
-- File validation: Uploads checked for path safety
-- Environment variable resolution: Secrets not stored in config
+## Request Flows
 
-### MCP Security
+### Generic Or Personal Agent Run
 
-- Each MCP server runs in its own process
-- Environment variables resolved at runtime
-- Servers can be enabled/disabled independently
+1. The Gateway authenticates the request and resolves `assistant_id`.
+2. It validates thread ownership and the thread's stored assistant identity.
+3. It removes server-owned metadata from client input.
+4. It resolves runtime configuration and creates the run.
+5. The embedded runtime executes and publishes SSE, run events, token usage,
+   and workspace changes.
 
-## Performance Considerations
+### Built-In Agent Run With Domain Input
 
-### Caching
+1. The frontend submits an ordinary run plus an optimistic capability envelope.
+2. The Gateway verifies that the selected built-in Agent owns the adapter.
+3. The adapter reloads the referenced user-owned resource and validates
+   revision, hash, object path, and fingerprint.
+4. The Gateway injects only the resolved trusted payload.
+5. Required tool and capability readiness is enforced before `RunRecord`
+   creation.
+6. The shared runtime builds policy-filtered tools and adapter middleware.
+7. Domain tools record Action provenance and commit domain revisions.
 
-- MCP tools cached with file mtime invalidation
-- Configuration loaded once, reloaded on file change
-- Skills parsed once at startup, cached in memory
+### Direct Domain Action
 
-### Streaming
+1. A domain router authenticates the user and resolves the resource in that
+   user's store.
+2. It records an immutable Action start.
+3. The domain service performs approval, integrity, and conflict checks.
+4. It commits the domain result and semantic receipt, then returns a typed
+   commit containing the facts needed for provenance.
+5. The router writes the terminal Action outcome from that commit before
+   optional response readback or projection.
+6. If the mutation call raises with an uncertain outcome, the owning domain
+   reconciler checks exact canonical Action evidence. Proven outcomes are
+   finalized immediately; unresolved server errors remain `running`.
+7. The router projects the API response. A response failure cannot rewrite an
+   already committed Action into `failed`.
 
-- SSE used for real-time response streaming
-- Reduces time to first token
-- Enables progress visibility for long operations
+If terminal Action persistence itself fails, the domain mutation may already be
+committed and the Action can remain projected as `running`.
 
-### Context Management
+Direct management actions do not create artificial LLM runs.
 
-- Summarization middleware reduces context when limits approached
-- Configurable triggers: tokens, messages, or fraction
-- Preserves recent messages while summarizing older ones
+## Frontend Architecture
+
+The frontend has one workspace shell and three extension levels:
+
+1. Catalog metadata controls discovery, filtering, status, pins, and launch
+   path.
+2. `ThreadChatPage` provides the shared chat, stream, clarification,
+   regeneration, and composer behavior.
+3. A local extension registry can wrap that shell with typed domain context.
+   The base ships an empty domain extension registry and the generic chat shell.
+
+The extension surface is intentionally narrow: context header, initial composer
+value, typed submit options, thread-path projection, and run-finish callback.
+Unknown extension keys fall back to the generic shell. A checked-in frontend
+manifest must match the local component registry, and backend tests require
+every built-in `chat_extension` key to appear in that manifest.
+
+A project Agent may also own workspace routes for recent projects, templates,
+revision evidence, preview, review, restore, and final selection. These pages
+call authenticated domain APIs; they do not become a second chat implementation.
+
+An unavailable Agent disables new messages, regeneration, and clarification
+resume in existing chat routes. A degraded Agent remains launchable and explains
+the limited dependency.
+
+## Storage Authority
+
+| Data                                                       | Current authority                   | Important constraint                               |
+| ---------------------------------------------------------- | ----------------------------------- | -------------------------------------------------- |
+| Users, thread metadata, and configured application records | Application database                | Backend may be memory, SQLite, or PostgreSQL       |
+| LangGraph checkpoint state                                 | Configured checkpointer             | Conversation state only                            |
+| Active run and stream bridge                               | Gateway process                     | Requires one Gateway worker today                  |
+| Thread uploads, workspace, and outputs                     | User-scoped `VASSILFLOW_HOME` paths | Deleted with thread data                           |
+| Action journal                                             | User-scoped append-only repository  | Single writer                                      |
+| Optional domain data                                       | Extension-owned repositories        | No concrete project repository ships in the base  |
+
+Changing the application database does not migrate file-backed domain state.
+See `../../docs/PERSISTENCE.md` for deployment, backup, inventory, and migration
+operations.
+
+## Adding A Capability Or Agent
+
+Choose the smallest product shape that owns the requirement.
+
+| Need                                                       | Preferred extension                            |
+| ---------------------------------------------------------- | ---------------------------------------------- |
+| Reusable instructions with existing tools                  | Skill                                          |
+| External service or callable operation                     | Tool or MCP server                             |
+| User-specific prompt, model, tools, or skills              | Personal chat Agent                            |
+| Curated policy and product entry using the shared runtime  | Built-in chat Agent                            |
+| Durable revisions, evidence, templates, or management APIs | Built-in project Agent with a domain workspace |
+
+For a new curated Agent:
+
+1. Define the user workflow and decide whether it is chat-only or project-backed.
+2. Register one canonical built-in definition with stable identity, launch
+   metadata, required tools, allowlists, skills, and data scopes.
+3. Implement tools as ordinary harness tools. Keep domain logic out of Gateway
+   service modules.
+4. Add a capability adapter only when the Agent needs trusted typed inputs,
+   domain middleware, readiness, or operational repositories.
+5. For project state, define domain-owned resource schemas and immutable
+   identities. Implement the operational repository contract without forcing
+   domain CRUD into a universal schema.
+6. Wrap every mutation in the generic Action contract and keep rich semantic
+   evidence in the domain.
+7. Add a lifecycle handler only if thread deletion or branching affects domain
+   links or materializations.
+8. Add authenticated domain routers for direct project management. Reuse
+   service functions between routers and tools where their authorization
+   contexts differ.
+9. Add server catalog metadata. Reuse the shared chat shell and register a
+   reviewed local extension key only when typed chat context is necessary. Add
+   the same key to the frontend extension manifest; CI rejects missing built-in
+   registrations and the frontend rejects manifest/registry drift.
+10. Test identity conflicts, tool/data denial, optimistic-input revalidation,
+    readiness states, repository ownership, mutation provenance, lifecycle
+    projection, generic chat behavior, and project UI behavior.
+
+Do not:
+
+- create a separate Agent runtime, stream protocol, or checkpoint stack;
+- trust an Agent name or domain payload copied from frontend metadata;
+- import a concrete domain package into generic runtime modules;
+- use a thread workspace file as the canonical project artifact;
+- put an entire project in thread checkpoints;
+- duplicate the chat shell for each Agent;
+- treat readiness cache entries as authorization;
+- generalize a domain schema before a second production domain proves the
+  shared shape.
+
+## Operational Constraints
+
+- Gateway run and stream coordination is process-local. Keep
+  `GATEWAY_WORKERS=1` until a shared stream bridge and cross-worker run manager
+  exist.
+- File-backed Action and lifecycle repositories are single-writer storage.
+  Optional domain repositories must declare their own concurrency contract.
+- There is no global transaction across the application database, Action
+  journal, thread files, and domain repositories.
+- Lifecycle source intents precede core thread mutations, but the source
+  outcome marker and thread store are still separate writes. A crash can leave
+  a prepared intent that requires diagnosis. Multi-resource handlers can
+  partially apply and must remain idempotent.
+- Lifecycle handler leases heartbeat in the Gateway process. Process loss makes
+  the attempt reclaimable only after its last durable lease expires; generation
+  fencing prevents the displaced worker from later publishing an outcome.
+- Stale Action repair is evidence-driven. It cannot finalize legacy,
+  unsupported, or ambiguous records and reports them for operator review.
+- Worker lease heartbeat is process-local. Process loss delays Action repair
+  until the last durable lease expires.
+- A timed-out synchronous readiness probe cannot be forcibly terminated; its
+  result is ignored and the response fallback is cached. Repeated permanently
+  hung probes still consume worker threads.
+
+## Code Map
+
+| Concern                                         | Primary path                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Gateway composition and health                  | `app/gateway/app.py`                                                                 |
+| Run lifecycle and trusted request normalization | `app/gateway/services.py`                                                            |
+| Agent product catalog                           | `app/gateway/agent_catalog.py`                                                       |
+| Canonical Agent identity and policy             | `packages/harness/vassilflow/config/agent_contract.py`                               |
+| Built-in Agent registry                         | `packages/harness/vassilflow/config/builtin_agents.py`                               |
+| Capability adapter protocol                     | `packages/harness/vassilflow/capabilities/adapter.py`                                |
+| Action contract and store                       | `packages/harness/vassilflow/actions/`                                               |
+| Thread lifecycle protocol and journal           | `packages/harness/vassilflow/runtime/thread_lifecycle.py` and `lifecycle_journal.py` |
+| Projection repair composition                   | `app/gateway/domain_repair.py`                                                       |
+| Operational repository protocol                 | `packages/harness/vassilflow/persistence/project_repository.py`                      |
+| Agent catalog UI                                | `frontend/src/core/agents/` and `frontend/src/components/workspace/agents/`          |
+
+## Related Documentation
+
+- [API Reference](API.md)
+- [Authentication Design](AUTH_DESIGN.md)
+- [Configuration](CONFIGURATION.md)
+- [Streaming](STREAMING.md)
+- [Persistence And Readiness](../../docs/PERSISTENCE.md)
+- [Fresh Clone Setup](../../docs/SETUP.md)

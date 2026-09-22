@@ -10,7 +10,12 @@ import {
 } from "react";
 import { toast } from "sonner";
 
-import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import {
+  type PromptInputMessage,
+  usePromptInputController,
+} from "@/components/ai-elements/prompt-input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ArtifactTrigger } from "@/components/workspace/artifacts";
 import {
@@ -43,7 +48,10 @@ import {
   type HumanInputRequest,
   type HumanInputResponse,
 } from "@/core/messages/human-input";
-import { isHiddenFromUIMessage } from "@/core/messages/utils";
+import {
+  isHiddenFromUIMessage,
+  type FileInMessage,
+} from "@/core/messages/utils";
 import { useModels } from "@/core/models/hooks";
 import { useNotification } from "@/core/notification/hooks";
 import { useLocalSettings, useThreadSettings } from "@/core/settings";
@@ -88,6 +96,11 @@ export function ThreadChatPage({
   onRunFinish,
 }: ThreadChatPageProps = {}) {
   const { t } = useI18n();
+  const { textInput } = usePromptInputController();
+  const [restoredMessageKwargs, setRestoredMessageKwargs] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const router = useRouter();
   const pathname = usePathname();
   const { thread_id: routeThreadId } = useParams<{ thread_id: string }>();
@@ -189,6 +202,10 @@ export function ThreadChatPage({
     isHistoryLoading,
     hasMoreHistory,
     loadMoreHistory,
+    historyError,
+    retryHistory,
+    submissionError,
+    recoverableMessage,
   } = useThreadStream({
     threadId: isNewThread ? undefined : threadId,
     displayThreadId: threadId,
@@ -227,6 +244,10 @@ export function ThreadChatPage({
   });
 
   const hasThreadMessages = thread.messages.length > 0;
+
+  useEffect(() => {
+    setRestoredMessageKwargs(null);
+  }, [threadId]);
 
   useEffect(() => {
     if (isNewThread || isMock || !threadMetadata.data) {
@@ -285,36 +306,51 @@ export function ThreadChatPage({
 
   const handleSubmit = useCallback(
     (message: PromptInputMessage, options?: InputBoxSubmitOptions) => {
-      const effectiveOptions = submitOptions
-        ? {
-            ...options,
-            ...submitOptions,
-            additionalKwargs: {
-              ...options?.additionalKwargs,
-              ...submitOptions.additionalKwargs,
-            },
-          }
-        : options;
+      if (inputDisabled) {
+        return;
+      }
+      const effectiveOptions = {
+        ...options,
+        ...submitOptions,
+        additionalKwargs: {
+          ...restoredMessageKwargs,
+          ...options?.additionalKwargs,
+          ...submitOptions?.additionalKwargs,
+        },
+      };
       const sendPromise = sendMessage(
         threadId,
         message,
         undefined,
         effectiveOptions,
       );
+      setRestoredMessageKwargs(null);
       if (message.files.length > 0) {
         return sendPromise;
       }
-      void sendPromise;
+      // The hook surfaces failures persistently; keep immediate composer clearing
+      // for text submissions without creating an unhandled promise rejection.
+      void sendPromise.catch(() => undefined);
     },
-    [sendMessage, submitOptions, threadId],
+    [
+      inputDisabled,
+      restoredMessageKwargs,
+      sendMessage,
+      submitOptions,
+      threadId,
+    ],
   );
   const handleStop = useCallback(async () => {
     await thread.stop();
   }, [thread]);
   const handleRegenerate = useCallback(
-    (messageId: string, supersededMessageIds: string[]) =>
-      regenerateMessage(threadId, messageId, supersededMessageIds),
-    [regenerateMessage, threadId],
+    (messageId: string, supersededMessageIds: string[]) => {
+      if (inputDisabled) {
+        return;
+      }
+      return regenerateMessage(threadId, messageId, supersededMessageIds);
+    },
+    [inputDisabled, regenerateMessage, threadId],
   );
   const handleBranchTurn = useCallback(
     async (messageId: string, messageIds: string[]) => {
@@ -354,6 +390,9 @@ export function ThreadChatPage({
   );
   const handleSubmitHumanInput = useCallback(
     async (request: HumanInputRequest, response: HumanInputResponse) => {
+      if (inputDisabled) {
+        return;
+      }
       await sendMessage(
         threadId,
         {
@@ -371,7 +410,7 @@ export function ThreadChatPage({
         },
       );
     },
-    [sendMessage, submitOptions, threadId],
+    [inputDisabled, sendMessage, submitOptions, threadId],
   );
 
   const tokenUsageInlineMode = tokenUsageEnabled
@@ -397,6 +436,7 @@ export function ThreadChatPage({
     (message) => !isHiddenFromUIMessage(message),
   );
   const canSubmitHumanInput =
+    !inputDisabled &&
     !isMock &&
     !staticDemoThread &&
     env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true";
@@ -454,12 +494,15 @@ export function ThreadChatPage({
                   hasMoreHistory={hasMoreHistory}
                   loadMoreHistory={loadMoreHistory}
                   isHistoryLoading={isHistoryLoading}
+                  historyError={historyError}
+                  retryHistory={retryHistory}
                   tokenUsageInlineMode={tokenUsageInlineMode}
                   canRegenerate={
                     !isNewThread &&
                     !isMock &&
                     !staticDemoThread &&
                     env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" &&
+                    !inputDisabled &&
                     !isUploading &&
                     !displayThread.isLoading
                   }
@@ -515,6 +558,45 @@ export function ThreadChatPage({
                       </div>
                     </div>
                   )}
+                  {submissionError && (
+                    <Alert variant="destructive" className="mb-3">
+                      <AlertTitle>{t.conversation.runFailed}</AlertTitle>
+                      <AlertDescription>
+                        <p>{submissionError}</p>
+                        {recoverableMessage && !textInput.value.trim() && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={
+                              displayThread.isLoading ||
+                              isUploading ||
+                              inputDisabled
+                            }
+                            onClick={() => {
+                              textInput.setInput(
+                                textOfMessage(recoverableMessage) ?? "",
+                              );
+                              setRestoredMessageKwargs(
+                                recoverableMessage.additional_kwargs ?? {},
+                              );
+                            }}
+                          >
+                            {t.conversation.restoreMessage}
+                          </Button>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {Array.isArray(restoredMessageKwargs?.files) &&
+                    restoredMessageKwargs.files.length > 0 && (
+                      <p className="text-muted-foreground mb-2 text-xs">
+                        {t.conversation.restoredFiles}:{" "}
+                        {(restoredMessageKwargs.files as FileInMessage[])
+                          .map((file) => file.filename)
+                          .join(", ")}
+                      </p>
+                    )}
                   {mountedRef.current ? (
                     <InputBox
                       className={cn(

@@ -161,22 +161,23 @@ describe("listAgents", () => {
       jsonResponse(200, {
         agents: [
           {
-            name: "office",
-            description: "Office work",
+            name: "sample",
+            description: "Sample domain work",
             model: null,
             tool_groups: [],
-            skills: [],
+            skills: ["content-planning"],
             product: {
-              id: "builtin:office",
-              display_name: "Office",
+              id: "builtin:sample",
+              display_name: "Sample",
               origin: "builtin",
               category: "create",
               icon: "files",
               status: "available",
+              chat_extension: "sample-selection",
               launch: {
                 kind: "project",
-                path: "/workspace/projects/new?kind=office",
-                project_kind: "office",
+                path: "/workspace/sample",
+                project_kind: "sample",
               },
               management: { can_edit: false, can_delete: false },
             },
@@ -188,10 +189,11 @@ describe("listAgents", () => {
     const [agent] = await listAgents();
     expect(agent).toBeDefined();
     expect(agent!.product).toMatchObject({
-      id: "builtin:office",
-      display_name: "Office",
+      id: "builtin:sample",
+      display_name: "Sample",
       origin: "builtin",
-      launch: { kind: "project", project_kind: "office" },
+      chat_extension: "sample-selection",
+      launch: { kind: "project", project_kind: "sample" },
       management: { can_delete: false },
     });
   });
@@ -222,8 +224,11 @@ describe("listAgents", () => {
       status: "available",
       required_tools: [],
       missing_requirements: [],
+      degraded_requirements: [],
+      readiness: [],
       data_access: [],
       starter_prompts: [],
+      chat_extension: null,
       launch: {
         kind: "chat",
         path: "/workspace/agents/reviewer/chats/new",
@@ -240,23 +245,24 @@ describe("listAgentCatalog", () => {
       jsonResponse(200, {
         agents: [
           {
-            name: "office",
-            description: "Office work",
+            name: "sample",
+            description: "Sample domain work",
             model: null,
             tool_groups: ["file:read", "file:write"],
-            skills: [],
+            skills: ["content-planning"],
             product: {
-              id: "builtin:office",
-              display_name: "Office",
+              id: "builtin:sample",
+              display_name: "Sample",
               origin: "builtin",
               category: "create",
               icon: "files",
               status: "available",
-              required_tools: ["office_inspect"],
+              required_tools: ["sample_inspect"],
+              chat_extension: "sample-selection",
               launch: {
-                kind: "chat",
-                path: "/workspace/agents/office/chats/new",
-                project_kind: null,
+                kind: "project",
+                path: "/workspace/sample",
+                project_kind: "sample",
               },
               management: { can_edit: false, can_delete: false },
             },
@@ -271,9 +277,65 @@ describe("listAgentCatalog", () => {
     expect(catalog.custom_agent_management_enabled).toBe(false);
     expect(catalog.agents).toHaveLength(1);
     expect(catalog.agents[0]!.product).toMatchObject({
-      id: "builtin:office",
-      required_tools: ["office_inspect"],
+      id: "builtin:sample",
+      required_tools: ["sample_inspect"],
+      chat_extension: "sample-selection",
+      launch: {
+        kind: "project",
+        path: "/workspace/sample",
+        project_kind: "sample",
+      },
       management: { can_edit: false, can_delete: false },
     });
+  });
+
+  test("preserves degraded readiness while defaulting optional fields", async () => {
+    mockedFetch.mockResolvedValueOnce(
+      jsonResponse(200, {
+        agents: [
+          {
+            name: "sample",
+            description: "Sample domain work",
+            model: null,
+            tool_groups: ["file:read", "file:write"],
+            skills: ["content-planning"],
+            product: {
+              id: "builtin:sample",
+              display_name: "Sample",
+              origin: "builtin",
+              category: "create",
+              icon: "files",
+              status: "degraded",
+              degraded_requirements: ["sample.renderer"],
+              readiness: [
+                {
+                  key: "sample.renderer",
+                  status: "unavailable",
+                  required: false,
+                  detail: "Sample preview rendering is unavailable.",
+                  metadata: {},
+                },
+              ],
+              launch: {
+                kind: "project",
+                path: "/workspace/sample",
+                project_kind: "sample",
+              },
+              management: { can_edit: false, can_delete: false },
+            },
+          },
+        ],
+        custom_agent_management_enabled: true,
+      }),
+    );
+
+    const catalog = await listAgentCatalog();
+
+    expect(catalog.agents[0]!.product.status).toBe("degraded");
+    expect(catalog.agents[0]!.product.degraded_requirements).toEqual([
+      "sample.renderer",
+    ]);
+    expect(catalog.agents[0]!.product.readiness[0]!.required).toBe(false);
+    expect(catalog.agents[0]!.product.missing_requirements).toEqual([]);
   });
 });

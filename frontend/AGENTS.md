@@ -86,6 +86,21 @@ src/
 - `src/core/threads/hooks.ts` owns pre-submit upload state and thread submission.
 - `src/hooks/usePoseStream.ts` is a passive store selector; global WebSocket lifecycle stays in `App.tsx`.
 
+### Domain-neutral Agent Surface
+
+The shared `ThreadChatPage` supports both the default assistant and catalog
+agents. Product metadata comes from the backend Agent catalog; navigation must
+not hardcode individual domain agents.
+
+`src/components/workspace/agents/agent-chat-extension.tsx` retains the extension
+dispatch boundary, with an empty registry and matching JSON manifest. Future
+extensions must be registered in both places and selected by the catalog's
+`chat_extension` key. `core/capabilities` carries versioned capability inputs,
+while `core/actions` exposes generic action provenance.
+
+File uploads and artifact downloads remain available for ordinary attachments,
+including DOCX, XLSX, and PPTX files, independently of any domain extension.
+
 ## Resources
 
 - [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)

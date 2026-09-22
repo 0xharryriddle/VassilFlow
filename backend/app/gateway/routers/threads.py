@@ -43,6 +43,7 @@ from vassilflow.runtime.context_compaction import (
     compact_thread_context,
     thread_context_lock,
 )
+from vassilflow.runtime.thread_lifecycle import ThreadBranched, ThreadDeleted
 from vassilflow.runtime.user_context import get_effective_user_id
 from vassilflow.utils.file_io import run_file_io
 from vassilflow.utils.time import coerce_iso, now_iso
@@ -453,10 +454,30 @@ async def delete_thread_data(thread_id: str, request: Request) -> ThreadDeleteRe
     from app.gateway.deps import get_thread_store
 
     user_id = get_effective_user_id()
-    get_memory_queue().discard_thread(thread_id, user_id=user_id)
+    dispatcher = getattr(
+        request.app.state,
+        "thread_lifecycle_dispatcher",
+        None,
+    )
+    delete_event = ThreadDeleted(
+        user_id=user_id,
+        thread_id=thread_id,
+    )
+    intent = await dispatcher.prepare_thread_deleted(delete_event) if dispatcher is not None else None
 
-    # Clean local filesystem
-    response = _delete_thread_data(thread_id, user_id=user_id)
+    try:
+        get_memory_queue().discard_thread(thread_id, user_id=user_id)
+        response = _delete_thread_data(thread_id, user_id=user_id)
+    except Exception as exc:
+        if dispatcher is not None and intent is not None:
+            try:
+                await dispatcher.abort_source(
+                    intent,
+                    error_type=type(exc).__name__[:128],
+                )
+            except Exception:
+                logger.exception("Could not abort thread deletion lifecycle intent")
+        raise
 
     # Remove checkpoints (best-effort)
     checkpointer = getattr(request.app.state, "checkpointer", None)
@@ -466,6 +487,24 @@ async def delete_thread_data(thread_id: str, request: Request) -> ThreadDeleteRe
                 await checkpointer.adelete_thread(thread_id)
         except Exception:
             logger.debug("Could not delete checkpoints for thread %s (not critical)", sanitize_log_param(thread_id))
+
+    # Let project-backed domains detach references before thread identity
+    # disappears. A failed handler leaves thread_meta available for retry.
+    if dispatcher is not None:
+        try:
+            await dispatcher.commit_thread_deleted(
+                intent,
+                delete_event,
+            )
+        except Exception as exc:
+            logger.exception(
+                "Could not finalize domain lifecycle for deleted thread %s",
+                sanitize_log_param(thread_id),
+            )
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to finalize linked project lifecycle.",
+            ) from exc
 
     # Remove thread_meta row (best-effort) — required for sqlite backend
     # so the deleted thread no longer appears in /threads/search.
@@ -591,6 +630,21 @@ async def branch_thread(thread_id: str, body: ThreadBranchRequest, request: Requ
 
     new_thread_id = str(uuid.uuid4())
     now = now_iso()
+    user_id = get_effective_user_id()
+    assistant_id = resolve_agent_identity(source_record.get("assistant_id")).assistant_id
+    dispatcher = getattr(
+        request.app.state,
+        "thread_lifecycle_dispatcher",
+        None,
+    )
+    branch_intent_event = ThreadBranched(
+        user_id=user_id,
+        source_thread_id=thread_id,
+        target_thread_id=new_thread_id,
+        assistant_id=assistant_id,
+        workspace_clone_mode="pending",
+    )
+    intent = await dispatcher.prepare_thread_branched(branch_intent_event) if dispatcher is not None else None
     branch_metadata = {
         _BRANCH_METADATA_KEY: True,
         "branch_parent_thread_id": thread_id,
@@ -622,19 +676,35 @@ async def branch_thread(thread_id: str, body: ThreadBranchRequest, request: Requ
     new_versions = dict(checkpoint.get("channel_versions", {}) or {})
     try:
         await checkpointer.aput(write_config, checkpoint, metadata, new_versions)
-    except Exception:
+    except Exception as exc:
+        if dispatcher is not None and intent is not None:
+            try:
+                await dispatcher.abort_source(
+                    intent,
+                    error_type=type(exc).__name__[:128],
+                )
+            except Exception:
+                logger.exception("Could not abort thread branch lifecycle intent")
         logger.exception("Failed to write branch checkpoint for thread %s", sanitize_log_param(new_thread_id))
         raise HTTPException(status_code=500, detail="Failed to create branch") from None
 
     try:
         await thread_store.create(
             new_thread_id,
-            assistant_id=resolve_agent_identity(source_record.get("assistant_id")).assistant_id,
+            assistant_id=assistant_id,
             display_name=display_name,
             metadata=branch_metadata,
             **thread_owner_kwargs,
         )
-    except Exception:
+    except Exception as exc:
+        if dispatcher is not None and intent is not None:
+            try:
+                await dispatcher.abort_source(
+                    intent,
+                    error_type=type(exc).__name__[:128],
+                )
+            except Exception:
+                logger.exception("Could not abort thread branch lifecycle intent")
         logger.exception("Failed to write branch thread_meta for %s", sanitize_log_param(new_thread_id))
         raise HTTPException(status_code=500, detail="Failed to create branch") from None
 
@@ -642,6 +712,25 @@ async def branch_thread(thread_id: str, body: ThreadBranchRequest, request: Requ
         workspace_clone_mode = await _copy_branch_user_data(thread_id, new_thread_id)
     else:
         workspace_clone_mode = "skipped_historical_turn"
+
+    if dispatcher is not None:
+        try:
+            await dispatcher.commit_thread_branched(
+                intent,
+                ThreadBranched(
+                    user_id=user_id,
+                    source_thread_id=thread_id,
+                    target_thread_id=new_thread_id,
+                    assistant_id=assistant_id,
+                    workspace_clone_mode=workspace_clone_mode,
+                ),
+            )
+        except Exception:
+            logger.warning(
+                "Could not project domain links onto branch %s",
+                sanitize_log_param(new_thread_id),
+                exc_info=True,
+            )
 
     return ThreadBranchResponse(
         thread_id=new_thread_id,

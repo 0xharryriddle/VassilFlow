@@ -120,7 +120,8 @@ describe("getGatewayConfig", () => {
     setEnv("NODE_ENV", "production");
     process.env[`${OLD_ENV_PREFIX}_INTERNAL_GATEWAY_BASE_URL`] =
       "https://legacy.example.com";
-    process.env[`${OLD_ENV_PREFIX}_TRUSTED_ORIGINS`] = "https://legacy-app.example.com";
+    process.env[`${OLD_ENV_PREFIX}_TRUSTED_ORIGINS`] =
+      "https://legacy-app.example.com";
     setEnv(
       "VASSILFLOW_INTERNAL_GATEWAY_BASE_URL",
       "https://gateway.vassil.example.com/",

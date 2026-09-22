@@ -28,6 +28,7 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
 
     Same set the real-server e2e resets (see test_setup_agent_http_e2e_real_server).
     """
+    from app.gateway import deps as deps_module
     from vassilflow.config import app_config as app_config_module
     from vassilflow.config import paths as paths_module
     from vassilflow.persistence import engine as engine_module
@@ -39,6 +40,8 @@ def _reset_process_singletons(monkeypatch: pytest.MonkeyPatch) -> None:
         (paths_module, "_paths_singleton"),
         (engine_module, "_engine"),
         (engine_module, "_session_factory"),
+        (deps_module, "_cached_local_provider"),
+        (deps_module, "_cached_repo"),
     ):
         monkeypatch.setattr(module, attr, None, raising=False)
 
@@ -75,7 +78,21 @@ def test_replay_write_read_file_ultra_matches_golden(tmp_path: Path, monkeypatch
 
     replay_provider.reset_replay_misses()
 
-    events = drive_gateway(create_app(), prompt=fixture["prompt"], context=fixture["context"])
+    streamed_titles: list[str] = []
+
+    def capture_semantic_values(event: str | None, data: object) -> None:
+        if event != "values" or not isinstance(data, dict):
+            return
+        title = data.get("title")
+        if isinstance(title, str):
+            streamed_titles.append(title)
+
+    events = drive_gateway(
+        create_app(),
+        prompt=fixture["prompt"],
+        context=fixture["context"],
+        on_event=capture_semantic_values,
+    )
 
     assert events, "replay produced no SSE events"
     assert events[0]["event"] == "metadata", f"first event should be metadata, got {events[0]!r}"
@@ -83,6 +100,14 @@ def test_replay_write_read_file_ultra_matches_golden(tmp_path: Path, monkeypatch
 
     misses = replay_provider.replay_misses()
     assert not misses, f"replay miss ({len(misses)}): the fixture is stale vs the current system prompt or agent graph. Re-record it (see backend/docs/REPLAY_E2E.md). Missed hashes: {misses}"
+
+    expected_title = next(
+        (turn["output"]["data"]["content"] for turn in fixture["turns"] if turn.get("caller") == "middleware:title"),
+        None,
+    )
+    assert expected_title, "fixture must contain a middleware:title response"
+    assert streamed_titles, "replay stream must publish a title value"
+    assert streamed_titles[-1] == expected_title
 
     # Regenerate the committed golden after re-recording the fixture:
     #   VASSILFLOW_WRITE_GOLDEN=1 uv run pytest tests/test_replay_golden.py

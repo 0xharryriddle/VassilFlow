@@ -39,6 +39,9 @@ class MemoryUpdateQueue:
         self._queue: list[ConversationContext] = []
         self._lock = threading.Lock()
         self._timer: threading.Timer | None = None
+        self._timer_generation = 0
+        self._pending_deadline: float | None = None
+        self._pending_flush = False
         self._processing = False
         self._active_contexts: list[ConversationContext] = []
         self._discarded_threads: set[tuple[str, str | None]] = set()
@@ -177,9 +180,10 @@ class MemoryUpdateQueue:
             for context in [*discarded, *active]:
                 context.cancelled.set()
 
-            if not self._queue and self._timer is not None:
-                self._timer.cancel()
-                self._timer = None
+            if not self._queue:
+                self._cancel_timer_locked()
+                self._pending_deadline = None
+                self._pending_flush = False
 
         return len(discarded) + len(active)
 
@@ -197,30 +201,56 @@ class MemoryUpdateQueue:
 
         logger.debug("Memory update timer set for %ss", config.debounce_seconds)
 
-    def _schedule_timer(self, delay_seconds: float) -> None:
-        """Schedule queue processing after the provided delay."""
-        # Cancel existing timer if any
+    def _cancel_timer_locked(self) -> None:
+        """Cancel and fence callbacks that may already be waiting for the lock."""
+        self._timer_generation += 1
         if self._timer is not None:
             self._timer.cancel()
+            self._timer = None
+
+    def _schedule_timer(self, delay_seconds: float) -> None:
+        """Schedule one batch, or leave its deadline for the active worker.
+
+        The caller holds ``_lock``. An immediate request stays immediate even
+        if another debounced update arrives before that batch starts.
+        """
+        self._cancel_timer_locked()
+        if not self._queue:
+            self._pending_deadline = None
+            self._pending_flush = False
+            return
+
+        self._pending_deadline = time.monotonic() + delay_seconds
+        self._pending_flush = self._pending_flush or delay_seconds <= 0
+        if self._processing:
+            # The finishing worker arms the next timer; never poll it with
+            # Timer(0), which can otherwise spawn threads until it completes.
+            return
 
         self._timer = threading.Timer(
-            delay_seconds,
+            0 if self._pending_flush else delay_seconds,
             self._process_queue,
+            kwargs={"timer_generation": self._timer_generation},
         )
         self._timer.daemon = True
         self._timer.start()
 
-    def _process_queue(self) -> None:
+    def _process_queue(self, *, timer_generation: int | None = None) -> None:
         """Process all queued conversation contexts."""
         # Import here to avoid circular dependency
         from vassilflow.agents.memory.updater import MemoryUpdater
 
         with self._lock:
-            if self._processing:
-                # Preserve immediate flush semantics even if another worker is active.
-                self._schedule_timer(0)
+            if timer_generation is not None and timer_generation != self._timer_generation:
                 return
 
+            if self._processing:
+                self._pending_flush = bool(self._queue)
+                return
+
+            self._cancel_timer_locked()
+            self._pending_deadline = None
+            self._pending_flush = False
             if not self._queue:
                 return
 
@@ -228,7 +258,6 @@ class MemoryUpdateQueue:
             contexts_to_process = self._queue.copy()
             self._queue.clear()
             self._active_contexts = contexts_to_process
-            self._timer = None
 
         logger.info("Processing %d queued memory updates", len(contexts_to_process))
 
@@ -265,16 +294,18 @@ class MemoryUpdateQueue:
             with self._lock:
                 self._active_contexts.clear()
                 self._processing = False
+                if self._queue:
+                    delay = 0 if self._pending_flush or self._pending_deadline is None else max(0, self._pending_deadline - time.monotonic())
+                    self._schedule_timer(delay)
 
     def flush(self) -> None:
         """Force immediate processing of the queue.
 
-        This is useful for testing or graceful shutdown.
+        When another batch is active, request an immediate follow-up without
+        blocking or starting a second worker. Otherwise process synchronously.
         """
         with self._lock:
-            if self._timer is not None:
-                self._timer.cancel()
-                self._timer = None
+            self._cancel_timer_locked()
 
         self._process_queue()
 
@@ -291,9 +322,9 @@ class MemoryUpdateQueue:
         This is useful for testing.
         """
         with self._lock:
-            if self._timer is not None:
-                self._timer.cancel()
-                self._timer = None
+            self._cancel_timer_locked()
+            self._pending_deadline = None
+            self._pending_flush = False
             for context in self._active_contexts:
                 context.cancelled.set()
             self._queue.clear()

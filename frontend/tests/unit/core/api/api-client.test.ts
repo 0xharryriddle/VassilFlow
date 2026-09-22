@@ -73,6 +73,42 @@ test("ignores reconnect metadata storage access failures", () => {
   expect(() => clearReconnectRun("thread-1", "run-1")).not.toThrow();
 });
 
+test("binds SDK-created threads to the requested Agent identity", async () => {
+  const fetchFn = rs.fn(async (_url: string | URL, init?: RequestInit) => {
+    expect(typeof init?.body).toBe("string");
+    const body = JSON.parse(
+      typeof init?.body === "string" ? init.body : "{}",
+    ) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      thread_id: "thread-sample",
+      assistant_id: "sample",
+    });
+    return new Response(
+      JSON.stringify({
+        thread_id: "thread-sample",
+        assistant_id: "sample",
+        status: "idle",
+        metadata: {},
+        values: {},
+        interrupts: {},
+      }),
+      { status: 200 },
+    );
+  });
+  rs.stubGlobal("window", {
+    location: { origin: "http://localhost:2026" },
+  });
+  rs.stubGlobal("fetch", fetchFn);
+
+  const thread = await getAPIClient(true, "sample").threads.create({
+    threadId: "thread-sample",
+    metadata: {},
+  });
+
+  expect(thread.thread_id).toBe("thread-sample");
+  expect(fetchFn).toHaveBeenCalledTimes(1);
+});
+
 test("clears stale reconnect metadata when join stream cannot be resumed", async () => {
   const sessionStorage = makeSessionStorage();
   sessionStorage.setItem("lg:stream:thread-1", "run-1");

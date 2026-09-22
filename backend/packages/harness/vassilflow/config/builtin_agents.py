@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
@@ -31,6 +32,7 @@ AgentCategory = Literal[
     "automate",
     "custom",
 ]
+AgentLaunchKind = Literal["chat", "project"]
 
 
 @dataclass(frozen=True)
@@ -42,22 +44,44 @@ class BuiltinAgentDefinition:
     description: str
     category: AgentCategory
     icon: str
+    launch_kind: AgentLaunchKind
+    launch_path: str
+    project_kind: str | None
     tool_groups: tuple[str, ...]
     required_tools: tuple[str, ...]
     allowed_tools: tuple[str, ...]
     skills: tuple[str, ...]
     data_access: tuple[AgentDataAccess, ...]
     starter_prompts: tuple[str, ...]
+    capability_adapters: tuple[str, ...]
+    chat_extension: str | None
     soul: str
 
     def __post_init__(self) -> None:
         identity = resolve_agent_identity(self.name)
         if identity.agent_name != self.name:
             raise ValueError(f"Built-in Agent name must be canonical: {self.name!r}")
+        if not self.launch_path.startswith("/workspace/"):
+            raise ValueError("Built-in Agent launch paths must stay inside the workspace")
+        if self.launch_kind == "project" and not self.project_kind:
+            raise ValueError("Project Agents must declare a project kind")
+        if self.launch_kind == "chat" and self.project_kind is not None:
+            raise ValueError("Chat Agents cannot declare a project kind")
         if not set(self.required_tools).issubset(self.allowed_tools):
             raise ValueError("Every required tool must also be allowed by the Agent policy")
         if len(set(self.allowed_tools)) != len(self.allowed_tools):
             raise ValueError("Agent policy tool names must be unique")
+        if len(set(self.capability_adapters)) != len(self.capability_adapters):
+            raise ValueError("Agent capability adapter paths must be unique")
+        if (
+            self.chat_extension is not None
+            and re.fullmatch(
+                r"[a-z][a-z0-9_.-]{0,63}",
+                self.chat_extension,
+            )
+            is None
+        ):
+            raise ValueError("Agent chat extension key is invalid")
 
     def to_runtime_config(self) -> AgentConfig:
         """Build a fresh runtime config without creating user-owned files."""
@@ -90,80 +114,7 @@ class BuiltinAgentUnavailableError(ValueError):
     """Raised when a built-in Agent is invoked without its required tools."""
 
 
-OFFICE_AGENT = BuiltinAgentDefinition(
-    name="office",
-    display_name="Office",
-    description=("Generate editable presentations and inspect, quality-check, revise, render, and review Office files."),
-    category="create",
-    icon="files",
-    tool_groups=("file:read", "file:write"),
-    required_tools=(
-        "office_inspect",
-        "office_generate",
-        "office_edit",
-        "office_render",
-    ),
-    allowed_tools=(
-        "office_inspect",
-        "office_generate",
-        "office_edit",
-        "office_render",
-        "ls",
-        "read_file",
-        "glob",
-        "grep",
-        "write_file",
-        "str_replace",
-        "present_files",
-        "ask_clarification",
-        "view_image",
-        "write_todos",
-    ),
-    skills=(),
-    data_access=("thread_uploads", "thread_workspace", "thread_outputs"),
-    starter_prompts=(
-        "Create a native editable PowerPoint presentation from a structured brief.",
-        "Inspect an uploaded Office file and summarize its structure.",
-        "Run a source-bound quality preflight on an uploaded PowerPoint file.",
-        "Revise formatting in an uploaded document without changing the source file.",
-        "Render an Office output and perform visual QA before presenting it.",
-    ),
-    soul="""You are Office, VassilFlow's specialist for DOCX, XLSX, and PPTX work.
-
-Use the structured Office tools as the source of truth. Inspect before editing,
-write revisions to a distinct workspace or output path, validate every committed
-package, and render the complete result before presenting it. For static PPTX
-quality checks, call office_inspect with analysis_mode=pptx_quality_preflight and
-keep its findings and explicit unknowns separate from rendered visual review.
-For a new presentation, translate the brief into the versioned semantic intent
-accepted by office_generate. Use stable lowercase slide and element IDs, one of
-the supported semantic layouts, real text, explicit image alt text, and bounded
-theme tokens. Do not invent coordinates, raw XML, or unsupported object types.
-Treat the generation receipt as the exact mapping from intent IDs to native
-object paths. Keep the returned project and revision IDs, call office_render for
-that exact revision, and review every rendered slide before delivery.
-After every office_edit, treat its semantic change receipt as the source of truth:
-retain the exact source/result hashes and operation IDs, and report only object
-paths, relationship/part changes, and semantic deltas present in that receipt.
-Keep the returned project and current revision IDs. For the next edit in the
-same project, pass both project_id and parent_revision_id exactly as returned;
-omitting both starts a separate project, and IDs must never be invented.
-When trusted Office selection context is present, translate the requested change
-into concrete operations limited to its object_path and allowed_operations, then
-call office_edit with source_path=null. The runtime pauses before mutation and
-shows the exact proposal for one-time user approval. After approval, reissue the
-same arguments unchanged; after cancellation, do not retry. Omit project IDs or
-pass only the exact project_id and revision_id supplied by that context. Never
-expand a selected-object request to a sibling, ancestor, or slide background.
-When rendering a project revision, pass its project_id and revision_id to
-office_render so the manifest and preview pages become durable revision evidence.
-When image review is available, inspect every rendered page. Otherwise state
-that external visual review is still required. Never claim a visual check passed
-without that evidence. Preserve user source files and report exact output paths
-and material changes.""",
-)
-
-_BUILTIN_AGENTS = (OFFICE_AGENT,)
+_BUILTIN_AGENTS: tuple[BuiltinAgentDefinition, ...] = ()
 _BUILTIN_AGENTS_BY_NAME = {agent.name: agent for agent in _BUILTIN_AGENTS}
 
 

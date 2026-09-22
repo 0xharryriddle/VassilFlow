@@ -16,10 +16,10 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 
 import { getAPIClient } from "../api";
 import { fetch } from "../api/fetcher";
+import type { CapabilityInputEnvelope } from "../capabilities";
 import { getBackendBaseURL } from "../config";
 import { useI18n } from "../i18n/hooks";
 import { isHiddenFromUIMessage, type FileInMessage } from "../messages/utils";
-import type { OfficePptxObjectSelectionRequest } from "../office/types";
 import type { LocalSettings } from "../settings";
 import { isSidecarThread, SIDECAR_METADATA_KEY } from "../sidecar/thread";
 import { useUpdateSubtask } from "../tasks/context";
@@ -27,6 +27,15 @@ import type { UploadedFileInfo } from "../uploads";
 import { promptInputFilePartToFile, uploadFiles } from "../uploads";
 
 import { branchThreadFromTurn, fetchThreadTokenUsage } from "./api";
+import {
+  fetchRunMessagesPage,
+  type RunMessagesPageResponse,
+} from "./history-page";
+import {
+  classifySubmissionError,
+  preserveFailedSubmission,
+  type SubmissionErrorKind,
+} from "./submission-error";
 import {
   buildThreadsSearchQueryOptions,
   DEFAULT_THREAD_SEARCH_PARAMS,
@@ -63,7 +72,7 @@ export type ThreadStreamOptions = {
 export type SendMessageOptions = {
   additionalKwargs?: Record<string, unknown>;
   additionalInputMessages?: Message[];
-  officeSelection?: OfficePptxObjectSelectionRequest;
+  capabilityInputs?: CapabilityInputEnvelope[];
   onSent?: () => void;
 };
 
@@ -121,7 +130,16 @@ export function buildThreadSubmitMessages({
       ],
       additional_kwargs: {
         ...additionalKwargs,
-        ...(filesForSubmit.length > 0 ? { files: filesForSubmit } : {}),
+        ...(filesForSubmit.length > 0
+          ? {
+              files: [
+                ...(Array.isArray(additionalKwargs?.files)
+                  ? additionalKwargs.files
+                  : []),
+                ...filesForSubmit,
+              ],
+            }
+          : {}),
       },
     } as Message,
   ];
@@ -295,12 +313,6 @@ export function shouldAutoContinueOnEmptyRun(
     consecutiveEmptyLoads < maxConsecutiveEmptyLoads
   );
 }
-
-type RunMessagesPageResponse = {
-  data: RunMessage[];
-  has_more?: boolean;
-  hasMore?: boolean;
-};
 
 export function runMessagesPageHasMore(result: RunMessagesPageResponse) {
   return result.has_more ?? result.hasMore ?? false;
@@ -587,13 +599,14 @@ export function upsertThreadInInfiniteCache(
       queryKey: INFINITE_THREADS_QUERY_KEY_PREFIX,
       exact: false,
     },
-    (oldData: InfiniteData<AgentThread[]> | undefined) => {
+    (oldData: InfiniteData<InfiniteThreadsPage> | undefined) => {
       if (!oldData) {
         return oldData;
       }
 
-      const merged = oldData.pages.map((page) =>
-        page.map((t) =>
+      const merged = oldData.pages.map((page) => ({
+        ...page,
+        threads: page.threads.map((t) =>
           t.thread_id === thread.thread_id
             ? {
                 ...thread,
@@ -609,46 +622,26 @@ export function upsertThreadInInfiniteCache(
               }
             : t,
         ),
-      );
+      }));
 
       const exists = merged.some((page) =>
-        page.some((t) => t.thread_id === thread.thread_id),
+        page.threads.some((t) => t.thread_id === thread.thread_id),
       );
       if (exists) {
         return { ...oldData, pages: merged };
       }
 
-      const firstPage = merged[0] ?? [];
+      const firstPage = merged[0] ?? { threads: [], nextOffset: null };
       const restPages = merged.slice(1);
       return {
         ...oldData,
-        pages: [[thread, ...firstPage], ...restPages],
+        pages: [
+          { ...firstPage, threads: [thread, ...firstPage.threads] },
+          ...restPages,
+        ],
       };
     },
   );
-}
-
-function getStreamErrorMessage(error: unknown): string {
-  if (typeof error === "string" && error.trim()) {
-    return error;
-  }
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-  if (typeof error === "object" && error !== null) {
-    const message = Reflect.get(error, "message");
-    if (typeof message === "string" && message.trim()) {
-      return message;
-    }
-    const nestedError = Reflect.get(error, "error");
-    if (nestedError instanceof Error && nestedError.message.trim()) {
-      return nestedError.message;
-    }
-    if (typeof nestedError === "string" && nestedError.trim()) {
-      return nestedError;
-    }
-  }
-  return "Request failed.";
 }
 
 async function readResponseErrorMessage(
@@ -709,6 +702,10 @@ export function useThreadStream({
   const currentViewThreadId = displayThreadId ?? threadId ?? null;
   const currentViewThreadIdRef = useRef(currentViewThreadId);
   currentViewThreadIdRef.current = currentViewThreadId;
+  const [submissionError, setSubmissionError] = useState<{
+    threadId: string | null;
+    kind: SubmissionErrorKind;
+  } | null>(null);
   // Optimistic messages shown before the server stream responds.
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);
   const [optimisticThreadId, setOptimisticThreadId] = useState<string | null>(
@@ -743,6 +740,8 @@ export function useThreadStream({
     loadMore: loadMoreHistory,
     loading: isHistoryLoading,
     appendMessages,
+    error: historyError,
+    retry: retryHistory,
   } = useThreadHistory(onStreamThreadId ?? "", {
     enabled: !isMock,
     pendingSupersededRunIds,
@@ -805,7 +804,7 @@ export function useThreadStream({
   }, [context]);
 
   const thread = useStream<AgentThreadState>({
-    client: getAPIClient(isMock),
+    client: getAPIClient(isMock, assistantId),
     assistantId,
     threadId: onStreamThreadId,
     reconnectOnMount: true,
@@ -903,7 +902,7 @@ export function useThreadStream({
               queryKey: INFINITE_THREADS_QUERY_KEY_PREFIX,
               exact: false,
             },
-            (oldData: InfiniteData<AgentThread[]> | undefined) =>
+            (oldData: InfiniteData<InfiniteThreadsPage> | undefined) =>
               mapInfiniteThreadsCache(
                 oldData,
                 (t): AgentThread =>
@@ -951,12 +950,16 @@ export function useThreadStream({
       }
     },
     onError(error) {
-      setOptimisticMessages([]);
-      setOptimisticThreadId(null);
-      setLiveMessagesThreadId(null);
+      setOptimisticMessages(preserveFailedSubmission);
+      setSubmissionError({
+        threadId: threadIdRef.current ?? currentViewThreadIdRef.current,
+        kind: classifySubmissionError(error),
+      });
       setPendingSupersededRunIds(new Set());
       setPendingSupersededMessageIds(new Set());
-      toast.error(getStreamErrorMessage(error));
+      toast.error(
+        t.conversation.submissionErrors[classifySubmissionError(error)],
+      );
       pendingUsageBaselineMessageIdsRef.current = new Set(
         messagesRef.current
           .map(messageIdentity)
@@ -1048,6 +1051,9 @@ export function useThreadStream({
   }, [visibleHistory]);
 
   useEffect(() => {
+    if (submissionError && submissionError.threadId !== currentViewThreadId) {
+      setSubmissionError(null);
+    }
     if (optimisticThreadId && optimisticThreadId !== currentViewThreadId) {
       setOptimisticMessages([]);
       setOptimisticThreadId(null);
@@ -1055,7 +1061,12 @@ export function useThreadStream({
     if (liveMessagesThreadId && liveMessagesThreadId !== currentViewThreadId) {
       setLiveMessagesThreadId(null);
     }
-  }, [currentViewThreadId, liveMessagesThreadId, optimisticThreadId]);
+  }, [
+    currentViewThreadId,
+    liveMessagesThreadId,
+    optimisticThreadId,
+    submissionError,
+  ]);
 
   // When streaming starts without a baseline (e.g. reconnection, run started
   // from another client, or page reload mid-stream), snapshot the current
@@ -1102,6 +1113,7 @@ export function useThreadStream({
         return;
       }
       sendInFlightRef.current = true;
+      setSubmissionError(null);
       options?.onSent?.();
 
       const text = message.text.trim();
@@ -1126,8 +1138,8 @@ export function useThreadStream({
 
       const messageAdditionalKwargs: Record<string, unknown> = {
         ...options?.additionalKwargs,
-        ...(options?.officeSelection
-          ? { office_selection_request: options.officeSelection }
+        ...(options?.capabilityInputs?.length
+          ? { capability_inputs: options.capabilityInputs }
           : {}),
       };
       const hideFromUI = messageAdditionalKwargs.hide_from_ui === true;
@@ -1209,7 +1221,12 @@ export function useThreadStream({
                       ...humanMessage,
                       additional_kwargs: {
                         ...humanMessage.additional_kwargs,
-                        files: uploadedFiles,
+                        files: [
+                          ...(Array.isArray(messageAdditionalKwargs.files)
+                            ? messageAdditionalKwargs.files
+                            : []),
+                          ...uploadedFiles,
+                        ],
                       },
                     },
                     ...messages.slice(1),
@@ -1219,11 +1236,6 @@ export function useThreadStream({
               });
             }
           } catch (error) {
-            const errorMessage =
-              error instanceof Error
-                ? error.message
-                : "Failed to upload files.";
-            toast.error(errorMessage);
             setOptimisticMessages([]);
             setOptimisticThreadId(null);
             setLiveMessagesThreadId(null);
@@ -1275,8 +1287,8 @@ export function useThreadStream({
                       ? "low"
                       : undefined),
               thread_id: threadId,
-              ...(options?.officeSelection
-                ? { office_selection_request: options.officeSelection }
+              ...(options?.capabilityInputs?.length
+                ? { capability_inputs: options.capabilityInputs }
                 : {}),
             },
           },
@@ -1286,9 +1298,13 @@ export function useThreadStream({
           queryKey: INFINITE_THREADS_QUERY_KEY_PREFIX,
         });
       } catch (error) {
-        setOptimisticMessages([]);
-        setOptimisticThreadId(null);
-        setLiveMessagesThreadId(null);
+        if (threadId === currentViewThreadIdRef.current) {
+          setOptimisticMessages(preserveFailedSubmission);
+          setSubmissionError({
+            threadId,
+            kind: classifySubmissionError(error),
+          });
+        }
         setIsUploading(false);
         throw error;
       } finally {
@@ -1316,6 +1332,7 @@ export function useThreadStream({
         return;
       }
       sendInFlightRef.current = true;
+      setSubmissionError(null);
       prevHumanMsgCountRef.current = humanMessageCount;
       pendingUsageBaselineMessageIdsRef.current = new Set(
         persistedMessages
@@ -1405,7 +1422,10 @@ export function useThreadStream({
             removeSetItems(current, preparedSupersededMessageIds),
           );
         }
-        toast.error(getStreamErrorMessage(error));
+        setSubmissionError({ threadId, kind: classifySubmissionError(error) });
+        toast.error(
+          t.conversation.submissionErrors[classifySubmissionError(error)],
+        );
       } finally {
         sendInFlightRef.current = false;
       }
@@ -1416,6 +1436,7 @@ export function useThreadStream({
       persistedMessages,
       queryClient,
       runtimeContext,
+      t.conversation.submissionErrors,
       thread,
     ],
   );
@@ -1460,6 +1481,13 @@ export function useThreadStream({
 
   return {
     thread: mergedThread,
+    submissionError:
+      submissionError?.threadId === currentViewThreadId
+        ? t.conversation.submissionErrors[submissionError.kind]
+        : null,
+    recoverableMessage: submissionError
+      ? visibleOptimisticMessages.find((message) => message.type === "human")
+      : undefined,
     pendingUsageMessages,
     sendMessage,
     regenerateMessage,
@@ -1467,6 +1495,8 @@ export function useThreadStream({
     isHistoryLoading,
     hasMoreHistory,
     loadMoreHistory,
+    historyError,
+    retryHistory,
   } as const;
 }
 
@@ -1489,6 +1519,8 @@ export function useThreadHistory(
   const loadedRunIdsRef = useRef<Set<string>>(new Set());
   const runBeforeSeqRef = useRef<Map<string, number>>(new Map());
   const loadGenerationRef = useRef(0);
+  const requestControllerRef = useRef<AbortController | null>(null);
+  const [historyError, setHistoryError] = useState(false);
   const [loading, setLoading] = useState(false);
   const [messageRows, setMessageRows] = useState<RunMessage[]>([]);
   const [appendedMessages, setAppendedMessages] = useState<Message[]>([]);
@@ -1527,6 +1559,9 @@ export function useThreadHistory(
 
     loadingRef.current = true;
     setLoading(true);
+    setHistoryError(false);
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
 
     try {
       let consecutiveEmptyLoads = 0;
@@ -1554,20 +1589,21 @@ export function useThreadHistory(
           run.run_id,
           beforeSeq,
         );
-        const result: RunMessagesPageResponse = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        }).then((res) => {
-          return res.json();
-        });
+        const result = await fetchRunMessagesPage(url, controller.signal);
         if (
           loadGenerationRef.current !== loadGeneration ||
           threadIdRef.current !== requestThreadId
         ) {
           return;
+        }
+        const nextBeforeSeq = getNextRunMessagesBeforeSeq(result);
+        if (
+          nextBeforeSeq === undefined ||
+          (typeof nextBeforeSeq === "number" &&
+            beforeSeq !== undefined &&
+            nextBeforeSeq >= beforeSeq)
+        ) {
+          throw new Error("Thread history cursor did not advance.");
         }
         const _messages = result.data.filter(
           (m) => !m.metadata.caller?.startsWith("middleware:"),
@@ -1575,14 +1611,9 @@ export function useThreadHistory(
         setMessageRows((prev) =>
           dedupeRunMessagesByIdentity([..._messages, ...prev]),
         );
-        const nextBeforeSeq = getNextRunMessagesBeforeSeq(result);
         if (typeof nextBeforeSeq === "number") {
           runBeforeSeqRef.current.set(run.run_id, nextBeforeSeq);
           pendingLoadRef.current = true;
-        } else if (nextBeforeSeq === undefined) {
-          console.warn(
-            `Run ${run.run_id} returned has_more without message seq values; leaving it pending for retry.`,
-          );
         } else {
           runBeforeSeqRef.current.delete(run.run_id);
           loadedRunIdsRef.current.add(run.run_id);
@@ -1603,16 +1634,33 @@ export function useThreadHistory(
           loadedRunIdsRef.current,
         );
       } while (pendingLoadRef.current);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      if (
+        loadGenerationRef.current === loadGeneration &&
+        !controller.signal.aborted
+      ) {
+        setHistoryError(true);
+      }
     } finally {
       if (loadGenerationRef.current === loadGeneration) {
         loadingRef.current = false;
         loadingRunIdRef.current = null;
+        requestControllerRef.current = null;
         setLoading(false);
       }
     }
   }, [enabled]);
+  useEffect(() => {
+    return () => {
+      // Cancel only when leaving this history scope, not on a runs-cache update.
+      loadGenerationRef.current += 1;
+      requestControllerRef.current?.abort();
+      requestControllerRef.current = null;
+      loadingRef.current = false;
+      loadingRunIdRef.current = null;
+      pendingLoadRef.current = false;
+    };
+  }, [enabled, threadId]);
   useEffect(() => {
     const threadChanged = threadIdRef.current !== threadId;
     threadIdRef.current = threadId;
@@ -1627,6 +1675,7 @@ export function useThreadHistory(
       runBeforeSeqRef.current = new Map();
       loadingRef.current = false;
       setLoading(false);
+      setHistoryError(false);
       setMessageRows([]);
       setAppendedMessages([]);
     }
@@ -1635,16 +1684,14 @@ export function useThreadHistory(
       return;
     }
 
-    if (runs.data && runs.data.length > 0) {
+    if (runs.data) {
       runsRef.current = runs.data ?? [];
       indexRef.current = findLatestUnloadedRunIndex(
         runs.data,
         loadedRunIdsRef.current,
       );
     }
-    loadMessages().catch(() => {
-      toast.error("Failed to load thread history.");
-    });
+    void loadMessages();
   }, [enabled, threadId, runs.data, loadMessages]);
 
   const appendMessages = useCallback((_messages: Message[]) => {
@@ -1653,6 +1700,7 @@ export function useThreadHistory(
     });
   }, []);
   const hasThreadId = Boolean(threadId);
+  const isCurrentHistoryScope = threadIdRef.current === threadId;
   const hasUnloadedRuns = Boolean(
     runs.data?.some((run) => !loadedRunIdsRef.current.has(run.run_id)),
   );
@@ -1664,13 +1712,29 @@ export function useThreadHistory(
     enabled && hasThreadId && !runs.data && !runs.isError;
   const hasMore =
     enabled && hasThreadId && (indexRef.current >= 0 || hasUnloadedRuns);
+  const retry = useCallback(() => {
+    if (runs.isError) {
+      void runs.refetch();
+    } else {
+      void loadMessages();
+    }
+  }, [loadMessages, runs]);
   return {
     runs: runs.data,
-    messages,
-    loading: loading || isRunsLoading || isRunsUnresolved,
+    messages: isCurrentHistoryScope && enabled ? messages : [],
+    loading:
+      enabled &&
+      hasThreadId &&
+      (!isCurrentHistoryScope || loading || isRunsLoading || isRunsUnresolved),
     appendMessages,
     hasMore,
     loadMore: loadMessages,
+    error:
+      enabled &&
+      hasThreadId &&
+      isCurrentHistoryScope &&
+      (historyError || runs.isError),
+    retry,
   };
 }
 
@@ -1690,9 +1754,12 @@ export const INFINITE_THREADS_QUERY_KEY_PREFIX = [
   "searchInfinite",
 ] as const;
 
-const INFINITE_THREADS_NEXT_PAGE_PARAM = Symbol(
-  "vassilflow.infiniteThreads.nextPageParam",
-);
+export type InfiniteThreadsPage = {
+  threads: AgentThread[];
+  // Backend rows consumed, including hidden sidecars. Never derive this from
+  // mutable visible rows. null explicitly records a terminal backend page.
+  nextOffset: number | null;
+};
 
 type InfiniteThreadsParams = Omit<
   Parameters<ThreadsClient["search"]>[0],
@@ -1705,26 +1772,12 @@ type InfiniteThreadsSearchClient = {
   };
 };
 
-type InfiniteThreadsPageWithNextParam = AgentThread[] & {
-  [INFINITE_THREADS_NEXT_PAGE_PARAM]?: number;
-};
-
-function annotateInfiniteThreadsPage(
-  page: AgentThread[],
-  nextPageParam: number | undefined,
-): AgentThread[] {
-  if (nextPageParam !== undefined) {
-    Reflect.set(page, INFINITE_THREADS_NEXT_PAGE_PARAM, nextPageParam);
-  }
-  return page;
-}
-
 export async function fetchInfiniteThreadsPage(
   apiClient: InfiniteThreadsSearchClient,
   params: InfiniteThreadsParams,
   pageParam: number,
   pageSize: number = INFINITE_THREADS_PAGE_SIZE,
-): Promise<AgentThread[]> {
+): Promise<InfiniteThreadsPage> {
   const threads: AgentThread[] = [];
   let offset = pageParam;
   let nextPageParam: number | undefined;
@@ -1748,51 +1801,44 @@ export async function fetchInfiniteThreadsPage(
     nextPageParam = offset;
   }
 
-  return annotateInfiniteThreadsPage(threads, nextPageParam);
+  return { threads, nextOffset: nextPageParam ?? null };
 }
 
 export function getInfiniteThreadsNextPageParam(
-  lastPage: AgentThread[],
-  allPages: AgentThread[][],
-  pageSize: number = INFINITE_THREADS_PAGE_SIZE,
+  lastPage: InfiniteThreadsPage,
 ): number | undefined {
-  const annotatedNextPageParam = Reflect.get(
-    lastPage as InfiniteThreadsPageWithNextParam,
-    INFINITE_THREADS_NEXT_PAGE_PARAM,
-  );
-  if (typeof annotatedNextPageParam === "number") {
-    return annotatedNextPageParam;
-  }
-
-  if (lastPage.length < pageSize) {
-    return undefined;
-  }
-  return allPages.reduce((sum, page) => sum + page.length, 0);
+  return lastPage.nextOffset ?? undefined;
 }
 
 export function mapInfiniteThreadsCache(
-  oldData: InfiniteData<AgentThread[]> | undefined,
+  oldData: InfiniteData<InfiniteThreadsPage> | undefined,
   mapper: (thread: AgentThread) => AgentThread,
-): InfiniteData<AgentThread[]> | undefined {
+): InfiniteData<InfiniteThreadsPage> | undefined {
   if (!oldData) {
     return oldData;
   }
   return {
     ...oldData,
-    pages: oldData.pages.map((page) => page.map(mapper)),
+    pages: oldData.pages.map((page) => ({
+      ...page,
+      threads: page.threads.map(mapper),
+    })),
   };
 }
 
 export function filterInfiniteThreadsCache(
-  oldData: InfiniteData<AgentThread[]> | undefined,
+  oldData: InfiniteData<InfiniteThreadsPage> | undefined,
   predicate: (thread: AgentThread) => boolean,
-): InfiniteData<AgentThread[]> | undefined {
+): InfiniteData<InfiniteThreadsPage> | undefined {
   if (!oldData) {
     return oldData;
   }
   return {
     ...oldData,
-    pages: oldData.pages.map((page) => page.filter(predicate)),
+    pages: oldData.pages.map((page) => ({
+      ...page,
+      threads: page.threads.filter(predicate),
+    })),
   };
 }
 
@@ -1805,9 +1851,9 @@ export function useInfiniteThreads(
 ) {
   const apiClient = getAPIClient();
   return useInfiniteQuery<
-    AgentThread[],
+    InfiniteThreadsPage,
     Error,
-    InfiniteData<AgentThread[]>,
+    InfiniteData<InfiniteThreadsPage>,
     readonly unknown[],
     number
   >({
@@ -1820,8 +1866,7 @@ export function useInfiniteThreads(
         pageParam,
         INFINITE_THREADS_PAGE_SIZE,
       ),
-    getNextPageParam: (lastPage, allPages) =>
-      getInfiniteThreadsNextPageParam(lastPage, allPages),
+    getNextPageParam: getInfiniteThreadsNextPageParam,
     refetchOnWindowFocus: false,
   });
 }
@@ -2085,7 +2130,7 @@ export function useDeleteThread() {
           queryKey: INFINITE_THREADS_QUERY_KEY_PREFIX,
           exact: false,
         },
-        (oldData: InfiniteData<AgentThread[]> | undefined) =>
+        (oldData: InfiniteData<InfiniteThreadsPage> | undefined) =>
           filterInfiniteThreadsCache(
             oldData,
             (t) => !deletedThreadIds.has(t.thread_id),
@@ -2143,7 +2188,7 @@ export function useRenameThread() {
           queryKey: INFINITE_THREADS_QUERY_KEY_PREFIX,
           exact: false,
         },
-        (oldData: InfiniteData<AgentThread[]> | undefined) =>
+        (oldData: InfiniteData<InfiniteThreadsPage> | undefined) =>
           mapInfiniteThreadsCache(oldData, (t) =>
             t.thread_id === threadId
               ? {

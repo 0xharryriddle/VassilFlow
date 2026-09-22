@@ -118,12 +118,7 @@ def test_parse_invalid_allowed_tools_returns_none(tmp_path):
 def test_parse_required_secrets_accepts_strings_and_mappings(tmp_path):
     skill_file = _write_skill(
         tmp_path,
-        "name: my-skill\n"
-        "description: Test\n"
-        "required-secrets:\n"
-        "  - API_TOKEN\n"
-        "  - name: OPTIONAL_DSN\n"
-        "    optional: true\n",
+        "name: my-skill\ndescription: Test\nrequired-secrets:\n  - API_TOKEN\n  - name: OPTIONAL_DSN\n    optional: true\n",
     )
     skill = parse_skill_file(skill_file, category="custom")
 

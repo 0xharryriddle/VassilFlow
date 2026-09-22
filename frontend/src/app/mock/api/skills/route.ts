@@ -49,14 +49,6 @@ export function GET() {
       enabled: true,
     },
     {
-      name: "ppt-generation",
-      description:
-        "Use this skill when the user requests to generate, create, or make presentations (PPT/PPTX). Creates visually rich slides by generating images for each slide and composing them into a PowerPoint file.",
-      license: null,
-      category: "public",
-      enabled: true,
-    },
-    {
       name: "skill-creator",
       description:
         "Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.",

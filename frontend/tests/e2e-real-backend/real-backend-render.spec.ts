@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,9 +15,8 @@ const here = dirname(fileURLToPath(import.meta.url));
  * final answer) reproduce deterministically.
  */
 // Register through the frontend origin (same-origin proxy) so the auth cookies
-// are stored for and sent to localhost:3000 — the gateway is reached via the
+// are stored for and sent to the configured frontend — the gateway is reached via the
 // next.config rewrite, never cross-origin from the browser.
-const APP = "http://localhost:3000";
 const fixture = JSON.parse(
   readFileSync(
     join(
@@ -60,7 +59,7 @@ test.describe("real backend render (replay, no API key)", () => {
     // the browser context (host-scoped to localhost, shared across ports), so
     // the frontend's SDK (credentials:include + X-CSRF-Token) authenticates.
     const email = `e2e-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.com`;
-    const resp = await context.request.post(`${APP}/api/v1/auth/register`, {
+    const resp = await context.request.post("/api/v1/auth/register", {
       data: { email, password: "very-strong-password-123" },
     });
     expect(resp.status(), await resp.text()).toBe(201);
@@ -68,7 +67,7 @@ test.describe("real backend render (replay, no API key)", () => {
 
   test("renders the replayed auto-title + suggestions from a real backend", async ({
     page,
-  }) => {
+  }, testInfo) => {
     // ultra mode so the context the frontend sends (is_plan_mode + subagent_enabled)
     // matches the recorded fixture; otherwise the replay input hash would miss.
     await page.addInitScript(() => {
@@ -109,17 +108,18 @@ test.describe("real backend render (replay, no API key)", () => {
       timeout: 30_000,
     });
 
-    // Visual regression is OS-sensitive (a macOS baseline won't match CI's
-    // Linux render), so it's a local dev gate only; in CI we capture the render
-    // as an artifact for human review instead of hard-asserting a cross-OS
-    // baseline. The DOM assertions above are the CI gate.
-    if (process.env.CI) {
+    // Visual regression is OS-sensitive. Compare when this machine already has
+    // a local baseline; on a fresh clone and in CI, capture render evidence for
+    // review instead. The DOM assertions above remain the portable gate.
+    const screenshotName = "real-backend-render.png";
+    const baselinePath = testInfo.snapshotPath(screenshotName);
+    if (process.env.CI || !existsSync(baselinePath)) {
       await page.screenshot({
-        path: "test-results/real-backend-render.png",
+        path: testInfo.outputPath(screenshotName),
         fullPage: true,
       });
     } else {
-      await expect(page).toHaveScreenshot("real-backend-render.png", {
+      await expect(page).toHaveScreenshot(screenshotName, {
         maxDiffPixelRatio: 0.02,
         fullPage: true,
       });

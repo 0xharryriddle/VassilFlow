@@ -73,11 +73,12 @@ import os
 import re
 from collections import deque
 from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import Any
 
 from langchain_core.callbacks import BaseCallbackHandler, CallbackManagerForLLMRun
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, messages_from_dict
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage, messages_from_dict
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.runnables import Runnable
 from pydantic import PrivateAttr
@@ -144,6 +145,7 @@ def caller_identity(*, name: str | None = None, tags: list[str] | None = None) -
 # (a) across days and (b) from both the browser and direct-POST paths.
 _SYSTEM_REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
 _UUID_RE = re.compile(r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+_PIPELINE_FINGERPRINT_RE = re.compile(r'("pipeline_fingerprint"\s*:\s*")[0-9a-fA-F]{64}(")')
 _ISO_TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?")
 _DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 # Absolute temp/home roots used for per-run isolation (macOS + Linux + VASSILFLOW_HOME tmp).
@@ -171,6 +173,7 @@ def _normalize_text(text: str) -> str:
     text = _BOUNDARY_BEGIN_RE.sub("", text)
     text = _BOUNDARY_END_RE.sub("", text)
     text = _UUID_RE.sub("<UUID>", text)
+    text = _PIPELINE_FINGERPRINT_RE.sub(r"\1<PIPELINE_FINGERPRINT>\2", text)
     text = _ISO_TS_RE.sub("<TS>", text)
     text = _DATE_RE.sub("<DATE>", text)
     text = _PATH_RE.sub("<PATH>", text)
@@ -268,17 +271,80 @@ def hash_input_key(conversation_hash: str, *, caller: str | None) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
-def _load_fixture(fixture_path: str) -> dict[str, deque[AIMessage]]:
+@dataclass(frozen=True)
+class _ReplayToolBinding:
+    tool_call_index: int
+    argument: str
+    source_tool: str
+    source_field: str
+
+
+@dataclass(frozen=True)
+class _ReplayTurn:
+    message: AIMessage
+    bindings: tuple[_ReplayToolBinding, ...]
+
+
+def _load_fixture(fixture_path: str) -> dict[str, deque[_ReplayTurn]]:
     with open(fixture_path, encoding="utf-8") as handle:
         payload = json.load(handle)
-    table: dict[str, deque[AIMessage]] = {}
+    table: dict[str, deque[_ReplayTurn]] = {}
     for index, turn in enumerate(payload.get("turns", [])):
         input_hash = turn["input_hash"]
         (message,) = messages_from_dict([turn["output"]])
         if not isinstance(message, AIMessage):
             raise ValueError(f"replay fixture {fixture_path!r} turn {index} output is {type(message).__name__}, expected AIMessage")
-        table.setdefault(input_hash, deque()).append(message)
+        bindings = tuple(
+            _ReplayToolBinding(
+                tool_call_index=int(binding["tool_call_index"]),
+                argument=str(binding["argument"]),
+                source_tool=str(binding["source_tool"]),
+                source_field=str(binding["source_field"]),
+            )
+            for binding in turn.get("bindings", [])
+        )
+        for binding in bindings:
+            if binding.tool_call_index < 0 or binding.tool_call_index >= len(message.tool_calls):
+                raise ValueError(f"replay fixture {fixture_path!r} turn {index} binding points outside tool_calls")
+            if not binding.argument or not binding.source_tool or not binding.source_field:
+                raise ValueError(f"replay fixture {fixture_path!r} turn {index} has an incomplete tool binding")
+        table.setdefault(input_hash, deque()).append(_ReplayTurn(message=message, bindings=bindings))
     return table
+
+
+def _resolve_tool_binding(
+    messages: list[BaseMessage],
+    binding: _ReplayToolBinding,
+) -> Any:
+    for message in reversed(messages):
+        if not isinstance(message, ToolMessage) or message.name != binding.source_tool:
+            continue
+        try:
+            value: Any = json.loads(_content_to_text(message.content))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"replay binding source {binding.source_tool!r} did not return JSON") from exc
+        for key in binding.source_field.split("."):
+            if not isinstance(value, dict) or key not in value:
+                raise ValueError(f"replay binding source {binding.source_tool!r} has no field {binding.source_field!r}")
+            value = value[key]
+        return value
+    raise ValueError(f"replay binding could not find tool result {binding.source_tool!r}")
+
+
+def _apply_tool_bindings(
+    turn: _ReplayTurn,
+    messages: list[BaseMessage],
+) -> AIMessage:
+    if not turn.bindings:
+        return turn.message
+    message = turn.message.model_copy(deep=True)
+    for binding in turn.bindings:
+        tool_call = message.tool_calls[binding.tool_call_index]
+        args = tool_call.get("args")
+        if not isinstance(args, dict):
+            raise ValueError("replay binding target tool call has no argument object")
+        args[binding.argument] = _resolve_tool_binding(messages, binding)
+    return message
 
 
 class ReplayChatModel(BaseChatModel):
@@ -289,7 +355,7 @@ class ReplayChatModel(BaseChatModel):
     produced them.
     """
 
-    _table: dict[str, deque] = PrivateAttr(default_factory=dict)
+    _table: dict[str, deque[_ReplayTurn]] = PrivateAttr(default_factory=dict)
     _fixture_path: str = PrivateAttr(default="")
     _run_callers: dict[str, str] = PrivateAttr(default_factory=dict)
 
@@ -356,7 +422,7 @@ class ReplayChatModel(BaseChatModel):
                 f"Known hashes: {sorted(self._table)}. "
                 f"Normalized input (first 800 chars): {preview[:800]!r}"
             )
-        return bucket.popleft()
+        return _apply_tool_bindings(bucket.popleft(), messages)
 
     def _generate(
         self,

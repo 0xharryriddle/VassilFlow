@@ -5,9 +5,8 @@ the default deployment must run a single Uvicorn worker. Running more than one
 worker without a shared cross-worker stream bridge breaks run cancellation, SSE
 reconnects, request de-duplication, and IM channels (nginx has no sticky
 sessions, so requests scatter across workers that each keep their own run
-state). This test pins the safe default so it cannot silently regress to a
-multi-worker default, while still allowing operators to override it once a
-shared stream bridge exists.
+state). These tests pin the safe default and ensure an override reaches the
+startup guard, which rejects multiple workers until shared coordination exists.
 """
 
 from __future__ import annotations
@@ -40,6 +39,13 @@ def test_gateway_defaults_to_single_worker():
 
 
 def test_gateway_worker_count_remains_overridable():
-    """The worker count must stay configurable, not hard-coded to 1."""
+    """Keep the CLI and guard on the same configurable worker count."""
     command = _gateway_command()
     assert "${GATEWAY_WORKERS:-1}" in command, f"worker count must use ${{GATEWAY_WORKERS:-1}} so operators can override it; got: {command}"
+
+
+def test_gateway_worker_override_reaches_startup_guard():
+    """Compose interpolation must not hide the CLI count from the app's guard."""
+    compose = yaml.safe_load(COMPOSE_PATH.read_text(encoding="utf-8"))
+    environment = compose["services"]["gateway"]["environment"]
+    assert "GATEWAY_WORKERS=${GATEWAY_WORKERS:-1}" in environment

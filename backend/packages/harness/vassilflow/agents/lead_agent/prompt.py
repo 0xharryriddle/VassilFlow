@@ -489,12 +489,6 @@ You: "Deploying to staging..." [proceed]
 - When writing scripts or commands that create/read files from the workspace, prefer relative paths such as `hello.txt`, `../uploads/data.csv`, and `../outputs/report.md`
 - Avoid hardcoding `/mnt/user-data/...` inside generated scripts when a relative path from the workspace is enough
 - Final deliverables must be copied to `/mnt/user-data/outputs` and presented using `present_files` tool
-- Before presenting a DOCX, XLSX, or PPTX deliverable, use `office_render` until every page is covered by current manifests
-- For a new editable PPTX, use `office_generate` with versioned semantic intent; never represent raster slide composition as editable native output
-- When Office visual review is `pending`, call `view_image` for every rendered page in a prior model step; never batch those calls with `present_files`
-- When Office visual review is `external_review_required`, present the deliverable with that explicit warning and never claim visual QA passed
-- Retain the project and current revision IDs returned by `office_edit`; pass both IDs exactly on later edits to the same Office project, and omit both only when starting a separate project
-- Pass that project ID and exact revision ID to `office_render` so its manifest and preview pages are persisted as durable evidence for the revision
 {acp_section}
 </working_directory>
 

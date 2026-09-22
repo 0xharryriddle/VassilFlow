@@ -13,7 +13,9 @@ from __future__ import annotations
 
 import json
 import uuid
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 # mode -> (thinking_enabled, is_plan_mode, subagent_enabled). Mirrors the
 # frontend mapping in core/threads/hooks.ts.
@@ -46,7 +48,14 @@ def real_model_block(model: str) -> str:
     base_url: $OPENAI_API_BASE"""
 
 
-def build_config_yaml(*, model_block: str, home: Path) -> str:
+def build_config_yaml(
+    *,
+    model_block: str,
+    home: Path,
+    skills_path: Path | None = None,
+    title_enabled: bool = True,
+    suggestions_enabled: bool = True,
+) -> str:
     """Full gateway config. Only ``model_block`` varies between record/replay.
 
     Everything that shapes the system prompt is pinned so record, replay, and CI
@@ -58,6 +67,15 @@ def build_config_yaml(*, model_block: str, home: Path) -> str:
       :func:`prepare_hermetic_extras`.
     - memory / summarization — disabled (background, non-deterministic timing)
     """
+    resolved_skills_path = skills_path or (home / "skills")
+    suggestions = (
+        ""
+        if suggestions_enabled
+        else """\
+suggestions:
+  enabled: false
+"""
+    )
     return f"""\
 log_level: warning
 models:
@@ -65,7 +83,7 @@ models:
 sandbox:
   use: vassilflow.sandbox.local:LocalSandboxProvider
 skills:
-  path: {home / "skills"}
+  path: {resolved_skills_path}
   container_path: /mnt/skills
 tool_groups:
   - name: file:read
@@ -83,6 +101,10 @@ tools:
 # Memory + summarization make background / debounced model calls whose timing is
 # non-deterministic; disable them so record and replay see the same model-call
 # set. (Title stays — it is an in-graph, deterministic call we record.)
+title:
+  enabled: {str(title_enabled).lower()}
+  model_name: scenario-model
+{suggestions.rstrip()}
 memory:
   enabled: false
   injection_enabled: false
@@ -110,7 +132,11 @@ def prepare_hermetic_extras(home: Path) -> Path:
     return extensions
 
 
-def sse_event_shapes(resp) -> list[dict]:
+def sse_event_shapes(
+    resp,
+    *,
+    on_event: Callable[[str | None, Any], None] | None = None,
+) -> list[dict]:
     """Reduce an SSE stream to (event name, sorted top-level data keys).
 
     Snapshots the *shape* of the stream, not volatile values, so the golden is
@@ -127,38 +153,91 @@ def sse_event_shapes(resp) -> list[dict]:
                 data = json.loads(raw) if raw else {}
             except json.JSONDecodeError:
                 data = {"_raw": raw[:200]}
+            if on_event is not None:
+                on_event(current, data)
             events.append({"event": current, "keys": sorted(data.keys()) if isinstance(data, dict) else None})
     return events
 
 
-def drive_gateway(app, *, prompt: str, context: dict) -> list[dict]:
+def drive_gateway(
+    app,
+    *,
+    prompt: str,
+    context: dict,
+    assistant_id: str = "lead_agent",
+    on_event: Callable[[str | None, Any], None] | None = None,
+    on_thread_created: Callable[[str], None] | None = None,
+    client: Any | None = None,
+) -> list[dict]:
     """Register -> create thread -> POST /runs/stream; return SSE event shapes.
 
     This is the exact wire path the React frontend uses (LangGraph SDK), driven
     in-process via Starlette's TestClient with the real auth flow.
     """
-    from starlette.testclient import TestClient
+    if client is None:
+        from starlette.testclient import TestClient
 
-    with TestClient(app) as client:
-        reg = client.post(
-            "/api/v1/auth/register",
-            json={"email": f"e2e-{uuid.uuid4().hex[:8]}@example.com", "password": "very-strong-password-123"},
-        )
-        assert reg.status_code == 201, reg.text
-        csrf = client.cookies.get("csrf_token")
-        assert csrf, "register must set csrf_token cookie"
+        with TestClient(app) as owned_client:
+            return _drive_gateway_with_client(
+                owned_client,
+                prompt=prompt,
+                context=context,
+                assistant_id=assistant_id,
+                on_event=on_event,
+                on_thread_created=on_thread_created,
+            )
+    return _drive_gateway_with_client(
+        client,
+        prompt=prompt,
+        context=context,
+        assistant_id=assistant_id,
+        on_event=on_event,
+        on_thread_created=on_thread_created,
+    )
 
-        thread_id = str(uuid.uuid4())
-        created = client.post("/api/threads", json={"thread_id": thread_id, "metadata": {}}, headers={"X-CSRF-Token": csrf})
-        assert created.status_code == 200, created.text
 
-        body = {
-            "assistant_id": "lead_agent",
-            "input": {"messages": [{"role": "user", "content": prompt}]},
-            "config": {"recursion_limit": 50},
-            "context": context,
-            "stream_mode": ["values"],
-        }
-        with client.stream("POST", f"/api/threads/{thread_id}/runs/stream", json=body, headers={"X-CSRF-Token": csrf}) as resp:
-            assert resp.status_code == 200, resp.read().decode()
-            return sse_event_shapes(resp)
+def _drive_gateway_with_client(
+    client: Any,
+    *,
+    prompt: str,
+    context: dict,
+    assistant_id: str,
+    on_event: Callable[[str | None, Any], None] | None,
+    on_thread_created: Callable[[str], None] | None,
+) -> list[dict]:
+    reg = client.post(
+        "/api/v1/auth/register",
+        json={"email": f"e2e-{uuid.uuid4().hex[:8]}@example.com", "password": "very-strong-password-123"},
+    )
+    assert reg.status_code == 201, reg.text
+    csrf = client.cookies.get("csrf_token")
+    assert csrf, "register must set csrf_token cookie"
+
+    thread_id = str(uuid.uuid4())
+    create_body: dict[str, Any] = {"thread_id": thread_id, "metadata": {}}
+    if assistant_id != "lead_agent":
+        create_body["assistant_id"] = assistant_id
+    created = client.post(
+        "/api/threads",
+        json=create_body,
+        headers={"X-CSRF-Token": csrf},
+    )
+    assert created.status_code == 200, created.text
+    if on_thread_created is not None:
+        on_thread_created(thread_id)
+
+    body = {
+        "assistant_id": assistant_id,
+        "input": {"messages": [{"role": "user", "content": prompt}]},
+        "config": {"recursion_limit": 50},
+        "context": context,
+        "stream_mode": ["values"],
+    }
+    with client.stream(
+        "POST",
+        f"/api/threads/{thread_id}/runs/stream",
+        json=body,
+        headers={"X-CSRF-Token": csrf},
+    ) as resp:
+        assert resp.status_code == 200, resp.read().decode()
+        return sse_event_shapes(resp, on_event=on_event)

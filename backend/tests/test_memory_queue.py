@@ -99,6 +99,7 @@ def test_process_queue_forwards_reinforcement_flag_to_updater() -> None:
 
 def test_flush_nowait_cancels_existing_timer_and_starts_immediate_timer() -> None:
     queue = MemoryUpdateQueue()
+    queue._queue = [ConversationContext(thread_id="thread-1", messages=["pending"])]
     existing_timer = MagicMock()
     queue._timer = existing_timer
     created_timer = MagicMock()
@@ -107,7 +108,7 @@ def test_flush_nowait_cancels_existing_timer_and_starts_immediate_timer() -> Non
         queue.flush_nowait()
 
     existing_timer.cancel.assert_called_once_with()
-    timer_cls.assert_called_once_with(0, queue._process_queue)
+    timer_cls.assert_called_once_with(0, queue._process_queue, kwargs={"timer_generation": ANY})
     assert created_timer.daemon is True
     created_timer.start.assert_called_once_with()
     assert queue._timer is created_timer
@@ -126,32 +127,34 @@ def test_add_nowait_cancels_existing_timer_and_starts_immediate_timer() -> None:
         queue.add_nowait(thread_id="thread-1", messages=["conversation"], agent_name="lead-agent")
 
     existing_timer.cancel.assert_called_once_with()
-    timer_cls.assert_called_once_with(0, queue._process_queue)
+    timer_cls.assert_called_once_with(0, queue._process_queue, kwargs={"timer_generation": ANY})
     assert queue.pending_count == 1
     assert queue._queue[0].agent_name == "lead-agent"
     assert created_timer.daemon is True
     created_timer.start.assert_called_once_with()
 
 
-def test_process_queue_reschedules_immediately_when_already_processing() -> None:
+def test_process_queue_defers_to_active_worker_without_spawning_retry_timers() -> None:
     queue = MemoryUpdateQueue()
     queue._processing = True
+    queue._queue = [ConversationContext(thread_id="thread-1", messages=["pending"])]
     created_timer = MagicMock()
 
     with patch("vassilflow.agents.memory.queue.threading.Timer", return_value=created_timer) as timer_cls:
-        queue._process_queue()
+        for _ in range(20):
+            queue._process_queue()
 
-    timer_cls.assert_called_once_with(0, queue._process_queue)
-    assert created_timer.daemon is True
-    created_timer.start.assert_called_once_with()
+    timer_cls.assert_not_called()
+    assert queue.pending_count == 1
 
 
 def test_flush_nowait_is_non_blocking() -> None:
     queue = MemoryUpdateQueue()
+    queue._queue = [ConversationContext(thread_id="thread-1", messages=["pending"])]
     started = threading.Event()
     finished = threading.Event()
 
-    def _slow_process_queue() -> None:
+    def _slow_process_queue(**_kwargs) -> None:
         started.set()
         time.sleep(0.2)
         finished.set()

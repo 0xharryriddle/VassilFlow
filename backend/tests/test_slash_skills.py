@@ -661,7 +661,11 @@ def test_skill_activation_middleware_escapes_activation_content(monkeypatch, tmp
     assert "----- BEGIN SKILL.md -----" not in activation_msg.content
 
 
-def test_skill_activation_middleware_rejects_skill_file_outside_skills_root(monkeypatch, tmp_path):
+def test_skill_activation_middleware_rejects_skill_file_outside_skills_root(
+    monkeypatch,
+    tmp_path,
+    symlink_or_skip,
+):
     skills_root = tmp_path / "skills"
     skill_dir = skills_root / "custom" / "data-analysis"
     skill_dir.mkdir(parents=True)
@@ -669,7 +673,7 @@ def test_skill_activation_middleware_rejects_skill_file_outside_skills_root(monk
     outside_dir.mkdir()
     outside_file = outside_dir / "SKILL.md"
     outside_file.write_text("# Leaked\nDo not read me.", encoding="utf-8")
-    (skill_dir / "SKILL.md").symlink_to(outside_file)
+    symlink_or_skip(skill_dir / "SKILL.md", outside_file)
     skill = Skill(
         name="data-analysis",
         description="Description for data-analysis",

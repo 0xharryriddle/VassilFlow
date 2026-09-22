@@ -161,6 +161,8 @@ export function SidecarPanel({ className }: { className?: string }) {
     isHistoryLoading,
     hasMoreHistory,
     loadMoreHistory,
+    historyError,
+    retryHistory,
   } = useThreadStream({
     threadId: sidecar.sidecarThreadId ?? undefined,
     displayThreadId: sidecar.sidecarThreadId ?? undefined,
@@ -485,6 +487,8 @@ export function SidecarPanel({ className }: { className?: string }) {
             hasMoreHistory={hasMoreHistory}
             loadMoreHistory={loadMoreHistory}
             isHistoryLoading={isHistoryLoading}
+            historyError={historyError}
+            retryHistory={retryHistory}
             tokenUsageInlineMode={tokenUsageInlineMode}
             sidecarSurface
           />

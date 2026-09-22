@@ -759,9 +759,25 @@ async def _seed_branch_checkpoint(
 def test_branch_thread_creates_checkpoint_from_assistant_turn(tmp_path) -> None:
     import asyncio
 
+    from vassilflow.runtime.thread_lifecycle import (
+        ThreadBranched,
+        ThreadLifecycleDispatcher,
+    )
     from vassilflow.runtime.user_context import get_effective_user_id
 
     app, _store, checkpointer = _build_thread_app()
+    branch_events: list[ThreadBranched] = []
+
+    class _LifecycleRecorder:
+        key = "test.recording"
+
+        async def on_thread_deleted(self, _event) -> None:
+            return None
+
+        async def on_thread_branched(self, event: ThreadBranched) -> None:
+            branch_events.append(event)
+
+    app.state.thread_lifecycle_dispatcher = ThreadLifecycleDispatcher((_LifecycleRecorder(),))
     paths = Paths(tmp_path)
     user_id = get_effective_user_id()
     source_user_data = paths.sandbox_user_data_dir("thread-source", user_id=user_id)
@@ -789,6 +805,10 @@ def test_branch_thread_creates_checkpoint_from_assistant_turn(tmp_path) -> None:
     assert body["parent_checkpoint_id"] == parent_checkpoint_id
     assert body["branched_from_message_id"] == "ai-1"
     assert body["workspace_clone_mode"] == "current_thread_best_effort"
+    assert len(branch_events) == 1
+    assert branch_events[0].source_thread_id == "thread-source"
+    assert branch_events[0].target_thread_id == branch_id
+    assert branch_events[0].workspace_clone_mode == ("current_thread_best_effort")
     assert state.status_code == 200, state.text
     assert [message["id"] for message in state.json()["values"]["messages"]] == ["human-1", "ai-1"]
     assert (paths.sandbox_user_data_dir(branch_id, user_id=user_id) / "notes.txt").read_text(encoding="utf-8") == "source workspace"

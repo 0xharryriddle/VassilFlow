@@ -273,7 +273,12 @@ Access: http://localhost:2026
 The unified nginx endpoint is same-origin by default and does not emit browser CORS headers. If you run a split-origin or port-forwarded browser client, set `GATEWAY_CORS_ORIGINS` to comma-separated exact origins such as `http://localhost:3000`; the Gateway then applies the CORS allowlist and matching CSRF origin checks.
 
 > [!IMPORTANT]
-> The Gateway holds run state (RunManager and the stream bridge) in process, so production defaults to a single Gateway worker (`GATEWAY_WORKERS=1`). Raising the worker count without a shared cross-worker stream bridge — which is not yet available — breaks run cancellation, SSE reconnects, request de-duplication, and IM channels, because nginx uses no sticky sessions and each worker keeps its own run state. Scale a single worker up with more CPU/RAM (or move the database and sandbox onto dedicated tiers) instead of raising `GATEWAY_WORKERS`.
+> The Gateway requires one worker because RunManager and StreamBridge hold state in process, including when using PostgreSQL. Startup rejects `GATEWAY_WORKERS` or `WEB_CONCURRENCY` values other than `1`; Docker forwards its configured worker count to this guard. Custom launch commands must also use one worker (do not pass `uvicorn --workers 2` or start multiple replicas). Multiple workers require shared run coordination and streaming, which are not implemented. Scale the single worker vertically or move the database and sandbox to dedicated services.
+
+See [Persistence And Readiness](docs/PERSISTENCE.md) before moving runtime
+storage, enabling PostgreSQL, or designing backups. Action records, lifecycle
+repair journals, and thread workspaces remain under
+`VASSILFLOW_HOME` even when the application database uses PostgreSQL.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed Docker development guide.
 
@@ -611,7 +616,7 @@ Use it as-is. Or tear it apart and make it yours.
 
 Skills are what make VassilFlow do *almost anything*.
 
-A standard Agent Skill is a structured capability module — a Markdown file that defines a workflow, best practices, and references to supporting resources. VassilFlow ships with built-in skills for research, report generation, slide creation, web pages, image and video generation, and more. But the real power is extensibility: add your own skills, replace the built-in ones, or combine them into compound workflows.
+A standard Agent Skill is a structured capability module — a Markdown file that defines a workflow, best practices, and references to supporting resources. VassilFlow ships with built-in skills for research, data analysis, web design, image and video generation, and more. But the real power is extensibility: add your own skills, replace the built-in ones, or combine them into compound workflows.
 
 Skills are loaded progressively — only when the task needs them, not all at once. This keeps the context window lean and makes VassilFlow work well even with token-sensitive models.
 
@@ -626,10 +631,10 @@ Gateway-generated follow-up suggestions now normalize both plain-string model ou
 ```
 # Paths inside the sandbox container
 /mnt/skills/public
-├── research/SKILL.md
-├── report-generation/SKILL.md
-├── slide-creation/SKILL.md
-├── web-page/SKILL.md
+├── deep-research/SKILL.md
+├── data-analysis/SKILL.md
+├── frontend-design/SKILL.md
+├── web-design-guidelines/SKILL.md
 └── image-generation/SKILL.md
 
 /mnt/skills/custom
@@ -665,21 +670,16 @@ VASSILFLOW_LANGGRAPH_URL=http://localhost:2026/api/langgraph  # LangGraph API
 
 See [`skills/public/claude-to-vassilflow/SKILL.md`](skills/public/claude-to-vassilflow/SKILL.md) for the full API reference.
 
-### Office Workspace
+### Reusable Agent Extensions
 
-The built-in Office Agent can inspect, edit, render, and visually review DOCX,
-XLSX, and PPTX files through bounded typed tools. Office Projects preserve
-canonical revision history, source and result SHA-256 evidence, semantic change
-receipts, render previews, explicit review decisions, append-only restore, and a
-separately selected final artifact.
+VassilFlow ships the general agent runtime and personal Agent support, with no
+built-in product Agents. Reuse the model, tools, skills, middleware, memory,
+sandbox, and streaming components when building a specialized agent.
 
-For PPTX projects, the current revision preview can select a supported object by
-its inspection-derived overlay or accessible object list and carry that exact
-context into chat. VassilFlow resolves the object again from canonical bytes,
-limits the edit and receipt to its stable path, and pauses before mutation so the
-user can review and approve the complete operation proposal. Personal
-fixed-structure PPTX templates can lock reusable text and picture slots while
-preserving the rest of the source deck.
+Server-owned capability adapters, Action provenance, thread lifecycle events,
+and operational repository contracts remain available for domain extensions.
+A product can register its own tools and workflows without adding domain logic
+to the generic runtime. See the [architecture guide](backend/docs/ARCHITECTURE.md).
 
 ### Sub-Agents
 
@@ -725,6 +725,11 @@ Across sessions, VassilFlow builds a persistent memory of your profile, preferen
 
 Memory updates now skip duplicate fact entries at apply time, so repeated preferences and context do not accumulate endlessly across sessions.
 
+Memory extraction uses one worker at a time. Updates received during extraction
+are coalesced into a follow-up batch using the latest debounce deadline; an
+explicit flush makes that batch immediate. Pending extraction remains in memory
+and is not durable across process shutdown.
+
 ## Recommended Models
 
 VassilFlow is model-agnostic — it works with any LLM that implements the OpenAI-compatible API. That said, it performs best with models that support:
@@ -765,11 +770,12 @@ All dict-returning methods are validated against Gateway Pydantic response model
 ## Documentation
 
 - [Fresh Clone Setup Guide](docs/SETUP.md) - Step-by-step setup for a new machine
+- [Persistence And Readiness](docs/PERSISTENCE.md) - Storage layers, backup,
+  repository operations, durable projection repair, and health probes
 - [Contributing Guide](CONTRIBUTING.md) - Development environment setup and workflow
 - [Configuration Guide](backend/docs/CONFIGURATION.md) - Setup and configuration instructions
-- [Architecture Overview](backend/CLAUDE.md) - Technical architecture details
-- [Backend Architecture](backend/README.md) - Backend architecture and API reference
-- [Office Document Tools](backend/docs/OFFICE_TOOLS.md) - Typed Office editing, projects, templates, revision evidence, exact PPTX object selection and approval, and visual QA
+- [Architecture Overview](backend/docs/ARCHITECTURE.md) - Stable runtime, Agent, capability, project, and extension contracts
+- [Backend Development](backend/README.md) - Backend-only setup and development notes
 
 ## ⚠️ Security Notice
 

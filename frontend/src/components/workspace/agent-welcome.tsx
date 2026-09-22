@@ -8,10 +8,12 @@ export function AgentWelcome({
   className,
   agent,
   agentName,
+  isLoading = false,
 }: {
   className?: string;
   agent: Agent | null | undefined;
   agentName: string;
+  isLoading?: boolean;
 }) {
   const { t } = useI18n();
   const displayName = agent?.product.display_name ?? agentName;
@@ -32,9 +34,14 @@ export function AgentWelcome({
       {description && (
         <p className="text-muted-foreground max-w-sm text-sm">{description}</p>
       )}
-      {agent?.product.status === "unavailable" && (
+      {!isLoading && (!agent || agent.product.status === "unavailable") && (
         <p className="text-destructive max-w-sm text-sm">
           {t.agents.launchUnavailable}
+        </p>
+      )}
+      {agent?.product.status === "degraded" && (
+        <p className="max-w-sm text-sm text-amber-700 dark:text-amber-300">
+          {t.agents.limitedAvailability}
         </p>
       )}
     </div>

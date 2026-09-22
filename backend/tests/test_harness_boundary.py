@@ -11,10 +11,7 @@ This test scans all Python files in the harness package and fails if any
 import ast
 from pathlib import Path
 
-HARNESS_PACKAGE_ROOTS = (
-    Path(__file__).parent.parent / "packages" / "harness" / "vassilflow",
-    Path(__file__).parent.parent / "packages" / "harness" / "vassilflow",
-)
+HARNESS_PACKAGE_ROOT = Path(__file__).parent.parent / "packages" / "harness" / "vassilflow"
 
 BANNED_PREFIXES = ("app.",)
 
@@ -41,11 +38,10 @@ def _collect_imports(filepath: Path) -> list[tuple[int, str]]:
 def test_harness_packages_do_not_import_app():
     violations: list[str] = []
 
-    for harness_root in HARNESS_PACKAGE_ROOTS:
-        for py_file in sorted(harness_root.rglob("*.py")):
-            for lineno, module in _collect_imports(py_file):
-                if any(module == prefix.rstrip(".") or module.startswith(prefix) for prefix in BANNED_PREFIXES):
-                    rel = py_file.relative_to(harness_root.parent.parent.parent)
-                    violations.append(f"  {rel}:{lineno}  imports {module}")
+    for py_file in sorted(HARNESS_PACKAGE_ROOT.rglob("*.py")):
+        for lineno, module in _collect_imports(py_file):
+            if any(module == prefix.rstrip(".") or module.startswith(prefix) for prefix in BANNED_PREFIXES):
+                rel = py_file.relative_to(HARNESS_PACKAGE_ROOT.parent.parent.parent)
+                violations.append(f"  {rel}:{lineno}  imports {module}")
 
     assert not violations, "Harness layer must not import from app layer:\n" + "\n".join(violations)

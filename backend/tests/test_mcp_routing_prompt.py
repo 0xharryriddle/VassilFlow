@@ -116,10 +116,7 @@ def test_untrusted_priority_metadata_falls_back_without_raising():
 
 
 def test_routing_prompt_has_bounded_size_and_hint_count():
-    tools = [
-        _routed_tool(f"warehouse_query_{index}", priority=index, keywords=["x" * 80])
-        for index in range(MAX_MCP_ROUTING_HINTS + 10)
-    ]
+    tools = [_routed_tool(f"warehouse_query_{index}", priority=index, keywords=["x" * 80]) for index in range(MAX_MCP_ROUTING_HINTS + 10)]
 
     section = get_mcp_routing_hints_prompt_section(tools)
 
@@ -128,9 +125,7 @@ def test_routing_prompt_has_bounded_size_and_hint_count():
 
 
 def test_prompt_places_routing_hints_after_deferred_tools(monkeypatch):
-    section = get_mcp_routing_hints_prompt_section(
-        [_routed_tool("warehouse_query", priority=100, keywords=["orders"])]
-    )
+    section = get_mcp_routing_hints_prompt_section([_routed_tool("warehouse_query", priority=100, keywords=["orders"])])
     empty_storage = SimpleNamespace(load_skills=lambda *, enabled_only: [])
     monkeypatch.setattr("vassilflow.agents.lead_agent.prompt.get_or_new_skill_storage", lambda **kwargs: empty_storage)
     monkeypatch.setattr("vassilflow.agents.lead_agent.prompt.get_agent_soul", lambda agent_name=None: "")

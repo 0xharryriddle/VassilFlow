@@ -108,9 +108,6 @@ def present_file_tool(
 
     Notes:
     - You should call this tool after creating files and moving them to the `/mnt/user-data/outputs` directory.
-    - Office files must have a complete current office_render manifest. When view_image is available, review every rendered page
-      in a prior model step before presenting the Office file. Never call view_image and present_files in the same tool batch.
-    - If visual review requires an external client, present_files succeeds with a warning; report that visual QA is still external.
     - This tool can be safely called in parallel with other tools. State updates are handled by a reducer to prevent conflicts.
 
     Args:
@@ -123,25 +120,9 @@ def present_file_tool(
             update={"messages": [ToolMessage(f"Error: {exc}", tool_call_id=tool_call_id)]},
         )
 
-    from vassilflow.community.office.review import evaluate_office_visual_review
-
     normalized_paths = [virtual_path for virtual_path, _ in resolved_paths]
-    review_warnings: list[str] = []
-    for virtual_path, actual_path in resolved_paths:
-        decision = evaluate_office_visual_review(runtime, virtual_path=virtual_path, actual_path=actual_path)
-        if decision is None:
-            continue
-        if decision.blocked:
-            return Command(
-                update={"messages": [ToolMessage(f"Error: {decision.message}", tool_call_id=tool_call_id)]},
-            )
-        if decision.message:
-            review_warnings.append(decision.message)
-
     # The merge_artifacts reducer will handle merging and deduplication
     message = "Successfully presented files"
-    if review_warnings:
-        message += "\n\nVisual review notice:\n" + "\n".join(f"- {warning}" for warning in review_warnings)
     return Command(
         update={
             "artifacts": normalized_paths,

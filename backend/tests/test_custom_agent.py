@@ -9,6 +9,7 @@ import pytest
 import yaml
 from fastapi.testclient import TestClient
 
+from vassilflow.capabilities import CapabilityReadinessCheck
 from vassilflow.config.agents_api_config import AgentsApiConfig, get_agents_api_config, set_agents_api_config
 from vassilflow.config.app_config import AppConfig
 from vassilflow.config.sandbox_config import SandboxConfig
@@ -470,31 +471,69 @@ class TestMemoryFilePath:
 # ===========================================================================
 
 
-def _office_app_config() -> AppConfig:
+def _sample_app_config() -> AppConfig:
     return AppConfig(
         sandbox=SandboxConfig(use="test"),
         tools=[
             ToolConfig(
-                name="office_inspect",
+                name="sample_inspect",
                 group="file:read",
-                use="vassilflow.community.office.tools:office_inspect_tool",
+                use="sample_agent_fixture:sample_inspect_tool",
             ),
             ToolConfig(
-                name="office_generate",
+                name="sample_generate",
                 group="file:write",
-                use="vassilflow.community.office.tools:office_generate_tool",
+                use="sample_agent_fixture:sample_generate_tool",
             ),
             ToolConfig(
-                name="office_edit",
+                name="sample_edit",
                 group="file:write",
-                use="vassilflow.community.office.tools:office_edit_tool",
+                use="sample_agent_fixture:sample_edit_tool",
             ),
             ToolConfig(
-                name="office_render",
+                name="sample_render",
                 group="file:write",
-                use="vassilflow.community.office.tools:office_render_tool",
+                use="sample_agent_fixture:sample_render_tool",
             ),
         ],
+    )
+
+
+async def _ready_sample_capability(
+    adapter_paths,
+    *,
+    assistant_id,
+    agent_name,
+    user_id,
+):
+    assert adapter_paths
+    assert assistant_id == agent_name == "sample"
+    assert user_id == "test-user-autouse"
+    return (
+        CapabilityReadinessCheck(
+            key="sample.renderer",
+            status="ready",
+            required=False,
+            detail="Sample preview rendering is ready.",
+        ),
+        CapabilityReadinessCheck(
+            key="sample.projects",
+            status="ready",
+            required=True,
+            detail="Sample Projects storage is ready.",
+        ),
+        CapabilityReadinessCheck(
+            key="sample.templates",
+            status="ready",
+            required=True,
+            detail="Sample Template Library storage is ready.",
+        ),
+        CapabilityReadinessCheck(
+            key="sample.action_journal",
+            status="ready",
+            required=True,
+            detail="Action Journal storage is ready.",
+        ),
     )
 
 
@@ -506,7 +545,7 @@ def _make_test_app(tmp_path: Path):
     from app.gateway.routers.agents import router
 
     app = FastAPI()
-    app.dependency_overrides[get_config] = _office_app_config
+    app.dependency_overrides[get_config] = _sample_app_config
     app.include_router(router)
     return app
 
@@ -519,7 +558,22 @@ def agent_client(tmp_path):
     paths_instance = _make_paths(tmp_path)
     previous_config = AgentsApiConfig(**get_agents_api_config().model_dump())
 
-    with patch("vassilflow.config.agents_config.get_paths", return_value=paths_instance), patch.object(agents_router, "get_paths", return_value=paths_instance):
+    with (
+        patch(
+            "vassilflow.config.agents_config.get_paths",
+            return_value=paths_instance,
+        ),
+        patch.object(
+            agents_router,
+            "get_paths",
+            return_value=paths_instance,
+        ),
+        patch.object(
+            agents_router,
+            "get_agent_capability_readiness",
+            side_effect=_ready_sample_capability,
+        ),
+    ):
         set_agents_api_config(AgentsApiConfig(enabled=True))
         try:
             app = _make_test_app(tmp_path)
@@ -538,7 +592,22 @@ def disabled_agent_client(tmp_path):
     paths_instance = _make_paths(tmp_path)
     previous_config = AgentsApiConfig(**get_agents_api_config().model_dump())
 
-    with patch("vassilflow.config.agents_config.get_paths", return_value=paths_instance), patch.object(agents_router, "get_paths", return_value=paths_instance):
+    with (
+        patch(
+            "vassilflow.config.agents_config.get_paths",
+            return_value=paths_instance,
+        ),
+        patch.object(
+            agents_router,
+            "get_paths",
+            return_value=paths_instance,
+        ),
+        patch.object(
+            agents_router,
+            "get_agent_capability_readiness",
+            side_effect=_ready_sample_capability,
+        ),
+    ):
         set_agents_api_config(AgentsApiConfig(enabled=False))
         try:
             app = _make_test_app(tmp_path)
@@ -549,47 +618,73 @@ def disabled_agent_client(tmp_path):
 
 
 class TestAgentsAPI:
-    def test_list_agents_contains_available_office_builtin(self, agent_client):
+    def test_list_agents_contains_available_sample_builtin(self, agent_client):
         response = agent_client.get("/api/agents")
         assert response.status_code == 200
         assert response.json()["agents"] == [
             {
-                "name": "office",
-                "description": "Generate editable presentations and inspect, quality-check, revise, render, and review Office files.",
+                "name": "sample",
+                "description": "Work with sample data.",
                 "model": None,
                 "tool_groups": ["file:read", "file:write"],
-                "skills": [],
+                "skills": ["sample-skill"],
                 "soul": response.json()["agents"][0]["soul"],
                 "product": {
-                    "id": "builtin:office",
-                    "display_name": "Office",
+                    "id": "builtin:sample",
+                    "display_name": "Sample",
                     "origin": "builtin",
                     "category": "create",
                     "icon": "files",
                     "status": "available",
                     "required_tools": [
-                        "office_inspect",
-                        "office_generate",
-                        "office_edit",
-                        "office_render",
+                        "sample_inspect",
+                        "sample_generate",
+                        "sample_edit",
+                        "sample_render",
                     ],
                     "missing_requirements": [],
+                    "degraded_requirements": [],
+                    "readiness": [
+                        {
+                            "key": "sample.renderer",
+                            "status": "ready",
+                            "required": False,
+                            "detail": "Sample preview rendering is ready.",
+                            "metadata": {},
+                        },
+                        {
+                            "key": "sample.projects",
+                            "status": "ready",
+                            "required": True,
+                            "detail": "Sample Projects storage is ready.",
+                            "metadata": {},
+                        },
+                        {
+                            "key": "sample.templates",
+                            "status": "ready",
+                            "required": True,
+                            "detail": "Sample Template Library storage is ready.",
+                            "metadata": {},
+                        },
+                        {
+                            "key": "sample.action_journal",
+                            "status": "ready",
+                            "required": True,
+                            "detail": "Action Journal storage is ready.",
+                            "metadata": {},
+                        },
+                    ],
                     "data_access": [
                         "thread_uploads",
                         "thread_workspace",
                         "thread_outputs",
                     ],
-                    "starter_prompts": [
-                        "Create a native editable PowerPoint presentation from a structured brief.",
-                        "Inspect an uploaded Office file and summarize its structure.",
-                        "Run a source-bound quality preflight on an uploaded PowerPoint file.",
-                        "Revise formatting in an uploaded document without changing the source file.",
-                        "Render an Office output and perform visual QA before presenting it.",
-                    ],
+                    "starter_prompts": ["Inspect sample data."],
+                    "chat_extension": "sample-selection",
                     "launch": {
-                        "kind": "chat",
-                        "path": "/workspace/agents/office/chats/new",
-                        "project_kind": None,
+                        "kind": "project",
+                        "path": "/workspace/sample",
+                        "project_kind": "sample",
                     },
                     "management": {
                         "can_edit": False,
@@ -599,11 +694,11 @@ class TestAgentsAPI:
             }
         ]
 
-    def test_get_office_builtin(self, agent_client):
-        response = agent_client.get("/api/agents/office")
+    def test_get_sample_builtin(self, agent_client):
+        response = agent_client.get("/api/agents/sample")
 
         assert response.status_code == 200
-        assert response.json()["product"]["id"] == "builtin:office"
+        assert response.json()["product"]["id"] == "builtin:sample"
         assert response.json()["product"]["status"] == "available"
 
     def test_catalog_includes_personal_metadata_without_soul(self, agent_client):
@@ -617,23 +712,23 @@ class TestAgentsAPI:
         assert response.status_code == 200
         assert response.json()["custom_agent_management_enabled"] is True
         agents = {agent["name"]: agent for agent in response.json()["agents"]}
-        assert agents["office"]["product"]["origin"] == "builtin"
+        assert agents["sample"]["product"]["origin"] == "builtin"
         assert agents["catalog-agent"]["product"]["origin"] == "personal"
         assert agents["catalog-agent"]["soul"] is None
 
-    def test_office_name_is_reserved(self, agent_client):
-        check = agent_client.get("/api/agents/check?name=Office")
+    def test_sample_name_is_reserved(self, agent_client):
+        check = agent_client.get("/api/agents/check?name=Sample")
         create = agent_client.post(
             "/api/agents",
-            json={"name": "office", "soul": "replace built-in"},
+            json={"name": "sample", "soul": "replace built-in"},
         )
         update = agent_client.put(
-            "/api/agents/office",
+            "/api/agents/sample",
             json={"description": "replace built-in"},
         )
-        delete = agent_client.delete("/api/agents/office")
+        delete = agent_client.delete("/api/agents/sample")
 
-        assert check.json() == {"available": False, "name": "office"}
+        assert check.json() == {"available": False, "name": "sample"}
         assert create.status_code == 409
         assert update.status_code == 403
         assert delete.status_code == 403
@@ -678,12 +773,15 @@ class TestAgentsAPI:
             "status": "available",
             "required_tools": [],
             "missing_requirements": [],
+            "degraded_requirements": [],
+            "readiness": [],
             "data_access": [
                 "thread_uploads",
                 "thread_workspace",
                 "thread_outputs",
             ],
             "starter_prompts": [],
+            "chat_extension": None,
             "launch": {
                 "kind": "chat",
                 "path": "/workspace/agents/code-reviewer/chats/new",
@@ -881,7 +979,7 @@ class TestAgentsApiDisabled:
 
         assert response.status_code == 200
         assert response.json()["custom_agent_management_enabled"] is False
-        assert [agent["name"] for agent in response.json()["agents"]] == ["office"]
+        assert [agent["name"] for agent in response.json()["agents"]] == ["sample"]
         assert response.json()["agents"][0]["soul"] is None
 
     def test_catalog_exposes_runtime_safe_personal_agent_without_management(
@@ -908,10 +1006,10 @@ class TestAgentsApiDisabled:
         }
 
     def test_builtin_get_remains_available(self, disabled_agent_client):
-        response = disabled_agent_client.get("/api/agents/office")
+        response = disabled_agent_client.get("/api/agents/sample")
 
         assert response.status_code == 200
-        assert response.json()["product"]["id"] == "builtin:office"
+        assert response.json()["product"]["id"] == "builtin:sample"
 
     def test_agent_get_returns_403(self, disabled_agent_client):
         response = disabled_agent_client.get("/api/agents/example-agent")
@@ -939,3 +1037,6 @@ class TestAgentsApiDisabled:
 
         assert get_response.status_code == 403
         assert put_response.status_code == 403
+
+
+pytestmark = pytest.mark.usefixtures("sample_builtin_registry")

@@ -82,12 +82,7 @@ def _render_skill_metadata(skills: list[Skill], container_base_path: str) -> str
         mutability = "[custom, editable]" if skill.category == SkillCategory.CUSTOM else "[built-in]"
         tools_line = ", ".join(skill.allowed_tools) if skill.allowed_tools else "(all)"
         location = skill.get_container_file_path(container_base_path)
-        blocks.append(
-            f"## Skill: {skill.name}\n"
-            f"- Description: {skill.description} {mutability}\n"
-            f"- Allowed tools: {tools_line}\n"
-            f"- Location: {location}"
-        )
+        blocks.append(f"## Skill: {skill.name}\n- Description: {skill.description} {mutability}\n- Allowed tools: {tools_line}\n- Location: {location}")
     return "\n\n".join(blocks)
 
 

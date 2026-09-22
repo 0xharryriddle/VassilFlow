@@ -13,6 +13,9 @@ from app.gateway.agent_catalog import (
     build_builtin_agent_product,
     build_custom_agent_product,
 )
+from app.gateway.capability_readiness import (
+    get_agent_capability_readiness,
+)
 from app.gateway.deps import get_config
 from vassilflow.config.agent_contract import (
     is_default_agent_alias,
@@ -130,13 +133,20 @@ def _agent_config_to_response(
     )
 
 
-def _builtin_agent_to_response(
+async def _builtin_agent_to_response(
     definition: BuiltinAgentDefinition,
     app_config: AppConfig,
     *,
+    user_id: str | None,
     include_soul: bool = True,
 ) -> AgentResponse:
     runtime_config = definition.to_runtime_config()
+    readiness = await get_agent_capability_readiness(
+        definition.capability_adapters,
+        assistant_id=definition.name,
+        agent_name=definition.name,
+        user_id=user_id,
+    )
     return AgentResponse(
         name=definition.name,
         description=definition.description,
@@ -144,7 +154,11 @@ def _builtin_agent_to_response(
         tool_groups=runtime_config.tool_groups,
         skills=runtime_config.skills,
         soul=definition.soul if include_soul else None,
-        product=build_builtin_agent_product(definition, app_config),
+        product=build_builtin_agent_product(
+            definition,
+            app_config,
+            readiness=readiness,
+        ),
     )
 
 
@@ -162,14 +176,19 @@ async def list_agent_catalog(
     management_enabled = get_agents_api_config().enabled
     user_id = get_effective_user_id()
     try:
-        builtins = [
-            _builtin_agent_to_response(
-                definition,
-                config,
-                include_soul=False,
+        builtins = list(
+            await asyncio.gather(
+                *(
+                    _builtin_agent_to_response(
+                        definition,
+                        config,
+                        user_id=user_id,
+                        include_soul=False,
+                    )
+                    for definition in list_builtin_agents()
+                )
             )
-            for definition in list_builtin_agents()
-        ]
+        )
         custom_agents = [agent for agent in list_custom_agents(user_id=user_id) if not _is_reserved_agent_name(agent.name)]
         custom = [
             _agent_config_to_response(
@@ -208,7 +227,18 @@ async def list_agents(config: AppConfig = Depends(get_config)) -> AgentsListResp
 
     user_id = get_effective_user_id()
     try:
-        builtins = [_builtin_agent_to_response(definition, config) for definition in list_builtin_agents()]
+        builtins = list(
+            await asyncio.gather(
+                *(
+                    _builtin_agent_to_response(
+                        definition,
+                        config,
+                        user_id=user_id,
+                    )
+                    for definition in list_builtin_agents()
+                )
+            )
+        )
         custom_agents = [agent for agent in list_custom_agents(user_id=user_id) if not _is_reserved_agent_name(agent.name)]
         custom = [_agent_config_to_response(agent, include_soul=True, user_id=user_id) for agent in custom_agents]
         return AgentsListResponse(agents=[*builtins, *custom])
@@ -271,7 +301,11 @@ async def get_agent(
     name = _normalize_agent_name(name)
     builtin = get_builtin_agent(name)
     if builtin is not None:
-        return _builtin_agent_to_response(builtin, config)
+        return await _builtin_agent_to_response(
+            builtin,
+            config,
+            user_id=get_effective_user_id(),
+        )
 
     if is_default_agent_alias(name):
         raise HTTPException(status_code=404, detail=f"Agent '{name}' not found")

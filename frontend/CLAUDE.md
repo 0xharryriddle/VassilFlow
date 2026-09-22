@@ -69,12 +69,44 @@ The frontend is a stateful chat application. Users create **threads** (conversat
 3. TanStack Query manages server state; localStorage stores user settings
 4. Components subscribe to thread state and render updates
 
+Failed submissions keep the unpersisted human message and uploaded-file metadata
+in the current page session. `ThreadChatPage` shows fixed localized error copy
+and restores the input for manual editing and resubmission; it does not replay
+runs automatically. Checkpoint reconciliation still replaces optimistic input.
+
+The composer displays the reasoning effort derived from the active mode when no
+explicit preference is saved. `MessageReasoning` keeps completed timing stable
+and owns expansion state across the measured/unmeasured duration transition.
+Keep these adapters outside the generated `ai-elements` components.
+
+Dialog consumers must provide an appropriate localized `DialogDescription` or
+`SheetDescription` connected to the content. Model selection, memory editing,
+chat renaming, mobile navigation, and settings do this at their call sites;
+keep generated `ui` and `ai-elements` wrappers unchanged.
+
+Infinite chat queries store pages as `{ threads, nextOffset }`. The offset counts
+raw backend rows (including hidden sidecars); cache rename/delete/upsert helpers
+must preserve it, with `null` marking a terminal page. Do not infer a cursor from
+the number of visible rows or attach metadata to arrays: TanStack structural
+sharing can discard array metadata.
+
+Run-history failures retain loaded messages and offer **Retry history** in main
+and sidecar chats. HTTP/schema/cursor failures are not empty terminal pages;
+changing threads aborts the old page request and discards stale completions.
+
 ### Key Patterns
 
 - **Server Components by default**, `"use client"` only for interactive components
 - **Thread hooks** (`useThreadStream`, `useSubmitThread`, `useThreads`) are the primary API interface
 - **LangGraph client** is a singleton obtained via `getAPIClient()` in `core/api/`
 - **Environment validation** uses `@t3-oss/env-nextjs` with Zod schemas (`src/env.js`). Skip with `SKIP_ENV_VALIDATION=1`
+
+Agent routes share `components/workspace/chats/thread-chat-page.tsx` and read
+product metadata from `/api/agent-catalog`. The domain extension registry and
+`agent-chat-extensions.json` manifest are currently empty; keep their keys in
+sync when adding future extensions. Generic capability inputs and action
+provenance remain in `core/capabilities` and `core/actions`. Attachment support
+for DOCX, XLSX, and PPTX is independent of domain-specific workspaces.
 
 ## Code Style
 
@@ -96,5 +128,14 @@ NEXT_PUBLIC_LANGGRAPH_BASE_URL=http://localhost:8001/api
 Leave these unset for the standard `make dev` / Docker flow, where nginx serves
 the public `/api/langgraph/*` prefix and rewrites it to Gateway's native `/api/*`
 routes.
+
+The SDK defaults to `credentials: "include"` only for its configured backend
+origin and API path, retaining explicit credential policies and CSRF headers.
+Like REST requests, state-changing SDK requests read the current CSRF cookie.
+This supports a separate frontend/backend port on the same hostname when CORS
+allows that frontend origin. The gateway's host-only cookies and strict CSRF
+cookie do not support unrelated hostnames automatically; use the same-origin
+proxy for that deployment. Credential inclusion does not override browser cookie
+scope or SameSite rules.
 
 Requires Node.js 22+ and pnpm 10.26.2+.

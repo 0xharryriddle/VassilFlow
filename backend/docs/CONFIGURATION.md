@@ -1,5 +1,10 @@
 # Configuration Guide
 
+The base distribution has no built-in product Agents or product-specific tool
+configuration. Configure models, tools, skills, and runtime features for the
+general agent or personal Agents. Server-owned capability adapters and repository
+contracts remain available when adding a domain extension.
+
 This guide explains how to configure VassilFlow for your environment.
 
 ## Config Versioning
@@ -14,6 +19,11 @@ Run `make config-upgrade` to merge new fields into your config.
 - **Missing `config_version`** in your config is treated as version 0.
 - Run `make config-upgrade` to auto-merge missing fields and apply versioned config rewrites for provider and tool class paths (your existing values are preserved where no migration rule matches, and a `.bak` backup is created).
 - When changing the config schema, bump `config_version` in `config.example.yaml`.
+
+Version 21 removes tools that import the retired `vassilflow.community.office.*`
+or `src.community.office.*` modules. Custom tools with the same names and other
+import paths are preserved. Generic document uploads and text conversion remain
+available.
 
 ## Configuration Sections
 
@@ -427,7 +437,8 @@ title:
   enabled: true
   max_words: 6
   max_chars: 60
-  model_name: null  # Use first model in list
+  # null uses a local fallback; set a configured model name for LLM titles.
+  model_name: null
 ```
 
 ### GitHub API Token (Optional for GitHub Deep Research Skill)

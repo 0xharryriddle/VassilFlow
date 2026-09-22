@@ -13,18 +13,17 @@ so contract drift turns the build red instead.
 
 ## The two layers
 
-- **Layer 1 — backend golden** (`tests/test_replay_golden.py`): replays a fixture
-  through the real FastAPI gateway with `ReplayChatModel` and asserts the streamed
-  SSE event sequence equals a committed golden. Fast, no browser. Guards protocol
-  *shape*.
+- **Layer 1 — backend golden** (`tests/test_replay_golden.py`): replays
+  fixtures through the real FastAPI gateway with `ReplayChatModel` and verifies
+  the shared agent runtime's response and event contracts.
 - **Layer 2 — full-stack render** (`frontend/tests/e2e-real-backend/`): real
   Next.js + real gateway (replay model) + Chromium; asserts the replayed
   auto-title and a follow-up suggestion render in the browser. Guards semantic
-  *render*. (Complementary to Layer 1 — neither subsumes the other.)
+  _render_. (Complementary to Layer 1 — neither subsumes the other.)
 
 Layer 2 also hosts **cross-stack contract scenarios** — the dangerous class
-where a backend change silently breaks a frontend assumption and *both sides'
-unit tests stay green*. See below.
+where a backend change silently breaks a frontend assumption and _both sides'
+unit tests stay green_. See below.
 
 ## Cross-stack scenario: multi-run render order (`multi-run-order.spec.ts`)
 
@@ -35,7 +34,7 @@ while the frontend (`core/threads/hooks.ts`) iterated runs and **prepended** eac
 loaded page — inverting chronological order once the checkpoint no longer held
 the older messages. The backend ordering test was green throughout, and the
 frontend regression unit test hardcodes "backend returns newest-first" in a mock,
-so only a *real frontend against a real backend* catches the desync.
+so only a _real frontend against a real backend_ catches the desync.
 
 This scenario does **not** record a conversation. It uses a **test-only seeder**
 (`tests/seed_runs_router.py`, mounted on the replay gateway only when
@@ -69,7 +68,7 @@ extensions empty and disabling memory/summarization
 (`tests/_replay_fixture.py::build_config_yaml`), a fixture replays the same across
 machines, days, prompt edits, and CI. Replaying needs **no API key**.
 
-A swallowed hash-miss keeps the SSE *event shapes* identical (the gateway wraps it
+A swallowed hash-miss keeps the SSE _event shapes_ identical (the gateway wraps it
 into a normal assistant error message), so the Layer-1 golden can't catch a miss
 by shape alone — it inspects `replay_provider.replay_misses()` and fails loud
 instead. Layer-2 already fails on a miss (the recorded turns never render).
@@ -97,7 +96,7 @@ VASSILFLOW_WRITE_GOLDEN=1 PYTHONPATH=. uv run pytest tests/test_replay_golden.py
 ## Run (no key)
 
 ```bash
-cd backend  && PYTHONPATH=. uv run pytest tests/test_replay_golden.py          # Layer 1
+cd backend  && PYTHONPATH=. uv run pytest tests/test_replay_golden.py  # Layer 1
 cd frontend && pnpm exec playwright test -c playwright.real-backend.config.ts  # Layer 2
 ```
 
@@ -105,8 +104,10 @@ cd frontend && pnpm exec playwright test -c playwright.real-backend.config.ts  #
 
 `.github/workflows/replay-e2e.yml` runs both layers on changes to **either** side
 of the contract (`frontend/**`, `backend/app/gateway/**`,
-`backend/packages/harness/**`, fixtures). DOM assertions are the gate; the rendered
-screenshot + Playwright HTML report are uploaded as a CI artifact.
+`backend/packages/harness/**`, fixtures). Both jobs build a read-only renderer
+and expose it only through the fixed-route nginx proxy. DOM assertions are the
+gate; the rendered screenshot + Playwright HTML report are uploaded as a CI
+artifact.
 
 ## Known limitations
 

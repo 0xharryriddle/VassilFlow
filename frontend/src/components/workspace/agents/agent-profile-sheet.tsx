@@ -5,6 +5,7 @@ import {
   MessageSquareIcon,
   PinOffIcon,
   PinIcon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -90,10 +91,13 @@ export function AgentProfileSheet({
     thread_workspace: t.agents.dataThreadWorkspace,
     thread_outputs: t.agents.dataThreadOutputs,
   };
+  const affectedReadiness = product.readiness.filter(
+    (check) => check.status !== "ready",
+  );
 
   const handleLaunch = () => {
     if (
-      product.status !== "available" ||
+      product.status === "unavailable" ||
       !isSafeAgentLaunchPath(product.launch.path)
     ) {
       toast.error(t.agents.launchUnavailable);
@@ -124,6 +128,15 @@ export function AgentProfileSheet({
                   <LaunchIcon />
                   {launchLabel}
                 </Badge>
+                {product.status === "degraded" && (
+                  <Badge
+                    variant="outline"
+                    className="border-amber-500/50 text-amber-700 dark:text-amber-300"
+                  >
+                    <TriangleAlertIcon />
+                    {t.agents.statusDegraded}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -139,6 +152,20 @@ export function AgentProfileSheet({
                 <div className="mt-2">
                   <BadgeList values={product.missing_requirements} />
                 </div>
+              </section>
+            )}
+
+            {product.status === "degraded" && (
+              <section className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3">
+                <h3 className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-200">
+                  <TriangleAlertIcon className="size-4" />
+                  {t.agents.limitedAvailability}
+                </h3>
+                <ul className="text-muted-foreground mt-2 space-y-1.5 text-sm">
+                  {affectedReadiness.map((check) => (
+                    <li key={check.key}>{check.detail}</li>
+                  ))}
+                </ul>
               </section>
             )}
 
@@ -248,7 +275,7 @@ export function AgentProfileSheet({
           </Button>
           <Button
             onClick={handleLaunch}
-            disabled={product.status !== "available"}
+            disabled={product.status === "unavailable"}
             className="sm:flex-1"
           >
             <LaunchIcon />

@@ -129,24 +129,24 @@ test("attaches late tool results to their matching processing group", () => {
 test("promotes any structured human-input tool result to a standalone card group", () => {
   const messages = [
     {
-      id: "ai-office-edit",
+      id: "ai-sample-edit",
       type: "ai",
       content: "",
-      tool_calls: [{ id: "office-edit-1", name: "office_edit", args: {} }],
+      tool_calls: [{ id: "sample-edit-1", name: "sample_edit", args: {} }],
     },
     {
-      id: "office-approval-1",
+      id: "sample-approval-1",
       type: "tool",
-      name: "office_edit",
-      tool_call_id: "office-edit-1",
+      name: "sample_edit",
+      tool_call_id: "sample-edit-1",
       content: "Review this edit.",
       artifact: {
         human_input: {
           version: 1,
           kind: "human_input_request",
-          source: "office_selection_approval",
-          request_id: "office-approval-1",
-          question: "Apply this Office edit?",
+          source: "sample_selection_approval",
+          request_id: "sample-approval-1",
+          question: "Apply this Sample edit?",
           input_mode: "single_choice",
           options: [
             { id: "approve", label: "Approve", value: "approve" },

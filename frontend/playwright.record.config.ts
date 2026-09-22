@@ -8,8 +8,7 @@ import { defineConfig, devices } from "@playwright/test";
  *
  * Not committed as a test run; `tests/e2e-record/` holds the driver spec.
  */
-const recordOut =
-  process.env.VASSILFLOW_RECORD_OUT;
+const recordOut = process.env.VASSILFLOW_RECORD_OUT;
 
 export default defineConfig({
   testDir: "./tests/e2e-record",

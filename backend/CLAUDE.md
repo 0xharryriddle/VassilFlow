@@ -217,7 +217,7 @@ For a restricted built-in or personal Agent, `AgentPolicyMiddleware` is prepende
 9. **SkillActivationMiddleware** - Detects strict `/skill-name task` syntax on the latest real user message, resolves only enabled and runtime-allowed skills, reads `SKILL.md` from trusted skill storage, injects the skill body as hidden current-turn model context, and records a `middleware:skill_activation` audit event with skill name, category, path, and content hash
 10. **VassilFlowSummarizationMiddleware** - Context reduction when approaching token limits (optional, if enabled)
 11. **TodoListMiddleware** - Task tracking with `write_todos` tool (optional, if plan_mode)
-12. **TokenUsageMiddleware** - Records token usage metrics when token tracking is enabled (optional); subagent usage is cached by `tool_call_id` only while token usage is enabled and merged back into the dispatching AIMessage by message position rather than message id
+12. **TokenBudgetMiddleware / TokenUsageMiddleware** - Budgeting is registered before usage accounting because `after_model` hooks execute in reverse order. Completed child usage is merged into the dispatching AIMessage before the budget can strip further tool calls. The task usage cache is enabled when either budgeting or reporting is enabled; with reporting disabled, accounting adds no usage logs or step attribution. Child usage is matched by message position rather than message id.
 13. **TitleMiddleware** - Auto-generates thread title after first complete exchange and normalizes structured message content before prompting the title model
 14. **MemoryMiddleware** - Queues conversations for async memory update (filters to user + final AI responses)
 15. **ViewImageMiddleware** - Injects base64 image data before LLM call (conditional on vision support)
@@ -464,7 +464,7 @@ The cached value is reused for both the blocking (`runs.wait`) and streaming (`_
 
 **Workflow**:
 1. `MemoryMiddleware` filters messages (user inputs + final AI responses), captures `user_id` via `get_effective_user_id()`, and queues conversation with the captured `user_id`
-2. Queue debounces (30s default), batches updates, deduplicates per-thread
+2. Queue debounces (30s default), batches updates, deduplicates per owner/thread. Only one worker extracts memory at a time. Enqueues during extraction update a pending deadline; worker completion schedules one follow-up batch. `flush()` during active processing requests an immediate follow-up and returns without waiting. Canceled timer generations cannot consume newer work; pending updates remain best-effort and process-local.
 3. Background thread invokes LLM to extract context updates and facts, using the stored `user_id` (not the contextvar, which is unavailable on timer threads)
 4. Applies updates atomically (temp file + rename) with cache invalidation, skipping duplicate fact content before append
 5. When enough aged facts exist, staleness review surfaces eligible facts in the same update prompt; the apply layer only removes facts that are still aged, unprotected candidates and caps removals per cycle
@@ -515,7 +515,7 @@ The pre-alembic branch handles databases that already have at least one VassilFl
 
 The empty-DB path keeps using `create_all` because `Base.metadata` is the only authoritative schema source — `create_all` renders both SQLite (JSON, type affinity) and Postgres (JSONB, partial indexes) correctly without anyone having to keep a hand-written baseline in lockstep. `0001_baseline.upgrade()` is therefore almost never executed in practice; it exists as a stamp target + chain root.
 
-**Concurrency safety**: Postgres uses `pg_advisory_lock` to serialise concurrent Gateway instances. SQLite uses a per-engine `asyncio.Lock` for same-process startup and is best-effort across processes via SQLite's file-level write lock + `PRAGMA busy_timeout`; multi-instance deployments should use Postgres. Column revisions in `versions/` additionally use idempotent helpers (`_helpers.py::safe_add_column`, `safe_drop_column`) so repeated post-baseline changes and retries are no-ops when the change is already present.
+**Bootstrap concurrency safety**: Postgres uses `pg_advisory_lock` to serialise database bootstrap across processes. SQLite uses a per-engine `asyncio.Lock` for same-process startup and is best-effort across processes via SQLite's file-level write lock + `PRAGMA busy_timeout`. These database protections do not enable multiple Gateway instances: run coordination and streaming still require one process. Column revisions in `versions/` additionally use idempotent helpers (`_helpers.py::safe_add_column`, `safe_drop_column`) so repeated post-baseline changes and retries are no-ops when the change is already present.
 
 **Authoring a new revision**:
 ```bash
@@ -615,7 +615,7 @@ Both can be modified at runtime via Gateway API endpoints or `VassilFlowClient` 
 - Run the full suite before and after your change: `make test`
 - Tests must pass before a feature is considered complete
 - For lightweight config/utility modules, prefer pure unit tests with no external dependencies
-- If a module causes circular import issues in tests, add a `sys.modules` mock in `tests/conftest.py` (see existing example for `vassilflow.subagents.executor`)
+- Keep dependency mocks local to the tests that need them. The executor imports normally; do not replace it globally in `conftest.py`, which would conceal integration failures. Temporary ORM models must use separate metadata so they cannot add tables to production `Base.metadata` or alter migration tests.
 
 ```bash
 # Run all tests
@@ -673,71 +673,45 @@ When using `make dev` from root, the frontend automatically connects through ngi
 
 ## Key Features
 
-### Office Engine
+### Reusable Agent Extensions
 
-The harness Office engine lives under
-`packages/harness/vassilflow/community/office/`. It exposes separate bounded
-inspect, edit, and render tools under the existing sandbox capability model.
-DOCX and XLSX have typed edit surfaces. PPTX supports paragraph-local literal
-replacement plus bounded direct run, paragraph, shape, and connector-line
-formatting within exact authored-ID paths. Shape writes cover only solid/no
-fill, typed RGB linear gradients, corpus-verified radial circle gradients, a
-typed direct-RGB pattern fill, typed embedded PNG/baseline-JPEG
-stretch/crop/tile/center fill, bounded preset-geometry allowlist, line
-fill/width/cap/preset-dash/join, text-box insets, and vertical anchoring. Direct
-slide backgrounds support remove, RGB solid, bounded linear gradient, and
-embedded PNG/baseline-JPEG stretch/tile/center framing. Existing native
-pictures support guarded source-only replacement while preserving crop,
-framing, effects, geometry, metadata, and identity. PNG and baseline JPEG
-sources are read-only sandbox paths locked with the edit; URLs, data URIs,
-base64 payloads, and linked images are rejected. The separate direct-line
-operation targets authored shapes or connectors and adds typed
-compound/alignment plus independent head/tail type, width, and length. Pattern
-or image line fill, picture creation/removal/crop/framing/effect mutation,
-non-circle path gradients, effects/3D, custom or adjusted geometry, connector
-routing, object creation, and destructive media cleanup remain closed. Its read
-surface includes
-declared-order slide metadata, stable object paths, owner-aware interactions,
-direct shape/text/picture formatting, relationship resources, typed
-transitions, opt-in speaker notes and legacy/threaded comments, opt-in authored
-animation effects, and isolated static visual QA. PPTX selectors accept exact
-typed object paths only; positional-path and broad presentation-wide writes
-stay outside the edit union. Optional media cleanup inspection uses a bounded
-contract-v2 package graph plus declared-XML `r:id`/`r:embed`/`r:link`
-integrity scan. It reports zero-reference image relationships, zero-incoming
-parts, projected package-root reachability, and hash-bound root-unreachable
-island evidence; every record is non-actionable and no deletion executor
-exists. The
-DOCX loader validates the package relationship graph, active-content risk, and
-bounded document structure before parsing; XLSX resolves every declared sheet
-before applying cell limits and shares a bounded inspect text budget. The
-shared `opc.py` preservation gate rejects payload or ZIP-container drift outside
-each structured editor's explicit part allowlist while preserving exact bytes
-for allowed all-zero-match transactions. PPTX additionally canonicalizes each
-touched slide to prove that only selected text or requested direct-formatting
-slots changed. Focused coverage lives in
-`tests/test_office_engine_*.py`, `tests/test_office_tools.py`, and
-`tests/test_office_render.py`, with OPC invariants in
-`tests/test_office_opc.py`; the user/tool contract is documented in
-`docs/OFFICE_TOOLS.md`.
+The shipped built-in product Agent registry is empty. The default lead Agent,
+personal Agents, and general-purpose/bash delegated workers remain available.
+`create_vassilflow_agent` and `RuntimeFeatures` expose Python composition, while
+`VassilFlowClient` provides the embedded application workflow.
 
-Office Projects add a user-scoped, read-only PPTX object-selection surface at
-`GET /api/office/projects/{project_id}/revisions/{revision_id}/selection`.
-Selections are derived from exact canonical revision bytes and bind source
-SHA-256, slide index, authored-ID object path, object fingerprint, overlay
-geometry, and an operation allowlist. Browser selection data is never runtime
-authority: the Gateway strips server-owned context keys, resolves the identity
-again for the current user and current PPTX revision, and injects the verified
-selection only into request-scoped runtime context.
+`RuntimeFeatures(token_budget=True)` enables default per-run token limits.
+Passing a configured `TokenBudgetMiddleware` preserves its enabled state and
+custom limits. The application-wide `token_budget.enabled` default remains false.
 
-Selected-object `office_edit` calls must use `source_path: null`. The tool reads
-the canonical project revision, rejects targets or receipt records outside the
-selected path and operation allowlist, and publishes only after the semantic
-receipt is complete. `OfficeSelectionApprovalMiddleware` stops the graph before
-mutation and emits a structured human-input review bound by SHA-256 to the exact
-selection plus complete tool arguments. A matching later approval releases only
-that proposal; cancellation, stale context, changed arguments, forged replies,
-and oversized reviews fail closed.
+When the application-wide budget is enabled, `build_subagent_runtime_middlewares`
+creates a fresh budget middleware for each child graph. Child counters are
+independent even when tasks carry the same parent run ID for attribution. The
+lead checks the aggregate completed usage before allowing subsequent tools.
+This is not a shared reserved token pool: checks depend on provider usage
+metadata and run after responses, so a response or concurrent child tasks can
+overshoot. Offline real graph/executor regressions live in
+`tests/test_subagent_token_budget_integration.py`.
+
+Gateway startup validates both `GATEWAY_WORKERS` and `WEB_CONCURRENCY` before
+initializing persistence or streams. Only one worker is supported regardless of
+database backend; Docker must pass its CLI worker count into the container's
+environment. Tests: `test_gateway_worker_gate.py` and `test_compose_default_workers.py`.
+
+Generic extension contracts remain in the harness:
+
+- `capabilities/` loads server-owned adapters for typed input resolution,
+  middleware contributions, readiness checks, and operational repositories.
+- `actions/` records immutable mutation starts/outcomes and renewable leases.
+- `runtime/thread_lifecycle.py` and its journals support deletion/branch
+  projections with idempotent handlers and bounded repair.
+- `persistence/project_repository.py` defines repository inventory, readiness,
+  and explicit migration contracts; domains own their data schemas.
+
+No concrete document-editing product, project/template API, rendering sidecar,
+or product-specific chat extension ships in the base. New domains should use
+these contracts without importing their implementation into generic run services
+or the lead-agent package. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ### File Upload
 

@@ -19,20 +19,19 @@ from langchain_core.messages import BaseMessage
 from langchain_core.messages.utils import convert_to_messages
 from langgraph.types import Command
 
+from app.gateway.agent_runtime_readiness import (
+    enforce_agent_runtime_readiness,
+)
 from app.gateway.auth_disabled import AUTH_SOURCE_INTERNAL
+from app.gateway.capability_inputs import (
+    extract_capability_inputs,
+    inject_trusted_capability_inputs,
+    resolve_capability_inputs_for_run,
+)
 from app.gateway.deps import get_checkpointer, get_local_provider, get_run_context, get_run_manager, get_stream_bridge
 from app.gateway.internal_auth import INTERNAL_SYSTEM_ROLE, get_trusted_internal_owner_user_id
-from app.gateway.office_selection import extract_office_selection_input
 from app.gateway.utils import sanitize_log_param
-from vassilflow.community.office.errors import (
-    OfficeOperationError,
-    OfficePackageError,
-    OfficeRevisionConflictError,
-    OfficeRevisionError,
-    OfficeRevisionIntegrityError,
-)
-from vassilflow.community.office.revisions import OfficeRevisionStore
-from vassilflow.community.office.selection import resolve_pptx_selection
+from vassilflow.capabilities import CAPABILITY_INPUTS_CONTEXT_KEY
 from vassilflow.config.agent_contract import (
     DEFAULT_ASSISTANT_ID,
     CanonicalAgentIdentity,
@@ -41,7 +40,6 @@ from vassilflow.config.agent_contract import (
 )
 from vassilflow.config.app_config import get_app_config
 from vassilflow.config.builtin_agents import is_builtin_agent
-from vassilflow.config.paths import get_paths
 from vassilflow.runtime import (
     END_SENTINEL,
     HEARTBEAT_SENTINEL,
@@ -180,8 +178,7 @@ _SERVER_OWNED_CONTEXT_KEYS: frozenset[str] = frozenset(
         "agent_allow_mcp_tools",
         "agent_data_access",
         "agent_policy",
-        "office_selection",
-        "office_selection_request",
+        CAPABILITY_INPUTS_CONTEXT_KEY,
     }
 )
 _SERVER_OWNED_METADATA_KEYS: frozenset[str] = frozenset(
@@ -276,6 +273,7 @@ async def enforce_thread_agent_identity(
     identity: CanonicalAgentIdentity,
     *,
     record: Mapping[str, Any] | None = None,
+    upgrade_legacy: bool = True,
 ) -> None:
     """Keep one canonical Agent identity for the lifetime of a thread."""
 
@@ -302,7 +300,11 @@ async def enforce_thread_agent_identity(
         except ValueError:
             legacy_identity = None
         if legacy_identity is not None and legacy_identity == identity:
-            await thread_store.update_assistant_id(thread_id, identity.assistant_id)
+            if upgrade_legacy:
+                await thread_store.update_assistant_id(
+                    thread_id,
+                    identity.assistant_id,
+                )
             return
 
     raise HTTPException(
@@ -369,96 +371,6 @@ def strip_internal_context_keys(config: dict[str, Any]) -> None:
         if isinstance(value, dict):
             for key in _CONTEXT_INTERNAL_CALLER_KEYS:
                 value.pop(key, None)
-
-
-def strip_untrusted_office_context_keys(config: dict[str, Any]) -> None:
-    """Remove stale Office selections without erasing canonical Agent context."""
-
-    for section in ("context", "configurable"):
-        value = config.get(section)
-        if isinstance(value, dict):
-            for key in ("office_selection", "office_selection_request"):
-                value.pop(key, None)
-
-
-def inject_resolved_office_selection(
-    config: dict[str, Any],
-    resolved_selection: dict[str, Any] | None,
-) -> None:
-    """Stamp a server-resolved Office selection into request-scoped runtime context."""
-
-    strip_untrusted_office_context_keys(config)
-    if resolved_selection is None:
-        return
-    runtime_context = config.setdefault("context", {})
-    if not isinstance(runtime_context, dict):
-        raise HTTPException(status_code=400, detail="request config context must be an object")
-    runtime_context["office_selection"] = resolved_selection
-
-
-async def resolve_office_selection_for_run(
-    selection: Any,
-    *,
-    assistant_id: str | None,
-    request: Request,
-    owner_user_id: str | None,
-) -> dict[str, Any] | None:
-    """Resolve a client selection against exact, user-scoped canonical bytes."""
-
-    if selection is None:
-        return None
-    identity = resolve_agent_identity(assistant_id)
-    if identity.agent_name != "office":
-        raise HTTPException(
-            status_code=400,
-            detail="Office selections can only be used with the Office agent",
-        )
-    user = getattr(getattr(request, "state", None), "user", None)
-    user_id = owner_user_id or (str(user.id) if user is not None and getattr(user, "id", None) is not None else "default")
-    values = selection.model_dump() if hasattr(selection, "model_dump") else dict(selection)
-
-    def resolve() -> dict[str, Any]:
-        store = OfficeRevisionStore(get_paths().user_office_dir(user_id))
-        project = store.load_project(values["project_id"])
-        if project["current_revision_id"] != values["revision_id"]:
-            raise OfficeRevisionConflictError("Office selection must target the current project revision")
-        revision, artifact = store.read_revision_artifact(
-            values["project_id"],
-            values["revision_id"],
-        )
-        if revision["format"] != "pptx" or project["format"] != "pptx":
-            raise OfficeOperationError("Office object selection requires a PPTX project")
-        resolved = resolve_pptx_selection(
-            artifact,
-            slide_index=values["slide_index"],
-            source_sha256=values["source_sha256"],
-            object_path=values["object_path"],
-            object_fingerprint=values["object_fingerprint"],
-        )
-        return {
-            **resolved,
-            "project_id": values["project_id"],
-            "revision_id": values["revision_id"],
-            "artifact_size_bytes": revision["artifact"]["size_bytes"],
-        }
-
-    try:
-        return await asyncio.to_thread(resolve)
-    except OfficeRevisionConflictError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except OfficeRevisionIntegrityError as exc:
-        logger.error("Office run selection failed revision integrity checks", exc_info=True)
-        raise HTTPException(
-            status_code=409,
-            detail="Office selection failed revision integrity checks.",
-        ) from exc
-    except OfficeRevisionError as exc:
-        raise HTTPException(status_code=404, detail="Office selection was not found.") from exc
-    except (OfficeOperationError, OfficePackageError) as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except OSError as exc:
-        logger.error("Office run selection could not be read", exc_info=True)
-        raise HTTPException(status_code=500, detail="Office selection could not be read.") from exc
 
 
 def merge_run_context_overrides(config: dict[str, Any], context: Mapping[str, Any] | None, *, internal: bool = False) -> None:
@@ -840,11 +752,31 @@ async def start_run(
 
     owner_context_token = set_current_user(SimpleNamespace(id=owner_user_id)) if owner_user_id else None
     try:
-        resolved_office_selection = await resolve_office_selection_for_run(
-            extract_office_selection_input(body),
-            assistant_id=identity.assistant_id,
-            request=request,
-            owner_user_id=owner_user_id,
+        capability_user_id = owner_user_id or (str(user.id) if user is not None and getattr(user, "id", None) is not None else "default")
+        existing_thread = await run_ctx.thread_store.get(thread_id)
+        if existing_thread is None:
+            # Ownership was checked above. This read catches accessible legacy
+            # rows without an owner before any domain or checkpoint lookup.
+            existing_thread = await run_ctx.thread_store.get(
+                thread_id,
+                user_id=None,
+            )
+        await enforce_thread_agent_identity(
+            run_ctx.thread_store,
+            thread_id,
+            identity,
+            record=existing_thread,
+            upgrade_legacy=False,
+        )
+        resolved_capability_inputs = await resolve_capability_inputs_for_run(
+            extract_capability_inputs(body),
+            identity=identity,
+            user_id=capability_user_id,
+        )
+        await enforce_agent_runtime_readiness(
+            identity,
+            get_app_config(),
+            user_id=capability_user_id,
         )
         agent_factory = resolve_agent_factory(identity.assistant_id)
         command = getattr(body, "command", None)
@@ -885,7 +817,10 @@ async def start_run(
             request,
             internal_owner_user=internal_owner_user,
         )
-        inject_resolved_office_selection(config, resolved_office_selection)
+        inject_trusted_capability_inputs(
+            config,
+            resolved_capability_inputs,
+        )
         stream_modes = normalize_stream_modes(body.stream_mode)
 
         try:

@@ -14,29 +14,36 @@ const MOCK_AGENTS = [
   },
 ];
 
-const MOCK_OFFICE_AGENT = {
-  name: "office",
-  description:
-    "Inspect, revise, render, and review Word, Excel, and PowerPoint files.",
+const MOCK_SAMPLE_AGENT = {
+  name: "sample",
+  description: "Plan and revise content with a sample built-in agent.",
   model: null,
   tool_groups: ["file:read", "file:write"],
-  skills: [],
+  skills: ["content-planning"],
   product: {
-    id: "builtin:office",
-    display_name: "Office",
+    id: "builtin:sample",
+    display_name: "Sample",
     origin: "builtin",
     category: "create",
     icon: "files",
     status: "available",
-    required_tools: ["office_inspect", "office_edit", "office_render"],
+    required_tools: [
+      "sample_inspect",
+      "sample_generate",
+      "sample_edit",
+      "sample_render",
+    ],
     missing_requirements: [],
+    degraded_requirements: [],
+    readiness: [],
     data_access: ["thread_uploads", "thread_workspace", "thread_outputs"],
     starter_prompts: [
-      "Inspect an uploaded Office file and summarize its structure.",
+      "Inspect the supplied context and propose a content plan.",
     ],
+    chat_extension: null,
     launch: {
       kind: "chat",
-      path: "/workspace/agents/office/chats/new",
+      path: "/workspace/agents/sample/chats/new",
       project_kind: null,
     },
     management: { can_edit: false, can_delete: false },
@@ -59,18 +66,18 @@ test.describe("Agent chat", () => {
     page,
   }) => {
     mockLangGraphAPI(page, {
-      agents: [MOCK_OFFICE_AGENT],
+      agents: [MOCK_SAMPLE_AGENT],
       customAgentManagementEnabled: false,
     });
 
     await page.goto("/workspace/agents");
 
     await expect(
-      page.getByLabel("All agents").getByText("Office", { exact: true }),
+      page.getByLabel("All agents").getByText("Sample", { exact: true }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "New Agent" })).toBeHidden();
-    await page.getByRole("button", { name: "View Office details" }).click();
-    await expect(page.getByRole("heading", { name: "Office" })).toBeVisible();
+    await page.getByRole("button", { name: "View Sample details" }).click();
+    await expect(page.getByRole("heading", { name: "Sample" })).toBeVisible();
   });
 
   test("personal Agent runtime remains launchable when management is disabled", async ({
@@ -139,11 +146,11 @@ test.describe("Agent chat", () => {
     }
   });
 
-  test("agent catalog filters categories and opens the Office profile", async ({
+  test("agent catalog filters categories and opens the Sample profile", async ({
     page,
   }, testInfo) => {
     mockLangGraphAPI(page, {
-      agents: [MOCK_OFFICE_AGENT, ...MOCK_AGENTS],
+      agents: [MOCK_SAMPLE_AGENT, ...MOCK_AGENTS],
     });
 
     await page.goto("/workspace/agents");
@@ -151,38 +158,38 @@ test.describe("Agent chat", () => {
     await page.getByRole("option", { name: "Create" }).click();
 
     await expect(
-      page.getByLabel("All agents").getByText("Office", { exact: true }),
+      page.getByLabel("All agents").getByText("Sample", { exact: true }),
     ).toBeVisible();
     await expect(page.getByText("test-agent", { exact: true })).toBeHidden();
 
-    await page.getByRole("button", { name: "View Office details" }).click();
-    await expect(page.getByRole("heading", { name: "Office" })).toBeVisible();
+    await page.getByRole("button", { name: "View Sample details" }).click();
+    await expect(page.getByRole("heading", { name: "Sample" })).toBeVisible();
     await expect(
-      page.getByText("office_render", { exact: true }),
+      page.getByText("sample_render", { exact: true }),
     ).toBeVisible();
     await expect(
       page.getByText(
-        "Inspect an uploaded Office file and summarize its structure.",
+        "Inspect the supplied context and propose a content plan.",
       ),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Pin Office" }).click();
+    await page.getByRole("button", { name: "Pin Sample" }).click();
 
     if (process.env.CAPTURE_AGENT_CATALOG_SCREENSHOTS === "1") {
       await page.screenshot({
-        path: testInfo.outputPath("agent-office-profile.png"),
+        path: testInfo.outputPath("agent-sample-profile.png"),
         fullPage: true,
       });
     }
 
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    const officeAgentShortcut = page.locator(
-      '[data-sidebar="content"] a[href="/workspace/agents/office/chats/new"]',
+    const sampleAgentShortcut = page.locator(
+      '[data-sidebar="content"] a[href="/workspace/agents/sample/chats/new"]',
     );
-    await expect(officeAgentShortcut).toBeVisible();
+    await expect(sampleAgentShortcut).toBeVisible();
     if (process.env.CAPTURE_AGENT_CATALOG_SCREENSHOTS === "1") {
       await page.screenshot({
-        path: testInfo.outputPath("agent-office-catalog-pinned.png"),
+        path: testInfo.outputPath("agent-sample-catalog-pinned.png"),
         fullPage: true,
       });
     }
@@ -192,20 +199,20 @@ test.describe("Agent chat", () => {
       "data-state",
       "collapsed",
     );
-    const collapsedOfficeShortcut = officeAgentShortcut;
-    await expect(collapsedOfficeShortcut).toBeVisible();
-    await collapsedOfficeShortcut.hover();
-    await expect(page.getByRole("tooltip", { name: "Office" })).toBeVisible();
+    const collapsedSampleShortcut = sampleAgentShortcut;
+    await expect(collapsedSampleShortcut).toBeVisible();
+    await collapsedSampleShortcut.hover();
+    await expect(page.getByRole("tooltip", { name: "Sample" })).toBeVisible();
     if (process.env.CAPTURE_AGENT_CATALOG_SCREENSHOTS === "1") {
       await page.screenshot({
-        path: testInfo.outputPath("agent-office-sidebar-collapsed.png"),
+        path: testInfo.outputPath("agent-sample-sidebar-collapsed.png"),
         fullPage: true,
       });
     }
 
-    await page.getByRole("button", { name: "View Office details" }).click();
+    await page.getByRole("button", { name: "View Sample details" }).click();
     await page.getByRole("button", { name: "Chat", exact: true }).click();
-    await expect(page).toHaveURL(/\/workspace\/agents\/office\/chats\/new$/);
+    await expect(page).toHaveURL(/\/workspace\/agents\/sample\/chats\/new$/);
   });
 
   test("agent catalog remains usable without horizontal overflow on mobile", async ({
@@ -214,7 +221,7 @@ test.describe("Agent chat", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     mockLangGraphAPI(page, {
       agents: [
-        MOCK_OFFICE_AGENT,
+        MOCK_SAMPLE_AGENT,
         ...MOCK_AGENTS,
         {
           name: "research-agent",
@@ -249,10 +256,10 @@ test.describe("Agent chat", () => {
       });
     }
 
-    await page.getByRole("button", { name: "View Office details" }).click();
+    await page.getByRole("button", { name: "View Sample details" }).click();
     const profile = page.getByRole("dialog");
     await expect(
-      profile.getByRole("heading", { name: "Office" }),
+      profile.getByRole("heading", { name: "Sample" }),
     ).toBeVisible();
     const profileBox = await profile.boundingBox();
     expect(profileBox).not.toBeNull();
@@ -260,7 +267,7 @@ test.describe("Agent chat", () => {
 
     if (process.env.CAPTURE_AGENT_CATALOG_SCREENSHOTS === "1") {
       await profile.screenshot({
-        path: testInfo.outputPath("agent-office-profile-mobile.png"),
+        path: testInfo.outputPath("agent-sample-profile-mobile.png"),
       });
     }
   });
@@ -438,5 +445,50 @@ test.describe("Agent chat", () => {
         thread_id: MOCK_THREAD_ID,
       },
     });
+  });
+
+  test("unavailable built-in Agent blocks old-thread input and regenerate", async ({
+    page,
+  }) => {
+    const humanMessage = {
+      type: "human",
+      id: "msg-human-unavailable",
+      content: [{ type: "text", text: "Original Sample request" }],
+    };
+    const aiMessage = {
+      type: "ai",
+      id: "msg-ai-unavailable",
+      content: "Previous Sample response",
+    };
+    mockLangGraphAPI(page, {
+      agents: [
+        {
+          ...MOCK_SAMPLE_AGENT,
+          product: {
+            ...MOCK_SAMPLE_AGENT.product,
+            status: "unavailable",
+            missing_requirements: ["sample.projects"],
+          },
+        },
+      ],
+      threads: [
+        {
+          thread_id: MOCK_THREAD_ID,
+          title: "Unavailable Sample conversation",
+          agent_name: "sample",
+          messages: [humanMessage, aiMessage],
+        },
+      ],
+    });
+
+    await page.goto(`/workspace/agents/sample/chats/${MOCK_THREAD_ID}`);
+
+    await expect(page.getByText(aiMessage.content)).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByPlaceholder(/how can i assist you/i)).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Regenerate" }),
+    ).toBeDisabled();
   });
 });

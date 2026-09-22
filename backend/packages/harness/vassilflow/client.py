@@ -42,6 +42,7 @@ from vassilflow.agents.agent_policy import (
 from vassilflow.agents.lead_agent.agent import build_middlewares
 from vassilflow.agents.lead_agent.prompt import apply_prompt_template, get_enabled_skills_for_config
 from vassilflow.agents.thread_state import ThreadState
+from vassilflow.capabilities import capability_middlewares
 from vassilflow.config.agent_contract import DEFAULT_ASSISTANT_ID, resolve_agent_identity
 from vassilflow.config.agents_config import load_agent_config, load_agent_soul
 from vassilflow.config.app_config import get_app_config, reload_app_config
@@ -324,6 +325,7 @@ class VassilFlowClient:
                 app_config=self._app_config,
                 deferred_setup=deferred_setup,
                 agent_policy=agent_policy,
+                capability_middlewares=(capability_middlewares(builtin_agent.capability_adapters) if builtin_agent is not None else []),
             ),
             "system_prompt": apply_prompt_template(
                 subagent_enabled=subagent_enabled,

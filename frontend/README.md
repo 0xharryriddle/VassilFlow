@@ -77,9 +77,9 @@ pnpm start
 
 ```
 ├── /                    # Landing page
-├── /chats               # Chat list
-├── /chats/new           # New chat page
-└── /chats/[thread_id]   # A specific chat page
+├── /workspace/chats               # Chat list
+├── /workspace/chats/new           # New chat page
+└── /workspace/chats/[thread_id]    # A specific chat page
 ```
 
 ## Configuration
@@ -95,7 +95,19 @@ NEXT_PUBLIC_BACKEND_BASE_URL="http://localhost:8001"
 NEXT_PUBLIC_LANGGRAPH_BASE_URL="http://localhost:8001/api"
 ```
 
+The default proxy keeps authenticated requests on the frontend origin. A
+separate backend port on the same hostname also works when gateway CORS permits
+the frontend origin: REST and SDK requests include session cookies and CSRF
+headers. Unrelated hostnames are not supported merely by changing these URLs;
+the gateway's host-only cookies and SameSite rules still apply.
+
 ## Project Structure
+
+The workspace provides the shared chat and Agent catalog. Agent chat extensions
+are selected by catalog metadata; the extension registry currently has no
+domain-specific entries. Generic capability inputs and action provenance APIs
+remain available for future integrations. Regular attachments, including DOCX,
+XLSX, and PPTX files, continue to use the upload and artifact download flows.
 
 ```
 tests/

@@ -52,7 +52,7 @@ def test_default_agent_aliases_are_reserved() -> None:
 
 def test_agent_identity_rejects_invalid_names() -> None:
     with pytest.raises(ValueError, match="Invalid assistant_id"):
-        resolve_agent_identity("../../office")
+        resolve_agent_identity("../../sample")
 
 
 def test_unknown_runtime_policy_version_fails_closed() -> None:

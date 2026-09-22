@@ -109,7 +109,7 @@ async def test_update_assistant_id_denied(store):
         await store.create("t-alpha", assistant_id="lead_agent")
 
     with _as_user(USER_B):
-        await store.update_assistant_id("t-alpha", "office")
+        await store.update_assistant_id("t-alpha", "sample")
 
     with _as_user(USER_A):
         row = await store.get("t-alpha")

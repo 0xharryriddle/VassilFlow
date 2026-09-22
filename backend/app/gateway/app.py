@@ -3,8 +3,9 @@ import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.brand import GATEWAY_SERVICE_NAME, GATEWAY_TITLE
 from app.gateway.auth_disabled import warn_if_auth_disabled_enabled
@@ -12,7 +13,14 @@ from app.gateway.auth_middleware import AuthMiddleware
 from app.gateway.config import get_gateway_config
 from app.gateway.csrf_middleware import CSRFMiddleware, get_configured_cors_origins
 from app.gateway.deps import langgraph_runtime
+from app.gateway.domain_lifecycle import build_thread_lifecycle_dispatcher
+from app.gateway.readiness import (
+    GatewayReadinessReport,
+    build_gateway_readiness,
+    configuration_failure_report,
+)
 from app.gateway.routers import (
+    actions,
     agents,
     artifacts,
     assistants_compat,
@@ -24,8 +32,6 @@ from app.gateway.routers import (
     mcp,
     memory,
     models,
-    office_projects,
-    office_templates,
     runs,
     skills,
     suggestions,
@@ -313,10 +319,6 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
                 "description": "Access and download thread artifacts and generated files",
             },
             {
-                "name": "office-templates",
-                "description": "Manage trusted personal Office template versions and evidence",
-            },
-            {
                 "name": "uploads",
                 "description": "Upload and manage user files for threads",
             },
@@ -354,6 +356,7 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
             },
         ],
     )
+    app.state.thread_lifecycle_dispatcher = build_thread_lifecycle_dispatcher()
 
     # Auth: reject unauthenticated requests to non-public paths (fail-closed safety net)
     app.add_middleware(AuthMiddleware)
@@ -399,11 +402,8 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
     # Agents API is mounted at /api/agents
     app.include_router(agents.router)
 
-    # Office Project API is mounted at /api/office/projects
-    app.include_router(office_projects.router)
-
-    # Office Template API is mounted at /api/office/templates
-    app.include_router(office_templates.router)
+    # Action provenance API is mounted at /api/actions
+    app.include_router(actions.router)
 
     # Suggestions API is mounted at /api/threads/{thread_id}/suggestions
     app.include_router(suggestions.router)
@@ -440,6 +440,27 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
             Service health status information.
         """
         return {"status": "healthy", "service": GATEWAY_SERVICE_NAME}
+
+    @app.get(
+        "/health/ready",
+        tags=["health"],
+        response_model=GatewayReadinessReport,
+        responses={503: {"model": GatewayReadinessReport}},
+    )
+    async def readiness_check(request: Request) -> JSONResponse:
+        """Report core persistence and built-in Agent readiness."""
+
+        try:
+            config = get_app_config()
+        except Exception:
+            logger.exception("Failed to load configuration during readiness probe")
+            report = configuration_failure_report()
+        else:
+            report = await build_gateway_readiness(request, config)
+        return JSONResponse(
+            status_code=503 if report.status == "not_ready" else 200,
+            content=report.model_dump(mode="json", by_alias=True),
+        )
 
     return app
 

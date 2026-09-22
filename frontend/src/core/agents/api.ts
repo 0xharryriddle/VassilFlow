@@ -63,8 +63,11 @@ function legacyCustomAgentProduct(agent: AgentWire): AgentProductMetadata {
     status: "available",
     required_tools: [],
     missing_requirements: [],
+    degraded_requirements: [],
+    readiness: [],
     data_access: [],
     starter_prompts: [],
+    chat_extension: null,
     launch: {
       kind: "chat",
       path: `/workspace/agents/${agent.name}/chats/new`,
@@ -88,8 +91,11 @@ function normalizeAgent(agent: AgentWire): Agent {
           ...product,
           required_tools: product.required_tools ?? [],
           missing_requirements: product.missing_requirements ?? [],
+          degraded_requirements: product.degraded_requirements ?? [],
+          readiness: product.readiness ?? [],
           data_access: product.data_access ?? [],
           starter_prompts: product.starter_prompts ?? [],
+          chat_extension: product.chat_extension ?? null,
           launch: { ...fallback.launch, ...product.launch },
           management: { ...fallback.management, ...product.management },
         }

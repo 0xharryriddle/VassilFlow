@@ -323,6 +323,16 @@ def build_subagent_runtime_middlewares(
 
         middlewares.append(LoopDetectionMiddleware.from_config(loop_detection_config))
 
+    # Each executor task builds its own graph, so inheriting the enabled
+    # application budget gives each child an independent allowance even though
+    # guardrail attribution retains the parent run_id. This does not reserve
+    # tokens from, or replace, the parent's aggregate budget.
+    token_budget_config = app_config.token_budget
+    if token_budget_config.enabled:
+        from vassilflow.agents.middlewares.token_budget_middleware import TokenBudgetMiddleware
+
+        middlewares.append(TokenBudgetMiddleware.from_config(token_budget_config))
+
     # Same provider safety-termination guard the lead agent uses — subagents
     # are equally exposed to truncated tool_calls returned with
     # finish_reason=content_filter (and friends), and the bad call would then
