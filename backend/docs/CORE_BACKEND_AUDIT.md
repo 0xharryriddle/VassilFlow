@@ -91,12 +91,12 @@ Environment: macOS 26.5.1, arm64; backend project virtual environment (Python 3.
 
 | Fresh process | Median peak RSS | Range | Median wall time | Interpretation |
 | --- | ---: | ---: | ---: | --- |
-| `python -c 'pass'` | 23.2 MiB | 23.2–23.2 | 0.020 s | interpreter baseline |
-| `import fastapi` | 42.3 MiB | 42.3–42.4 | 0.120 s | FastAPI import cost in this environment |
-| `from kubernetes import client, config` | 75.8 MiB | 75.6–75.9 | 0.150 s | Kubernetes client import cost; overlaps other imports, do not add rows |
-| `import langchain.agents` | 67.0 MiB | 66.9–67.0 | 0.240 s | LangChain agent import cost; overlaps other imports |
-| `import app.gateway.app` | 130.5 MiB | 130.4–130.6 | 0.720 s | Gateway module/app-construction import only, not lifespan |
-| `import app` from `docker/provisioner/` | 92.6 MiB | 92.5–92.8 | 0.350 s | provisioner module import only, not lifespan |
+| `python -c 'pass'` | 15.3 MiB | 15.3–15.3 | 0.010 s | interpreter baseline |
+| `import fastapi` | 42.5 MiB | 42.4–42.5 | 0.120 s | FastAPI import cost in this environment |
+| `from kubernetes import client, config` | 75.8 MiB | 75.7–75.9 | 0.150 s | Kubernetes client import cost; overlaps other imports, do not add rows |
+| `import langchain.agents` | 67.0 MiB | 66.9–67.1 | 0.240 s | LangChain agent import cost; overlaps other imports |
+| `import app.gateway.app` | 130.5 MiB | 130.4–130.6 | 0.690 s | Gateway module/app-construction import only, not lifespan |
+| `import app` from `docker/provisioner/` | 92.4 MiB | 92.4–92.6 | 0.240 s | provisioner module import only, not lifespan |
 
 Example exact single-process command (repeat five times for the reported distribution):
 
