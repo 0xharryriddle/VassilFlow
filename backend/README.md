@@ -470,6 +470,8 @@ reachability.
 - [Full Setup Guide](../docs/SETUP.md)
 - [Configuration Guide](docs/CONFIGURATION.md)
 - [Architecture Details](docs/ARCHITECTURE.md)
+- [Core Backend Audit](docs/CORE_BACKEND_AUDIT.md)
+- [Core Backend Refactoring Plan](docs/CORE_BACKEND_REFACTOR_PLAN.md)
 - [API Reference](docs/API.md)
 - [File Upload](docs/FILE_UPLOAD.md)
 - [Path Examples](docs/PATH_EXAMPLES.md)
