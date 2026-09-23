@@ -181,4 +181,4 @@ Capture Linux production-like cgroup/process memory for cold start, warm idle, r
 - `make detect-blocking-io`: 36 candidates (19 medium, 17 low); the two previous HIGH cleanup findings are gone. Remaining static findings require individual runtime review.
 - `python3 scripts/core_backend_loc.py`: production 62,172 lines / 372 files; tests 87,145 lines / 347 files including the two new tests. Production LOC remains at the baseline because current changes are docs, tests, and a code adjustment, not production-code deletion.
 - `make check` remains blocked by missing nginx; Docker container/cgroup baseline remains blocked because Docker daemon is not running.
-- No production config/secret was read; no Kubernetes cluster was contacted; no deployment, merge, push, or user-data mutation occurred.
+- No production config/secret was read; no Kubernetes cluster was contacted; no production deployment, merge, or user-data mutation occurred. The review branch is pushed to `origin` and linked to draft PR #1.

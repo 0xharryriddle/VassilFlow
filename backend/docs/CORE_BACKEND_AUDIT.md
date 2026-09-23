@@ -156,4 +156,4 @@ Static scan candidates include two high-priority recursive deletions in `backend
 - Current deployment settings may differ from `config.example.yaml`; no real configuration or secret was read.
 - LOC is a source-size proxy. It does not establish maintainability or behavior removal. Python and Go remain counted with the same rule after any migration.
 - The 30% LOC reduction target is not yet shown to be safely achievable. Required reduction is 18,652 counted lines. Do not delete behavior, contracts, migrations, safety checks, tests, or docs to hit it.
-- No PR, code refactor, Go service, commit, push, merge, or deployment has been created/performed at this stage.
+- The initial audit baseline produced no source changes. After the plan was written, a bounded first PR-sized slice was implemented; see the current execution results in `CORE_BACKEND_REFACTOR_PLAN.md`. It is a draft PR only. No production config/data mutation, merge, Go cutover, or deployment occurred.
