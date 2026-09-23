@@ -174,7 +174,7 @@ Capture Linux production-like cgroup/process memory for cold start, warm idle, r
 
 ## Baseline and current verification
 
-- Before the source fixes, the unchanged full suite was **5,846 passed, 20 skipped, 1 failed**. The only failure was `test_execute_command_path_replacement`: test setup replaced `subprocess.run` although POSIX uses `Popen` through `_run_posix_command`.
+- The user-provided historical baseline was **5,848 passed, 20 skipped, 1 failed**. In this audit rerun on unchanged production code, the full suite also failed on `test_execute_command_path_replacement`; its exact pass/skip counts were not preserved in the captured output. The isolated test reproduced the failure. Its test setup replaced `subprocess.run` although POSIX uses `Popen` through `_run_posix_command`.
 - After two workspace-cleanup regression tests and a platform-correct test mock were added, the full backend suite is **5,849 passed, 20 skipped**. Exact command: `PYTHONPATH=. PYTHONIOENCODING=utf-8 PYTHONUTF8=1 uv run pytest tests/ -q --tb=short` from `backend/`.
 - `uv run ruff check . && uv run ruff format --check .`: pass; 728 files formatted.
 - `make test-blocking-io`: 39 passed.
