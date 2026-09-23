@@ -129,7 +129,7 @@ After PR 1 changes, the full suite is **5,849 passed, 20 skipped**; Ruff is clea
 
 The isolated failure is in `backend/tests/test_local_sandbox_provider_mounts.py:478-507`: the test replaces `subprocess.run` and expects it to capture the resolved command; POSIX production code takes `_run_posix_command()` and uses `subprocess.Popen` (`backend/packages/harness/vassilflow/sandbox/local/local_sandbox.py:483-485,501-519`). The test’s mock/assertion does not follow that POSIX path, so classify this as a cross-platform test-fixture gap pending a focused fix, not as evidence of a production command-path defect. Do not suppress or weaken the test.
 
-Static scan candidates include two high-priority recursive deletions in `backend/packages/harness/vassilflow/workspace_changes/recorder.py:60,111`; the scanner found 38 total file-I/O candidates (28 direct async, 10 same-file-reachable). Manual/runtime regression anchors should be added before changing any candidate. This affects event-loop latency, not proven memory use.
+The baseline static scan identified two HIGH-priority recursive deletions in `backend/packages/harness/vassilflow/workspace_changes/recorder.py:60,111`; both are now offloaded and no longer appear in the current scan. The remaining 36 file-I/O candidates (19 MEDIUM, 17 LOW; 27 direct-async and 9 same-file-reachable) still require individual runtime review and tests before changing them. These are event-loop responsiveness findings, not proven memory issues.
 
 ## Ranked findings
 
