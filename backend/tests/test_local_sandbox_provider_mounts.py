@@ -1,4 +1,5 @@
 import errno
+import os
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -497,8 +498,20 @@ class TestMultipleMounts:
                 captured["command"] = args[0]
             return SimpleNamespace(stdout="hello", stderr="", returncode=0)
 
-        monkeypatch.setattr("vassilflow.sandbox.local.local_sandbox.subprocess.run", mock_run)
         monkeypatch.setattr("vassilflow.sandbox.local.local_sandbox.LocalSandbox._get_shell", lambda self: "/bin/sh")
+
+        if os.name == "nt":
+            monkeypatch.setattr("vassilflow.sandbox.local.local_sandbox.subprocess.run", mock_run)
+        else:
+
+            def mock_posix_run(args, timeout, env=None):
+                captured["command"] = args
+                return "hello", "", 0, False
+
+            monkeypatch.setattr(
+                "vassilflow.sandbox.local.local_sandbox.LocalSandbox._run_posix_command",
+                staticmethod(mock_posix_run),
+            )
 
         sandbox.execute_command("cat /mnt/data/test.txt")
         # Verify the command received the resolved local path

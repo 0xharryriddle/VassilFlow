@@ -9,6 +9,8 @@ lifecycle, and repository extension contracts remain available.
 | Document                                               | Description                                                               |
 | ------------------------------------------------------ | ------------------------------------------------------------------------- |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                     | Canonical runtime, Agent, capability, project, and extension architecture |
+| [CORE_BACKEND_AUDIT.md](CORE_BACKEND_AUDIT.md)         | Evidence-based core backend architecture, LOC, and resource audit         |
+| [CORE_BACKEND_REFACTOR_PLAN.md](CORE_BACKEND_REFACTOR_PLAN.md) | Staged performance, simplification, and selective Go migration plan |
 | [API.md](API.md)                                       | Complete API reference                                                    |
 | [AUTH_DESIGN.md](AUTH_DESIGN.md)                       | User authentication, CSRF, and per-user isolation design                  |
 | [CONFIGURATION.md](CONFIGURATION.md)                   | Configuration options                                                     |

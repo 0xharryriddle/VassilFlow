@@ -57,7 +57,7 @@ async def capture_workspace_snapshot(
         )
     except Exception:
         if text_cache_dir is not None:
-            shutil.rmtree(text_cache_dir, ignore_errors=True)
+            await asyncio.to_thread(shutil.rmtree, text_cache_dir, ignore_errors=True)
         raise
 
 
@@ -103,9 +103,9 @@ async def record_workspace_changes(
             metadata={WORKSPACE_CHANGES_METADATA_KEY: payload},
         )
     finally:
-        _cleanup_snapshot_text_cache(before)
+        await _cleanup_snapshot_text_cache(before)
 
 
-def _cleanup_snapshot_text_cache(snapshot: WorkspaceSnapshot) -> None:
+async def _cleanup_snapshot_text_cache(snapshot: WorkspaceSnapshot) -> None:
     if snapshot.text_cache_dir:
-        shutil.rmtree(snapshot.text_cache_dir, ignore_errors=True)
+        await asyncio.to_thread(shutil.rmtree, snapshot.text_cache_dir, ignore_errors=True)
