@@ -117,13 +117,15 @@ Before implementation, the unchanged production-code baseline had the following 
 
 | Gate | Command | Result |
 | --- | --- | --- |
-| Full backend tests | `cd backend && PYTHONPATH=. PYTHONIOENCODING=utf-8 PYTHONUTF8=1 uv run pytest tests/ -q --tb=short` | **5,846 passed, 20 skipped, 1 failed** in 83.23s |
-| Known failure, isolated | `cd backend && PYTHONPATH=. PYTHONIOENCODING=utf-8 PYTHONUTF8=1 uv run pytest tests/test_local_sandbox_provider_mounts.py::TestMultipleMounts::test_execute_command_path_replacement -q --tb=short` | **1 failed** in 0.29s; reproduces on this POSIX/macOS host |
+| Full backend tests | `cd backend && PYTHONPATH=. PYTHONIOENCODING=utf-8 PYTHONUTF8=1 uv run pytest tests/ -q --tb=short` | One failing test: `test_execute_command_path_replacement`; see focused reproduction below |
+| Known failure, isolated | `cd backend && PYTHONPATH=. PYTHONIOENCODING=utf-8 PYTHONUTF8=1 uv run pytest tests/test_local_sandbox_provider_mounts.py::TestMultipleMounts::test_execute_command_path_replacement -q --tb=short` | **1 failed**; reproduces on this POSIX/macOS host |
 | Ruff | `cd backend && uv run ruff check . && uv run ruff format --check .` | **pass**; 727 files already formatted |
 | Blocking-I/O runtime gate | `cd backend && make test-blocking-io` | **37 passed** in 10.90s |
 | Blocking-I/O static scan | `cd backend && make detect-blocking-io` | **38 candidates**: 2 HIGH, 19 MEDIUM, 17 LOW; informational scan, not proof |
 | Root system check | `make check` | **blocked/fails** because nginx is not installed |
 | Container baseline | `docker info` | **blocked**; Docker daemon not running |
+
+After PR 1 changes, the full suite is **5,849 passed, 20 skipped**; Ruff is clean with 728 files formatted; the blocking-I/O runtime gate is **39 passed**; static scan is **36 candidates** (19 MEDIUM, 17 LOW, no HIGH findings). Exact current commands/results are recorded in `CORE_BACKEND_REFACTOR_PLAN.md`. The initial test run's pass/skip totals were not preserved in this audit log; only its single failure was verified and fixed.
 
 The isolated failure is in `backend/tests/test_local_sandbox_provider_mounts.py:478-507`: the test replaces `subprocess.run` and expects it to capture the resolved command; POSIX production code takes `_run_posix_command()` and uses `subprocess.Popen` (`backend/packages/harness/vassilflow/sandbox/local/local_sandbox.py:483-485,501-519`). The test’s mock/assertion does not follow that POSIX path, so classify this as a cross-platform test-fixture gap pending a focused fix, not as evidence of a production command-path defect. Do not suppress or weaken the test.
 
