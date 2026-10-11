@@ -812,6 +812,8 @@ class ChannelManager:
         self._semaphore: asyncio.Semaphore | None = None
         self._running = False
         self._task: asyncio.Task | None = None
+        self._handler_tasks: set[asyncio.Task] = set()
+        self._stop_task: asyncio.Task | None = None
         # Insertion order == chronological (keys are never re-inserted), so an
         # OrderedDict lets us evict expired/overflow entries from the front in
         # O(k) instead of scanning all entries on every inbound message.
@@ -939,6 +941,8 @@ class ChannelManager:
 
     async def start(self) -> None:
         """Start the dispatch loop."""
+        if self._stop_task is not None and not self._stop_task.done():
+            await asyncio.shield(self._stop_task)
         if self._running:
             return
         self._running = True
@@ -947,7 +951,17 @@ class ChannelManager:
         logger.info("ChannelManager started (max_concurrency=%d)", self._max_concurrency)
 
     async def stop(self) -> None:
-        """Stop the dispatch loop."""
+        """Stop dispatch and await cooperative cleanup of all owned handlers.
+
+        Cleanup has no independent timeout: transports must remain open until
+        handlers settle. Repeated/cancelled callers join the same shutdown task
+        without issuing another cancellation into handler finalizers.
+        """
+        if self._stop_task is None or self._stop_task.done():
+            self._stop_task = asyncio.create_task(self._stop_handlers())
+        await asyncio.shield(self._stop_task)
+
+    async def _stop_handlers(self) -> None:
         self._running = False
         if self._task:
             self._task.cancel()
@@ -956,6 +970,12 @@ class ChannelManager:
             except asyncio.CancelledError:
                 pass
             self._task = None
+        handlers = list(self._handler_tasks)
+        for task in handlers:
+            task.cancel()
+        if handlers:
+            await asyncio.gather(*handlers, return_exceptions=True)
+        self._handler_tasks.difference_update(handlers)
         logger.info("ChannelManager stopped")
 
     # -- dispatch loop -----------------------------------------------------
@@ -987,6 +1007,8 @@ class ChannelManager:
                 len(msg.files),
             )
             task = asyncio.create_task(self._handle_message(msg))
+            self._handler_tasks.add(task)
+            task.add_done_callback(self._handler_tasks.discard)
             task.add_done_callback(self._log_task_error)
 
     @staticmethod
@@ -1086,6 +1108,9 @@ class ChannelManager:
                     await self._handle_command(msg)
                 else:
                     await self._handle_chat(msg, bound_identity_checked=True)
+        except asyncio.CancelledError:
+            self._release_inbound_dedupe_key(msg)
+            raise
         except InvalidChannelSessionConfigError as exc:
             logger.warning(
                 "Invalid channel session config for %s (chat=%s): %s",

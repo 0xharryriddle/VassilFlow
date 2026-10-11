@@ -218,7 +218,9 @@ class ChannelService:
             return False
 
     async def stop(self) -> None:
-        """Stop all channels and the manager."""
+        """Drain message handlers before closing their channel transports."""
+        self._running = False
+        await self.manager.stop()
         for name, channel in list(self._channels.items()):
             try:
                 await channel.stop()
@@ -227,8 +229,6 @@ class ChannelService:
                 logger.exception("Error stopping channel")
         self._channels.clear()
 
-        await self.manager.stop()
-        self._running = False
         logger.info("ChannelService stopped")
 
     def _load_channel_config(self, name: str) -> dict[str, Any] | None:

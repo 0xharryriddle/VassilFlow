@@ -146,12 +146,20 @@ async def run_agent(
 
     run_id = record.run_id
     thread_id = record.thread_id
+    # Admission can be cancelled before the gateway attaches/schedules this task.
+    # Such a run has never owned a checkpoint and must not execute or roll back.
+    if record.abort_event.is_set():
+        await bridge.publish_end(run_id)
+        asyncio.create_task(bridge.cleanup(run_id, delay=60))
+        return
     requested_modes: set[str] = set(stream_modes or ["values"])
     pre_run_checkpoint_id: str | None = None
     pre_run_snapshot: dict[str, Any] | None = None
     pre_run_workspace_snapshot: WorkspaceSnapshot | None = None
     workspace_changes_user_id: str | None = None
-    snapshot_capture_failed = False
+    # Cancellation during the initial read must not look like a successfully
+    # captured empty thread (which would authorize deleting its checkpoints).
+    snapshot_capture_failed = checkpointer is not None
     llm_error_fallback_message: str | None = None
 
     journal = None
@@ -189,6 +197,7 @@ async def run_agent(
             try:
                 config_for_check = {"configurable": {"thread_id": thread_id, "checkpoint_ns": ""}}
                 ckpt_tuple = await checkpointer.aget_tuple(config_for_check)
+                snapshot_capture_failed = False
                 if ckpt_tuple is not None:
                     ckpt_config = getattr(ckpt_tuple, "config", {}).get("configurable", {})
                     pre_run_checkpoint_id = ckpt_config.get("checkpoint_id")

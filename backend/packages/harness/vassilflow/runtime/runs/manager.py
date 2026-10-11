@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 import sqlite3
 import uuid
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
+from weakref import WeakValueDictionary
 
 from vassilflow.utils.time import now_iso as _now_iso
 
@@ -119,7 +121,10 @@ class RunManager:
         store: RunStore | None = None,
         *,
         persistence_retry_policy: PersistenceRetryPolicy | None = None,
+        replacement_timeout: float = 5.0,
     ) -> None:
+        if isinstance(replacement_timeout, bool) or not isinstance(replacement_timeout, (int, float)) or not math.isfinite(replacement_timeout) or replacement_timeout <= 0:
+            raise ValueError("replacement_timeout must be a finite positive number")
         self._runs: dict[str, RunRecord] = {}
         # Secondary index: thread_id -> insertion-ordered run_id set (a dict is
         # used as an ordered set), maintained in lockstep with ``_runs`` so
@@ -127,6 +132,8 @@ class RunManager:
         # preserving ``_runs`` iteration order (see ``_thread_records_locked``).
         self._runs_by_thread: dict[str, dict[str, None]] = {}
         self._lock = asyncio.Lock()
+        self._admission_locks: WeakValueDictionary[str, asyncio.Lock] = WeakValueDictionary()
+        self._replacement_timeout = replacement_timeout
         self._store = store
         self._persistence_retry_policy = persistence_retry_policy or PersistenceRetryPolicy()
 
@@ -159,6 +166,12 @@ class RunManager:
         if not run_ids:
             return []
         return [record for run_id in run_ids if (record := self._runs.get(run_id)) is not None]
+
+    @staticmethod
+    def _is_inflight(record: RunRecord) -> bool:
+        # A worker may mark its run terminal before finishing checkpoint rollback
+        # or other finalization. Its task still owns the thread until it exits.
+        return record.status in (RunStatus.pending, RunStatus.running) or (record.task is not None and not record.task.done())
 
     @staticmethod
     def _store_put_payload(record: RunRecord, *, error: str | None = None) -> dict[str, Any]:
@@ -455,9 +468,10 @@ class RunManager:
         if self._store is None:
             return sorted(memory_records, key=lambda r: r.created_at, reverse=True)[:limit]
         records_by_id = {record.run_id: record for record in memory_records}
-        store_limit = max(0, limit - len(memory_records))
         try:
-            rows = await self._store.list_by_thread(thread_id, user_id=user_id, limit=store_limit)
+            # Live records are normally persisted too, so subtracting their count
+            # under-fetches older rows when the store returns those duplicates.
+            rows = await self._store.list_by_thread(thread_id, user_id=user_id, limit=limit)
         except Exception:
             logger.warning("Failed to hydrate runs for thread %s from store", thread_id, exc_info=True)
             return sorted(memory_records, key=lambda r: r.created_at, reverse=True)[:limit]
@@ -552,15 +566,37 @@ class RunManager:
         model_name: str | None = None,
         user_id: str | None = None,
     ) -> RunRecord:
-        """Atomically check for inflight runs and create a new one.
+        """Reserve a run and finish predecessor cleanup before admitting it.
 
-        For ``reject`` strategy, raises ``ConflictError`` if thread
-        already has a pending/running run.  For ``interrupt``/``rollback``,
-        cancels inflight runs before creating.
-
-        This method holds the lock across both the check and the insert,
-        eliminating the TOCTOU race in separate ``has_inflight`` + ``create``.
+        Replacements wait at most ``replacement_timeout`` seconds for old worker
+        tasks to finalize. Timeout fails closed with ``ConflictError``. Cleanup
+        runs outside the registry lock, with admission serialized per thread.
         """
+        thread_lock = self._admission_locks.setdefault(thread_id, asyncio.Lock())
+        async with thread_lock:
+            return await self._create_or_reject(
+                thread_id,
+                assistant_id,
+                on_disconnect=on_disconnect,
+                metadata=metadata,
+                kwargs=kwargs,
+                multitask_strategy=multitask_strategy,
+                model_name=model_name,
+                user_id=user_id,
+            )
+
+    async def _create_or_reject(
+        self,
+        thread_id: str,
+        assistant_id: str | None,
+        *,
+        on_disconnect: DisconnectMode,
+        metadata: dict | None,
+        kwargs: dict | None,
+        multitask_strategy: str,
+        model_name: str | None,
+        user_id: str | None,
+    ) -> RunRecord:
         run_id = str(uuid.uuid4())
         now = _now_iso()
 
@@ -571,7 +607,7 @@ class RunManager:
             if multitask_strategy not in _supported_strategies:
                 raise UnsupportedStrategyError(f"Multitask strategy '{multitask_strategy}' is not yet supported. Supported strategies: {', '.join(_supported_strategies)}")
 
-            inflight = [r for r in self._thread_records_locked(thread_id) if r.status in (RunStatus.pending, RunStatus.running)]
+            inflight = [r for r in self._thread_records_locked(thread_id) if self._is_inflight(r)]
 
             if multitask_strategy == "reject" and inflight:
                 raise ConflictError(f"Thread {thread_id} already has an active run")
@@ -615,6 +651,10 @@ class RunManager:
 
             if multitask_strategy in ("interrupt", "rollback") and inflight:
                 for r in inflight:
+                    # Never interrupt a rollback/finalizer a second time, and do
+                    # not turn a completed run's remaining cleanup into rollback.
+                    if r.abort_event.is_set() or r.status not in (RunStatus.pending, RunStatus.running):
+                        continue
                     r.abort_action = multitask_strategy
                     r.abort_event.set()
                     if r.task is not None and not r.task.done():
@@ -623,8 +663,27 @@ class RunManager:
                     r.updated_at = now
                     interrupted_records.append(r)
 
-        for interrupted_record in interrupted_records:
-            await self._persist_status(interrupted_record, RunStatus.interrupted)
+        try:
+            for interrupted_record in interrupted_records:
+                await self._persist_status(interrupted_record, RunStatus.interrupted)
+            tasks = {r.task for r in inflight if r.task is not None and not r.task.done()}
+            if tasks:
+                # asyncio.wait does not propagate admission cancellation to the
+                # predecessor tasks; their rollback must finish independently.
+                done, pending = await asyncio.wait(tasks, timeout=self._replacement_timeout)
+                for task in done:
+                    if not task.cancelled():
+                        task.exception()
+                if pending:
+                    raise ConflictError(f"Thread {thread_id} still has a previous run finalizing; retry after it finishes")
+            # Worker final status may race the earlier cancellation-status write.
+            # Persist its final outcome once cleanup has settled.
+            for interrupted_record in interrupted_records:
+                await self._persist_status(interrupted_record, interrupted_record.status, error=interrupted_record.error)
+        except BaseException:
+            record.abort_event.set()
+            await self.set_status(record.run_id, RunStatus.error, error="Run admission ended before predecessor finalization completed")
+            raise
         logger.info("Run created: run_id=%s thread_id=%s", run_id, thread_id)
         return record
 
@@ -683,9 +742,9 @@ class RunManager:
         return recovered
 
     async def has_inflight(self, thread_id: str) -> bool:
-        """Return ``True`` if *thread_id* has a pending or running run."""
+        """Return whether a run is pending, running, or still finalizing."""
         async with self._lock:
-            return any(r.status in (RunStatus.pending, RunStatus.running) for r in self._thread_records_locked(thread_id))
+            return any(self._is_inflight(r) for r in self._thread_records_locked(thread_id))
 
     async def cleanup(self, run_id: str, *, delay: float = 300) -> None:
         """Remove a run record after an optional delay."""
@@ -728,11 +787,12 @@ class RunManager:
         deadline = loop.time() + timeout
 
         async with self._lock:
-            inflight = [record for record in self._runs.values() if record.status in (RunStatus.pending, RunStatus.running) and record.task is not None and not record.task.done()]
+            inflight = [record for record in self._runs.values() if record.task is not None and not record.task.done()]
             for record in inflight:
-                record.abort_action = "interrupt"
-                record.abort_event.set()
-                record.task.cancel()  # type: ignore[union-attr]  # filtered above
+                if not record.abort_event.is_set() and record.status in (RunStatus.pending, RunStatus.running):
+                    record.abort_action = "interrupt"
+                    record.abort_event.set()
+                    record.task.cancel()  # type: ignore[union-attr]  # filtered above
                 # Status is decided AFTER the drain (below), not here: a run that
                 # completes on its own during the drain must keep its real status.
 
@@ -769,7 +829,7 @@ class RunManager:
             else:
                 try:
                     results = await asyncio.wait_for(
-                        asyncio.gather(*(self._persist_status(record, RunStatus.interrupted) for record in to_persist), return_exceptions=True),
+                        asyncio.gather(*(self._persist_status(record, record.status, error=record.error) for record in to_persist), return_exceptions=True),
                         timeout=remaining,
                     )
                 except TimeoutError:

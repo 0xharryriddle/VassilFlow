@@ -20,14 +20,15 @@ from __future__ import annotations
 
 import logging
 import threading
+import uuid
 from collections import OrderedDict
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, override
+from typing import Annotated, Any, NotRequired, override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain.agents.middleware.types import ModelCallResult, ModelRequest, ModelResponse
+from langchain.agents.middleware.types import ModelCallResult, ModelRequest, ModelResponse, PrivateStateAttr
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.runtime import Runtime
 
@@ -62,8 +63,16 @@ class BoundedDict(OrderedDict):
         super().__setitem__(key, value)
 
 
-class TokenBudgetMiddleware(AgentMiddleware[AgentState]):
+class TokenBudgetState(AgentState):
+    """Private invocation identity shared across LangGraph middleware nodes."""
+
+    _token_budget_run_id: NotRequired[Annotated[str, PrivateStateAttr]]
+
+
+class TokenBudgetMiddleware(AgentMiddleware[TokenBudgetState]):
     """Enforce per-run token budget limits."""
+
+    state_schema = TokenBudgetState
 
     def __init__(self, config: TokenBudgetConfig) -> None:
         super().__init__()
@@ -88,12 +97,15 @@ class TokenBudgetMiddleware(AgentMiddleware[AgentState]):
             self._cumulative_usage.clear()
 
     @staticmethod
-    def _get_run_id(runtime: Runtime) -> str:
+    def _get_run_id(runtime: Runtime, state: AgentState | None = None) -> str:
+        if isinstance(state, Mapping):
+            invocation_id = state.get("_token_budget_run_id")
+            if isinstance(invocation_id, str) and invocation_id:
+                return invocation_id
         ctx = getattr(runtime, "context", None)
-        if isinstance(ctx, dict) and "run_id" in ctx:
+        if isinstance(ctx, dict) and isinstance(ctx.get("run_id"), str) and ctx["run_id"]:
             return ctx["run_id"]
-        # Fallback to runtime object ID to prevent collisions across embedded client runs
-        return str(id(runtime))
+        raise RuntimeError("Token budget hooks require before_agent invocation state or an explicit runtime run_id")
 
     def _clear_run_state(self, run_id: str) -> None:
         with self._lock:
@@ -103,16 +115,16 @@ class TokenBudgetMiddleware(AgentMiddleware[AgentState]):
             self._cumulative_usage.pop(run_id, None)
 
     @override
-    def before_agent(self, state: AgentState, runtime: Runtime) -> None:
+    def before_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
         if not self._config.enabled:
             return
 
         # Mark all old messages from previous runs as 'seen' so they don't count toward THIS run's budget
         messages = state.get("messages", [])
-        if not messages:
-            return
-
-        run_id = self._get_run_id(runtime)
+        # Runtime wrappers change between graph nodes, and the same middleware
+        # instance can serve concurrent invocations. Carry identity in graph
+        # state instead of keying it by a Runtime object's memory address.
+        run_id = str(uuid.uuid4())
         with self._lock:
             seen = self._seen_messages.setdefault(run_id, {})
             self._cumulative_usage.setdefault(run_id, TokenUsage())
@@ -123,16 +135,17 @@ class TokenBudgetMiddleware(AgentMiddleware[AgentState]):
                     input_tokens = usage.get("input_tokens", 0)
                     output_tokens = usage.get("output_tokens", 0)
                     seen[msg.id] = (input_tokens, output_tokens)
+        return {"_token_budget_run_id": run_id}
 
     @override
-    async def abefore_agent(self, state: AgentState, runtime: Runtime) -> None:
-        self.before_agent(state, runtime)
+    async def abefore_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
+        return self.before_agent(state, runtime)
 
     @override
     def after_agent(self, state: AgentState, runtime: Runtime) -> None:
         if not self._config.enabled:
             return
-        self._clear_run_state(self._get_run_id(runtime))
+        self._clear_run_state(self._get_run_id(runtime, state))
 
     @override
     async def aafter_agent(self, state: AgentState, runtime: Runtime) -> None:
@@ -182,7 +195,7 @@ class TokenBudgetMiddleware(AgentMiddleware[AgentState]):
         if not isinstance(last_msg, AIMessage):
             return None
 
-        run_id = self._get_run_id(runtime)
+        run_id = self._get_run_id(runtime, state)
 
         with self._lock:
             seen = self._seen_messages.setdefault(run_id, {})
@@ -255,11 +268,11 @@ class TokenBudgetMiddleware(AgentMiddleware[AgentState]):
     async def aafter_model(self, state: AgentState, runtime: Runtime) -> dict | None:
         return self._apply(state, runtime)
 
-    def _drain_pending_warnings(self, runtime: Runtime) -> list[str]:
+    def _drain_pending_warnings(self, runtime: Runtime, state: AgentState | None = None) -> list[str]:
         if not self._config.enabled:
             return []
 
-        run_id = self._get_run_id(runtime)
+        run_id = self._get_run_id(runtime, state)
         with self._lock:
             warnings = self._pending_warnings.pop(run_id, None)
         return warnings or []
@@ -278,13 +291,13 @@ class TokenBudgetMiddleware(AgentMiddleware[AgentState]):
     @override
     def wrap_model_call(self, request: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]) -> ModelCallResult:
 
-        warnings = self._drain_pending_warnings(request.runtime)
+        warnings = self._drain_pending_warnings(request.runtime, request.state)
         request = self._inject_warnings(request, warnings)
 
         return handler(request)
 
     @override
     async def awrap_model_call(self, request: ModelRequest, handler: Callable[[ModelRequest], Awaitable[ModelResponse]]) -> ModelCallResult:
-        warnings = self._drain_pending_warnings(request.runtime)
+        warnings = self._drain_pending_warnings(request.runtime, request.state)
         request = self._inject_warnings(request, warnings)
         return await handler(request)
