@@ -1,5 +1,10 @@
 # VassilFlow backend
 
+See [hardening contracts](docs/HARDENING.md) for atomic account initialization,
+conditional password rehashing, retryable thread deletion, run replacement and
+embedded execution boundaries. The reusable core release is 0.1.1; keep provider
+SDKs and domain adapters optional in projects built from the template.
+
 VassilFlow provides a reusable agent harness and a FastAPI Gateway with an embedded LangGraph runtime. Use the source base to build new agents with shared tools, skills, memory, sandbox access, delegation, persistence, and streaming. The base ships the default lead agent and personal-agent support, with no built-in product agents or Office renderer.
 
 Start with the [backend documentation index](docs/README.md). The [architecture contract](docs/ARCHITECTURE.md) defines Agent identity, capability adapters, Actions, lifecycle hooks, readiness, and repository boundaries for future products.
@@ -11,6 +16,10 @@ backend/
   app/
     gateway/                  # HTTP APIs, authentication, runtime composition
     channels/                 # IM integrations and user binding flows
+  packages/core/
+    pyproject.toml            # Independent vassilflow-core distribution
+    vassilflow_core/          # Injected-model agents, RAG and bounded delegation
+    tests/                    # Standalone package tests
   packages/harness/
     pyproject.toml            # Reusable harness package
     vassilflow/               # Public Python import namespace
@@ -33,6 +42,26 @@ backend/
 ```
 
 Application code may import `vassilflow.*`; the harness must not import `app.*`.
+Core must import neither namespace. The harness depends on core and reexports
+its `DanglingToolCallMiddleware`, preserving the existing harness import path.
+
+## Build a small domain project
+
+The [foundation guide](docs/FOUNDATION.md) explains the current source structure,
+what each domain customizes and how to adapt the starter to HR policy RAG.
+
+Use [`vassilflow-core`](packages/core/README.md), imported as `vassilflow_core`,
+with the [copyable project template](../templates/rag-agent/README.md) for a
+standalone RAG or agent application. Pass the model and retriever explicitly;
+keep domain prompts, data and tools in the copied project. Provider SDKs are
+optional `openai` and `anthropic` extras; the `sqlite` extra adds a LangGraph
+checkpoint adapter. The template's standard-library SQLite FTS5 index performs
+lexical retrieval and does not require that checkpoint extra.
+
+The template offers ingestion, cited RAG, a coordinator/research-subagent flow
+and a deterministic offline demo. Installing only core avoids installing the
+full harness and Gateway. The existing full-application installation and its
+dependencies remain unchanged in scope.
 
 ## Start Gateway
 
@@ -52,7 +81,7 @@ The local sandbox runs on the host and disables bash by default. Container-backe
 
 ## Build a new agent
 
-Use the [pure-argument factory](docs/rfc-create-vassilflow-agent.md) to compose a model, tools, middleware, and `RuntimeFeatures`, or use `VassilFlowClient` for configuration-driven synchronous embedding. Gateway provides authenticated HTTP/SSE and application lifecycle integration.
+Within the full harness, use the [pure-argument factory](docs/rfc-create-vassilflow-agent.md) to compose a model, tools, middleware, and `RuntimeFeatures`, or use `VassilFlowClient` for configuration-driven synchronous embedding. Gateway provides authenticated HTTP/SSE and application lifecycle integration.
 
 Keep product-specific code outside the generic harness. Use the existing capability and policy contracts when adding trusted inputs, specialized tools, domain storage, and frontend extensions.
 
@@ -67,3 +96,20 @@ uvx ruff format --check .
 ```
 
 See [contribution guidance](CONTRIBUTING.md), [blocking I/O checks](docs/BLOCKING_IO_DETECTION.md), and [replay E2E](docs/REPLAY_E2E.md). External-service integration tests require their configured prerequisites; replay tests provide a model-key-free contract check.
+
+Validate core separately with `python -m pytest backend/packages/core/tests --confcutdir=backend/packages/core`
+from the repository root, using an environment where core and its test extras
+are installed. For distribution verification, activate a **new disposable
+virtual environment**, install the built wheel with its `test` extra, then run
+from the repository root:
+
+```bash
+python -m pip install "/path/to/vassilflow_core-0.1.1-py3-none-any.whl[test]"
+python scripts/check_core_distribution.py
+```
+
+The script rejects full-stack environments, clears `PYTHONPATH`, installs a
+copied template into the active environment and runs its demo and acceptance
+tests outside the checkout. It makes no live model calls. Do not run it inside
+the existing backend environment or an environment containing another
+`domain-assistant` installation.

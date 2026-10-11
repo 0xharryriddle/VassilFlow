@@ -9,12 +9,13 @@ English
 VassilFlow is an open-source **super agent harness** that orchestrates **sub-agents**, **memory**, and **sandboxes** to do almost anything — powered by **extensible skills**.
 
 > [!NOTE]
-> Runtime configuration uses `VASSILFLOW_*` environment variables, `.vassilflow` state directories, and `vassilflow.db` by default.
+> The full application's runtime configuration uses `VASSILFLOW_*` environment variables, `.vassilflow` state directories, and `vassilflow.db` by default.
 
 ## Table of Contents
 
 - [VassilFlow](#-vassilflow---20)
   - [Table of Contents](#table-of-contents)
+  - [Reusable RAG and Agent Foundation](#reusable-rag-and-agent-foundation)
   - [One-Line Agent Setup](#one-line-agent-setup)
   - [Quick Start](#quick-start)
     - [Fresh Clone Checklist](#fresh-clone-checklist)
@@ -47,6 +48,40 @@ VassilFlow is an open-source **super agent harness** that orchestrates **sub-age
   - [Contributing](#contributing)
   - [License](#license)
   - [Acknowledgments](#acknowledgments)
+
+## Reusable RAG and Agent Foundation
+
+Read the [foundation and domain adaptation guide](backend/docs/FOUNDATION.md)
+for the source structure, shared responsibilities and a complete HR policy RAG example.
+
+For smaller projects across different domains, start with
+[`vassilflow-core`](backend/packages/core/README.md) and copy the
+[RAG/agent project template](templates/rag-agent/README.md). The independent
+`vassilflow_core` Python namespace provides agent composition, bounded subagent
+delegation and cited RAG with an explicitly supplied model and retriever.
+OpenAI and Anthropic providers are optional extras; domain prompts, tools, data
+and application interfaces remain in each project.
+
+The template includes a persistent SQLite FTS5 **lexical** retriever and an
+offline demo that exercises ingestion, RAG and delegation without model keys.
+It can be installed from a built core wheel; publication to a package index is
+not required. See the linked guides for installation and domain customization.
+
+The full application below remains available with its existing dependencies.
+The harness shares the core's dangling-tool-call recovery implementation;
+Gateway, UI, channels, memory and sandbox features remain in the full stack.
+Maintainers can validate a wheel and copied template outside the checkout with
+[`scripts/check_core_distribution.py`](scripts/check_core_distribution.py),
+using a disposable environment containing only `vassilflow-core[test]` and its
+dependencies. The check installs the template into that environment.
+
+Core 0.1.1 rejects interrupted delegations, accepts domain notation alongside
+numeric citations, and records retrieval/model work under distinct trace IDs.
+Evidence assembly bounds text encoding work, and template ingestion streams
+chunks while keeping each database replacement atomic. Delegation deadlines
+request cooperative cancellation; synchronous integrations must enforce their
+own timeouts and resource limits. See [hardening contracts](backend/docs/HARDENING.md)
+for application consistency, authentication and client-cache behavior.
 
 ## One-Line Agent Setup
 

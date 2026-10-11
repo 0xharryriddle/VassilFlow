@@ -25,6 +25,9 @@ VassilFlow/
 │   ├── Makefile               # Backend-only commands (dev, gateway, lint)
 │   ├── langgraph.json         # LangGraph Studio graph configuration
 │   ├── packages/
+│   │   ├── core/              # Independent vassilflow-core package
+│   │   │   ├── vassilflow_core/ # Agents, RAG, delegation and shared middleware
+│   │   │   └── tests/         # Standalone package tests
 │   │   └── harness/           # vassilflow-harness package
 │   │       ├── pyproject.toml
 │   │       ├── vassilflow/          # Agent harness implementation package
@@ -59,6 +62,7 @@ VassilFlow/
 │   ├── tests/                 # Test suite
 │   └── docs/                  # Documentation
 ├── frontend/                   # Next.js frontend application
+├── templates/rag-agent/         # Copyable domain project using vassilflow-core
 └── skills/                     # Agent skills directory
     ├── public/                # Public skills (committed)
     └── custom/                # Custom skills (gitignored)
@@ -156,14 +160,60 @@ CI runs these regression tests for every pull request via [.github/workflows/bac
 
 ## Architecture
 
-### Harness / App Split
+### Consistency and lifecycle contracts
 
-The backend is split into two layers with a strict dependency direction:
+See [docs/HARDENING.md](docs/HARDENING.md) for the architecture-review repairs.
+Bootstrap count/insert and metadata merges must serialize at the database
+boundary. Rehash only the password with an expected hash/version predicate;
+never persist a stale complete user snapshot for that upgrade. Failed checkpoint
+deletion retains thread ownership and returns a retryable failure.
 
+Run replacement waits for the preceding worker's finalization under per-thread
+admission control, outside the registry lock. A timed-out admission fails closed.
+Middleware accounting uses a private invocation key carried in graph state;
+memory jobs resolve identity from runtime context before auth-context fallback.
+Channel shutdown owns and drains spawned handlers before closing transports.
+
+Core RAG has a native Runnable trace root and distinct child runs. Stateless
+delegation rejects interrupted outcomes and visible static graph breakpoints.
+Timeouts request cooperative cancellation; they cannot terminate an arbitrary
+executor thread. Template ingestion streams chunks inside an atomic replacement.
+
+### Core / Harness / App Split
+
+The backend is split into three layers with a strict dependency direction:
+
+- **Core** (`packages/core/vassilflow_core/`): Independently installable `vassilflow-core` distribution for injected-model agent composition, cited RAG and bounded subagent delegation. It has no dependency on `vassilflow.*`, `app.*`, global application configuration or provider SDKs. Model providers are optional `openai`/`anthropic` extras; `sqlite` adds an optional checkpoint adapter.
 - **Harness** (`packages/harness/vassilflow/`): Publishable agent framework package (`vassilflow-harness`). Public import prefix: `vassilflow.*`. Contains agent orchestration, tools, sandbox, models, MCP, skills, config — everything needed to build and run agents.
 - **App** (`app/`): Unpublished application code. Import prefix: `app.*`. Contains the FastAPI Gateway API and IM channel integrations (Feishu, Slack, Telegram, DingTalk).
 
 **Dependency rule**: App may import the VassilFlow harness package, but the harness never imports `app.*`. This boundary is enforced by `tests/test_harness_boundary.py` which runs in CI.
+
+The harness declares core as a workspace dependency and keeps its existing
+`DanglingToolCallMiddleware` import path as a reexport of the core implementation.
+This shares message recovery across both runtimes. Core must not import the
+harness or app; `packages/core/tests/test_package_boundary.py` checks its boundary.
+The full application's dependency set is retained.
+
+For a new small domain, copy `templates/rag-agent/` and depend on a compatible
+version of `vassilflow-core`. Models and retrievers are supplied by the project;
+domain prompts, tools and ingestion stay there. Its SQLite FTS5 starter performs
+lexical retrieval, while the core accepts any compatible document-returning
+retriever. Core never locates or loads the full application's `config.yaml`.
+
+Run core's package-local tests separately from `backend/tests/`; they must not
+inherit the full backend's autouse fixtures. Distribution verification uses
+`scripts/check_core_distribution.py` from the repository root with a built wheel
+installed as `vassilflow-core[test]` in a disposable core-only environment.
+The script installs the copied template into that same environment, clears
+`PYTHONPATH`, and runs the demo/tests outside the checkout without live model
+calls. Do not use the backend environment for this check. See
+[core usage](packages/core/README.md) and the
+[domain template](../templates/rag-agent/README.md).
+
+[docs/FOUNDATION.md](docs/FOUNDATION.md) is the canonical guide for shared versus
+domain-owned code, HR project adaptation, retriever replacement and coordinated
+namespace/tool renames. Keep it aligned when changing the core/template contract.
 
 **Import conventions**:
 ```python
@@ -611,7 +661,7 @@ Both can be modified at runtime via Gateway API endpoints or `VassilFlowClient` 
 
 **Every new feature or bug fix MUST be accompanied by unit tests. No exceptions.**
 
-- Write tests in `backend/tests/` following the existing naming convention `test_<feature>.py`
+- Write full-application tests in `backend/tests/` following the existing naming convention `test_<feature>.py`. Keep standalone core tests in `backend/packages/core/tests/` and copied-project acceptance tests in `templates/rag-agent/tests/` so they can run without the full application's fixtures or dependencies.
 - Run the full suite before and after your change: `make test`
 - Tests must pass before a feature is considered complete
 - For lightweight config/utility modules, prefer pure unit tests with no external dependencies
@@ -771,6 +821,7 @@ procedures, not historical release pass claims. When changing documentation,
 check links and example syntax and run `tests/test_vassilflow_docs.py`.
 
 See `docs/` directory for detailed documentation:
+- [FOUNDATION.md](docs/FOUNDATION.md) - Shared core, domain templates and adaptation
 - [CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration options
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Architecture details
 - [API.md](docs/API.md) - API reference

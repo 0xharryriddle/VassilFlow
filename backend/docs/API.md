@@ -69,6 +69,12 @@ Thread search uses a JSON body with `limit` and `offset`; the current schema per
 
 Runs are listed newest first. Frontend history reconstruction must order runs and messages deliberately and preserve current messages if an older-page request fails. A graph checkpoint may contain only compacted context; persisted run messages supply earlier history when configured. See [summarization](summarization.md) and [replay tests](REPLAY_E2E.md).
 
+Thread deletion returns `503` if checkpoint deletion fails or is unsupported by
+the configured checkpointer. Ownership remains registered so the caller can
+retry after recovery; filesystem cleanup may already have completed. Replacing
+an active run waits for its worker to finalize and returns a conflict if that
+wait expires. See [consistency and lifecycle contracts](HARDENING.md).
+
 ## Deletion and local files
 
 Remove VassilFlow-managed local thread files through the authenticated thread deletion API, which coordinates core thread state and registered lifecycle hooks. Do not implement deletion as a direct directory removal.

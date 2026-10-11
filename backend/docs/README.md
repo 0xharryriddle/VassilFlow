@@ -1,8 +1,8 @@
 # Backend documentation
 
-These guides describe the current VassilFlow source base: a reusable harness, an embedded FastAPI Gateway runtime, and the shared frontend/channel integrations. The base ships no built-in Office product or product-specific renderer.
+These guides describe the current VassilFlow source base: an independently reusable core, a full agent harness, an embedded FastAPI Gateway runtime, and frontend/channel integrations. The base ships no built-in Office product or product-specific renderer.
 
-Start with [setup](SETUP.md), [architecture](ARCHITECTURE.md), and [configuration](CONFIGURATION.md). For a new agent built directly from this source, read [Python integration](rfc-create-vassilflow-agent.md) and the architecture's extension contracts.
+For a small RAG or agent project, start with [the foundation guide](FOUNDATION.md). For the full application, start with [setup](SETUP.md), [architecture](ARCHITECTURE.md), and [configuration](CONFIGURATION.md). For an agent using the full harness, read [Python integration](rfc-create-vassilflow-agent.md) and the architecture's extension contracts.
 
 ## Conventions
 
@@ -11,12 +11,14 @@ Start with [setup](SETUP.md), [architecture](ARCHITECTURE.md), and [configuratio
 - Runtime paths such as `{runtime_home}` and IDs in braces are placeholders, not checkout files.
 - Examples with model/provider identifiers or external endpoints require deployment-specific values.
 - Code defaults, example configuration, and launcher overrides can differ. [Path resolution](PATH_EXAMPLES.md) explains the distinction.
-- This review reflects the source on 2026-09-23. Test plans describe procedures, not inherited release-certification claims.
+- The existing full-application guide review reflects the source on 2026-09-23; the foundation guide documents the core/template added after that review. Test plans describe procedures, not inherited release-certification claims.
 
 ## Core guides
 
 | Guide                                                        | Contents                                                                                          |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| [FOUNDATION.md](FOUNDATION.md)                               | Shared core, domain source structure, HR adaptation, retrieval contracts and upgrade workflow      |
+| [HARDENING.md](HARDENING.md)                                 | Atomic updates, ownership, cancellation, tracing and account-cache contracts                        |
 | [SETUP.md](SETUP.md)                                         | Full-stack and Gateway-only development                                                           |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                           | Harness boundaries, Agent identity, capabilities, Actions, lifecycle, readiness, and repositories |
 | [CONFIGURATION.md](CONFIGURATION.md)                         | Configuration loading, defaults, environment, and restart boundaries                              |

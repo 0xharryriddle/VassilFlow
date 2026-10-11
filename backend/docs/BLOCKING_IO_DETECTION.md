@@ -22,7 +22,7 @@ From `backend/`:
 make test-blocking-io
 ```
 
-The tests in [tests/blocking_io](../tests/blocking_io/) exercise production async entry points under Blockbuster. Detector setup is centralized in [blocking_io_runtime.py](../tests/support/detectors/blocking_io_runtime.py), which scans `app` and `vassilflow` modules.
+The tests in [tests/blocking_io](../tests/blocking_io/) exercise production async entry points under Blockbuster. Detector setup is centralized in [blocking_io_runtime.py](../tests/support/detectors/blocking_io_runtime.py), which scans code under `app.*` or `vassilflow.*`.
 
 The gate only protects paths that tests execute. Add a test when a confirmed blocking surface lacks coverage. Add a detector rule only when the blocking primitive itself is not intercepted; adding rules cannot compensate for never calling the production path.
 
