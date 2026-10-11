@@ -46,7 +46,8 @@ markers = [
 index-url = "https://pypi.org/simple"
 
 [tool.uv.workspace]
-members = ["packages/harness"]
+members = ["packages/core", "packages/harness"]
 
 [tool.uv.sources]
+vassilflow-core = { workspace = true }
 vassilflow-harness = { workspace = true }

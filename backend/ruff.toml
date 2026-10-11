@@ -6,7 +6,7 @@ select = ["E", "F", "I", "UP"]
 ignore = []
 
 [lint.isort]
-known-first-party = ["app", "vassilflow"]
+known-first-party = ["app", "vassilflow", "vassilflow_core"]
 
 [format]
 quote-style = "double"

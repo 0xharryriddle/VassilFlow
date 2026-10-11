@@ -1,0 +1,41 @@
+[project]
+name = "vassilflow-core"
+version = "0.1.1"
+description = "Composable RAG and agent building blocks without the VassilFlow application runtime"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+    "langchain>=1.2.15,<2",
+    "langchain-core>=1.3.3,<2",
+    "langgraph>=1.1.9,<2",
+    "pydantic>=2.12.5,<3",
+]
+
+[project.optional-dependencies]
+openai = ["langchain-openai>=1.2.1,<2"]
+anthropic = ["langchain-anthropic>=1.4.1,<2"]
+sqlite = ["langgraph-checkpoint-sqlite>=3.0.3,<4"]
+test = ["pytest>=9,<10", "pytest-asyncio>=1.3,<2"]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["vassilflow_core"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["vassilflow_core"]

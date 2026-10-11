@@ -1,0 +1,45 @@
+name: Reusable core and domain template
+
+on:
+  push:
+    branches: [main, 2.0.x-dev]
+    paths:
+      - "backend/packages/core/**"
+      - "templates/rag-agent/**"
+      - "scripts/check_core_distribution.py"
+      - ".github/workflows/core-tests.yml"
+  pull_request:
+    paths:
+      - "backend/packages/core/**"
+      - "templates/rag-agent/**"
+      - "scripts/check_core_distribution.py"
+      - ".github/workflows/core-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  installed-core:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: "1"
+      LANGSMITH_TRACING: "false"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Build standalone distribution
+        run: |
+          python -m pip install build
+          python -m build backend/packages/core --outdir wheelhouse
+      - name: Install core only
+        run: python -m pip install "./wheelhouse/vassilflow_core-0.1.1-py3-none-any.whl[test]"
+      - name: Test installed core
+        run: python -m pytest backend/packages/core/tests --confcutdir=backend/packages/core -q
+      - name: Test copied domain project outside the checkout
+        run: python scripts/check_core_distribution.py
