@@ -123,7 +123,7 @@ export function ArtifactFileDetail({
     isSupportPreview,
     toolResult,
   });
-  const { content, url } = useArtifactContent({
+  const { content, url, error, refetch } = useArtifactContent({
     threadId,
     filepath: filepathFromProps,
     enabled: isCodeFile && !isWriteFile,
@@ -298,35 +298,49 @@ export function ArtifactFileDetail({
         </div>
       </ArtifactHeader>
       <ArtifactContent className="p-0">
-        {artifactViewState.canPreview &&
-          viewMode === "preview" &&
-          (language === "markdown" || language === "html") && (
-            <ArtifactFilePreview
-              content={visibleContent}
-              language={language ?? "text"}
-              scrollKey={filepathFromProps}
-              url={url}
-            />
-          )}
-        {isCodeFile && viewMode === "code" && (
-          <CodeEditor
-            className="size-full resize-none rounded-none border-none"
-            value={visibleContent ?? ""}
-            readonly
-          />
-        )}
-        {!isCodeFile && canPreviewInBrowser && (
-          <iframe
-            className="size-full"
-            src={urlOfArtifact({ filepath, threadId, isMock })}
-          />
-        )}
-        {!isCodeFile && !canPreviewInBrowser && (
-          <ArtifactDownloadFallback
-            filepath={filepath}
-            threadId={threadId}
-            isMock={isMock}
-          />
+        {error && !isWriteFile ? (
+          <div
+            role="alert"
+            className="flex size-full flex-col items-center justify-center gap-3 p-6"
+          >
+            <p>{t.common.failedToLoadArtifact}</p>
+            <Button variant="outline" onClick={() => void refetch()}>
+              {t.common.retry}
+            </Button>
+          </div>
+        ) : (
+          <>
+            {artifactViewState.canPreview &&
+              viewMode === "preview" &&
+              (language === "markdown" || language === "html") && (
+                <ArtifactFilePreview
+                  content={visibleContent}
+                  language={language ?? "text"}
+                  scrollKey={filepathFromProps}
+                  url={url}
+                />
+              )}
+            {isCodeFile && viewMode === "code" && (
+              <CodeEditor
+                className="size-full resize-none rounded-none border-none"
+                value={visibleContent ?? ""}
+                readonly
+              />
+            )}
+            {!isCodeFile && canPreviewInBrowser && (
+              <iframe
+                className="size-full"
+                src={urlOfArtifact({ filepath, threadId, isMock })}
+              />
+            )}
+            {!isCodeFile && !canPreviewInBrowser && (
+              <ArtifactDownloadFallback
+                filepath={filepath}
+                threadId={threadId}
+                isMock={isMock}
+              />
+            )}
+          </>
         )}
       </ArtifactContent>
     </Artifact>

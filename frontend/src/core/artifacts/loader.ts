@@ -1,5 +1,6 @@
 import type { BaseStream } from "@langchain/langgraph-sdk/react";
 
+import { fetch } from "../api/fetcher";
 import type { AgentThreadState } from "../threads";
 
 import { buildWriteFileDraftContent } from "./preview";
@@ -9,17 +10,22 @@ export async function loadArtifactContent({
   filepath,
   threadId,
   isMock,
+  signal,
 }: {
   filepath: string;
   threadId: string;
   isMock?: boolean;
+  signal?: AbortSignal;
 }) {
   let enhancedFilepath = filepath;
   if (filepath.endsWith(".skill")) {
     enhancedFilepath = filepath + "/SKILL.md";
   }
   const url = urlOfArtifact({ filepath: enhancedFilepath, threadId, isMock });
-  const response = await fetch(url);
+  const response = await fetch(url, { signal });
+  if (!response.ok) {
+    throw new Error(`Failed to load artifact (${response.status})`);
+  }
   const text = await response.text();
   return { content: text, url };
 }

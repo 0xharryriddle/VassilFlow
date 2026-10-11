@@ -69,6 +69,14 @@ The frontend is a stateful chat application. Users create **threads** (conversat
 3. TanStack Query manages server state; localStorage stores user settings
 4. Components subscribe to thread state and render updates
 
+`QueryClientProvider` owns one client per mounted authenticated-account boundary;
+never restore a module-level singleton for private data. A user-ID change keys a
+new provider before descendants render, and unmount clears/cancels old queries.
+Keep artifact requests on `core/api/fetcher`, pass query cancellation signals,
+and reject non-success responses before caching content. Memory server routes
+resolve the private Gateway through `core/auth/gateway-config`, consistently
+with server-side authentication.
+
 Failed submissions keep the unpersisted human message and uploaded-file metadata
 in the current page session. `ThreadChatPage` shows fixed localized error copy
 and restores the input for manual editing and resubmission; it does not replay

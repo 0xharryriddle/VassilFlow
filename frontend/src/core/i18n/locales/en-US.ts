@@ -38,6 +38,8 @@ export const enUS: Translations = {
     custom: "Custom",
     notAvailableInDemoMode: "Not available in demo mode",
     loading: "Loading...",
+    failedToLoadArtifact: "Unable to load this artifact.",
+    retry: "Retry",
     version: "Version",
     lastUpdated: "Last updated",
     code: "Code",

@@ -27,6 +27,8 @@ export interface Translations {
     custom: string;
     notAvailableInDemoMode: string;
     loading: string;
+    failedToLoadArtifact: string;
+    retry: string;
     version: string;
     lastUpdated: string;
     code: string;

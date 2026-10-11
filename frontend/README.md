@@ -33,6 +33,16 @@ When running through root commands such as `make dev`, most frontend variables
 can stay commented out because nginx and the Next.js server use the default
 local Gateway wiring.
 
+For a Gateway on another internal host, set
+`VASSILFLOW_INTERNAL_GATEWAY_BASE_URL` on the Next.js server. Memory proxies use
+the same private URL as server-side authentication. The public backend variable
+controls browser calls and is not a substitute for this private server URL.
+
+Private query caches belong to the current account and workspace session.
+Logging out, changing accounts or leaving the workspace discards that cache.
+Artifact text requests use authenticated fetch, reject failed HTTP responses,
+and show a retry action instead of rendering an error response as file content.
+
 ### Development
 
 ```bash

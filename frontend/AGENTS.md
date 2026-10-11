@@ -82,6 +82,12 @@ src/
 
 ### Interaction Ownership
 
+- Query caches belong to the mounted account boundary in `QueryClientProvider`.
+  Account changes replace the client before rendering private query consumers;
+  unmount clears the old cache and cancels its pending queries.
+- Artifact content uses the shared authenticated transport and rejects HTTP
+  errors; memory server proxies use the shared private Gateway URL resolver.
+
 - `src/app/workspace/chats/[thread_id]/page.tsx` owns composer busy-state wiring.
 - `src/core/threads/hooks.ts` owns pre-submit upload state and thread submission.
 - `src/hooks/usePoseStream.ts` is a passive store selector; global WebSocket lifecycle stays in `App.tsx`.
