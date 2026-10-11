@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import UTC
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -75,6 +75,40 @@ class SQLiteUserRepository(UserRepository):
                 await session.rollback()
                 raise ValueError(f"Email already registered: {user.email}") from exc
         return user
+
+    async def create_initial_admin(self, user: User) -> User:
+        """Serialize bootstrap's count and insert at the database boundary."""
+        if user.system_role != "admin":
+            raise ValueError("Initial user must be an administrator")
+        async with self._sf() as session:
+            dialect = session.get_bind().dialect.name
+            if dialect == "sqlite":
+                # Reserve the writer before reading; a deferred read transaction
+                # would let two connections observe the same empty admin set.
+                await session.execute(text("BEGIN IMMEDIATE"))
+            elif dialect == "postgresql":
+                # There may be no row to lock yet. This short table lock also
+                # serializes ordinary user inserts, without a schema migration.
+                await session.execute(text("LOCK TABLE users IN SHARE ROW EXCLUSIVE MODE"))
+            else:
+                raise NotImplementedError(f"Admin initialization does not support {dialect!r}")
+            count = await session.scalar(select(func.count()).select_from(UserRow).where(UserRow.system_role == "admin"))
+            if count:
+                raise ValueError("System already initialized")
+            session.add(self._user_to_row(user))
+            try:
+                await session.commit()
+            except IntegrityError as exc:
+                await session.rollback()
+                raise ValueError(f"Email already registered: {user.email}") from exc
+        return user
+
+    async def rehash_password(self, user_id: str, *, expected_password_hash: str, expected_token_version: int, password_hash: str) -> bool:
+        stmt = update(UserRow).where(UserRow.id == user_id, UserRow.password_hash == expected_password_hash, UserRow.token_version == expected_token_version).values(password_hash=password_hash)
+        async with self._sf() as session:
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount == 1
 
     async def get_user_by_id(self, user_id: str) -> User | None:
         async with self._sf() as session:

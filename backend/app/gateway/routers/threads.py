@@ -468,6 +468,16 @@ async def delete_thread_data(thread_id: str, request: Request) -> ThreadDeleteRe
     try:
         get_memory_queue().discard_thread(thread_id, user_id=user_id)
         response = _delete_thread_data(thread_id, user_id=user_id)
+        # Ownership must outlive every retained checkpoint. Missing owner rows
+        # remain readable for legacy compatibility, so partial deletion must
+        # fail before removing thread_meta or committing domain projections.
+        checkpointer = getattr(request.app.state, "checkpointer", None)
+        if checkpointer is not None:
+            try:
+                await checkpointer.adelete_thread(thread_id)
+            except Exception as exc:
+                logger.exception("Could not delete checkpoints for thread %s", sanitize_log_param(thread_id))
+                raise HTTPException(status_code=503, detail="Failed to delete thread checkpoints. Retry the deletion.") from exc
     except Exception as exc:
         if dispatcher is not None and intent is not None:
             try:
@@ -478,15 +488,6 @@ async def delete_thread_data(thread_id: str, request: Request) -> ThreadDeleteRe
             except Exception:
                 logger.exception("Could not abort thread deletion lifecycle intent")
         raise
-
-    # Remove checkpoints (best-effort)
-    checkpointer = getattr(request.app.state, "checkpointer", None)
-    if checkpointer is not None:
-        try:
-            if hasattr(checkpointer, "adelete_thread"):
-                await checkpointer.adelete_thread(thread_id)
-        except Exception:
-            logger.debug("Could not delete checkpoints for thread %s (not critical)", sanitize_log_param(thread_id))
 
     # Let project-backed domains detach references before thread identity
     # disappears. A failed handler leaves thread_meta available for retry.

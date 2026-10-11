@@ -6,7 +6,7 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from vassilflow.persistence.json_compat import json_match
@@ -218,13 +218,15 @@ class ThreadMetaRepository(ThreadMetaStore):
     ) -> None:
         """Merge ``metadata`` into ``metadata_json``.
 
-        Read-modify-write inside a single session/transaction so concurrent
-        callers see consistent state. No-op if the row does not exist or
-        the user_id check fails.
+        Reserve the SQLite writer or lock the PostgreSQL row before reading
+        so overlapping patches retain unrelated keys. No-op if the row does
+        not exist or the user_id check fails.
         """
         resolved_user_id = resolve_user_id(user_id, method_name="ThreadMetaRepository.update_metadata")
         async with self._sf() as session:
-            row = await session.get(ThreadMetaRow, thread_id)
+            if session.get_bind().dialect.name == "sqlite":
+                await session.execute(text("BEGIN IMMEDIATE"))
+            row = await session.scalar(select(ThreadMetaRow).where(ThreadMetaRow.thread_id == thread_id).with_for_update())
             if row is None:
                 return
             if resolved_user_id is not None and row.user_id != resolved_user_id:

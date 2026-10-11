@@ -49,8 +49,13 @@ class LocalAuthProvider(AuthProvider):
 
         if needs_rehash(user.password_hash):
             try:
-                user.password_hash = await hash_password_async(password)
-                await self._repo.update_user(user)
+                password_hash = await hash_password_async(password)
+                applied = await self._repo.rehash_password(str(user.id), expected_password_hash=user.password_hash, expected_token_version=user.token_version, password_hash=password_hash)
+                if not applied:
+                    # Another login or password change won the race. Do not
+                    # authenticate using a credential snapshot that is stale.
+                    return None
+                user.password_hash = password_hash
             except Exception:
                 # Rehash is an opportunistic upgrade; a transient DB error must not
                 # prevent an otherwise-valid login from succeeding.
@@ -82,6 +87,11 @@ class LocalAuthProvider(AuthProvider):
             needs_setup=needs_setup,
         )
         return await self._repo.create_user(user)
+
+    async def initialize_admin(self, email: str, password: str) -> User:
+        """Hash outside the transaction, then atomically claim initial setup."""
+        user = User(email=email, password_hash=await hash_password_async(password), system_role="admin", needs_setup=False)
+        return await self._repo.create_initial_admin(user)
 
     async def get_user_by_oauth(self, provider: str, oauth_id: str) -> User | None:
         """Get user by OAuth provider and ID."""

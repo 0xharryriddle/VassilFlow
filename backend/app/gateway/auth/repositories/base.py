@@ -38,6 +38,25 @@ class UserRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    async def create_initial_admin(self, user: User) -> User:
+        """Create an admin only if none exists, in one database transaction.
+
+        Raises ``ValueError`` when initialization has already completed or
+        the requested email is unavailable. Implementations must serialize
+        competing initializations across independent database connections.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    async def rehash_password(self, user_id: str, *, expected_password_hash: str, expected_token_version: int, password_hash: str) -> bool:
+        """Replace only a verified hash if its hash/version are still current.
+
+        Return False if the user was removed or the credentials changed.
+        This opportunistic upgrade must never overwrite other user fields.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     async def get_user_by_id(self, user_id: str) -> User | None:
         """Get user by ID.
 

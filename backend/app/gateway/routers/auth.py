@@ -511,9 +511,10 @@ async def initialize_admin(request: Request, response: Response, body: Initializ
         )
 
     try:
-        user = await get_local_provider().create_user(email=body.email, password=body.password, system_role="admin", needs_setup=False)
+        user = await get_local_provider().initialize_admin(email=body.email, password=body.password)
     except ValueError:
-        # DB unique-constraint race: another concurrent request beat us.
+        # The repository rechecks the admin count while holding a database
+        # lock, including when competing requests use different emails.
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=AuthErrorResponse(code=AuthErrorCode.SYSTEM_ALREADY_INITIALIZED, message="System already initialized").model_dump(),

@@ -816,14 +816,15 @@ def test_authenticate_auto_rehashes_legacy_hash():
 
     mock_repo = MagicMock()
     mock_repo.get_user_by_email = AsyncMock(return_value=user)
-    mock_repo.update_user = AsyncMock(return_value=user)
+    mock_repo.rehash_password = AsyncMock(return_value=True)
 
     provider = LocalAuthProvider(mock_repo)
 
     result = asyncio.run(provider.authenticate({"email": "rehash@test.com", "password": password}))
     assert result is not None
     assert result.password_hash.startswith("$dfv2$")
-    mock_repo.update_user.assert_called_once()
+    mock_repo.rehash_password.assert_awaited_once()
+    mock_repo.update_user.assert_not_called()
 
 
 def test_authenticate_skips_rehash_for_v2_hash():
@@ -842,12 +843,13 @@ def test_authenticate_skips_rehash_for_v2_hash():
 
     mock_repo = MagicMock()
     mock_repo.get_user_by_email = AsyncMock(return_value=user)
-    mock_repo.update_user = AsyncMock(return_value=user)
+    mock_repo.rehash_password = AsyncMock(return_value=True)
 
     provider = LocalAuthProvider(mock_repo)
 
     result = asyncio.run(provider.authenticate({"email": "v2@test.com", "password": password}))
     assert result is not None
+    mock_repo.rehash_password.assert_not_called()
     mock_repo.update_user.assert_not_called()
 
 
